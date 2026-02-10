@@ -1,0 +1,177 @@
+{#
+  Onyx SEARCH BAR COMPONENT with INSTANT SEARCH
+
+  Usage:
+    {% include "partials/onyx/organisms/search-bar.html" %}
+
+  Parameters:
+    - placeholder (optional): Search input placeholder (default: "Search products...")
+    - action (optional): Form action URL (default: "/search")
+    - method (optional): Form method (default: "get")
+    - name (optional): Input name (default: "q")
+    - filters (optional): true|false - Show filter dropdown (default: false)
+    - instant (optional): true|false - Enable instant WASM search (default: true)
+    - hx_get (optional): HTMX GET endpoint for live search
+    - hx_target (optional): HTMX target for results
+    - class (optional): Additional CSS classes
+#}
+
+{% set search_placeholder = placeholder | default(value="Search products...") %}
+{% set search_action = action | default(value="/search") %}
+{% set search_method = method | default(value="get") %}
+{% set search_name = name | default(value="q") %}
+{% set search_filters = filters | default(value=false) %}
+{% set search_instant = instant | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-search-bar" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<form
+  class="{{ css_classes }}"
+  action="{{ search_action }}"
+  method="{{ search_method }}"
+  {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+  {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+  {% if hx_get %}hx-trigger="input changed delay:300ms from:#search-input"{% endif %}
+>
+  {# Search Input Container with Overlay #}
+  <div class="onyx-search-input-wrapper search-container">
+    <svg class="onyx-search-icon search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="m21 21-4.35-4.35"/>
+    </svg>
+    <input
+      type="search"
+      id="search-input"
+      name="{{ search_name }}"
+      placeholder="{{ search_placeholder }}"
+      class="onyx-search-input"
+      autocomplete="off"
+      aria-label="Search products"
+      aria-controls="search-overlay"
+      aria-expanded="false"
+      aria-autocomplete="list"
+    >
+    {% if search_filters %}
+      {% include "partials/onyx/molecules/dropdown-menu.html" %}
+    {% endif %}
+
+    {# Instant Search Overlay - populated by JavaScript #}
+    {% if search_instant %}
+    <div id="search-overlay"
+         class="search-overlay"
+         role="listbox"
+         aria-label="Search results">
+      {# Results populated dynamically by instant-search.js #}
+    </div>
+    {% endif %}
+  </div>
+
+  {# Search Button #}
+  <button type="submit" class="onyx-search-btn" aria-label="Search">
+    Search
+  </button>
+</form>
+
+<style>
+/* Base Search Bar */
+.onyx-search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  width: 100%;
+  max-width: 600px;
+}
+
+/* Search Input Wrapper */
+.onyx-search-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background-color: var(--onyx-input);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  overflow: hidden;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-search-input-wrapper:focus-within {
+  border-color: var(--onyx-ring);
+  box-shadow: 0 0 0 3px rgba(255, 26, 92, 0.1);
+}
+
+/* Search Icon */
+.onyx-search-icon {
+  position: absolute;
+  left: var(--onyx-space-3);
+  font-size: var(--onyx-text-lg);
+  color: var(--onyx-muted-fg);
+  pointer-events: none;
+}
+
+/* Search Input */
+.onyx-search-input {
+  flex: 1;
+  padding: var(--onyx-space-3) var(--onyx-space-3) var(--onyx-space-3) var(--onyx-space-10);
+  font-size: var(--onyx-text-base);
+  color: var(--onyx-fg);
+  background: none;
+  border: none;
+  outline: none;
+}
+
+.onyx-search-input::placeholder {
+  color: var(--onyx-muted-fg);
+}
+
+/* Search Button */
+.onyx-search-btn {
+  padding: var(--onyx-space-3) var(--onyx-space-6);
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-bold);
+  text-transform: uppercase;
+  color: var(--onyx-primary-fg);
+  background-color: var(--onyx-primary);
+  border: none;
+  border-radius: var(--onyx-radius-md);
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  white-space: nowrap;
+}
+
+.onyx-search-btn:hover {
+  background-color: var(--onyx-primary-hover);
+  box-shadow: var(--onyx-glow-primary);
+}
+
+.onyx-search-btn:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-search-bar {
+    max-width: 100%;
+  }
+
+  .onyx-search-input {
+    padding: var(--onyx-space-2) var(--onyx-space-2) var(--onyx-space-2) var(--onyx-space-9);
+    font-size: var(--onyx-text-sm);
+  }
+
+  .onyx-search-btn {
+    padding: var(--onyx-space-2) var(--onyx-space-4);
+    font-size: var(--onyx-text-xs);
+  }
+
+  .onyx-search-icon {
+    left: var(--onyx-space-2);
+    font-size: var(--onyx-text-base);
+  }
+}
+</style>

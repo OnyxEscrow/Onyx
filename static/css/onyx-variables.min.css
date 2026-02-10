@@ -1,0 +1,130 @@
+/* ==========================================
+ONYX - CSS VARIABLES
+Design System extracted from Tailwind config
+Pure CSS - No framework dependencies
+========================================== */
+:root {
+--onyx-bg: hsl(0, 0%, 5%);
+--onyx-fg: hsl(0, 0%, 98%);
+--onyx-primary: hsl(349, 100%, 55%);
+--onyx-primary-fg: hsl(0, 0%, 5%);
+--onyx-secondary: hsl(280, 60%, 50%);
+--onyx-secondary-fg: hsl(0, 0%, 98%);
+--onyx-accent: hsl(180, 100%, 50%);
+--onyx-accent-fg: hsl(0, 0%, 5%);
+--onyx-card: hsl(0, 0%, 8%);
+--onyx-card-fg: hsl(0, 0%, 98%);
+--onyx-muted: hsl(0, 0%, 15%);
+--onyx-muted-fg: hsl(0, 0%, 65%);
+--onyx-border: hsl(0, 0%, 20%);
+--onyx-input: hsl(0, 0%, 20%);
+--onyx-ring: hsl(349, 100%, 55%);
+--onyx-destructive: hsl(0, 100%, 50%);
+--onyx-destructive-fg: hsl(0, 0%, 98%);
+--onyx-success: hsl(142, 71%, 45%);
+--onyx-success-fg: hsl(0, 0%, 98%);
+--onyx-warning: hsl(38, 92%, 50%);
+--onyx-warning-fg: hsl(0, 0%, 5%);
+--onyx-info: hsl(199, 89%, 48%);
+--onyx-info-fg: hsl(0, 0%, 98%);
+--onyx-popover: hsl(0, 0%, 8%);
+--onyx-popover-fg: hsl(0, 0%, 98%);
+--onyx-space-1: 0.25rem;
+--onyx-space-2: 0.5rem;
+--onyx-space-3: 0.75rem;
+--onyx-space-4: 1rem;
+--onyx-space-5: 1.25rem;
+--onyx-space-6: 1.5rem;
+--onyx-space-8: 2rem;
+--onyx-space-10: 2.5rem;
+--onyx-space-12: 3rem;
+--onyx-space-16: 4rem;
+--onyx-space-20: 5rem;
+--onyx-space-24: 6rem;
+--onyx-font-mono: 'Courier New', 'Courier', monospace;
+--onyx-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+--onyx-text-xs: 0.75rem;
+--onyx-text-sm: 0.875rem;
+--onyx-text-base: 1rem;
+--onyx-text-lg: 1.125rem;
+--onyx-text-xl: 1.25rem;
+--onyx-text-2xl: 1.5rem;
+--onyx-text-3xl: 1.875rem;
+--onyx-text-4xl: 2.25rem;
+--onyx-text-5xl: 3rem;
+--onyx-text-6xl: 3.75rem;
+--onyx-text-7xl: 4.5rem;
+--onyx-text-8xl: 6rem;
+--onyx-text-9xl: 8rem;
+--onyx-text-huge: 12rem;
+--onyx-weight-normal: 400;
+--onyx-weight-medium: 500;
+--onyx-weight-semibold: 600;
+--onyx-weight-bold: 700;
+--onyx-weight-black: 900;
+--onyx-leading-none: 1;
+--onyx-leading-tight: 1.25;
+--onyx-leading-normal: 1.5;
+--onyx-leading-relaxed: 1.75;
+--onyx-tracking-tighter: -0.05em;
+--onyx-tracking-tight: -0.025em;
+--onyx-tracking-normal: 0;
+--onyx-tracking-wide: 0.025em;
+--onyx-tracking-wider: 0.05em;
+--onyx-tracking-widest: 0.1em;
+--onyx-radius-none: 0;
+--onyx-radius-sm: 0.125rem;
+--onyx-radius-md: 0.25rem;
+--onyx-radius-lg: 0.5rem;
+--onyx-radius-xl: 0.75rem;
+--onyx-radius-2xl: 1rem;
+--onyx-radius-full: 9999px;
+--onyx-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+--onyx-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5),
+0 2px 4px -2px rgba(0, 0, 0, 0.5);
+--onyx-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5),
+0 4px 6px -4px rgba(0, 0, 0, 0.5);
+--onyx-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+0 8px 10px -6px rgba(0, 0, 0, 0.5);
+--onyx-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+--onyx-glow-primary: 0 0 20px rgba(255, 26, 92, 0.5);
+--onyx-glow-secondary: 0 0 20px rgba(153, 51, 204, 0.5);
+--onyx-glow-accent: 0 0 20px rgba(0, 255, 255, 0.5);
+--onyx-z-0: 0;
+--onyx-z-10: 10;
+--onyx-z-20: 20;
+--onyx-z-30: 30;
+--onyx-z-40: 40;
+--onyx-z-50: 50;
+--onyx-z-modal: 100;
+--onyx-z-toast: 200;
+--onyx-z-tooltip: 300;
+--onyx-transition-fast: 150ms;
+--onyx-transition-base: 200ms;
+--onyx-transition-slow: 300ms;
+--onyx-transition-slower: 500ms;
+--onyx-ease-in: cubic-bezier(0.4, 0, 1, 1);
+--onyx-ease-out: cubic-bezier(0, 0, 0.2, 1);
+--onyx-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+--onyx-screen-sm: 640px;
+--onyx-screen-md: 768px;
+--onyx-screen-lg: 1024px;
+--onyx-screen-xl: 1280px;
+--onyx-screen-2xl: 1536px;
+--onyx-container-padding: 2rem;
+--onyx-container-max: 1400px;
+--onyx-glass-bg: rgba(255, 255, 255, 0.05);
+--onyx-glass-border: rgba(255, 255, 255, 0.1);
+--onyx-glass-backdrop: blur(10px);
+--onyx-status-pending: hsl(38, 92%, 50%);
+--onyx-status-funded: hsl(199, 89%, 48%);
+--onyx-status-shipped: hsl(280, 60%, 50%);
+--onyx-status-completed: hsl(142, 71%, 45%);
+--onyx-status-cancelled: hsl(0, 0%, 50%);
+--onyx-status-disputed: hsl(0, 100%, 50%);
+--onyx-status-refunded: hsl(180, 100%, 50%);
+}
+@media (prefers-color-scheme: dark) {
+:root {
+}
+}

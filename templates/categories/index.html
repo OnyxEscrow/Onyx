@@ -1,4 +1,4 @@
-{% extends "base-nexus.html" %}
+{% extends "base-onyx.html" %}
 
 {% block title %}{{ page_title }} - FROST MARKET{% endblock %}
 
@@ -8,34 +8,34 @@
 .categories-page {
     max-width: 1200px;
     margin: 0 auto;
-    padding: var(--nexus-space-8, 2rem) var(--nexus-space-4, 1rem);
+    padding: var(--onyx-space-8, 2rem) var(--onyx-space-4, 1rem);
 }
 
 .page-header {
     text-align: center;
-    margin-bottom: var(--nexus-space-12, 3rem);
+    margin-bottom: var(--onyx-space-12, 3rem);
 }
 
 .page-header h1 {
-    font-size: var(--nexus-text-4xl, 2.5rem);
-    font-weight: var(--nexus-weight-bold, 700);
-    margin-bottom: var(--nexus-space-2, 0.5rem);
-    background: linear-gradient(135deg, var(--nexus-fg, #fff) 0%, var(--nexus-primary, #ff1a5c) 100%);
+    font-size: var(--onyx-text-4xl, 2.5rem);
+    font-weight: var(--onyx-weight-bold, 700);
+    margin-bottom: var(--onyx-space-2, 0.5rem);
+    background: linear-gradient(135deg, var(--onyx-fg, #fff) 0%, var(--onyx-primary, #ff1a5c) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
 
 .page-header p {
-    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
-    font-size: var(--nexus-text-lg, 1.125rem);
+    color: var(--onyx-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--onyx-text-lg, 1.125rem);
 }
 
 /* Categories Grid */
 .categories-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--nexus-space-6, 1.5rem);
+    gap: var(--onyx-space-6, 1.5rem);
 }
 
 /* Category Card */
@@ -43,18 +43,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: var(--nexus-space-8, 2rem) var(--nexus-space-6, 1.5rem);
-    background: var(--nexus-card, rgba(255,255,255,0.05));
-    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
-    border-radius: var(--nexus-radius-xl, 1.5rem);
+    padding: var(--onyx-space-8, 2rem) var(--onyx-space-6, 1.5rem);
+    background: var(--onyx-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--onyx-border, rgba(255,255,255,0.1));
+    border-radius: var(--onyx-radius-xl, 1.5rem);
     text-decoration: none;
-    color: var(--nexus-fg, #fff);
-    transition: all var(--nexus-transition-base, 300ms) var(--nexus-ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+    color: var(--onyx-fg, #fff);
+    transition: all var(--onyx-transition-base, 300ms) var(--onyx-ease-out, cubic-bezier(0.4, 0, 0.2, 1));
     text-align: center;
 }
 
 .category-card:hover {
-    border-color: var(--nexus-primary, #ff1a5c);
+    border-color: var(--onyx-primary, #ff1a5c);
     transform: translateY(-4px);
     box-shadow: 0 20px 40px rgba(255, 26, 92, 0.15);
 }
@@ -65,48 +65,48 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--nexus-primary-alpha, rgba(255, 26, 92, 0.1));
-    border-radius: var(--nexus-radius-lg, 1rem);
-    margin-bottom: var(--nexus-space-4, 1rem);
-    transition: background var(--nexus-transition-base, 300ms);
+    background: var(--onyx-primary-alpha, rgba(255, 26, 92, 0.1));
+    border-radius: var(--onyx-radius-lg, 1rem);
+    margin-bottom: var(--onyx-space-4, 1rem);
+    transition: background var(--onyx-transition-base, 300ms);
 }
 
 .category-card:hover .category-icon {
-    background: var(--nexus-primary, #ff1a5c);
+    background: var(--onyx-primary, #ff1a5c);
 }
 
 .category-icon svg {
     width: 32px;
     height: 32px;
-    color: var(--nexus-primary, #ff1a5c);
-    transition: color var(--nexus-transition-base, 300ms);
+    color: var(--onyx-primary, #ff1a5c);
+    transition: color var(--onyx-transition-base, 300ms);
 }
 
 .category-card:hover .category-icon svg {
-    color: var(--nexus-bg, #0a0a0a);
+    color: var(--onyx-bg, #0a0a0a);
 }
 
 .category-card h2 {
-    font-size: var(--nexus-text-xl, 1.25rem);
-    font-weight: var(--nexus-weight-semibold, 600);
-    margin-bottom: var(--nexus-space-2, 0.5rem);
+    font-size: var(--onyx-text-xl, 1.25rem);
+    font-weight: var(--onyx-weight-semibold, 600);
+    margin-bottom: var(--onyx-space-2, 0.5rem);
 }
 
 .category-card p {
-    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
-    font-size: var(--nexus-text-sm, 0.875rem);
-    margin-bottom: var(--nexus-space-4, 1rem);
+    color: var(--onyx-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--onyx-text-sm, 0.875rem);
+    margin-bottom: var(--onyx-space-4, 1rem);
     line-height: 1.5;
 }
 
 .category-count {
     display: inline-block;
-    padding: var(--nexus-space-1, 0.25rem) var(--nexus-space-3, 0.75rem);
-    background: var(--nexus-bg, #0a0a0a);
-    border-radius: var(--nexus-radius-full, 9999px);
-    font-size: var(--nexus-text-xs, 0.75rem);
-    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
-    font-family: var(--nexus-font-mono, 'JetBrains Mono', monospace);
+    padding: var(--onyx-space-1, 0.25rem) var(--onyx-space-3, 0.75rem);
+    background: var(--onyx-bg, #0a0a0a);
+    border-radius: var(--onyx-radius-full, 9999px);
+    font-size: var(--onyx-text-xs, 0.75rem);
+    color: var(--onyx-muted-fg, rgba(255,255,255,0.6));
+    font-family: var(--onyx-font-mono, 'JetBrains Mono', monospace);
 }
 
 /* Responsive */
@@ -116,7 +116,7 @@
     }
 
     .page-header h1 {
-        font-size: var(--nexus-text-3xl, 2rem);
+        font-size: var(--onyx-text-3xl, 2rem);
     }
 }
 </style>

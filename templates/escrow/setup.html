@@ -11,7 +11,7 @@
 
     <!-- CSS - Industrial Theme + Apple Components -->
     <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
-    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/onyx-industrial-unified.css?v=1.0.0">
     <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
     <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
 
@@ -54,11 +54,11 @@
         .shield-lock-icon {
             width: 48px;
             height: 48px;
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
             margin-bottom: 12px;
         }
         .shield-lock-text {
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
             font-weight: 600;
             font-size: 14px;
             text-align: center;
@@ -349,7 +349,7 @@
                             </div>
                         </div>
 
-                        <div class="apple-card" style="background: var(--nexus-bg-card); margin-bottom: 24px; position: relative;">
+                        <div class="apple-card" style="background: var(--onyx-bg-card); margin-bottom: 24px; position: relative;">
                             <!-- Shield Lock Overlay - shown until shield downloaded -->
                             <div id="shield-lock-overlay" class="shield-lock-overlay" style="padding: 32px; text-align: center;">
                                 <svg class="shield-lock-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -357,7 +357,7 @@
                                     <path d="M9 12l2 2 4-4"/>
                                 </svg>
 
-                                <h3 style="color: var(--nexus-gold); font-size: 18px; margin-bottom: 16px; font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">
+                                <h3 style="color: var(--onyx-gold); font-size: 18px; margin-bottom: 16px; font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">
                                     Security First
                                 </h3>
 
@@ -407,7 +407,7 @@
                                 <h3 class="apple-card-title">Protected Payment Address</h3>
                             </div>
                             <div class="apple-card-body">
-                                <div id="escrow-address" class="shield-protected" style="font-family: monospace; font-size: 13px; color: var(--nexus-gold); word-wrap: break-word;">
+                                <div id="escrow-address" class="shield-protected" style="font-family: monospace; font-size: 13px; color: var(--onyx-gold); word-wrap: break-word;">
                                     ████████████████████████████████████████████████████████████████████████████████████████████████
                                 </div>
                                 <!-- QR Code for mobile funding -->
@@ -560,29 +560,29 @@
            ========================================================================== */
 
         :root {
-            --nexus-gold: #D4AF37;
-            --nexus-gold-dim: rgba(212, 175, 55, 0.15);
-            --nexus-bg: #0a0a0b;
-            --nexus-bg-elevated: #111113;
-            --nexus-bg-card: #151517;
-            --nexus-border: rgba(255, 255, 255, 0.08);
-            --nexus-border-gold: rgba(212, 175, 55, 0.25);
-            --nexus-text: #ffffff;
-            --nexus-text-muted: rgba(255, 255, 255, 0.5);
-            --nexus-green: #22c55e;
-            --nexus-red: #ef4444;
-            --nexus-yellow: #eab308;
+            --onyx-gold: #D4AF37;
+            --onyx-gold-dim: rgba(212, 175, 55, 0.15);
+            --onyx-bg: #0a0a0b;
+            --onyx-bg-elevated: #111113;
+            --onyx-bg-card: #151517;
+            --onyx-border: rgba(255, 255, 255, 0.08);
+            --onyx-border-gold: rgba(212, 175, 55, 0.25);
+            --onyx-text: #ffffff;
+            --onyx-text-muted: rgba(255, 255, 255, 0.5);
+            --onyx-green: #22c55e;
+            --onyx-red: #ef4444;
+            --onyx-yellow: #eab308;
         }
 
         /* Force body dark background */
         body, html {
-            background: var(--nexus-bg) !important;
-            color: var(--nexus-text) !important;
+            background: var(--onyx-bg) !important;
+            color: var(--onyx-text) !important;
         }
 
         /* Page Layout */
         .apple-page {
-            background: var(--nexus-bg);
+            background: var(--onyx-bg);
             min-height: 100vh;
             padding-top: 100px;
         }
@@ -599,12 +599,12 @@
             font-weight: 600;
             letter-spacing: 0.15em;
             text-transform: uppercase;
-            color: var(--nexus-text);
+            color: var(--onyx-text);
             margin: 0 0 8px;
         }
 
         .apple-page-title .text-gold {
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
         }
 
         .apple-page-subtitle {
@@ -612,7 +612,7 @@
             font-size: 12px;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
         }
 
         /* ==========================================================================
@@ -630,13 +630,13 @@
             left: 60px;
             right: 60px;
             height: 2px;
-            background: var(--nexus-border);
+            background: var(--onyx-border);
             z-index: 0;
         }
 
         .apple-stepper-progress {
             height: 100%;
-            background: linear-gradient(90deg, var(--nexus-gold), var(--nexus-green));
+            background: linear-gradient(90deg, var(--onyx-gold), var(--onyx-green));
             transition: width 0.5s ease;
         }
 
@@ -658,22 +658,22 @@
             width: 32px;
             height: 32px;
             border-radius: 4px;
-            background: var(--nexus-bg-card);
-            border: 1px solid var(--nexus-border);
+            background: var(--onyx-bg-card);
+            border: 1px solid var(--onyx-border);
             display: flex;
             align-items: center;
             justify-content: center;
             font-family: var(--font-mono, monospace);
             font-size: 12px;
             font-weight: 600;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             transition: all 0.3s ease;
         }
 
         .apple-stepper-step.active .apple-stepper-step-circle,
         .apple-stepper-step.completed .apple-stepper-step-circle {
-            background: linear-gradient(135deg, var(--nexus-gold), #B8962E);
-            border-color: var(--nexus-gold);
+            background: linear-gradient(135deg, var(--onyx-gold), #B8962E);
+            border-color: var(--onyx-gold);
             color: #000;
             box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
         }
@@ -683,21 +683,21 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             text-align: center;
             max-width: 80px;
         }
 
         .apple-stepper-step.active .apple-stepper-step-label {
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
         }
 
         /* ==========================================================================
            CARDS - Glassmorphism Industrial
            ========================================================================== */
         .apple-card {
-            background: var(--nexus-bg-card);
-            border: 1px solid var(--nexus-border);
+            background: var(--onyx-bg-card);
+            border: 1px solid var(--onyx-border);
             border-radius: 4px;
             backdrop-filter: blur(20px);
             overflow: hidden;
@@ -705,7 +705,7 @@
 
         .apple-card-header {
             padding: 16px 20px;
-            border-bottom: 1px solid var(--nexus-border);
+            border-bottom: 1px solid var(--onyx-border);
         }
 
         .apple-card-title {
@@ -714,7 +714,7 @@
             font-weight: 600;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--nexus-text);
+            color: var(--onyx-text);
             margin: 0;
         }
 
@@ -758,32 +758,32 @@
 
         .apple-alert-info {
             background: rgba(212, 175, 55, 0.08);
-            border: 1px solid var(--nexus-border-gold);
-            color: var(--nexus-text);
+            border: 1px solid var(--onyx-border-gold);
+            color: var(--onyx-text);
         }
 
         .apple-alert-info svg {
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
         }
 
         .apple-alert-success {
             background: rgba(34, 197, 94, 0.08);
             border: 1px solid rgba(34, 197, 94, 0.25);
-            color: var(--nexus-text);
+            color: var(--onyx-text);
         }
 
         .apple-alert-success svg {
-            color: var(--nexus-green);
+            color: var(--onyx-green);
         }
 
         .apple-alert-warning {
             background: rgba(234, 179, 8, 0.08);
             border: 1px solid rgba(234, 179, 8, 0.25);
-            color: var(--nexus-text);
+            color: var(--onyx-text);
         }
 
         .apple-alert-warning svg {
-            color: var(--nexus-yellow);
+            color: var(--onyx-yellow);
         }
 
         /* ==========================================================================
@@ -813,9 +813,9 @@
         }
 
         .apple-btn-gold {
-            background: linear-gradient(135deg, var(--nexus-gold), #B8962E);
+            background: linear-gradient(135deg, var(--onyx-gold), #B8962E);
             color: #000;
-            border-color: var(--nexus-gold);
+            border-color: var(--onyx-gold);
         }
 
         .apple-btn-gold:hover {
@@ -826,14 +826,14 @@
 
         .apple-btn-ghost {
             background: transparent;
-            color: var(--nexus-text-muted);
-            border-color: var(--nexus-border);
+            color: var(--onyx-text-muted);
+            border-color: var(--onyx-border);
         }
 
         .apple-btn-ghost:hover {
-            color: var(--nexus-text);
-            border-color: var(--nexus-gold);
-            background: var(--nexus-gold-dim);
+            color: var(--onyx-text);
+            border-color: var(--onyx-gold);
+            background: var(--onyx-gold-dim);
         }
 
         /* ==========================================================================
@@ -849,7 +849,7 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             margin-bottom: 8px;
         }
 
@@ -859,9 +859,9 @@
             padding: 12px 14px;
             font-family: var(--font-mono, monospace);
             font-size: 13px;
-            color: var(--nexus-text);
-            background: var(--nexus-bg);
-            border: 1px solid var(--nexus-border);
+            color: var(--onyx-text);
+            background: var(--onyx-bg);
+            border: 1px solid var(--onyx-border);
             border-radius: 4px;
             transition: all 0.2s ease;
             box-sizing: border-box;
@@ -877,20 +877,20 @@
         .apple-input:focus,
         .apple-textarea:focus {
             outline: none;
-            border-color: var(--nexus-gold);
+            border-color: var(--onyx-gold);
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
         }
 
         .apple-input::placeholder,
         .apple-textarea::placeholder {
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             opacity: 0.6;
         }
 
         .apple-checkbox {
             width: 16px;
             height: 16px;
-            accent-color: var(--nexus-gold);
+            accent-color: var(--onyx-gold);
             cursor: pointer;
         }
 
@@ -903,10 +903,10 @@
             font-weight: 600;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--nexus-text);
+            color: var(--onyx-text);
             margin: 0 0 20px;
             padding-bottom: 12px;
-            border-bottom: 1px solid var(--nexus-border);
+            border-bottom: 1px solid var(--onyx-border);
         }
 
         /* ==========================================================================
@@ -920,17 +920,17 @@
         }
 
         .apple-status-indicator.checking {
-            background: var(--nexus-yellow);
+            background: var(--onyx-yellow);
             animation: pulse-indicator 1.5s infinite;
         }
 
         .apple-status-indicator.connected {
-            background: var(--nexus-green);
+            background: var(--onyx-green);
             box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
         }
 
         .apple-status-indicator.disconnected {
-            background: var(--nexus-red);
+            background: var(--onyx-red);
         }
 
         @keyframes pulse-indicator {
@@ -944,8 +944,8 @@
         .apple-spinner {
             width: 28px;
             height: 28px;
-            border: 2px solid var(--nexus-border);
-            border-top-color: var(--nexus-gold);
+            border: 2px solid var(--onyx-border);
+            border-top-color: var(--onyx-gold);
             border-radius: 4px;
             animation: spin 1s linear infinite;
             margin: 0 auto;
@@ -973,8 +973,8 @@
             display: block !important;
             opacity: 1 !important;
             visibility: visible !important;
-            background: var(--nexus-bg) !important;
-            color: var(--nexus-text) !important;
+            background: var(--onyx-bg) !important;
+            color: var(--onyx-text) !important;
         }
 
         #content-step4 h2,
@@ -986,19 +986,19 @@
         }
 
         #content-step4 .apple-section-title {
-            color: var(--nexus-text) !important;
+            color: var(--onyx-text) !important;
         }
 
         #content-step4 .apple-alert-success {
             background: rgba(34, 197, 94, 0.1) !important;
             border: 1px solid rgba(34, 197, 94, 0.3) !important;
-            color: var(--nexus-text) !important;
+            color: var(--onyx-text) !important;
         }
 
         #content-step4 .apple-alert-warning {
             background: rgba(212, 175, 55, 0.1) !important;
             border: 1px solid rgba(212, 175, 55, 0.3) !important;
-            color: var(--nexus-text) !important;
+            color: var(--onyx-text) !important;
         }
 
         @keyframes fadeIn {
@@ -1010,14 +1010,14 @@
            SEED PHRASE DISPLAY
            ========================================================================== */
         #seed-phrase {
-            background: var(--nexus-bg) !important;
+            background: var(--onyx-bg) !important;
             padding: 16px 18px !important;
             border-radius: 4px !important;
             font-family: var(--font-mono, monospace) !important;
             font-size: 15px !important;
             line-height: 1.8 !important;
-            color: var(--nexus-gold) !important;
-            border: 1px solid var(--nexus-border-gold);
+            color: var(--onyx-gold) !important;
+            border: 1px solid var(--onyx-border-gold);
             word-spacing: 6px;
         }
 
@@ -1028,20 +1028,20 @@
         #escrow-address {
             font-family: var(--font-mono, monospace) !important;
             font-size: 11px !important;
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
             word-break: break-all;
             padding: 12px;
-            background: var(--nexus-bg);
+            background: var(--onyx-bg);
             border-radius: 4px;
-            border: 1px solid var(--nexus-border);
+            border: 1px solid var(--onyx-border);
         }
 
         /* ==========================================================================
            PARTICIPANTS LIST
            ========================================================================== */
         #participants-list > div {
-            background: var(--nexus-bg) !important;
-            border: 1px solid var(--nexus-border);
+            background: var(--onyx-bg) !important;
+            border: 1px solid var(--onyx-border);
             border-radius: 4px;
             padding: 10px 14px !important;
             font-family: var(--font-mono, monospace);
@@ -1057,11 +1057,11 @@
             font-family: var(--font-mono, monospace) !important;
             font-size: 11px !important;
             line-height: 1.8 !important;
-            color: var(--nexus-green) !important;
+            color: var(--onyx-green) !important;
             padding: 16px;
-            background: var(--nexus-bg);
+            background: var(--onyx-bg);
             border-radius: 4px;
-            border: 1px solid var(--nexus-border);
+            border: 1px solid var(--onyx-border);
             max-height: 200px;
             overflow-y: auto;
         }
@@ -1070,8 +1070,8 @@
            FOOTER
            ========================================================================== */
         .apple-footer {
-            background: var(--nexus-bg);
-            border-top: 1px solid var(--nexus-border);
+            background: var(--onyx-bg);
+            border-top: 1px solid var(--onyx-border);
             padding: 40px 0;
         }
 
@@ -1079,12 +1079,12 @@
             font-family: var(--font-oswald, 'Oswald', sans-serif);
             font-size: 20px;
             letter-spacing: 0.15em;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
         }
 
         .apple-footer-tagline {
             font-size: 12px;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             margin: 8px 0 24px;
         }
 
@@ -1097,19 +1097,19 @@
 
         .apple-footer-link {
             font-size: 12px;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             text-decoration: none;
             transition: color 0.2s;
         }
 
         .apple-footer-link:hover {
-            color: var(--nexus-gold);
+            color: var(--onyx-gold);
         }
 
         .apple-footer-copyright,
         .apple-footer-note {
             font-size: 11px;
-            color: var(--nexus-text-muted);
+            color: var(--onyx-text-muted);
             opacity: 0.6;
         }
 
@@ -1124,8 +1124,8 @@
             height: 20px !important;
             min-width: 20px !important;
             min-height: 20px !important;
-            background: var(--nexus-bg) !important;
-            border: 2px solid var(--nexus-border) !important;
+            background: var(--onyx-bg) !important;
+            border: 2px solid var(--onyx-border) !important;
             border-radius: 3px !important;
             cursor: pointer !important;
             position: relative !important;
@@ -1134,12 +1134,12 @@
         }
 
         #seed-saved-checkbox:hover {
-            border-color: var(--nexus-gold) !important;
+            border-color: var(--onyx-gold) !important;
         }
 
         #seed-saved-checkbox:checked {
-            background: var(--nexus-gold) !important;
-            border-color: var(--nexus-gold) !important;
+            background: var(--onyx-gold) !important;
+            border-color: var(--onyx-gold) !important;
         }
 
         #seed-saved-checkbox:checked::after {
@@ -1168,8 +1168,8 @@
         }
 
         #seed-quiz-modal-content {
-            background: var(--nexus-bg-card) !important;
-            border: 1px solid var(--nexus-border) !important;
+            background: var(--onyx-bg-card) !important;
+            border: 1px solid var(--onyx-border) !important;
             border-radius: 4px !important;
             max-width: 480px !important;
             box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
@@ -1183,7 +1183,7 @@
         /* Modal Header */
         #seed-quiz-modal-content > div:nth-child(2) {
             padding: 20px 24px !important;
-            border-bottom: 1px solid var(--nexus-border) !important;
+            border-bottom: 1px solid var(--onyx-border) !important;
             background: transparent !important;
         }
 
@@ -1193,18 +1193,18 @@
             font-weight: 600 !important;
             letter-spacing: 0.1em !important;
             text-transform: uppercase !important;
-            color: var(--nexus-text) !important;
+            color: var(--onyx-text) !important;
         }
 
         #seed-quiz-modal h3 > div {
-            background: var(--nexus-gold-dim) !important;
+            background: var(--onyx-gold-dim) !important;
             border-radius: 4px !important;
             padding: 8px !important;
         }
 
         #seed-quiz-modal h3 svg,
         #seed-quiz-modal h3 i {
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
             width: 18px !important;
             height: 18px !important;
         }
@@ -1212,15 +1212,15 @@
         /* Close button */
         #seed-quiz-modal button[onclick="closeSeedQuizModal()"] {
             background: transparent !important;
-            border: 1px solid var(--nexus-border) !important;
+            border: 1px solid var(--onyx-border) !important;
             border-radius: 4px !important;
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             padding: 8px !important;
         }
 
         #seed-quiz-modal button[onclick="closeSeedQuizModal()"]:hover {
-            border-color: var(--nexus-gold) !important;
-            color: var(--nexus-gold) !important;
+            border-color: var(--onyx-gold) !important;
+            color: var(--onyx-gold) !important;
         }
 
         /* Modal Body */
@@ -1231,15 +1231,15 @@
 
         /* Info Notice */
         #seed-quiz-modal .bg-blue-500\/10 {
-            background: var(--nexus-gold-dim) !important;
-            border: 1px solid var(--nexus-border-gold) !important;
+            background: var(--onyx-gold-dim) !important;
+            border: 1px solid var(--onyx-border-gold) !important;
             border-radius: 4px !important;
             padding: 14px 16px !important;
         }
 
         #seed-quiz-modal .bg-blue-500\/10 strong,
         #seed-quiz-modal .text-blue-400 {
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
             font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
             font-size: 12px !important;
             letter-spacing: 0.08em !important;
@@ -1249,13 +1249,13 @@
         #seed-quiz-modal .bg-blue-500\/10 p,
         #seed-quiz-modal .text-gray-300,
         #seed-quiz-modal .text-gray-500 {
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             font-size: 12px !important;
         }
 
         #seed-quiz-modal .bg-blue-500\/10 i,
         #seed-quiz-modal .bg-blue-500\/10 svg {
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
         }
 
         /* Quiz Labels */
@@ -1266,13 +1266,13 @@
             font-weight: 600 !important;
             text-transform: uppercase !important;
             letter-spacing: 0.1em !important;
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             margin-bottom: 8px !important;
             background: transparent !important;
         }
 
         #seed-quiz-modal label span {
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
         }
 
         /* Quiz Inputs - CRITICAL FIX */
@@ -1284,9 +1284,9 @@
             padding: 12px 14px !important;
             font-family: var(--font-mono, monospace) !important;
             font-size: 14px !important;
-            color: var(--nexus-text) !important;
-            background: var(--nexus-bg) !important;
-            border: 1px solid var(--nexus-border) !important;
+            color: var(--onyx-text) !important;
+            background: var(--onyx-bg) !important;
+            border: 1px solid var(--onyx-border) !important;
             border-radius: 4px !important;
             box-sizing: border-box !important;
             height: auto !important;
@@ -1296,13 +1296,13 @@
         }
 
         #seed-quiz-modal input[type="text"]:focus {
-            border-color: var(--nexus-gold) !important;
+            border-color: var(--onyx-gold) !important;
             outline: none !important;
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15) !important;
         }
 
         #seed-quiz-modal input[type="text"]::placeholder {
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             opacity: 0.5 !important;
         }
 
@@ -1312,7 +1312,7 @@
             border: 1px solid rgba(239, 68, 68, 0.25) !important;
             border-radius: 4px !important;
             padding: 12px 14px !important;
-            color: var(--nexus-red) !important;
+            color: var(--onyx-red) !important;
             font-size: 12px !important;
         }
 
@@ -1325,20 +1325,20 @@
         }
 
         #seed-quiz-modal .bg-yellow-500\/5 p {
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             font-size: 11px !important;
         }
 
         #seed-quiz-modal .bg-yellow-500\/5 i,
         #seed-quiz-modal .bg-yellow-500\/5 svg,
         #seed-quiz-modal .text-yellow-400 {
-            color: var(--nexus-gold) !important;
+            color: var(--onyx-gold) !important;
         }
 
         /* Modal Footer */
         #seed-quiz-modal-content > div:last-child {
             padding: 16px 24px !important;
-            border-top: 1px solid var(--nexus-border) !important;
+            border-top: 1px solid var(--onyx-border) !important;
             background: transparent !important;
             display: flex !important;
             justify-content: flex-end !important;
@@ -1350,9 +1350,9 @@
         #seed-quiz-modal-content > div:last-child > button:first-child {
             padding: 10px 20px !important;
             background: transparent !important;
-            border: 1px solid var(--nexus-border) !important;
+            border: 1px solid var(--onyx-border) !important;
             border-radius: 4px !important;
-            color: var(--nexus-text-muted) !important;
+            color: var(--onyx-text-muted) !important;
             font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
             font-size: 12px !important;
             font-weight: 600 !important;
@@ -1363,15 +1363,15 @@
 
         #seed-quiz-modal button.bg-white\/5:hover,
         #seed-quiz-modal-content > div:last-child > button:first-child:hover {
-            border-color: var(--nexus-gold) !important;
-            color: var(--nexus-gold) !important;
-            background: var(--nexus-gold-dim) !important;
+            border-color: var(--onyx-gold) !important;
+            color: var(--onyx-gold) !important;
+            background: var(--onyx-gold-dim) !important;
         }
 
         /* Verify Button */
         #verify-quiz-btn {
             padding: 10px 20px !important;
-            background: linear-gradient(135deg, var(--nexus-gold), #B8962E) !important;
+            background: linear-gradient(135deg, var(--onyx-gold), #B8962E) !important;
             border: none !important;
             border-radius: 4px !important;
             color: #000 !important;
@@ -1521,7 +1521,7 @@
     </style>
 
     <!-- WebSocket Notifications & Toast System -->
-    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <script src="/static/js/notifications-onyx.js?v=20260117_fix3"></script>
     <!-- Notification Center -->
     <script src="/static/js/notification-routes.js"></script>
     <script src="/static/js/notification-center.js"></script>

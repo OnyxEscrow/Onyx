@@ -1,4 +1,4 @@
-//! Telemetry module for NEXUS
+//! Telemetry module for Onyx
 //!
 //! Provides unified observability:
 //! - OPS-001: Sentry error tracking (free tier: 5k events/month)
@@ -75,7 +75,7 @@ fn init_jaeger_tracer() -> Result<opentelemetry_sdk::trace::Tracer> {
         .with_exporter(exporter)
         .with_trace_config(opentelemetry_sdk::trace::Config::default().with_resource(
             opentelemetry_sdk::Resource::new(vec![
-                opentelemetry::KeyValue::new("service.name", "nexus-server"),
+                opentelemetry::KeyValue::new("service.name", "onyx-server"),
                 opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
             ]),
         ))

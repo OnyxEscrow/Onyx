@@ -1,0 +1,255 @@
+{#
+  Onyx TABS COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/tabs.html" with
+       id="product-tabs"
+       tabs=[
+         {"id": "description", "label": "Description", "content": "<p>Product description</p>"},
+         {"id": "reviews", "label": "Reviews", "content": "<p>Customer reviews</p>"},
+         {"id": "shipping", "label": "Shipping", "content": "<p>Shipping info</p>"}
+       ]
+       active="description"
+    %}
+
+  Parameters:
+    - id (required): Unique tabs ID
+    - tabs (required): Array of tab objects with:
+        - id: Tab ID
+        - label: Tab label text
+        - content: Tab content HTML
+        - icon: Optional icon
+        - badge: Optional badge text
+        - disabled: true|false
+    - active (optional): ID of initially active tab (defaults to first tab)
+    - variant (optional): default|pills|underline (default: default)
+    - class (optional): Additional CSS classes
+#}
+
+{% set tabs_variant = variant | default(value="default") %}
+{% set tabs_active = active | default(value=tabs[0].id) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-tabs onyx-tabs-" ~ tabs_variant %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}">
+  {# Tab List #}
+  <div class="onyx-tabs-list" role="tablist">
+    {% for tab in tabs %}
+      {% set tab_disabled = tab.disabled | default(value=false) %}
+      <button
+        class="onyx-tab-trigger {% if tab.id == tabs_active %}onyx-tab-trigger-active{% endif %}"
+        role="tab"
+        aria-selected="{% if tab.id == tabs_active %}true{% else %}false{% endif %}"
+        aria-controls="tab-panel-{{ id }}-{{ tab.id }}"
+        id="tab-trigger-{{ id }}-{{ tab.id }}"
+        onclick="switchTab('{{ id }}', '{{ tab.id }}')"
+        {% if tab_disabled %}disabled{% endif %}
+      >
+        {% if tab.icon %}
+          <span class="onyx-tab-icon">{{ tab.icon | safe }}</span>
+        {% endif %}
+        <span class="onyx-tab-label">{{ tab.label }}</span>
+        {% if tab.badge %}
+          <span class="onyx-tab-badge">{{ tab.badge }}</span>
+        {% endif %}
+      </button>
+    {% endfor %}
+  </div>
+
+  {# Tab Panels #}
+  <div class="onyx-tabs-content">
+    {% for tab in tabs %}
+      <div
+        class="onyx-tab-panel {% if tab.id == tabs_active %}onyx-tab-panel-active{% endif %}"
+        role="tabpanel"
+        id="tab-panel-{{ id }}-{{ tab.id }}"
+        aria-labelledby="tab-trigger-{{ id }}-{{ tab.id }}"
+        {% if tab.id != tabs_active %}hidden{% endif %}
+      >
+        {{ tab.content | safe }}
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+function switchTab(containerId, tabId) {
+  var container = document.getElementById(containerId);
+
+  // Update triggers
+  var triggers = container.querySelectorAll('.onyx-tab-trigger');
+  triggers.forEach(function(trigger) {
+    var triggerId = trigger.id.replace('tab-trigger-' + containerId + '-', '');
+    if (triggerId === tabId) {
+      trigger.classList.add('onyx-tab-trigger-active');
+      trigger.setAttribute('aria-selected', 'true');
+    } else {
+      trigger.classList.remove('onyx-tab-trigger-active');
+      trigger.setAttribute('aria-selected', 'false');
+    }
+  });
+
+  // Update panels
+  var panels = container.querySelectorAll('.onyx-tab-panel');
+  panels.forEach(function(panel) {
+    var panelId = panel.id.replace('tab-panel-' + containerId + '-', '');
+    if (panelId === tabId) {
+      panel.classList.add('onyx-tab-panel-active');
+      panel.removeAttribute('hidden');
+    } else {
+      panel.classList.remove('onyx-tab-panel-active');
+      panel.setAttribute('hidden', '');
+    }
+  });
+}
+</script>
+
+<style>
+/* Base Tabs */
+.onyx-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-4);
+}
+
+/* Tab List */
+.onyx-tabs-list {
+  display: flex;
+  gap: var(--onyx-space-1);
+  border-bottom: 2px solid var(--onyx-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.onyx-tabs-list::-webkit-scrollbar {
+  height: 4px;
+}
+
+.onyx-tabs-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.onyx-tabs-list::-webkit-scrollbar-thumb {
+  background: var(--onyx-border);
+  border-radius: var(--onyx-radius-sm);
+}
+
+/* Tab Trigger */
+.onyx-tab-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  padding: var(--onyx-space-3) var(--onyx-space-4);
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-muted-fg);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  white-space: nowrap;
+  position: relative;
+  bottom: -2px;
+}
+
+.onyx-tab-trigger:hover {
+  color: var(--onyx-fg);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.onyx-tab-trigger:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+}
+
+.onyx-tab-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.onyx-tab-trigger-active {
+  color: var(--onyx-primary);
+  border-bottom-color: var(--onyx-primary);
+}
+
+/* Tab Icon */
+.onyx-tab-icon {
+  font-size: var(--onyx-text-base);
+}
+
+/* Tab Badge */
+.onyx-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 var(--onyx-space-1);
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-bold);
+  background-color: var(--onyx-primary);
+  color: var(--onyx-primary-fg);
+  border-radius: var(--onyx-radius-full);
+}
+
+/* Pills Variant */
+.onyx-tabs-pills .onyx-tabs-list {
+  border-bottom: none;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-tabs-pills .onyx-tab-trigger {
+  border-radius: var(--onyx-radius-md);
+  border-bottom: none;
+  bottom: 0;
+}
+
+.onyx-tabs-pills .onyx-tab-trigger-active {
+  background-color: var(--onyx-primary);
+  color: var(--onyx-primary-fg);
+}
+
+/* Underline Variant */
+.onyx-tabs-underline .onyx-tab-trigger {
+  padding-bottom: var(--onyx-space-2);
+}
+
+.onyx-tabs-underline .onyx-tab-trigger-active {
+  border-bottom-width: 3px;
+}
+
+/* Tab Content */
+.onyx-tabs-content {
+  position: relative;
+}
+
+/* Tab Panel */
+.onyx-tab-panel {
+  animation: onyx-tab-fade-in 0.2s var(--onyx-ease-out);
+}
+
+@keyframes onyx-tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-tab-trigger {
+    padding: var(--onyx-space-2) var(--onyx-space-3);
+    font-size: var(--onyx-text-xs);
+  }
+}
+</style>

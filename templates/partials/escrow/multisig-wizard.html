@@ -368,8 +368,8 @@ function showMultisigHelp() {
     `;
 
     // Use existing modal system or create simple overlay
-    if (window.NexusModal) {
-        window.NexusModal.show(helpContent);
+    if (window.OnyxModal) {
+        window.OnyxModal.show(helpContent);
     } else {
         alert('2-of-3 Multisig requires Buyer + Vendor signatures for normal transactions, or Arbiter + either party for disputes.');
     }

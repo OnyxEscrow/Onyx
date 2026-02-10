@@ -817,7 +817,7 @@ function validateAddress(address) {
 }
 
 function saveExistingAddress(address) {
-    localStorage.setItem('nexus_vendor_address', address);
+    localStorage.setItem('onyx_vendor_address', address);
     walletState = 'complete';
 }
 
@@ -916,11 +916,11 @@ function showSuccess() {
 // PROGRESS PERSISTENCE
 // ============================================
 function saveProgress() {
-    localStorage.setItem('nexus_vendor_onboard_step', currentStep.toString());
+    localStorage.setItem('onyx_vendor_onboard_step', currentStep.toString());
 }
 
 function loadProgress() {
-    const savedStep = localStorage.getItem('nexus_vendor_onboard_step');
+    const savedStep = localStorage.getItem('onyx_vendor_onboard_step');
     if (savedStep) {
         const step = parseInt(savedStep);
         if (step > 1 && step <= 4) {
@@ -930,8 +930,8 @@ function loadProgress() {
 }
 
 function markOnboardingComplete() {
-    localStorage.setItem('nexus_vendor_onboarded', 'true');
-    localStorage.removeItem('nexus_vendor_onboard_step');
+    localStorage.setItem('onyx_vendor_onboarded', 'true');
+    localStorage.removeItem('onyx_vendor_onboard_step');
 
     // Also notify server
     fetch('/api/vendor/onboard/complete', {
@@ -953,7 +953,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadProgress();
 
     // Check if already onboarded
-    if (localStorage.getItem('nexus_vendor_onboarded') === 'true') {
+    if (localStorage.getItem('onyx_vendor_onboarded') === 'true') {
         // Redirect to dashboard
         window.location.href = '/vendor/dashboard';
     }

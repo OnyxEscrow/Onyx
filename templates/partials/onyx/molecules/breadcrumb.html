@@ -1,0 +1,152 @@
+{#
+  Onyx BREADCRUMB COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/breadcrumb.html" with
+       items=[
+         {"text": "Home", "href": "/"},
+         {"text": "Products", "href": "/products"},
+         {"text": "Electronics", "href": "/products/electronics"},
+         {"text": "Current Page"}
+       ]
+    %}
+
+  Parameters:
+    - items (required): Array of breadcrumb items with:
+        - text: Breadcrumb text
+        - href: Link URL (optional, last item is typically without href)
+        - icon: Optional icon
+    - separator (optional): Separator character (default: "/")
+    - class (optional): Additional CSS classes
+#}
+
+{% set breadcrumb_separator = separator | default(value="/") %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-breadcrumb" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<nav class="{{ css_classes }}" aria-label="Breadcrumb">
+  <ol class="onyx-breadcrumb-list">
+    {% for item in items %}
+      <li class="onyx-breadcrumb-item {% if loop.last %}onyx-breadcrumb-item-current{% endif %}">
+        {% if item.href and not loop.last %}
+          {# Link Item #}
+          <a href="{{ item.href }}" class="onyx-breadcrumb-link" hx-boost="true">
+            {% if item.icon %}
+              <span class="onyx-breadcrumb-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            {{ item.text }}
+          </a>
+        {% else %}
+          {# Current Page (no link) #}
+          <span class="onyx-breadcrumb-current" aria-current="page">
+            {% if item.icon %}
+              <span class="onyx-breadcrumb-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            {{ item.text }}
+          </span>
+        {% endif %}
+
+        {# Separator #}
+        {% if not loop.last %}
+          <span class="onyx-breadcrumb-separator" aria-hidden="true">{{ breadcrumb_separator }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>
+
+<style>
+/* Base Breadcrumb */
+.onyx-breadcrumb {
+  display: flex;
+  align-items: center;
+}
+
+/* Breadcrumb List */
+.onyx-breadcrumb-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--onyx-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Breadcrumb Item */
+.onyx-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  font-size: var(--onyx-text-sm);
+}
+
+/* Breadcrumb Link */
+.onyx-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--onyx-space-1);
+  color: var(--onyx-muted-fg);
+  text-decoration: none;
+  transition: color var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-breadcrumb-link:hover {
+  color: var(--onyx-primary);
+  text-decoration: underline;
+}
+
+.onyx-breadcrumb-link:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+  border-radius: var(--onyx-radius-sm);
+}
+
+/* Current Page */
+.onyx-breadcrumb-current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--onyx-space-1);
+  color: var(--onyx-fg);
+  font-weight: var(--onyx-weight-medium);
+}
+
+/* Breadcrumb Icon */
+.onyx-breadcrumb-icon {
+  display: inline-flex;
+  font-size: var(--onyx-text-base);
+}
+
+/* Breadcrumb Separator */
+.onyx-breadcrumb-separator {
+  color: var(--onyx-border);
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-breadcrumb-list {
+    gap: var(--onyx-space-1);
+  }
+
+  .onyx-breadcrumb-item {
+    font-size: var(--onyx-text-xs);
+  }
+
+  /* Hide middle items on mobile, show first and last 2 */
+  .onyx-breadcrumb-item:not(:first-child):not(:nth-last-child(-n+2)) {
+    display: none;
+  }
+
+  /* Add ellipsis for hidden items */
+  .onyx-breadcrumb-item:nth-child(2)::before {
+    content: '...';
+    margin-right: var(--onyx-space-2);
+    color: var(--onyx-muted-fg);
+  }
+}
+</style>

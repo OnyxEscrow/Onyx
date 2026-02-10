@@ -1,0 +1,353 @@
+{#
+  Onyx TOAST COMPONENT (Notification)
+
+  Usage:
+    {% include "partials/onyx/molecules/toast.html" %}
+
+  Parameters:
+    - message (required): Toast message content
+    - title (optional): Toast title
+    - variant (optional): info|success|warning|error (default: info)
+    - duration (optional): Auto-dismiss duration in ms (default: 5000, set 0 for manual dismiss)
+    - icon (optional): Custom icon (emoji or HTML)
+    - position (optional): top-right|top-left|bottom-right|bottom-left|top-center|bottom-center (default: top-right)
+    - dismissible (optional): true|false - Show close button (default: true)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set toast_variant = variant | default(value="info") %}
+{% set toast_duration = duration | default(value=5000) %}
+{% set toast_position = position | default(value="top-right") %}
+{% set toast_dismissible = dismissible | default(value=true) %}
+
+{# Default icons for each variant #}
+{% if type == "success" %}
+  {% set icon = "check-circle" %}
+{% elif type == "error" %}
+  {% set icon = "x-circle" %}
+{% elif type == "warning" %}
+  {% set icon = "alert-triangle" %}
+{% elif type == "info" %}
+  {% set icon = "info" %}
+{% else %}
+  {% set icon = "bell" %}
+{% endif %}
+
+
+
+{# Generate unique ID if not provided #}
+{% set toast_id = id | default(value="toast-" ~ range(end=10000) | random) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-toast onyx-toast-" ~ toast_variant ~ " onyx-toast-" ~ toast_position %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div
+  id="{{ toast_id }}"
+  class="{{ css_classes }}"
+  role="alert"
+  aria-live="polite"
+  aria-atomic="true"
+>
+  {# Progress Bar (if auto-dismiss) #}
+  {% if toast_duration > 0 %}
+    <div class="onyx-toast-progress" style="animation-duration: {{ toast_duration }}ms;"></div>
+  {% endif %}
+
+  {# Icon #}
+  {% if toast_icon %}
+    <div class="onyx-toast-icon">
+      {{ toast_icon | safe }}
+    </div>
+  {% endif %}
+
+  {# Content #}
+  <div class="onyx-toast-content">
+    {% if title %}
+      <div class="onyx-toast-title">{{ title }}</div>
+    {% endif %}
+    <div class="onyx-toast-message">{{ message | safe }}</div>
+  </div>
+
+  {# Dismiss Button #}
+  {% if toast_dismissible %}
+    <button
+      class="onyx-toast-close"
+      aria-label="Close notification"
+      onclick="document.getElementById('{{ toast_id }}').remove()"
+    >
+      ✕
+    </button>
+  {% endif %}
+</div>
+
+{% if toast_duration > 0 %}
+<script>
+(function() {
+  var toast = document.getElementById('{{ toast_id }}');
+  if (toast) {
+    setTimeout(function() {
+      toast.classList.add('onyx-toast-exit');
+      setTimeout(function() {
+        toast.remove();
+      }, 300);
+    }, {{ toast_duration }});
+  }
+})();
+</script>
+{% endif %}
+
+<style>
+/* Toast Container (should be added to layout) */
+.onyx-toast-container {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.onyx-toast-container > * {
+  pointer-events: auto;
+}
+
+/* Position variants for container */
+.onyx-toast-container-top-right {
+  top: var(--onyx-space-4);
+  right: var(--onyx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-3);
+}
+
+.onyx-toast-container-top-left {
+  top: var(--onyx-space-4);
+  left: var(--onyx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-3);
+}
+
+.onyx-toast-container-bottom-right {
+  bottom: var(--onyx-space-4);
+  right: var(--onyx-space-4);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--onyx-space-3);
+}
+
+.onyx-toast-container-bottom-left {
+  bottom: var(--onyx-space-4);
+  left: var(--onyx-space-4);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--onyx-space-3);
+}
+
+.onyx-toast-container-top-center {
+  top: var(--onyx-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-3);
+}
+
+.onyx-toast-container-bottom-center {
+  bottom: var(--onyx-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--onyx-space-3);
+}
+
+/* Base Toast */
+.onyx-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--onyx-space-3);
+  padding: var(--onyx-space-4);
+  min-width: 300px;
+  max-width: 400px;
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  box-shadow: var(--onyx-shadow-lg);
+  position: relative;
+  overflow: hidden;
+  animation: onyx-toast-slide-in 0.3s var(--onyx-ease-out);
+}
+
+@keyframes onyx-toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.onyx-toast-exit {
+  animation: onyx-toast-slide-out 0.3s var(--onyx-ease-in) forwards;
+}
+
+@keyframes onyx-toast-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+}
+
+/* Slide in from left for left-positioned toasts */
+.onyx-toast-top-left,
+.onyx-toast-bottom-left {
+  animation: onyx-toast-slide-in-left 0.3s var(--onyx-ease-out);
+}
+
+@keyframes onyx-toast-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Variants */
+.onyx-toast-info {
+  border-left: 4px solid hsl(217, 91%, 60%);
+}
+
+.onyx-toast-success {
+  border-left: 4px solid var(--onyx-success);
+}
+
+.onyx-toast-warning {
+  border-left: 4px solid var(--onyx-warning);
+}
+
+.onyx-toast-error {
+  border-left: 4px solid var(--onyx-destructive);
+}
+
+/* Progress Bar */
+.onyx-toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background-color: var(--onyx-primary);
+  width: 100%;
+  transform-origin: left;
+  animation-name: onyx-toast-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes onyx-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.onyx-toast-info .onyx-toast-progress {
+  background-color: hsl(217, 91%, 60%);
+}
+
+.onyx-toast-success .onyx-toast-progress {
+  background-color: var(--onyx-success);
+}
+
+.onyx-toast-warning .onyx-toast-progress {
+  background-color: var(--onyx-warning);
+}
+
+.onyx-toast-error .onyx-toast-progress {
+  background-color: var(--onyx-destructive);
+}
+
+/* Icon */
+.onyx-toast-icon {
+  font-size: var(--onyx-text-xl);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Content */
+.onyx-toast-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-1);
+}
+
+/* Title */
+.onyx-toast-title {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  line-height: var(--onyx-leading-tight);
+}
+
+/* Message */
+.onyx-toast-message {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  line-height: var(--onyx-leading-normal);
+}
+
+/* Close Button */
+.onyx-toast-close {
+  background: none;
+  border: none;
+  color: var(--onyx-muted-fg);
+  font-size: var(--onyx-text-base);
+  cursor: pointer;
+  padding: var(--onyx-space-1);
+  line-height: 1;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  border-radius: var(--onyx-radius-sm);
+  flex-shrink: 0;
+}
+
+.onyx-toast-close:hover {
+  color: var(--onyx-fg);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-toast {
+    min-width: 280px;
+    max-width: calc(100vw - var(--onyx-space-8));
+  }
+
+  .onyx-toast-container-top-right,
+  .onyx-toast-container-top-left,
+  .onyx-toast-container-bottom-right,
+  .onyx-toast-container-bottom-left {
+    left: var(--onyx-space-3);
+    right: var(--onyx-space-3);
+  }
+
+  .onyx-toast-container-top-center,
+  .onyx-toast-container-bottom-center {
+    left: var(--onyx-space-3);
+    right: var(--onyx-space-3);
+    transform: none;
+  }
+}
+</style>

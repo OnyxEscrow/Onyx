@@ -1,0 +1,131 @@
+/* ==========================================
+   ONYX ICONS SYSTEM
+   Utilisation des icônes SVG sprite
+   ========================================== */
+
+/* ========== BASE ICON CLASS ========== */
+.onyx-icon {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ========== SIZES ========== */
+.onyx-icon-sm {
+  width: 24px;
+  height: 24px;
+}
+
+.onyx-icon-md {
+  width: 32px;
+  height: 32px;
+}
+
+.onyx-icon-lg {
+  width: 40px;
+  height: 40px;
+}
+
+.onyx-icon-xl {
+  width: 48px;
+  height: 48px;
+}
+
+/* ========== USAGE IN BUTTONS ========== */
+.onyx-btn .onyx-icon {
+  margin-right: 0.5rem;
+}
+
+.onyx-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: currentColor;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.onyx-btn-icon:hover {
+  opacity: 0.7;
+}
+
+.onyx-btn-icon .onyx-icon {
+  margin: 0;
+}
+
+/* ========== USAGE IN CARDS ========== */
+.onyx-card-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  color: #0d0d0d;
+  opacity: 0.8;
+}
+
+/* ========== USAGE IN LISTS ========== */
+.onyx-list-item .onyx-icon {
+  margin-right: 1rem;
+}
+
+/* ========== STATUS ICONS ========== */
+.onyx-icon-success {
+  color: #2ecc71;
+}
+
+.onyx-icon-error {
+  color: #ff1744;
+}
+
+.onyx-icon-warning {
+  color: #f39c12;
+}
+
+.onyx-icon-info {
+  color: #3498db;
+}
+
+.onyx-icon-pending {
+  color: #95a5a6;
+}
+
+/* ========== ANIMATED STATES ========== */
+.onyx-icon-spin {
+  animation: icon-spin 2s linear infinite;
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== USAGE EXAMPLES ========== */
+
+/* Icon seul */
+/* <svg class="onyx-icon onyx-icon-lg"><use href="/static/icons/onyx-icons.svg#icon-login"></use></svg> */
+
+/* Icon dans bouton */
+/* <button class="onyx-btn">
+     <svg class="onyx-icon"><use href="/static/icons/onyx-icons.svg#icon-cart"></use></svg>
+     ACHETER
+   </button> */
+
+/* Icon button */
+/* <button class="onyx-btn-icon">
+     <svg class="onyx-icon"><use href="/static/icons/onyx-icons.svg#icon-search"></use></svg>
+   </button> */

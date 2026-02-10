@@ -1,0 +1,316 @@
+{#
+  Onyx POPOVER COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/popover.html" %}
+
+  Parameters:
+    - id (required): Unique popover ID
+    - trigger_text (optional): Trigger button text
+    - trigger_icon (optional): Trigger button icon
+    - trigger_variant (optional): Button variant (default: ghost)
+    - title (optional): Popover title
+    - content (required): Popover content HTML
+    - position (optional): top|bottom|left|right (default: bottom)
+    - width (optional): Popover width (default: 300px)
+    - closable (optional): true|false - Show close button (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set popover_trigger_variant = trigger_variant | default(value="ghost") %}
+{% set popover_position = position | default(value="bottom") %}
+{% set popover_width = width | default(value="300px") %}
+{% set popover_closable = closable | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-popover-wrapper" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}">
+  {# Trigger Button #}
+  <button
+    class="onyx-btn onyx-btn-{{ popover_trigger_variant }} onyx-popover-trigger"
+    aria-haspopup="true"
+    aria-expanded="false"
+    onclick="togglePopover('{{ id }}')"
+  >
+    {% if trigger_icon %}
+      <span class="onyx-popover-trigger-icon">{{ trigger_icon | safe }}</span>
+    {% endif %}
+    {% if trigger_text %}
+      <span>{{ trigger_text }}</span>
+    {% endif %}
+  </button>
+
+  {# Popover Content #}
+  <div
+    class="onyx-popover onyx-popover-{{ popover_position }}"
+    role="dialog"
+    aria-hidden="true"
+    style="width: {{ popover_width }};"
+  >
+    {# Arrow #}
+    <div class="onyx-popover-arrow"></div>
+
+    {# Header #}
+    {% if title or popover_closable %}
+      <div class="onyx-popover-header">
+        {% if title %}
+          <h3 class="onyx-popover-title">{{ title }}</h3>
+        {% endif %}
+        {% if popover_closable %}
+          <button
+            class="onyx-popover-close"
+            aria-label="Close popover"
+            onclick="closePopover('{{ id }}')"
+          >
+            ✕
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# Body #}
+    <div class="onyx-popover-body">
+      {{ content | safe }}
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePopover(id) {
+  var wrapper = document.getElementById(id);
+  var trigger = wrapper.querySelector('.onyx-popover-trigger');
+  var popover = wrapper.querySelector('.onyx-popover');
+  var isOpen = popover.getAttribute('aria-hidden') === 'false';
+
+  // Close all other popovers
+  document.querySelectorAll('.onyx-popover[aria-hidden="false"]').forEach(function(openPopover) {
+    if (openPopover !== popover) {
+      openPopover.setAttribute('aria-hidden', 'true');
+      openPopover.parentElement.querySelector('.onyx-popover-trigger').setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Toggle current popover
+  if (isOpen) {
+    popover.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+  } else {
+    popover.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function closePopover(id) {
+  var wrapper = document.getElementById(id);
+  var trigger = wrapper.querySelector('.onyx-popover-trigger');
+  var popover = wrapper.querySelector('.onyx-popover');
+  popover.setAttribute('aria-hidden', 'true');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.onyx-popover-wrapper')) {
+    document.querySelectorAll('.onyx-popover[aria-hidden="false"]').forEach(function(popover) {
+      popover.setAttribute('aria-hidden', 'true');
+      popover.parentElement.querySelector('.onyx-popover-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+
+// Close popover on Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    document.querySelectorAll('.onyx-popover[aria-hidden="false"]').forEach(function(popover) {
+      popover.setAttribute('aria-hidden', 'true');
+      popover.parentElement.querySelector('.onyx-popover-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+</script>
+
+<style>
+/* Popover Wrapper */
+.onyx-popover-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popover Trigger */
+.onyx-popover-trigger-icon {
+  font-size: var(--onyx-text-lg);
+}
+
+/* Base Popover */
+.onyx-popover {
+  position: absolute;
+  z-index: 9999;
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  box-shadow: var(--onyx-shadow-xl);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  pointer-events: none;
+}
+
+.onyx-popover[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Popover Arrow */
+.onyx-popover-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  transform: rotate(45deg);
+}
+
+/* Position: Top */
+.onyx-popover-top {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.onyx-popover-top[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.onyx-popover-top .onyx-popover-arrow {
+  bottom: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-top: none;
+  border-left: none;
+}
+
+/* Position: Bottom */
+.onyx-popover-bottom {
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.onyx-popover-bottom[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.onyx-popover-bottom .onyx-popover-arrow {
+  top: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-bottom: none;
+  border-right: none;
+}
+
+/* Position: Left */
+.onyx-popover-left {
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.onyx-popover-left[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.onyx-popover-left .onyx-popover-arrow {
+  right: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-left: none;
+  border-bottom: none;
+}
+
+/* Position: Right */
+.onyx-popover-right {
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.onyx-popover-right[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.onyx-popover-right .onyx-popover-arrow {
+  left: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-right: none;
+  border-top: none;
+}
+
+/* Popover Header */
+.onyx-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--onyx-space-4);
+  border-bottom: 1px solid var(--onyx-border);
+}
+
+/* Popover Title */
+.onyx-popover-title {
+  font-size: var(--onyx-text-base);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0;
+  line-height: var(--onyx-leading-tight);
+}
+
+/* Popover Close Button */
+.onyx-popover-close {
+  background: none;
+  border: none;
+  color: var(--onyx-muted-fg);
+  font-size: var(--onyx-text-lg);
+  cursor: pointer;
+  padding: var(--onyx-space-1);
+  line-height: 1;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  border-radius: var(--onyx-radius-sm);
+}
+
+.onyx-popover-close:hover {
+  color: var(--onyx-fg);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.onyx-popover-close:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+}
+
+/* Popover Body */
+.onyx-popover-body {
+  padding: var(--onyx-space-4);
+  color: var(--onyx-fg);
+  font-size: var(--onyx-text-sm);
+  line-height: var(--onyx-leading-relaxed);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-popover {
+    max-width: calc(100vw - var(--onyx-space-8)) !important;
+  }
+
+  .onyx-popover-header,
+  .onyx-popover-body {
+    padding: var(--onyx-space-3);
+  }
+}
+</style>

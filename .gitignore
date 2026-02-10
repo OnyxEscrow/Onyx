@@ -158,10 +158,9 @@ monitor-wallets/
 # Large binaries
 frontend-build/tailwindcss
 
-# Claude Code / AI tooling (exclude from public repo)
+# AI tooling (exclude from public repo)
 .claude/
-CLAUDE.md
-.github/workflows/claude-*.yml
+.github/workflows/ai-*.yml
 
 # Internal docs (not for public release)
 DOX/DANGERZONE/

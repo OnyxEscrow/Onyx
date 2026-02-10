@@ -1,0 +1,312 @@
+{% extends "base-onyx.html" %}
+
+{% block title %}FROST MARKET — Anonymous Marketplace{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/onyx-true.css">
+<link rel="stylesheet" href="/static/css/hero-cinematic.css">
+{% endblock %}
+
+{% block content %}
+
+{# TRUE Onyx HERO - Full Screen with Animated Letters #}
+<section class="onyx-hero-true">
+  {# CINEMATIC: Flash blanc aveuglant (Phase 4) #}
+  <div id="cinematic-flash" class="cinematic-flash-overlay"></div>
+
+  {# Background Pattern - Grille de points noirs #}
+  <div class="onyx-hero-pattern"></div>
+
+  {# Animated Grid Lines #}
+  <div class="onyx-hero-grid"></div>
+
+  {# Floating Geometric Shapes #}
+  <div class="onyx-floating-shape onyx-floating-shape-1"></div>
+  <div class="onyx-floating-shape onyx-floating-shape-2"></div>
+  <div class="onyx-floating-shape onyx-floating-shape-3"></div>
+
+  {# Content #}
+  <div class="onyx-hero-content-true">
+    {# Top Text #}
+    <div class="onyx-hero-top-text">
+      ANONYMOUS • SECURE • DECENTRALIZED
+    </div>
+
+    {# CINEMATIC: Container pour 3 états (Onyx / Typewriter / Zoom) #}
+    <div id="cinematic-title-container" class="onyx-hero-title-true">
+
+      {# Phase 1, 2, 5: Onyx Letters #}
+      <h1 id="cinematic-onyx-letters" class="cinematic-onyx-container">
+        <span class="onyx-animated-letter" data-letter="N" role="button" tabindex="0" aria-label="Animate letter N">N</span>
+        <span class="onyx-animated-letter onyx-letter-e" data-letter="E" role="button" tabindex="0" aria-label="Animate letter E">E</span>
+        <span class="onyx-animated-letter" data-letter="X" role="button" tabindex="0" aria-label="Animate letter X">X</span>
+        <span class="onyx-animated-letter" data-letter="U" role="button" tabindex="0" aria-label="Animate letter U">U</span>
+        <span class="onyx-animated-letter" data-letter="S" role="button" tabindex="0" aria-label="Animate letter S">S</span>
+      </h1>
+
+      {# Phase 3: Typewriter - Message anonymat #}
+      <div id="cinematic-typewriter" class="cinematic-typewriter" style="display: none;">
+        <span id="cinematic-typewriter-text"></span>
+        <span class="cinematic-cursor">|</span>
+      </div>
+
+      {# Phase 4: Zoom Strike - Même message qui frappe l'écran #}
+      <div id="cinematic-zoom-strike" class="cinematic-zoom-strike" style="display: none;">
+        Here you are no one. Here you are nowhere.
+      </div>
+
+    </div>
+
+    {# Subtitle #}
+    <p class="onyx-hero-subtitle-true">
+      UNDERGROUND • MARKETPLACE
+    </p>
+
+    {# Stats #}
+    <div class="onyx-hero-stats">
+      <div class="onyx-hero-stat">
+        <div class="onyx-hero-stat-value">{{ listings | length | default(value=1337) }}</div>
+        <div class="onyx-hero-stat-label">LISTINGS</div>
+      </div>
+      <div class="onyx-hero-stat">
+        <div class="onyx-hero-stat-value">420</div>
+        <div class="onyx-hero-stat-label">VENDORS</div>
+      </div>
+      <div class="onyx-hero-stat">
+        <div class="onyx-hero-stat-value">100%</div>
+        <div class="onyx-hero-stat-label">ANONYMOUS</div>
+      </div>
+    </div>
+  </div>
+
+  {# Scroll Indicator #}
+  <div class="onyx-scroll-indicator">
+    <div class="onyx-scroll-text">SCROLL</div>
+    <div class="onyx-scroll-line"></div>
+  </div>
+</section>
+
+{# Browse Categories Section - Onyx CHARTE #}
+<section id="categories" class="onyx-categories-section">
+  <div class="onyx-categories-container">
+    <div class="onyx-categories-header">
+      <h2 class="onyx-categories-title">BROWSE CATEGORIES</h2>
+      <p class="onyx-categories-subtitle">SECURE • ANONYMOUS • UNTRACEABLE</p>
+    </div>
+
+    <div class="onyx-categories-grid">
+      <!-- Digital Goods -->
+      <a href="/categories/digital" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-grid"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">DIGITAL GOODS</h3>
+          <div class="onyx-category-box-count">342 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Electronics -->
+      <a href="/categories/electronics" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-tag"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">ELECTRONICS</h3>
+          <div class="onyx-category-box-count">156 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Pharmaceuticals -->
+      <a href="/categories/pharmaceuticals" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-pill"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">PHARMACEUTICALS</h3>
+          <div class="onyx-category-box-count">203 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Documents -->
+      <a href="/categories/documents" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-file"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">DOCUMENTS</h3>
+          <div class="onyx-category-box-count">89 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Financial -->
+      <a href="/categories/financial" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-key"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">FINANCIAL</h3>
+          <div class="onyx-category-box-count">127 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Security -->
+      <a href="/categories/security" class="onyx-category-box" hx-boost="true">
+        <div class="onyx-category-box-icon">
+          <svg class="onyx-icon onyx-icon-xl">
+            <use href="/static/icons/onyx-icons.svg#icon-lock"></use>
+          </svg>
+        </div>
+        <div class="onyx-category-box-info">
+          <h3 class="onyx-category-box-title">SECURITY</h3>
+          <div class="onyx-category-box-count">94 ITEMS</div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+{# Featured Listings Section - Onyx CHARTE #}
+<section id="listings" class="onyx-listings-section">
+  <div class="onyx-listings-container">
+    <div class="onyx-listings-header">
+      <div class="onyx-listings-header-content">
+        <h2 class="onyx-listings-title">
+          FEATURED LISTINGS
+        </h2>
+        <p class="onyx-listings-subtitle">
+          VERIFIED VENDORS • ESCROW PROTECTED
+        </p>
+      </div>
+      <a href="/listings" class="onyx-btn onyx-btn-primary onyx-btn-lg onyx-listings-view-all-btn" hx-boost="true">
+        VIEW ALL
+      </a>
+    </div>
+
+  <div id="listings-results" class="onyx-listings-grid">
+    {% if listings and listings | length > 0 %}
+      {% for listing in listings %}
+      <a href="/listings/{{ listing.id }}" class="onyx-product-link" hx-boost="true">
+        <div class="onyx-product-card">
+          {# Product Image with Gradient #}
+          <div class="onyx-product-image">
+            <div class="onyx-product-image-gradient"></div>
+            {% if listing.first_image_cid %}
+              <img src="http://127.0.0.1:8081/ipfs/{{ listing.first_image_cid }}"
+                   alt="{{ listing.title }}"
+                   class="onyx-product-image-actual"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <div class="onyx-product-image-placeholder" style="display: none;">?</div>
+            {% else %}
+              <div class="onyx-product-image-placeholder">?</div>
+            {% endif %}
+
+            {# Verified Badge (if listing is active/verified) #}
+            {% if listing.status == "active" %}
+            <div class="onyx-verified-badge">
+              <svg class="onyx-verified-badge-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              VERIFIED
+            </div>
+            {% endif %}
+          </div>
+
+          {# Product Content #}
+          <div class="onyx-product-content">
+            <div class="onyx-product-info">
+              <h3 class="onyx-product-title">{{ listing.title }}</h3>
+              <p class="onyx-product-vendor">BY {{ listing.vendor_username | upper }}</p>
+            </div>
+
+            {# Rating Stars #}
+            <div class="onyx-product-rating">
+              <div class="onyx-product-stars">
+                {# 5 filled stars for now - can be dynamic later #}
+                <svg class="onyx-product-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg class="onyx-product-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg class="onyx-product-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg class="onyx-product-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <svg class="onyx-product-star" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <span class="onyx-product-rating-text">5/5</span>
+            </div>
+
+            {# Price and View Button #}
+            <div class="onyx-product-footer">
+              <div class="onyx-product-price-container">
+                <div class="onyx-product-price">{{ listing.price_xmr }}</div>
+                <div class="onyx-product-price-label">XMR</div>
+              </div>
+              <button class="onyx-product-view-btn">VIEW</button>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      {# Empty State #}
+      <div class="onyx-listings-empty-state">
+        <div class="onyx-alert onyx-alert-info">
+          <div class="onyx-alert-icon">ℹ️</div>
+          <div class="onyx-alert-content">
+            <div class="onyx-alert-title">No listings yet</div>
+            <div class="onyx-alert-message">
+              Be the first to create a listing on the marketplace!
+            </div>
+          </div>
+        </div>
+
+        {% if logged_in and role == "vendor" %}
+        <a href="/listings/create" class="onyx-btn onyx-btn-primary onyx-listings-empty-cta">
+          Create Your First Listing
+        </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+  </div>
+</section>
+
+{# Stats Banner - Original Onyx Design #}
+<section class="onyx-stats-banner">
+  <div class="onyx-stats-container">
+    <div class="onyx-stats-grid">
+      <div class="onyx-stat-item">
+        <div class="onyx-stat-value">24/7</div>
+        <div class="onyx-stat-label">UPTIME</div>
+      </div>
+      <div class="onyx-stat-item">
+        <div class="onyx-stat-value">0</div>
+        <div class="onyx-stat-label">LOGS KEPT</div>
+      </div>
+      <div class="onyx-stat-item">
+        <div class="onyx-stat-value">256</div>
+        <div class="onyx-stat-label">BIT ENCRYPTION</div>
+      </div>
+      <div class="onyx-stat-item">
+        <div class="onyx-stat-value">∞</div>
+        <div class="onyx-stat-label">ANONYMITY</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/onyx-letters-animation.js" defer></script>
+<script src="/static/js/hero-cinematic.js" defer></script>
+<script src="/static/js/onyx-grid-magnetic.js" defer></script>
+<script src="/static/js/onyx-diagonal-lines.js" defer></script>
+<script src="/static/js/onyx-birds-parallax.js" defer></script>
+<script src="/static/js/onyx-birds-perch.js" defer></script>
+{% endblock %}

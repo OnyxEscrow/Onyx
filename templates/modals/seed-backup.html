@@ -193,7 +193,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `nexus-recovery-seed-${Date.now()}.txt`;
+        a.download = `onyx-recovery-seed-${Date.now()}.txt`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -207,7 +207,7 @@
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Nexus Recovery Seed</title>
+                <title>Onyx Recovery Seed</title>
                 <style>
                     body { font-family: system-ui, sans-serif; padding: 2rem; background: #fff; color: #000; }
                     h1 { color: #000; margin-bottom: 1rem; border-bottom: 2px solid #000; padding-bottom: 1rem; }
@@ -232,7 +232,7 @@
                 </div>
                 <div class="footer">
                     <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-                    <p><strong>Note:</strong> This is the only backup of your wallet. Nexus does not store this seed.</p>
+                    <p><strong>Note:</strong> This is the only backup of your wallet. Onyx does not store this seed.</p>
                 </div>
                 <script>window.print();<\/script>
             </body>
@@ -286,8 +286,8 @@
 
     // Toast helper if not globally available
     function showToast(message, type = 'info') {
-        if (typeof window.NexusToast !== 'undefined') {
-            window.NexusToast.show(message, type);
+        if (typeof window.OnyxToast !== 'undefined') {
+            window.OnyxToast.show(message, type);
             return;
         }
         // Fallback toast

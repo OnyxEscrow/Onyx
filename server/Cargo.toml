@@ -55,8 +55,8 @@ futures-util = "0.3"
 time = "0.3"
 monero-marketplace-common = { path = "../common" }
 monero-marketplace-wallet = { path = "../wallet" }
-nexus-types = { path = "../nexus-types" }
-nexus-crypto-core = { path = "../nexus-crypto-core" }
+onyx-types = { path = "../onyx-types" }
+onyx-crypto-core = { path = "../onyx-crypto-core" }
 hmac = "0.12"
 tera = "1.19"
 lazy_static = "1.4"

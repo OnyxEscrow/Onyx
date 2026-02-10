@@ -1,0 +1,191 @@
+{#
+  Onyx PROGRESS COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/progress.html" %}
+
+  Parameters:
+    - value (required): Current progress value
+    - max (optional): Maximum value (default: 100)
+    - label (optional): Progress label text
+    - show_percentage (optional): true|false - Show percentage (default: true)
+    - variant (optional): primary|success|warning|error (default: primary)
+    - size (optional): sm|md|lg (default: md)
+    - indeterminate (optional): true|false - Indeterminate/loading state (default: false)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set progress_max = max | default(value=100) %}
+{% set progress_show_percentage = show_percentage | default(value=true) %}
+{% set progress_variant = variant | default(value="primary") %}
+{% set progress_size = size | default(value="md") %}
+{% set progress_indeterminate = indeterminate | default(value=false) %}
+
+{# Calculate percentage #}
+{% set percentage = (value / progress_max * 100) | round(precision=0) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-progress-container onyx-progress-" ~ progress_size %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>
+  {# Label and Percentage #}
+  {% if label or progress_show_percentage %}
+    <div class="onyx-progress-header">
+      {% if label %}
+        <span class="onyx-progress-label">{{ label }}</span>
+      {% endif %}
+      {% if progress_show_percentage and not progress_indeterminate %}
+        <span class="onyx-progress-percentage">{{ percentage }}%</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Progress Bar #}
+  <div class="onyx-progress-track" role="progressbar" aria-valuenow="{{ value }}" aria-valuemin="0" aria-valuemax="{{ progress_max }}">
+    <div
+      class="onyx-progress-bar onyx-progress-bar-{{ progress_variant }} {% if progress_indeterminate %}onyx-progress-bar-indeterminate{% endif %}"
+      {% if not progress_indeterminate %}style="width: {{ percentage }}%;"{% endif %}
+    ></div>
+  </div>
+</div>
+
+<style>
+/* Progress Container */
+.onyx-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+  width: 100%;
+}
+
+/* Progress Header */
+.onyx-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--onyx-space-2);
+}
+
+/* Progress Label */
+.onyx-progress-label {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-fg);
+}
+
+/* Progress Percentage */
+.onyx-progress-percentage {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-muted-fg);
+}
+
+/* Progress Track */
+.onyx-progress-track {
+  position: relative;
+  width: 100%;
+  background-color: var(--onyx-muted);
+  border-radius: var(--onyx-radius-full);
+  overflow: hidden;
+}
+
+/* Size Variants */
+.onyx-progress-sm .onyx-progress-track {
+  height: 0.5rem;
+}
+
+.onyx-progress-md .onyx-progress-track {
+  height: 0.75rem;
+}
+
+.onyx-progress-lg .onyx-progress-track {
+  height: 1rem;
+}
+
+/* Progress Bar */
+.onyx-progress-bar {
+  height: 100%;
+  border-radius: var(--onyx-radius-full);
+  transition: width 0.3s var(--onyx-ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Variant Colors */
+.onyx-progress-bar-primary {
+  background-color: var(--onyx-primary);
+}
+
+.onyx-progress-bar-success {
+  background-color: var(--onyx-success);
+}
+
+.onyx-progress-bar-warning {
+  background-color: var(--onyx-warning);
+}
+
+.onyx-progress-bar-error {
+  background-color: var(--onyx-destructive);
+}
+
+/* Indeterminate State */
+.onyx-progress-bar-indeterminate {
+  width: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--onyx-primary) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: onyx-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes onyx-progress-indeterminate {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Shimmer Effect for Progress */
+.onyx-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: onyx-progress-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes onyx-progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-progress-label,
+  .onyx-progress-percentage {
+    font-size: var(--onyx-text-xs);
+  }
+}
+</style>

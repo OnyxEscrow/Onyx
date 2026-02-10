@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="FROST MARKET — SECURE PRIVACY-FOCUSED MARKETPLACE | 2-OF-3 MULTISIG ESCROW | NON-CUSTODIAL | TOR NETWORK | MONERO ONLY">
+    {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
+    <title>{% block title %}FROST MARKET — SECURE MONERO MARKETPLACE{% endblock %}</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+
+    <!-- Onyx Industrial Stealth Design System CSS -->
+    <link rel="stylesheet" href="/static/css/onyx-variables.css">
+    <link rel="stylesheet" href="/static/css/onyx-reset.css">
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css">
+    <link rel="stylesheet" href="/static/css/onyx-typography.css">
+    <link rel="stylesheet" href="/static/css/onyx-icons.css">
+    <link rel="stylesheet" href="/static/css/onyx-animations.css">
+    <link rel="stylesheet" href="/static/css/dispute-system.css">
+    <link rel="stylesheet" href="/static/css/instant-search.css">
+
+    <!-- Extra CSS for specific pages -->
+    {% block extra_css %}{% endblock %}
+
+    <!-- Production console override - MUST run before any other scripts -->
+    <script>
+    (function() {
+        var isDev = window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1' ||
+                    window.location.hostname.endsWith('.onion');
+        if (!isDev && !window._nxConsole) {
+            window._nxConsole = true;
+            var orig = { log: console.log, debug: console.debug, info: console.info };
+            console.log = console.debug = console.info = function() {};
+            orig.log('%c Onyx NON-CUSTODIAL ',
+                'background:#00ff41;color:black;font-weight:bold;padding:4px 8px;border-radius:4px',
+                'Keys never leave your browser. Verify: Network tab during signing.');
+        }
+    })();
+    </script>
+
+    <!-- HTMX for dynamic interactions (local - Tor-safe, no CDN) -->
+    <script src="/static/js/htmx.min.js"></script>
+    <!-- HTMX JSON encoding extension for API requests -->
+    <script src="/static/js/json-enc.js"></script>
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="splash-active">
+    <!-- Onyx Splash Screen -->
+    <div id="splash-screen">
+        <img src="/static/BACKGROUNDOnyx.jpg" alt="FROST MARKET" id="splash-image">
+        <button id="skip-splash" aria-label="Skip introduction animation">SKIP INTRO</button>
+    </div>
+
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="skip-link">SKIP TO MAIN CONTENT</a>
+
+    {% include "partials/onyx/organisms/nav-grid.html" %}
+
+    <main id="main-content" role="main" aria-label="Main content">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% include "partials/onyx/organisms/footer.html" %}
+
+    <!-- WebSocket Notifications - Onyx Design (only for authenticated users) -->
+    {% if logged_in %}
+    <script src="/static/js/notifications-onyx.js?v=20260117_fix3" defer></script>
+    {% endif %}
+
+    <!-- Onyx Splash Screen Animation -->
+    <script src="/static/js/splash-screen.js"></script>
+
+    <!-- Grid Header JavaScript -->
+    <script src="/static/js/onyx-simple-typewriter.js" defer></script>
+    <script src="/static/js/onyx-grid-toggle.js" defer></script>
+    <script src="/static/js/onyx-user-menu.js" defer></script>
+
+    <!-- Global Onyx configuration and HTMX error handlers (must be after HTMX) -->
+    <script src="/static/js/onyx-config.js"></script>
+
+    <!-- Instant Search (Hybrid WASM + HTMX) -->
+    <script src="/static/js/instant-search.js" type="module" defer></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

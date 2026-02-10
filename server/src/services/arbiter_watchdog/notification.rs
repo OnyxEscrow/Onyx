@@ -292,7 +292,7 @@ impl NotificationService {
         // let email = Message::builder()
         //     .from(from_address.parse()?)
         //     .to(recipient.parse()?)
-        //     .subject("NEXUS Arbiter Alert")
+        //     .subject("Onyx Arbiter Alert")
         //     .body(message.to_string())?;
         // let mailer = SmtpTransport::relay(smtp_host)?
         //     .port(smtp_port)

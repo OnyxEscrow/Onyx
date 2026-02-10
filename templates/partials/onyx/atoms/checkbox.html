@@ -1,0 +1,118 @@
+{#
+  Onyx CHECKBOX COMPONENT
+
+  Usage:
+    {% include "partials/onyx/atoms/checkbox.html" %}
+
+  Parameters:
+    - name (required): Checkbox name attribute
+    - label (required): Label text
+    - checked (optional): true|false (default: false)
+    - value (optional): Checkbox value (default: "on")
+    - required (optional): true|false (default: false)
+    - disabled (optional): true|false (default: false)
+    - error (optional): Error message
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set checkbox_id = id | default(value=name) %}
+{% set checkbox_value = value | default(value="on") %}
+{% set checkbox_checked = checked | default(value=false) %}
+{% set checkbox_required = required | default(value=false) %}
+{% set checkbox_disabled = disabled | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-checkbox" %}
+{% if error %}
+  {% set css_classes = css_classes ~ " onyx-checkbox-error" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="onyx-checkbox-wrapper">
+  <div class="onyx-checkbox-container">
+    <input
+      type="checkbox"
+      id="{{ checkbox_id }}"
+      name="{{ name }}"
+      value="{{ checkbox_value }}"
+      class="{{ css_classes }}"
+      {% if checkbox_checked %}checked{% endif %}
+      {% if checkbox_required %}required{% endif %}
+      {% if checkbox_disabled %}disabled{% endif %}
+      {% if error %}aria-invalid="true" aria-describedby="{{ checkbox_id }}-error"{% endif %}
+    >
+    <label for="{{ checkbox_id }}" class="onyx-checkbox-label">
+      {{ label }}
+      {% if checkbox_required %}<span class="onyx-label-required">*</span>{% endif %}
+    </label>
+  </div>
+
+  {# Error message #}
+  {% if error %}
+    <span id="{{ checkbox_id }}-error" class="onyx-input-error-message" role="alert">
+      {{ error }}
+    </span>
+  {% endif %}
+</div>
+
+<style>
+.onyx-checkbox-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-sm);
+  background-color: var(--onyx-input);
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  flex-shrink: 0;
+}
+
+.onyx-checkbox:checked {
+  background-color: var(--onyx-primary);
+  border-color: var(--onyx-primary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath fill='%230a0a0a' d='M6.5 11.5L3 8l1-1 2.5 2.5L11 5l1 1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.onyx-checkbox:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+}
+
+.onyx-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.onyx-checkbox-error {
+  border-color: var(--onyx-destructive);
+}
+
+.onyx-checkbox-label {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.onyx-checkbox:disabled + .onyx-checkbox-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

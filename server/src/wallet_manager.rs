@@ -3076,7 +3076,7 @@ impl WalletManager {
         // DEPRECATED: Custodial mode arbiter signing not implemented
         //
         // This function was designed for custodial mode where the arbiter has
-        // access to wallet keys on the server. NEXUS has transitioned to EaaS
+        // access to wallet keys on the server. Onyx has transitioned to EaaS
         // (Escrow-as-a-Service) with non-custodial FROST multisig.
         //
         // For non-custodial dispute resolution, use:

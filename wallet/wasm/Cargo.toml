@@ -35,8 +35,8 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 # FROST threshold signatures (RFC 9591) - DKG for 2-of-3 multisig
 frost-ed25519 = { version = "2.2", default-features = false, features = ["serialization"] }
 
-# NEXUS crypto core (extracted cryptographic primitives)
-nexus-crypto-core = { path = "../../nexus-crypto-core" }
+# Onyx crypto core (extracted cryptographic primitives)
+onyx-crypto-core = { path = "../../onyx-crypto-core" }
 
 # Monero CLSAG signing (WASM-compatible, no multisig feature - requires std)
 # We implement our own partial signing logic based on correct CLSAG math

@@ -1,0 +1,265 @@
+{#
+  Onyx ORDER TIMELINE COMPONENT
+
+  Usage:
+    {% include "partials/onyx/organisms/order-timeline.html" %}
+
+  Parameters:
+    - order_id (required): Order ID
+    - current_status (required): Current order status
+    - events (required): Array of timeline events with:
+        - status: Order status (pending|funded|shipped|completed|disputed)
+        - timestamp: Event timestamp (ISO format)
+        - description: Event description
+        - actor: Optional actor name
+    - class (optional): Additional CSS classes
+#}
+
+{# Status order for timeline #}
+{% set status_order = ["pending", "funded", "shipped", "completed"] %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-order-timeline" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {# Timeline Header #}
+  <div class="onyx-timeline-header">
+    <h3 class="onyx-timeline-title">Order Timeline</h3>
+    <div class="onyx-timeline-order-id">
+      Order #{{ order_id }}
+      {% include "partials/onyx/atoms/badge.html" %}
+    </div>
+  </div>
+
+  {# Timeline Events #}
+  <div class="onyx-timeline-events">
+    {% for event in events %}
+      {% set is_current = event.status == current_status %}
+      {% set is_completed = loop.index < events | length %}
+
+      <div class="onyx-timeline-event {% if is_current %}onyx-timeline-event-current{% endif %}">
+        {# Timeline Marker #}
+        <div class="onyx-timeline-marker-wrapper">
+          <div class="onyx-timeline-marker onyx-timeline-marker-{{ event.status }}">
+            {% if event.status == "pending" %}⏳
+            {% elif event.status == "funded" %}💰
+            {% elif event.status == "shipped" %}📦
+            {% elif event.status == "completed" %}✅
+            {% elif event.status == "disputed" %}⚠️
+            {% endif %}
+          </div>
+          {% if not loop.last %}
+            <div class="onyx-timeline-line {% if is_completed %}onyx-timeline-line-completed{% endif %}"></div>
+          {% endif %}
+        </div>
+
+        {# Event Content #}
+        <div class="onyx-timeline-content">
+          <div class="onyx-timeline-event-header">
+            <span class="onyx-timeline-event-status">{{ event.status | capitalize }}</span>
+            <span class="onyx-timeline-event-time">{{ event.timestamp | date(format="%Y-%m-%d %H:%M") }}</span>
+          </div>
+          <p class="onyx-timeline-event-description">{{ event.description }}</p>
+          {% if event.actor %}
+            <p class="onyx-timeline-event-actor">by {{ event.actor }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+/* Base Timeline */
+.onyx-order-timeline {
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  padding: var(--onyx-space-6);
+}
+
+/* Timeline Header */
+.onyx-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--onyx-space-6);
+  padding-bottom: var(--onyx-space-4);
+  border-bottom: 1px solid var(--onyx-border);
+}
+
+.onyx-timeline-title {
+  font-size: var(--onyx-text-xl);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0;
+}
+
+.onyx-timeline-order-id {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+}
+
+/* Timeline Events */
+.onyx-timeline-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-1);
+}
+
+/* Timeline Event */
+.onyx-timeline-event {
+  display: flex;
+  gap: var(--onyx-space-4);
+  position: relative;
+}
+
+.onyx-timeline-event-current {
+  animation: onyx-timeline-pulse 2s ease-in-out infinite;
+}
+
+@keyframes onyx-timeline-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Timeline Marker Wrapper */
+.onyx-timeline-marker-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Timeline Marker */
+.onyx-timeline-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--onyx-text-xl);
+  background-color: var(--onyx-muted);
+  border: 2px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-full);
+  z-index: 1;
+}
+
+.onyx-timeline-marker-pending {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-color: var(--onyx-status-pending);
+}
+
+.onyx-timeline-marker-funded {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--onyx-status-funded);
+}
+
+.onyx-timeline-marker-shipped {
+  background-color: rgba(168, 85, 247, 0.1);
+  border-color: var(--onyx-status-shipped);
+}
+
+.onyx-timeline-marker-completed {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: var(--onyx-status-completed);
+}
+
+.onyx-timeline-marker-disputed {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--onyx-status-disputed);
+}
+
+/* Timeline Line */
+.onyx-timeline-line {
+  flex: 1;
+  width: 2px;
+  min-height: 2rem;
+  background-color: var(--onyx-border);
+  margin-top: var(--onyx-space-1);
+}
+
+.onyx-timeline-line-completed {
+  background: linear-gradient(
+    to bottom,
+    var(--onyx-primary) 0%,
+    var(--onyx-border) 100%
+  );
+}
+
+/* Timeline Content */
+.onyx-timeline-content {
+  flex: 1;
+  padding: var(--onyx-space-3) 0;
+}
+
+.onyx-timeline-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--onyx-space-2);
+}
+
+.onyx-timeline-event-status {
+  font-size: var(--onyx-text-base);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  text-transform: capitalize;
+}
+
+.onyx-timeline-event-time {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  font-family: var(--onyx-font-mono);
+}
+
+.onyx-timeline-event-description {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  line-height: var(--onyx-leading-relaxed);
+  margin: 0;
+}
+
+.onyx-timeline-event-actor {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  font-style: italic;
+  margin: var(--onyx-space-1) 0 0 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-order-timeline {
+    padding: var(--onyx-space-4);
+  }
+
+  .onyx-timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--onyx-space-2);
+  }
+
+  .onyx-timeline-marker {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: var(--onyx-text-lg);
+  }
+
+  .onyx-timeline-event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--onyx-space-1);
+  }
+}
+</style>

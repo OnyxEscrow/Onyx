@@ -278,7 +278,7 @@ async function generateNewWallet() {
         }
 
         // Store wallet data in localStorage (compatible with escrow flow)
-        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+        localStorage.setItem('onyx_wasm_wallet', JSON.stringify({
             address: result.address,
             seed: result.seed,
             view_key: result.view_key,
@@ -344,7 +344,7 @@ async function restoreWallet(event) {
             return;
         }
 
-        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+        localStorage.setItem('onyx_wasm_wallet', JSON.stringify({
             address: result.address,
             seed: seedInput,
             view_key: result.view_key,
@@ -369,7 +369,7 @@ async function restoreWallet(event) {
 
 // Reveal seed phrase
 function revealSeed() {
-    const wallet = JSON.parse(localStorage.getItem('nexus_wasm_wallet') || '{}');
+    const wallet = JSON.parse(localStorage.getItem('onyx_wasm_wallet') || '{}');
     if (wallet.seed) {
         document.getElementById('seed-display').innerHTML = `
             <div class="grid grid-cols-5 gap-2">
@@ -390,7 +390,7 @@ function revealSeed() {
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
 
-    const walletJson = localStorage.getItem('nexus_wasm_wallet');
+    const walletJson = localStorage.getItem('onyx_wasm_wallet');
     const walletStatusDiv = document.getElementById('wallet-status');
 
     if (walletJson) {
@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Delete wallet
 function deleteWallet() {
     if (confirm('Are you sure you want to delete your wallet? Make sure you have backed up your seed phrase!')) {
-        localStorage.removeItem('nexus_wasm_wallet');
+        localStorage.removeItem('onyx_wasm_wallet');
         localStorage.removeItem('monero_seed_phrase');
         localStorage.removeItem('monero_spend_key_priv');
         localStorage.removeItem('monero_view_key_priv');

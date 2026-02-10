@@ -1,0 +1,216 @@
+{#
+  Onyx ACCORDION COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/accordion.html" with
+       id="faq-accordion"
+       items=[
+         {"title": "What is Monero?", "content": "<p>Monero is a privacy coin...</p>", "open": true},
+         {"title": "How does escrow work?", "content": "<p>Our escrow uses 2-of-3 multisig...</p>"}
+       ]
+    %}
+
+  Parameters:
+    - id (required): Unique accordion ID
+    - items (required): Array of accordion items with:
+        - title: Item title
+        - content: Item content HTML
+        - open: true|false (initially open)
+        - icon: Optional icon
+    - allow_multiple (optional): true|false - Allow multiple items open (default: false)
+    - class (optional): Additional CSS classes
+#}
+
+{% set accordion_allow_multiple = allow_multiple | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-accordion" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}" data-allow-multiple="{{ accordion_allow_multiple }}">
+  {% for item in items %}
+    {% set item_open = item.open | default(value=false) %}
+    {% set item_id = id ~ "-item-" ~ loop.index0 %}
+
+    <div class="onyx-accordion-item {% if item_open %}onyx-accordion-item-open{% endif %}">
+      {# Trigger #}
+      <button
+        class="onyx-accordion-trigger"
+        aria-expanded="{% if item_open %}true{% else %}false{% endif %}"
+        aria-controls="{{ item_id }}-content"
+        onclick="toggleAccordionItem('{{ id }}', {{ loop.index0 }})"
+      >
+        {% if item.icon %}
+          <span class="onyx-accordion-icon">{{ item.icon | safe }}</span>
+        {% endif %}
+        <span class="onyx-accordion-title">{{ item.title }}</span>
+        <span class="onyx-accordion-chevron">▼</span>
+      </button>
+
+      {# Content #}
+      <div
+        id="{{ item_id }}-content"
+        class="onyx-accordion-content"
+        {% if not item_open %}hidden{% endif %}
+      >
+        <div class="onyx-accordion-content-inner">
+          {{ item.content | safe }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+function toggleAccordionItem(accordionId, itemIndex) {
+  var accordion = document.getElementById(accordionId);
+  var allowMultiple = accordion.dataset.allowMultiple === 'true';
+  var items = accordion.querySelectorAll('.onyx-accordion-item');
+  var currentItem = items[itemIndex];
+  var currentTrigger = currentItem.querySelector('.onyx-accordion-trigger');
+  var currentContent = currentItem.querySelector('.onyx-accordion-content');
+  var isOpen = currentItem.classList.contains('onyx-accordion-item-open');
+
+  // Close other items if multiple not allowed
+  if (!allowMultiple && !isOpen) {
+    items.forEach(function(item, index) {
+      if (index !== itemIndex) {
+        item.classList.remove('onyx-accordion-item-open');
+        var trigger = item.querySelector('.onyx-accordion-trigger');
+        var content = item.querySelector('.onyx-accordion-content');
+        trigger.setAttribute('aria-expanded', 'false');
+        content.setAttribute('hidden', '');
+      }
+    });
+  }
+
+  // Toggle current item
+  if (isOpen) {
+    currentItem.classList.remove('onyx-accordion-item-open');
+    currentTrigger.setAttribute('aria-expanded', 'false');
+    currentContent.setAttribute('hidden', '');
+  } else {
+    currentItem.classList.add('onyx-accordion-item-open');
+    currentTrigger.setAttribute('aria-expanded', 'true');
+    currentContent.removeAttribute('hidden');
+  }
+}
+</script>
+
+<style>
+/* Base Accordion */
+.onyx-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+/* Accordion Item */
+.onyx-accordion-item {
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  overflow: hidden;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-accordion-item:hover {
+  border-color: var(--onyx-primary);
+}
+
+/* Accordion Trigger */
+.onyx-accordion-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-3);
+  width: 100%;
+  padding: var(--onyx-space-4);
+  font-size: var(--onyx-text-base);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-accordion-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.onyx-accordion-trigger:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: -2px;
+}
+
+/* Accordion Icon */
+.onyx-accordion-icon {
+  font-size: var(--onyx-text-xl);
+  flex-shrink: 0;
+}
+
+/* Accordion Title */
+.onyx-accordion-title {
+  flex: 1;
+}
+
+/* Accordion Chevron */
+.onyx-accordion-chevron {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  transition: transform var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-accordion-item-open .onyx-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+/* Accordion Content */
+.onyx-accordion-content {
+  overflow: hidden;
+  animation: onyx-accordion-slide-down 0.2s var(--onyx-ease-out);
+}
+
+.onyx-accordion-content[hidden] {
+  display: none;
+}
+
+@keyframes onyx-accordion-slide-down {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 1000px;
+    opacity: 1;
+  }
+}
+
+/* Accordion Content Inner */
+.onyx-accordion-content-inner {
+  padding: 0 var(--onyx-space-4) var(--onyx-space-4) var(--onyx-space-4);
+  color: var(--onyx-muted-fg);
+  font-size: var(--onyx-text-sm);
+  line-height: var(--onyx-leading-relaxed);
+}
+
+/* Open State */
+.onyx-accordion-item-open {
+  border-color: var(--onyx-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-accordion-trigger {
+    padding: var(--onyx-space-3);
+    font-size: var(--onyx-text-sm);
+  }
+
+  .onyx-accordion-content-inner {
+    padding: 0 var(--onyx-space-3) var(--onyx-space-3) var(--onyx-space-3);
+  }
+}
+</style>

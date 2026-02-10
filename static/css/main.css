@@ -2559,7 +2559,7 @@ a[href="/cart"].icon-button::before {
 
 
 /* Sign Action Modal - CSP-compliant styles */
-.nexus-modal {
+.onyx-modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -2571,7 +2571,7 @@ a[href="/cart"].icon-button::before {
     justify-content: center;
 }
 
-.nexus-modal .modal-overlay {
+.onyx-modal .modal-overlay {
     position: absolute;
     top: 0;
     left: 0;
@@ -2582,7 +2582,7 @@ a[href="/cart"].icon-button::before {
     z-index: 1;
 }
 
-.nexus-modal .modal-content {
+.onyx-modal .modal-content {
     position: relative;
     z-index: 2;
     background-color: #1a1a1a;

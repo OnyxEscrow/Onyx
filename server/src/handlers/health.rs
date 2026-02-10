@@ -74,7 +74,7 @@ impl ComponentHealth {
 /// ```json
 /// {
 ///   "status": "healthy",
-///   "service": "nexus",
+///   "service": "onyx",
 ///   "version": "0.7.0",
 ///   "checks": {
 ///     "database": { "status": "healthy", "latency_ms": 5 },
@@ -100,7 +100,7 @@ pub async fn health_check(
 
     let response = HealthResponse {
         status: overall_status,
-        service: "nexus",
+        service: "onyx",
         version: env!("CARGO_PKG_VERSION"),
         checks: HealthChecks {
             database: db_health,

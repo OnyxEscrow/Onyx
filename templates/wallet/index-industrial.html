@@ -116,7 +116,7 @@
         {# ===== SECURITY NOTICE ===== #}
         <div class="wallet-security-card">
             <h3 class="wallet-security-title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-green)" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
                 </svg>
                 Security Information
@@ -216,7 +216,7 @@
     <div class="wallet-modal__content">
         <div class="wallet-modal__header">
             <h3 class="wallet-modal__title">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)" stroke-width="2">
                     <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
                     <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
@@ -302,7 +302,7 @@ async function generateNewWallet() {
             return;
         }
 
-        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+        localStorage.setItem('onyx_wasm_wallet', JSON.stringify({
             address: result.address,
             seed: result.seed,
             view_key: result.view_key,
@@ -364,7 +364,7 @@ async function restoreWallet(event) {
             return;
         }
 
-        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+        localStorage.setItem('onyx_wasm_wallet', JSON.stringify({
             address: result.address,
             seed: seedInput,
             view_key: result.view_key,
@@ -388,7 +388,7 @@ async function restoreWallet(event) {
 
 // Reveal seed phrase
 function revealSeed() {
-    const wallet = JSON.parse(localStorage.getItem('nexus_wasm_wallet') || '{}');
+    const wallet = JSON.parse(localStorage.getItem('onyx_wasm_wallet') || '{}');
     if (wallet.seed) {
         document.getElementById('seed-display').innerHTML = `
             <div class="wallet-seed-grid">
@@ -407,7 +407,7 @@ function revealSeed() {
 
 // Check wallet status on page load
 document.addEventListener('DOMContentLoaded', () => {
-    const walletJson = localStorage.getItem('nexus_wasm_wallet');
+    const walletJson = localStorage.getItem('onyx_wasm_wallet');
     const walletStatusDiv = document.getElementById('wallet-status');
 
     if (walletJson) {
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Delete wallet
 function deleteWallet() {
     if (confirm('Are you sure you want to delete your wallet? Make sure you have backed up your seed phrase!')) {
-        localStorage.removeItem('nexus_wasm_wallet');
+        localStorage.removeItem('onyx_wasm_wallet');
         localStorage.removeItem('monero_seed_phrase');
         localStorage.removeItem('monero_spend_key_priv');
         localStorage.removeItem('monero_view_key_priv');

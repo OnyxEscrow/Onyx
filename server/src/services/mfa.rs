@@ -45,7 +45,7 @@ impl MfaService {
     /// Create a new MFA service
     ///
     /// # Arguments
-    /// * `issuer` - Name shown in authenticator apps (e.g., "NEXUS")
+    /// * `issuer` - Name shown in authenticator apps (e.g., "Onyx")
     /// * `encryption_key` - 32-byte key for encrypting TOTP secrets
     pub fn new(issuer: impl Into<String>, encryption_key: Vec<u8>) -> Result<Self> {
         if encryption_key.len() != 32 {

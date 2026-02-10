@@ -145,7 +145,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="flex-shrink-0 mt-0.5">
                     <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
-                <span>Your shield is encrypted locally. NEXUS never sees your password or keys.</span>
+                <span>Your shield is encrypted locally. Onyx never sees your password or keys.</span>
             </div>
         </div>
 
@@ -470,7 +470,7 @@ async function downloadRecoveryShield() {
 
         // Build final file (v1.1.0 includes secret_share + view_key_priv)
         const shieldFile = {
-            nexus_recovery_shield: true,
+            onyx_recovery_shield: true,
             version: '1.1.0',
             created_at: new Date().toISOString(),
             encryption: {
@@ -493,7 +493,7 @@ async function downloadRecoveryShield() {
         const blob = new Blob([JSON.stringify(shieldFile, null, 2)], { type: 'application/json' });
         const shortId = shieldEscrowId.substring(0, 8);
         const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const filename = `nexus-shield-${shortId}-${timestamp}.json`;
+        const filename = `onyx-shield-${shortId}-${timestamp}.json`;
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -634,8 +634,8 @@ function updateShieldStatusIndicators() {
  * Show toast notification
  */
 function showShieldToast(message, type = 'info') {
-    if (typeof window.NexusToast !== 'undefined') {
-        window.NexusToast.show(message, type);
+    if (typeof window.OnyxToast !== 'undefined') {
+        window.OnyxToast.show(message, type);
         return;
     }
 

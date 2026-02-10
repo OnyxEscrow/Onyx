@@ -1,4 +1,4 @@
-//! NEXUS CLSAG Debug Script v0.38.9
+//! Onyx CLSAG Debug Script v0.38.9
 //!
 //! Comprehensive debugging tool for tracing the entire CLSAG signing flow.
 //! Identifies exactly where/when/why `c_computed != c_expected`.
@@ -1209,7 +1209,7 @@ fn main() -> Result<()> {
     }
 
     println!("╔══════════════════════════════════════════════════════════════════╗");
-    println!("║         NEXUS CLSAG Debug Script v0.38.9                         ║");
+    println!("║         ONYX CLSAG Debug Script v0.38.9                          ║");
     println!("║         Comprehensive Signing Flow Analysis                      ║");
     println!("╚══════════════════════════════════════════════════════════════════╝");
     println!("\nEscrow ID: {}", escrow_id);

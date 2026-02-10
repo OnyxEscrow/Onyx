@@ -1,0 +1,236 @@
+{#
+  Onyx STATS BANNER COMPONENT
+
+  Usage:
+    {% include "partials/onyx/organisms/stats-banner.html" with
+       stats=[
+         {"label": "Active Listings", "value": "1,234", "icon": "📦"},
+         {"label": "Total Sales", "value": "45.6 XMR", "icon": "💰"},
+         {"label": "Happy Buyers", "value": "892", "icon": "😊"}
+       ]
+    %}
+
+  Parameters:
+    - stats (required): Array of stat objects with:
+        - label: Stat label
+        - value: Stat value
+        - icon: Optional icon
+        - suffix: Optional suffix (e.g., "+", "%")
+        - trend: Optional trend indicator (up|down)
+    - variant (optional): horizontal|vertical (default: horizontal)
+    - glassmorphism (optional): true|false - Apply glass effect (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set stats_variant = variant | default(value="horizontal") %}
+{% set stats_glassmorphism = glassmorphism | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-stats-banner onyx-stats-banner-" ~ stats_variant %}
+{% if stats_glassmorphism %}
+  {% set css_classes = css_classes ~ " onyx-stats-banner-glass" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {% for stat in stats %}
+    <div class="onyx-stat-item">
+      {# Icon #}
+      {% if stat.icon %}
+        <div class="onyx-stat-icon">{{ stat.icon | safe }}</div>
+      {% endif %}
+
+      {# Content #}
+      <div class="onyx-stat-content">
+        <div class="onyx-stat-value-wrapper">
+          <span class="onyx-stat-value">{{ stat.value }}</span>
+          {% if stat.suffix %}
+            <span class="onyx-stat-suffix">{{ stat.suffix }}</span>
+          {% endif %}
+          {% if stat.trend %}
+            <span class="onyx-stat-trend onyx-stat-trend-{{ stat.trend }}">
+              {% if stat.trend == "up" %}↑{% else %}↓{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <span class="onyx-stat-label">{{ stat.label }}</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<style>
+/* Base Stats Banner */
+.onyx-stats-banner {
+  display: flex;
+  gap: var(--onyx-space-6);
+  padding: var(--onyx-space-6);
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+}
+
+/* Glassmorphism */
+.onyx-stats-banner-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Variant: Horizontal */
+.onyx-stats-banner-horizontal {
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Variant: Vertical */
+.onyx-stats-banner-vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.onyx-stats-banner-vertical .onyx-stat-item {
+  border-bottom: 1px solid var(--onyx-border);
+  padding-bottom: var(--onyx-space-4);
+}
+
+.onyx-stats-banner-vertical .onyx-stat-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Stat Item */
+.onyx-stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-3);
+  min-width: 150px;
+}
+
+/* Stat Icon */
+.onyx-stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(255, 26, 92, 0.3));
+}
+
+/* Stat Content */
+.onyx-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-1);
+}
+
+/* Stat Value Wrapper */
+.onyx-stat-value-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: var(--onyx-space-1);
+}
+
+/* Stat Value */
+.onyx-stat-value {
+  font-size: var(--onyx-text-3xl);
+  font-weight: var(--onyx-weight-black);
+  color: var(--onyx-fg);
+  line-height: var(--onyx-leading-tight);
+  background: linear-gradient(
+    135deg,
+    var(--onyx-primary) 0%,
+    var(--onyx-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Stat Suffix */
+.onyx-stat-suffix {
+  font-size: var(--onyx-text-lg);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-muted-fg);
+}
+
+/* Stat Trend */
+.onyx-stat-trend {
+  font-size: var(--onyx-text-xl);
+  font-weight: var(--onyx-weight-bold);
+}
+
+.onyx-stat-trend-up {
+  color: var(--onyx-success);
+}
+
+.onyx-stat-trend-down {
+  color: var(--onyx-destructive);
+}
+
+/* Stat Label */
+.onyx-stat-label {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wider);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .onyx-stats-banner {
+    gap: var(--onyx-space-4);
+    padding: var(--onyx-space-5);
+  }
+
+  .onyx-stat-icon {
+    font-size: 2rem;
+  }
+
+  .onyx-stat-value {
+    font-size: var(--onyx-text-2xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .onyx-stats-banner-horizontal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onyx-stats-banner {
+    gap: var(--onyx-space-3);
+    padding: var(--onyx-space-4);
+  }
+
+  .onyx-stat-item {
+    min-width: auto;
+    padding-bottom: var(--onyx-space-3);
+    border-bottom: 1px solid var(--onyx-border);
+  }
+
+  .onyx-stat-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .onyx-stat-icon {
+    font-size: 1.75rem;
+  }
+
+  .onyx-stat-value {
+    font-size: var(--onyx-text-xl);
+  }
+
+  .onyx-stat-label {
+    font-size: var(--onyx-text-xs);
+  }
+}
+</style>

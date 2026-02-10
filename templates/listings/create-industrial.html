@@ -402,7 +402,7 @@ const CSRF_TOKEN = "{{ csrf_token }}";
 const VENDOR_NAME = "{{ username }}";
 let currentListingStep = 1;
 let autoSaveTimer = null;
-const AUTOSAVE_KEY = 'nexus_listing_draft';
+const AUTOSAVE_KEY = 'onyx_listing_draft';
 const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 // ============================================
@@ -863,7 +863,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .listing-stepper__progress {
     height: 100%;
-    background: linear-gradient(90deg, var(--nexus-gold), var(--nexus-gold-light));
+    background: linear-gradient(90deg, var(--onyx-gold), var(--onyx-gold-light));
     border-radius: 2px;
     transition: width 0.4s ease;
 }
@@ -907,8 +907,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .listing-stepper__step--active .listing-stepper__step-number {
-    background: var(--nexus-gold);
-    border-color: var(--nexus-gold);
+    background: var(--onyx-gold);
+    border-color: var(--onyx-gold);
     color: #000;
 }
 
@@ -926,7 +926,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .listing-stepper__step--active .listing-stepper__step-label {
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
 }
 
 /* Form Steps */
@@ -1006,8 +1006,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .draft-modal__content {
     position: relative;
-    background: var(--nexus-surface);
-    border: 1px solid var(--nexus-border);
+    background: var(--onyx-surface);
+    border: 1px solid var(--onyx-border);
     border-radius: 12px;
     padding: 2rem;
     max-width: 400px;
@@ -1066,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', function() {
     content: '•';
     position: absolute;
     left: 0;
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
 }
 
 /* Listing Summary */
@@ -1161,7 +1161,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .preview-card-mini__category {
     font-size: 0.65rem;
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 0.25rem;
@@ -1179,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .preview-card-mini__price {
     font-size: 1rem;
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
     font-weight: 600;
     margin-bottom: 0.25rem;
 }
@@ -1211,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .preview-card-full__category {
     font-size: 0.7rem;
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 0.5rem;
@@ -1242,7 +1242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .preview-card-full__price {
     font-size: 1.25rem;
-    color: var(--nexus-gold);
+    color: var(--onyx-gold);
     font-weight: 600;
 }
 
@@ -1279,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .shipping-option:has(input:checked) {
-    border-color: var(--nexus-gold);
+    border-color: var(--onyx-gold);
     background: rgba(255, 102, 0, 0.05);
 }
 
@@ -1296,8 +1296,8 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .shipping-option:has(input:checked) .shipping-option__mark {
-    border-color: var(--nexus-gold);
-    background: var(--nexus-gold);
+    border-color: var(--onyx-gold);
+    background: var(--onyx-gold);
 }
 
 .shipping-option:has(input:checked) .shipping-option__mark::after {
@@ -1356,7 +1356,7 @@ document.addEventListener('DOMContentLoaded', function() {
     bottom: 0.25rem;
     left: 0.25rem;
     padding: 0.15rem 0.4rem;
-    background: var(--nexus-gold);
+    background: var(--onyx-gold);
     color: #000;
     font-size: 0.65rem;
     font-weight: 600;

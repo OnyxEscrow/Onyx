@@ -1,0 +1,363 @@
+{#
+  Onyx ESCROW VISUALIZER COMPONENT
+
+  Displays 2-of-3 multisig escrow status for orders
+
+  Usage:
+    {% include "partials/onyx/organisms/escrow-visualizer.html" %}
+
+  Parameters:
+    - escrow_id (required): Escrow ID
+    - buyer_name (required): Buyer display name
+    - vendor_name (required): Vendor display name
+    - arbiter_name (required): Arbiter display name
+    - status (required): pending|funded|released|disputed
+    - amount_xmr (required): Amount in atomic XMR
+    - signatures (optional): Array of signature status
+    - class (optional): Additional CSS classes
+#}
+
+{# Calculate XMR display value #}
+{% set xmr_value = amount_xmr / 1000000000000 %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-escrow-visualizer" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {# Header #}
+  <div class="onyx-escrow-header">
+    <div class="onyx-escrow-title-group">
+      <h3 class="onyx-escrow-title">2-of-3 Multisig Escrow</h3>
+      <span class="onyx-escrow-id">{{ escrow_id }}</span>
+    </div>
+    {% include "partials/onyx/atoms/badge.html" %}
+  </div>
+
+  {# Amount #}
+  <div class="onyx-escrow-amount">
+    <span class="onyx-escrow-amount-label">Escrowed Amount</span>
+    <div class="onyx-escrow-amount-value">
+      <span class="onyx-escrow-amount-number">{{ xmr_value }}</span>
+      <span class="onyx-escrow-amount-currency">XMR</span>
+    </div>
+  </div>
+
+  {# Participants Diagram #}
+  <div class="onyx-escrow-diagram">
+    {# Center - Escrow Wallet #}
+    <div class="onyx-escrow-center">
+      <div class="onyx-escrow-wallet">
+        <span class="onyx-escrow-wallet-icon">🔒</span>
+        <span class="onyx-escrow-wallet-label">Escrow Wallet</span>
+        <span class="onyx-escrow-wallet-status">{{ status }}</span>
+      </div>
+    </div>
+
+    {# Participants #}
+    <div class="onyx-escrow-participants">
+      {# Buyer #}
+      <div class="onyx-escrow-participant onyx-escrow-participant-buyer">
+        <div class="onyx-escrow-participant-icon">👤</div>
+        <div class="onyx-escrow-participant-info">
+          <span class="onyx-escrow-participant-role">Buyer</span>
+          <span class="onyx-escrow-participant-name">{{ buyer_name }}</span>
+        </div>
+        <div class="onyx-escrow-connection onyx-escrow-connection-buyer"></div>
+      </div>
+
+      {# Vendor #}
+      <div class="onyx-escrow-participant onyx-escrow-participant-vendor">
+        <div class="onyx-escrow-participant-icon">🏪</div>
+        <div class="onyx-escrow-participant-info">
+          <span class="onyx-escrow-participant-role">Vendor</span>
+          <span class="onyx-escrow-participant-name">{{ vendor_name }}</span>
+        </div>
+        <div class="onyx-escrow-connection onyx-escrow-connection-vendor"></div>
+      </div>
+
+      {# Arbiter #}
+      <div class="onyx-escrow-participant onyx-escrow-participant-arbiter">
+        <div class="onyx-escrow-participant-icon">⚖️</div>
+        <div class="onyx-escrow-participant-info">
+          <span class="onyx-escrow-participant-role">Arbiter</span>
+          <span class="onyx-escrow-participant-name">{{ arbiter_name }}</span>
+        </div>
+        <div class="onyx-escrow-connection onyx-escrow-connection-arbiter"></div>
+      </div>
+    </div>
+  </div>
+
+  {# Signature Requirements #}
+  <div class="onyx-escrow-requirements">
+    <div class="onyx-escrow-requirement-item">
+      <span class="onyx-escrow-requirement-label">Required Signatures</span>
+      <span class="onyx-escrow-requirement-value">2 of 3</span>
+    </div>
+    <div class="onyx-escrow-requirement-item">
+      <span class="onyx-escrow-requirement-label">Security Level</span>
+      <span class="onyx-escrow-requirement-value">🔐 High</span>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Base Escrow Visualizer */
+.onyx-escrow-visualizer {
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  padding: var(--onyx-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-6);
+}
+
+/* Header */
+.onyx-escrow-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--onyx-space-4);
+  border-bottom: 1px solid var(--onyx-border);
+}
+
+.onyx-escrow-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-1);
+}
+
+.onyx-escrow-title {
+  font-size: var(--onyx-text-lg);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0;
+}
+
+.onyx-escrow-id {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  font-family: var(--onyx-font-mono);
+}
+
+/* Amount */
+.onyx-escrow-amount {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  padding: var(--onyx-space-4);
+  background: linear-gradient(135deg, rgba(255, 26, 92, 0.1) 0%, rgba(138, 43, 226, 0.1) 100%);
+  border-radius: var(--onyx-radius-md);
+}
+
+.onyx-escrow-amount-label {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wide);
+}
+
+.onyx-escrow-amount-value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-escrow-amount-number {
+  font-size: var(--onyx-text-4xl);
+  font-weight: var(--onyx-weight-black);
+  background: linear-gradient(135deg, var(--onyx-primary) 0%, var(--onyx-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.onyx-escrow-amount-currency {
+  font-size: var(--onyx-text-lg);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-muted-fg);
+}
+
+/* Diagram */
+.onyx-escrow-diagram {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--onyx-space-8);
+  padding: var(--onyx-space-8) 0;
+}
+
+/* Center Wallet */
+.onyx-escrow-center {
+  position: relative;
+  z-index: 2;
+}
+
+.onyx-escrow-wallet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  padding: var(--onyx-space-5);
+  background: linear-gradient(135deg, rgba(255, 26, 92, 0.2) 0%, rgba(138, 43, 226, 0.2) 100%);
+  border: 2px solid var(--onyx-primary);
+  border-radius: var(--onyx-radius-lg);
+  box-shadow: var(--onyx-glow-primary);
+  animation: onyx-escrow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes onyx-escrow-pulse {
+  0%, 100% {
+    box-shadow: var(--onyx-glow-primary);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(255, 26, 92, 0.6);
+  }
+}
+
+.onyx-escrow-wallet-icon {
+  font-size: 3rem;
+}
+
+.onyx-escrow-wallet-label {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wide);
+}
+
+.onyx-escrow-wallet-status {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  font-style: italic;
+}
+
+/* Participants */
+.onyx-escrow-participants {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--onyx-space-6);
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.onyx-escrow-participant {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  padding: var(--onyx-space-4);
+  background-color: var(--onyx-muted);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-escrow-participant:hover {
+  border-color: var(--onyx-primary);
+  transform: translateY(-2px);
+}
+
+.onyx-escrow-participant-icon {
+  font-size: 2rem;
+}
+
+.onyx-escrow-participant-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--onyx-space-1);
+  text-align: center;
+}
+
+.onyx-escrow-participant-role {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wider);
+}
+
+.onyx-escrow-participant-name {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-fg);
+}
+
+/* Connection Lines (visual only) */
+.onyx-escrow-connection {
+  position: absolute;
+  top: -50%;
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(to bottom, var(--onyx-primary) 0%, transparent 100%);
+  opacity: 0.5;
+}
+
+/* Requirements */
+.onyx-escrow-requirements {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--onyx-space-4);
+  padding-top: var(--onyx-space-4);
+  border-top: 1px solid var(--onyx-border);
+}
+
+.onyx-escrow-requirement-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-1);
+}
+
+.onyx-escrow-requirement-label {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wide);
+}
+
+.onyx-escrow-requirement-value {
+  font-size: var(--onyx-text-base);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-escrow-visualizer {
+    padding: var(--onyx-space-4);
+  }
+
+  .onyx-escrow-participants {
+    grid-template-columns: 1fr;
+    gap: var(--onyx-space-3);
+  }
+
+  .onyx-escrow-amount-number {
+    font-size: var(--onyx-text-3xl);
+  }
+
+  .onyx-escrow-wallet {
+    padding: var(--onyx-space-4);
+  }
+
+  .onyx-escrow-wallet-icon {
+    font-size: 2.5rem;
+  }
+
+  .onyx-escrow-connection {
+    display: none;
+  }
+
+  .onyx-escrow-requirements {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

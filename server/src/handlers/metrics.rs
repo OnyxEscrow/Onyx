@@ -9,7 +9,7 @@
 //!
 //! ## Grafana Integration
 //! Add Prometheus data source pointing to this endpoint,
-//! then import NEXUS dashboard from `docs/grafana/nexus-dashboard.json`
+//! then import Onyx dashboard from `docs/grafana/onyx-dashboard.json`
 
 use actix_web::{get, HttpResponse};
 

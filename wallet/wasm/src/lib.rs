@@ -1,5 +1,5 @@
 pub mod clsag_debug; // Debug instrumentation for CLSAG
-pub mod core; // nexus-crypto-core re-exports for gradual migration
+pub mod core; // onyx-crypto-core re-exports for gradual migration
 pub mod crypto;
 pub mod encrypted_relay; // Phase 2: End-to-end encrypted relay for non-custodial signing
 pub mod frost_dkg;

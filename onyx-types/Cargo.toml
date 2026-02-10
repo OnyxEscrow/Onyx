@@ -1,0 +1,26 @@
+[package]
+name = "onyx-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared types between Onyx server and WASM clients"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "js-sys"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Conditional WASM support
+wasm-bindgen = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+
+[dev-dependencies]
+tokio-test = { workspace = true }

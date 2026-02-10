@@ -14,19 +14,19 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
   {# Title Field #}
-  {% include "partials/nexus/atoms/input.html" %}
+  {% include "partials/onyx/atoms/input.html" %}
 
   {# Description Field #}
-  {% include "partials/nexus/atoms/textarea.html" %}
+  {% include "partials/onyx/atoms/textarea.html" %}
 
   {# Price Field #}
-  {% include "partials/nexus/atoms/input.html" %}
+  {% include "partials/onyx/atoms/input.html" %}
 
   {# XMR Converter Helper #}
-  <div style="margin-bottom: var(--nexus-space-6); padding: var(--nexus-space-4); background: rgba(0, 180, 216, 0.1); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: var(--nexus-radius-md);">
-    <div style="display: flex; gap: var(--nexus-space-4); align-items: center;">
+  <div style="margin-bottom: var(--onyx-space-6); padding: var(--onyx-space-4); background: rgba(0, 180, 216, 0.1); border: 1px solid rgba(0, 180, 216, 0.3); border-radius: var(--onyx-radius-md);">
+    <div style="display: flex; gap: var(--onyx-space-4); align-items: center;">
       <div style="flex: 1;">
-        <label for="xmr-helper" style="display: block; font-size: var(--nexus-text-xs); color: var(--nexus-muted-fg); margin-bottom: var(--nexus-space-2); text-transform: uppercase; letter-spacing: var(--nexus-tracking-wide);">
+        <label for="xmr-helper" style="display: block; font-size: var(--onyx-text-xs); color: var(--onyx-muted-fg); margin-bottom: var(--onyx-space-2); text-transform: uppercase; letter-spacing: var(--onyx-tracking-wide);">
           Quick Convert (XMR)
         </label>
         <input
@@ -35,12 +35,12 @@
           placeholder="0.000000000000"
           step="0.000000000001"
           min="0"
-          style="width: 100%; padding: var(--nexus-space-2); background: var(--nexus-input); border: 1px solid var(--nexus-border); border-radius: var(--nexus-radius-sm); color: var(--nexus-fg); font-family: var(--nexus-font-mono);"
+          style="width: 100%; padding: var(--onyx-space-2); background: var(--onyx-input); border: 1px solid var(--onyx-border); border-radius: var(--onyx-radius-sm); color: var(--onyx-fg); font-family: var(--onyx-font-mono);"
         >
       </div>
-      <div style="padding: var(--nexus-space-2); color: var(--nexus-muted-fg);">⇄</div>
+      <div style="padding: var(--onyx-space-2); color: var(--onyx-muted-fg);">⇄</div>
       <div style="flex: 1;">
-        <label style="display: block; font-size: var(--nexus-text-xs); color: var(--nexus-muted-fg); margin-bottom: var(--nexus-space-2); text-transform: uppercase; letter-spacing: var(--nexus-tracking-wide);">
+        <label style="display: block; font-size: var(--onyx-text-xs); color: var(--onyx-muted-fg); margin-bottom: var(--onyx-space-2); text-transform: uppercase; letter-spacing: var(--onyx-tracking-wide);">
           Atomic Units
         </label>
         <input
@@ -48,43 +48,43 @@
           id="atomic-display"
           readonly
           placeholder="0"
-          style="width: 100%; padding: var(--nexus-space-2); background: var(--nexus-muted); border: 1px solid var(--nexus-border); border-radius: var(--nexus-radius-sm); color: var(--nexus-fg); font-family: var(--nexus-font-mono);"
+          style="width: 100%; padding: var(--onyx-space-2); background: var(--onyx-muted); border: 1px solid var(--onyx-border); border-radius: var(--onyx-radius-sm); color: var(--onyx-fg); font-family: var(--onyx-font-mono);"
         >
       </div>
     </div>
   </div>
 
   {# Stock Field #}
-  {% include "partials/nexus/atoms/input.html" %}
+  {% include "partials/onyx/atoms/input.html" %}
 
   {# Images Field #}
-  <div style="margin-bottom: var(--nexus-space-6);">
-    {% include "partials/nexus/atoms/label.html" %}
+  <div style="margin-bottom: var(--onyx-space-6);">
+    {% include "partials/onyx/atoms/label.html" %}
     <input
       type="file"
       id="images"
       name="images"
       accept="image/jpeg,image/png,image/gif,image/webp"
       multiple
-      style="width: 100%; padding: var(--nexus-space-3); background: var(--nexus-input); border: 1px solid var(--nexus-border); border-radius: var(--nexus-radius-sm); color: var(--nexus-fg); cursor: pointer;"
+      style="width: 100%; padding: var(--onyx-space-3); background: var(--onyx-input); border: 1px solid var(--onyx-border); border-radius: var(--onyx-radius-sm); color: var(--onyx-fg); cursor: pointer;"
     >
-    <small style="display: block; margin-top: var(--nexus-space-2); font-size: var(--nexus-text-xs); color: var(--nexus-muted-fg);">
+    <small style="display: block; margin-top: var(--onyx-space-2); font-size: var(--onyx-text-xs); color: var(--onyx-muted-fg);">
       Upload 1-10 images (JPEG, PNG, GIF, WebP) - Max 5MB each
     </small>
 
     {# Image Preview Grid #}
-    <div id="image-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--nexus-space-3); margin-top: var(--nexus-space-4);"></div>
+    <div id="image-preview" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--onyx-space-3); margin-top: var(--onyx-space-4);"></div>
   </div>
 
   {# Existing Images (Edit Mode) #}
   {% if mode == "edit" and images and images | length > 0 %}
-  <div style="margin-bottom: var(--nexus-space-6);">
-    <h3 style="font-size: var(--nexus-text-sm); font-weight: var(--nexus-weight-bold); color: var(--nexus-fg); margin-bottom: var(--nexus-space-3); text-transform: uppercase; letter-spacing: var(--nexus-tracking-wide);">
+  <div style="margin-bottom: var(--onyx-space-6);">
+    <h3 style="font-size: var(--onyx-text-sm); font-weight: var(--onyx-weight-bold); color: var(--onyx-fg); margin-bottom: var(--onyx-space-3); text-transform: uppercase; letter-spacing: var(--onyx-tracking-wide);">
       Current Images
     </h3>
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--nexus-space-3);">
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--onyx-space-3);">
       {% for image_cid in images %}
-      <div style="position: relative; border-radius: var(--nexus-radius-md); overflow: hidden; border: 1px solid var(--nexus-border);">
+      <div style="position: relative; border-radius: var(--onyx-radius-md); overflow: hidden; border: 1px solid var(--onyx-border);">
         <img
           src="/api/listings/{{ listing.id }}/images/{{ image_cid }}"
           alt="Product image"
@@ -97,14 +97,14 @@
   {% endif %}
 
   {# Form Actions #}
-  <div style="display: flex; gap: var(--nexus-space-4); margin-top: var(--nexus-space-8);">
-    {% include "partials/nexus/atoms/button.html" %}
+  <div style="display: flex; gap: var(--onyx-space-4); margin-top: var(--onyx-space-8);">
+    {% include "partials/onyx/atoms/button.html" %}
 
-    {% include "partials/nexus/atoms/button.html" %}
+    {% include "partials/onyx/atoms/button.html" %}
   </div>
 </form>
 
-<div id="listing-result" style="margin-top: var(--nexus-space-6);"></div>
+<div id="listing-result" style="margin-top: var(--onyx-space-6);"></div>
 
 <script>
 // XMR to Atomic Units converter
@@ -157,13 +157,13 @@ document.addEventListener('DOMContentLoaded', function() {
           const preview = document.createElement('div');
           preview.style.cssText = `
             position: relative;
-            border-radius: var(--nexus-radius-md);
+            border-radius: var(--onyx-radius-md);
             overflow: hidden;
-            border: 1px solid var(--nexus-border);
+            border: 1px solid var(--onyx-border);
           `;
           preview.innerHTML = `
             <img src="${e.target.result}" style="width: 100%; height: 120px; object-fit: cover;">
-            <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: var(--nexus-space-1); background: rgba(0,0,0,0.7); font-size: var(--nexus-text-xs); color: var(--nexus-fg); text-align: center;">
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; padding: var(--onyx-space-1); background: rgba(0,0,0,0.7); font-size: var(--onyx-text-xs); color: var(--onyx-fg); text-align: center;">
               ${file.name}
             </div>
           `;

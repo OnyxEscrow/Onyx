@@ -1,0 +1,318 @@
+{#
+  Onyx DROPDOWN MENU COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/dropdown-menu.html" with
+       id="user-menu"
+       trigger_text="Menu"
+       items=[
+         {"text": "Profile", "href": "/profile"},
+         {"text": "Settings", "href": "/settings"},
+         {"separator": true},
+         {"text": "Logout", "hx_post": "/api/logout", "variant": "destructive"}
+       ]
+    %}
+
+  Parameters:
+    - id (required): Unique dropdown ID
+    - trigger_text (optional): Trigger button text
+    - trigger_icon (optional): Trigger button icon
+    - trigger_variant (optional): Button variant (default: outline)
+    - items (required): Array of menu items with:
+        - text: Item text
+        - href: Link URL
+        - hx_post: HTMX POST endpoint
+        - hx_get: HTMX GET endpoint
+        - icon: Item icon
+        - variant: destructive (for dangerous actions)
+        - separator: true (renders separator instead)
+        - disabled: true (disabled state)
+    - position (optional): bottom-start|bottom-end|top-start|top-end (default: bottom-start)
+    - class (optional): Additional CSS classes
+#}
+
+{% set dropdown_position = position | default(value="bottom-start") %}
+{% set dropdown_trigger_variant = trigger_variant | default(value="outline") %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-dropdown" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}">
+  {# Trigger Button #}
+  <button
+    class="onyx-btn onyx-btn-{{ dropdown_trigger_variant }} onyx-dropdown-trigger"
+    aria-haspopup="true"
+    aria-expanded="false"
+    onclick="toggleDropdown('{{ id }}')"
+  >
+    {% if trigger_icon %}
+      <span class="onyx-dropdown-trigger-icon">{{ trigger_icon | safe }}</span>
+    {% endif %}
+    {% if trigger_text %}
+      <span>{{ trigger_text }}</span>
+    {% endif %}
+    <span class="onyx-dropdown-trigger-arrow">▼</span>
+  </button>
+
+  {# Dropdown Menu #}
+  <div class="onyx-dropdown-menu onyx-dropdown-menu-{{ dropdown_position }}" role="menu" aria-hidden="true">
+    {% for item in items %}
+      {% if item.separator %}
+        {# Separator #}
+        <div class="onyx-dropdown-separator" role="separator"></div>
+      {% else %}
+        {# Menu Item #}
+        {% set item_variant = item.variant | default(value="default") %}
+        {% set item_disabled = item.disabled | default(value=false) %}
+
+        {% if item.href %}
+          {# Link Item #}
+          <a
+            href="{{ item.href }}"
+            class="onyx-dropdown-item onyx-dropdown-item-{{ item_variant }}"
+            role="menuitem"
+            {% if item_disabled %}aria-disabled="true"{% endif %}
+          >
+            {% if item.icon %}
+              <span class="onyx-dropdown-item-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            <span class="onyx-dropdown-item-text">{{ item.text }}</span>
+          </a>
+        {% elif item.hx_post or item.hx_get %}
+          {# HTMX Item #}
+          <button
+            class="onyx-dropdown-item onyx-dropdown-item-{{ item_variant }}"
+            role="menuitem"
+            {% if item.hx_post %}hx-post="{{ item.hx_post }}"{% endif %}
+            {% if item.hx_get %}hx-get="{{ item.hx_get }}"{% endif %}
+            {% if item_disabled %}disabled{% endif %}
+            onclick="closeDropdown('{{ id }}')"
+          >
+            {% if item.icon %}
+              <span class="onyx-dropdown-item-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            <span class="onyx-dropdown-item-text">{{ item.text }}</span>
+          </button>
+        {% else %}
+          {# Button Item #}
+          <button
+            class="onyx-dropdown-item onyx-dropdown-item-{{ item_variant }}"
+            role="menuitem"
+            {% if item_disabled %}disabled{% endif %}
+            onclick="closeDropdown('{{ id }}')"
+          >
+            {% if item.icon %}
+              <span class="onyx-dropdown-item-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            <span class="onyx-dropdown-item-text">{{ item.text }}</span>
+          </button>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+// Dropdown toggle function
+function toggleDropdown(id) {
+  var dropdown = document.getElementById(id);
+  var trigger = dropdown.querySelector('.onyx-dropdown-trigger');
+  var menu = dropdown.querySelector('.onyx-dropdown-menu');
+  var isOpen = menu.getAttribute('aria-hidden') === 'false';
+
+  // Close all other dropdowns first
+  document.querySelectorAll('.onyx-dropdown-menu[aria-hidden="false"]').forEach(function(openMenu) {
+    if (openMenu !== menu) {
+      openMenu.setAttribute('aria-hidden', 'true');
+      openMenu.parentElement.querySelector('.onyx-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Toggle current dropdown
+  if (isOpen) {
+    menu.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+  } else {
+    menu.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function closeDropdown(id) {
+  var dropdown = document.getElementById(id);
+  var trigger = dropdown.querySelector('.onyx-dropdown-trigger');
+  var menu = dropdown.querySelector('.onyx-dropdown-menu');
+  menu.setAttribute('aria-hidden', 'true');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.onyx-dropdown')) {
+    document.querySelectorAll('.onyx-dropdown-menu[aria-hidden="false"]').forEach(function(menu) {
+      menu.setAttribute('aria-hidden', 'true');
+      menu.parentElement.querySelector('.onyx-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+
+// Close dropdown on Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    document.querySelectorAll('.onyx-dropdown-menu[aria-hidden="false"]').forEach(function(menu) {
+      menu.setAttribute('aria-hidden', 'true');
+      menu.parentElement.querySelector('.onyx-dropdown-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+</script>
+
+<style>
+/* Base Dropdown */
+.onyx-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+/* Trigger Button */
+.onyx-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-dropdown-trigger-icon {
+  display: inline-flex;
+  font-size: var(--onyx-text-lg);
+}
+
+.onyx-dropdown-trigger-arrow {
+  font-size: var(--onyx-text-xs);
+  transition: transform var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-dropdown-trigger[aria-expanded="true"] .onyx-dropdown-trigger-arrow {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Menu */
+.onyx-dropdown-menu {
+  position: absolute;
+  z-index: 1000;
+  min-width: 200px;
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-md);
+  box-shadow: var(--onyx-shadow-lg);
+  padding: var(--onyx-space-2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  pointer-events: none;
+}
+
+.onyx-dropdown-menu[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Position Variants */
+.onyx-dropdown-menu-bottom-start {
+  top: calc(100% + var(--onyx-space-2));
+  left: 0;
+}
+
+.onyx-dropdown-menu-bottom-end {
+  top: calc(100% + var(--onyx-space-2));
+  right: 0;
+}
+
+.onyx-dropdown-menu-top-start {
+  bottom: calc(100% + var(--onyx-space-2));
+  left: 0;
+}
+
+.onyx-dropdown-menu-top-end {
+  bottom: calc(100% + var(--onyx-space-2));
+  right: 0;
+}
+
+/* Menu Item */
+.onyx-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+  width: 100%;
+  padding: var(--onyx-space-2) var(--onyx-space-3);
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-fg);
+  background: none;
+  border: none;
+  border-radius: var(--onyx-radius-sm);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  white-space: nowrap;
+}
+
+.onyx-dropdown-item:hover {
+  background-color: var(--onyx-muted);
+  color: var(--onyx-primary);
+}
+
+.onyx-dropdown-item:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: -2px;
+}
+
+.onyx-dropdown-item:disabled,
+.onyx-dropdown-item[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Item Variants */
+.onyx-dropdown-item-destructive {
+  color: var(--onyx-destructive);
+}
+
+.onyx-dropdown-item-destructive:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--onyx-destructive);
+}
+
+/* Item Icon */
+.onyx-dropdown-item-icon {
+  display: inline-flex;
+  font-size: var(--onyx-text-base);
+  flex-shrink: 0;
+}
+
+/* Item Text */
+.onyx-dropdown-item-text {
+  flex: 1;
+}
+
+/* Separator */
+.onyx-dropdown-separator {
+  height: 1px;
+  background-color: var(--onyx-border);
+  margin: var(--onyx-space-2) 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-dropdown-menu {
+    min-width: 180px;
+  }
+}
+</style>

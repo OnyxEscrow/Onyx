@@ -1,4 +1,4 @@
-//! Prometheus Metrics for NEXUS EaaS
+//! Prometheus Metrics for Onyx EaaS
 //!
 //! Provides production-grade observability with:
 //! - HTTP request metrics (latency, status codes, throughput)

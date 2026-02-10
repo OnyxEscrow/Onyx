@@ -20,7 +20,7 @@ See [PROTOCOL.md](PROTOCOL.md) for the full cryptographic specification.
 ```
  Browser (WASM)                Relay Server               Monero Network
 +-------------------+     +--------------------+     +------------------+
-| nexus-crypto-core |     | server (Actix-web) |     | monerod          |
+| onyx-crypto-core |     | server (Actix-web) |     | monerod          |
 | - FROST DKG       | <-> | - REST API         | <-> | - mainnet/testnet|
 | - CMD masks       |     | - FROST coord      |     |                  |
 | - CLSAG signing   |     | - view key only    |     |                  |
@@ -33,8 +33,8 @@ See [PROTOCOL.md](PROTOCOL.md) for the full cryptographic specification.
 
 | Crate | Purpose |
 |-------|---------|
-| `nexus-crypto-core` | FROST DKG, CMD protocol, Lagrange interpolation, CLSAG |
-| `nexus-crypto-core/wasm` | WASM bindings for browser execution |
+| `onyx-crypto-core` | FROST DKG, CMD protocol, Lagrange interpolation, CLSAG |
+| `onyx-crypto-core/wasm` | WASM bindings for browser execution |
 | `wallet` | Monero RPC client, multisig operations |
 | `wallet/wasm` | WASM wallet bindings |
 | `server` | Actix-web REST API, FROST coordinator, transaction builder |
@@ -110,8 +110,8 @@ Client libraries for integrating Onyx-Escrow into third-party applications:
 
 | SDK | Package | Install |
 |-----|---------|---------|
-| JavaScript/TypeScript | `packages/nexus-sdk-js` | `npm install @nexus-escrow/sdk` |
-| Python | `packages/nexus-sdk-python` | `pip install nexus-escrow` |
+| JavaScript/TypeScript | `packages/onyx-sdk-js` | `npm install @onyx-escrow/sdk` |
+| Python | `packages/onyx-sdk-python` | `pip install onyx-escrow` |
 
 Both SDKs provide typed wrappers around the REST API for escrow creation,
 status polling, webhook verification, and dispute management.

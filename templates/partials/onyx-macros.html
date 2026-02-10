@@ -1,0 +1,342 @@
+{#
+  Onyx DESIGN SYSTEM - UNIFIED MACROS
+
+  This file contains all Onyx component macros in one place.
+  Import this file in your templates to use Onyx components.
+
+  Usage:
+    {% import "partials/onyx-macros.html" as nx %}
+    {{ nx::button(text="Click me", variant="primary") }}
+    {{ nx::badge(text="NEW", variant="success") }}
+#}
+
+{# ============================================================================
+   ATOMS - Basic building blocks
+   ============================================================================ #}
+
+{# BADGE - Display status or category labels #}
+{% macro badge(text, variant="default", status="", class="", id="") %}
+  {%- if status -%}
+    {%- set css_classes = "onyx-badge onyx-badge-" ~ status -%}
+  {%- else -%}
+    {%- set css_classes = "onyx-badge onyx-badge-" ~ variant -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+  <span class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>{{ text }}</span>
+{%- endmacro badge %}
+
+
+{# BUTTON - Action button with multiple variants #}
+{% macro button(text, variant="primary", size="md", type="button", disabled=false, href="", hx_get="", hx_post="", hx_put="", hx_delete="", hx_target="", hx_swap="", hx_confirm="", hx_indicator="", class="", id="", aria_label="") %}
+  {%- set css_classes = "onyx-btn onyx-btn-" ~ variant ~ " onyx-btn-" ~ size -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+  {%- if href -%}
+    <a href="{{ href }}" class="{{ css_classes }}"
+      {%- if id %} id="{{ id }}"{% endif -%}
+      {%- if aria_label %} aria-label="{{ aria_label }}"{% endif -%}
+      {%- if disabled %} aria-disabled="true" tabindex="-1" style="pointer-events: none; opacity: 0.5;"{% endif -%}
+      {%- if hx_get %} hx-get="{{ hx_get }}"{% endif -%}
+      {%- if hx_post %} hx-post="{{ hx_post }}"{% endif -%}
+      {%- if hx_put %} hx-put="{{ hx_put }}"{% endif -%}
+      {%- if hx_delete %} hx-delete="{{ hx_delete }}"{% endif -%}
+      {%- if hx_target %} hx-target="{{ hx_target }}"{% endif -%}
+      {%- if hx_swap %} hx-swap="{{ hx_swap }}"{% endif -%}
+      {%- if hx_confirm %} hx-confirm="{{ hx_confirm }}"{% endif -%}
+      {%- if hx_indicator %} hx-indicator="{{ hx_indicator }}"{% endif -%}
+    >{{ text | safe }}</a>
+  {%- else -%}
+    <button type="{{ type }}" class="{{ css_classes }}"
+      {%- if id %} id="{{ id }}"{% endif -%}
+      {%- if aria_label %} aria-label="{{ aria_label }}"{% endif -%}
+      {%- if disabled %} disabled{% endif -%}
+      {%- if hx_get %} hx-get="{{ hx_get }}"{% endif -%}
+      {%- if hx_post %} hx-post="{{ hx_post }}"{% endif -%}
+      {%- if hx_put %} hx-put="{{ hx_put }}"{% endif -%}
+      {%- if hx_delete %} hx-delete="{{ hx_delete }}"{% endif -%}
+      {%- if hx_target %} hx-target="{{ hx_target }}"{% endif -%}
+      {%- if hx_swap %} hx-swap="{{ hx_swap }}"{% endif -%}
+      {%- if hx_confirm %} hx-confirm="{{ hx_confirm }}"{% endif -%}
+      {%- if hx_indicator %} hx-indicator="{{ hx_indicator }}"{% endif -%}
+    >{{ text | safe }}</button>
+  {%- endif -%}
+{%- endmacro button %}
+
+
+{# ============================================================================
+   MOLECULES - Composite components
+   ============================================================================ #}
+
+{# CARD - Container with optional header, content, and footer #}
+{% macro card(title="", subtitle="", content="", footer="", variant="default", glassmorphism=false, hover_effect="none", image_url="", badge_text="", badge_variant="default", class="", id="") %}
+  {%- set css_classes = "onyx-card onyx-card-" ~ variant -%}
+  {%- if glassmorphism -%}
+    {%- set css_classes = css_classes ~ " onyx-card-glass" -%}
+  {%- endif -%}
+  {%- if hover_effect != "none" -%}
+    {%- set css_classes = css_classes ~ " onyx-card-hover-" ~ hover_effect -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <div class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>
+    {%- if badge_text -%}
+      <div class="onyx-card-badge">
+        {{ self::badge(text=badge_text, variant=badge_variant) }}
+      </div>
+    {%- endif -%}
+
+    {%- if image_url -%}
+      <div class="onyx-card-image">
+        <img src="{{ image_url }}" alt="{{ title }}" loading="lazy">
+      </div>
+    {%- endif -%}
+
+    {%- if title or subtitle -%}
+      <div class="onyx-card-header">
+        {%- if title -%}
+          <h3 class="onyx-card-title">{{ title }}</h3>
+        {%- endif -%}
+        {%- if subtitle -%}
+          <p class="onyx-card-subtitle">{{ subtitle }}</p>
+        {%- endif -%}
+      </div>
+    {%- endif -%}
+
+    {%- if content -%}
+      <div class="onyx-card-content">
+        {{ content | safe }}
+      </div>
+    {%- endif -%}
+
+    {%- if footer -%}
+      <div class="onyx-card-footer">
+        {{ footer | safe }}
+      </div>
+    {%- endif -%}
+  </div>
+{%- endmacro card %}
+
+
+{# BREADCRUMB - Navigation breadcrumb trail #}
+{% macro breadcrumb(items, separator="/", class="") %}
+  {%- set css_classes = "onyx-breadcrumb" -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <nav class="{{ css_classes }}" aria-label="Breadcrumb">
+    <ol class="onyx-breadcrumb-list">
+      {%- for item in items -%}
+        <li class="onyx-breadcrumb-item {% if loop.last %}onyx-breadcrumb-item-current{% endif %}">
+          {%- if item.href and not loop.last -%}
+            <a href="{{ item.href }}" class="onyx-breadcrumb-link" hx-boost="true">
+              {%- if item.icon -%}
+                <span class="onyx-breadcrumb-icon">{{ item.icon | safe }}</span>
+              {%- endif -%}
+              {{ item.text }}
+            </a>
+          {%- else -%}
+            <span class="onyx-breadcrumb-current" aria-current="page">
+              {%- if item.icon -%}
+                <span class="onyx-breadcrumb-icon">{{ item.icon | safe }}</span>
+              {%- endif -%}
+              {{ item.text }}
+            </span>
+          {%- endif -%}
+
+          {%- if not loop.last -%}
+            <span class="onyx-breadcrumb-separator" aria-hidden="true">{{ separator }}</span>
+          {%- endif -%}
+        </li>
+      {%- endfor -%}
+    </ol>
+  </nav>
+{%- endmacro breadcrumb %}
+
+
+{# ALERT - Notification message #}
+{% macro alert(message, title="", variant="info", dismissible=false, class="", id="") %}
+  {%- if variant == "success" -%}
+    {%- set alert_icon = "✅" -%}
+  {%- elif variant == "warning" -%}
+    {%- set alert_icon = "⚠️" -%}
+  {%- elif variant == "error" -%}
+    {%- set alert_icon = "❌" -%}
+  {%- else -%}
+    {%- set alert_icon = "ℹ️" -%}
+  {%- endif -%}
+
+  {%- set css_classes = "onyx-alert onyx-alert-" ~ variant -%}
+  {%- if dismissible -%}
+    {%- set css_classes = css_classes ~ " onyx-alert-dismissible" -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <div class="{{ css_classes }}" role="alert"{% if id %} id="{{ id }}"{% endif %}>
+    <div class="onyx-alert-icon">{{ alert_icon }}</div>
+    <div class="onyx-alert-content">
+      {%- if title -%}
+        <div class="onyx-alert-title">{{ title }}</div>
+      {%- endif -%}
+      <div class="onyx-alert-message">{{ message | safe }}</div>
+    </div>
+    {%- if dismissible -%}
+      <button class="onyx-alert-close" aria-label="Close alert" onclick="this.parentElement.style.display='none'">✕</button>
+    {%- endif -%}
+  </div>
+{%- endmacro alert %}
+
+
+{# INPUT - Form input field with label and error support #}
+{% macro input(name, type="text", placeholder="", value="", label="", required=false, disabled=false, readonly=false, error="", autocomplete="", pattern="", min="", max="", step="", maxlength="", class="", id="") %}
+  {%- set input_id = id or name -%}
+  {%- set css_classes = "onyx-input" -%}
+  {%- if error -%}
+    {%- set css_classes = css_classes ~ " onyx-input-error" -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <div class="onyx-input-wrapper">
+    {%- if label -%}
+      <label for="{{ input_id }}" class="onyx-label">
+        {{ label }}
+        {%- if required -%}<span class="onyx-label-required" aria-label="required">*</span>{%- endif -%}
+      </label>
+    {%- endif -%}
+
+    <input
+      type="{{ type }}"
+      id="{{ input_id }}"
+      name="{{ name }}"
+      class="{{ css_classes }}"
+      {%- if placeholder %} placeholder="{{ placeholder }}"{% endif -%}
+      {%- if value %} value="{{ value }}"{% endif -%}
+      {%- if required %} required{% endif -%}
+      {%- if disabled %} disabled{% endif -%}
+      {%- if readonly %} readonly{% endif -%}
+      {%- if autocomplete %} autocomplete="{{ autocomplete }}"{% endif -%}
+      {%- if pattern %} pattern="{{ pattern }}"{% endif -%}
+      {%- if min %} min="{{ min }}"{% endif -%}
+      {%- if max %} max="{{ max }}"{% endif -%}
+      {%- if step %} step="{{ step }}"{% endif -%}
+      {%- if maxlength %} maxlength="{{ maxlength }}"{% endif -%}
+      {%- if error %} aria-invalid="true" aria-describedby="{{ input_id }}-error"{% endif -%}
+    >
+
+    {%- if error -%}
+      <span id="{{ input_id }}-error" class="onyx-input-error-message" role="alert">
+        {{ error }}
+      </span>
+    {%- endif -%}
+  </div>
+{%- endmacro input %}
+
+
+{# TEXTAREA - Multi-line text input #}
+{% macro textarea(name, placeholder="", value="", label="", required=false, disabled=false, readonly=false, error="", rows="4", maxlength="", class="", id="") %}
+  {%- set input_id = id or name -%}
+  {%- set css_classes = "onyx-textarea" -%}
+  {%- if error -%}
+    {%- set css_classes = css_classes ~ " onyx-textarea-error" -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <div class="onyx-input-wrapper">
+    {%- if label -%}
+      <label for="{{ input_id }}" class="onyx-label">
+        {{ label }}
+        {%- if required -%}<span class="onyx-label-required">*</span>{%- endif -%}
+      </label>
+    {%- endif -%}
+
+    <textarea
+      id="{{ input_id }}"
+      name="{{ name }}"
+      class="{{ css_classes }}"
+      rows="{{ rows }}"
+      {%- if placeholder %} placeholder="{{ placeholder }}"{% endif -%}
+      {%- if required %} required{% endif -%}
+      {%- if disabled %} disabled{% endif -%}
+      {%- if readonly %} readonly{% endif -%}
+      {%- if maxlength %} maxlength="{{ maxlength }}"{% endif -%}
+      {%- if error %} aria-invalid="true" aria-describedby="{{ input_id }}-error"{% endif -%}
+    >{{ value }}</textarea>
+
+    {%- if error -%}
+      <span id="{{ input_id }}-error" class="onyx-input-error-message" role="alert">
+        {{ error }}
+      </span>
+    {%- endif -%}
+  </div>
+{%- endmacro textarea %}
+
+
+{# SELECT - Dropdown select field #}
+{% macro select(name, options, label="", value="", required=false, disabled=false, error="", class="", id="") %}
+  {%- set input_id = id or name -%}
+  {%- set css_classes = "onyx-select" -%}
+  {%- if error -%}
+    {%- set css_classes = css_classes ~ " onyx-select-error" -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <div class="onyx-input-wrapper">
+    {%- if label -%}
+      <label for="{{ input_id }}" class="onyx-label">
+        {{ label }}
+        {%- if required -%}<span class="onyx-label-required">*</span>{%- endif -%}
+      </label>
+    {%- endif -%}
+
+    <select
+      id="{{ input_id }}"
+      name="{{ name }}"
+      class="{{ css_classes }}"
+      {%- if required %} required{% endif -%}
+      {%- if disabled %} disabled{% endif -%}
+      {%- if error %} aria-invalid="true" aria-describedby="{{ input_id }}-error"{% endif -%}
+    >
+      {%- for option in options -%}
+        <option value="{{ option.value }}" {% if option.value == value %}selected{% endif %}>
+          {{ option.label }}
+        </option>
+      {%- endfor -%}
+    </select>
+
+    {%- if error -%}
+      <span id="{{ input_id }}-error" class="onyx-input-error-message" role="alert">
+        {{ error }}
+      </span>
+    {%- endif -%}
+  </div>
+{%- endmacro select %}
+
+
+{# SEPARATOR - Horizontal divider #}
+{% macro separator(text="", class="") %}
+  {%- set css_classes = "onyx-separator" -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  {%- if text -%}
+    <div class="{{ css_classes }} onyx-separator-with-text">
+      <span class="onyx-separator-text">{{ text }}</span>
+    </div>
+  {%- else -%}
+    <hr class="{{ css_classes }}">
+  {%- endif -%}
+{%- endmacro separator %}

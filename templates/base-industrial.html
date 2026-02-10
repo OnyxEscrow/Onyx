@@ -12,9 +12,9 @@
     <!-- Industrial Stealth Design System (100% Self-Hosted) -->
     <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=0.66.3">
 
-    <!-- NEXUS Industrial Unified Design System (Phase 1.4) -->
+    <!-- Onyx Industrial Unified Design System (Phase 1.4) -->
     <!-- Provides: --nx-* tokens, atoms, molecules, organisms with backward compatibility -->
-    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/onyx-industrial-unified.css?v=1.0.0">
 
     <!-- Notification Center Styles -->
     <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
@@ -26,7 +26,7 @@
 
     <!-- Production console override -->
     <script nonce="{{ csp_nonce }}">
-    (function(){var d=location.hostname;if(d!=='localhost'&&d!=='127.0.0.1'&&!d.endsWith('.onion')&&!window._nxC){window._nxC=1;var o=console.log;console.log=console.debug=console.info=function(){};o('%c NEXUS NON-CUSTODIAL ','background:#00ff41;color:black;font-weight:bold;padding:4px 8px;border-radius:4px','Keys never leave your browser.');}})();
+    (function(){var d=location.hostname;if(d!=='localhost'&&d!=='127.0.0.1'&&!d.endsWith('.onion')&&!window._nxC){window._nxC=1;var o=console.log;console.log=console.debug=console.info=function(){};o('%c Onyx NON-CUSTODIAL ','background:#00ff41;color:black;font-weight:bold;padding:4px 8px;border-radius:4px','Keys never leave your browser.');}})();
     </script>
 
     <!-- HTMX (Self-Hosted - Tor Safe) -->
@@ -69,11 +69,11 @@
 
     <!-- Footer (Gravity 4) -->
     {% block footer %}
-    <footer style="width:100%;border-top:1px solid var(--nexus-grid);background:#000000;padding:48px 0;margin-top:auto;position:relative;z-index:20;">
+    <footer style="width:100%;border-top:1px solid var(--onyx-grid);background:#000000;padding:48px 0;margin-top:auto;position:relative;z-index:20;">
         <div class="container-industrial" style="display:flex;flex-direction:column;gap:16px;">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
                 <div style="font-family:var(--font-oswald);font-size:24px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.5);">FROST MARKET</div>
-                <div style="font-family:var(--font-mono);font-size:12px;color:var(--nexus-grid);">
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--onyx-grid);">
                     ENCRYPTED CONNECTION ESTABLISHED via RUST_ACTIX_CORE // XMR_NODE_ACTIVE
                 </div>
             </div>
@@ -672,7 +672,7 @@
     </script>
 
     <!-- WebSocket Notifications & Toast System -->
-    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <script src="/static/js/notifications-onyx.js?v=20260117_fix3"></script>
 
     <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
     <script src="/static/js/notification-routes.js"></script>

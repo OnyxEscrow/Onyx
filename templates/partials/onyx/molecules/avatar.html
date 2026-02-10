@@ -1,0 +1,177 @@
+{#
+  Onyx AVATAR COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/avatar.html" %}
+
+  Or with initials:
+    {% include "partials/onyx/molecules/avatar.html" %}
+
+  Parameters:
+    - src (optional): Image URL
+    - alt (required): Alt text for accessibility
+    - initials (optional): Initials to display if no image
+    - size (optional): xs|sm|md|lg|xl (default: md)
+    - variant (optional): circle|square (default: circle)
+    - status (optional): online|offline|away|busy - Show status indicator
+    - class (optional): Additional CSS classes
+#}
+
+{% set avatar_size = size | default(value="md") %}
+{% set avatar_variant = variant | default(value="circle") %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-avatar onyx-avatar-" ~ avatar_size ~ " onyx-avatar-" ~ avatar_variant %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {% if src %}
+    {# Image Avatar #}
+    <img src="{{ src }}" alt="{{ alt }}" class="onyx-avatar-image" loading="lazy">
+  {% elif initials %}
+    {# Initials Avatar #}
+    <span class="onyx-avatar-initials">{{ initials }}</span>
+  {% else %}
+    {# Default Icon Avatar #}
+    <span class="onyx-avatar-icon">👤</span>
+  {% endif %}
+
+  {# Status Indicator #}
+  {% if status %}
+    <span class="onyx-avatar-status onyx-avatar-status-{{ status }}" aria-label="{{ status }}"></span>
+  {% endif %}
+</div>
+
+<style>
+/* Base Avatar */
+.onyx-avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--onyx-muted);
+  border: 2px solid var(--onyx-border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Size Variants */
+.onyx-avatar-xs {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.onyx-avatar-sm {
+  width: 2rem;
+  height: 2rem;
+}
+
+.onyx-avatar-md {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.onyx-avatar-lg {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.onyx-avatar-xl {
+  width: 5rem;
+  height: 5rem;
+}
+
+/* Shape Variants */
+.onyx-avatar-circle {
+  border-radius: var(--onyx-radius-full);
+}
+
+.onyx-avatar-square {
+  border-radius: var(--onyx-radius-md);
+}
+
+/* Avatar Image */
+.onyx-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Avatar Initials */
+.onyx-avatar-initials {
+  font-size: 0.875em;
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.onyx-avatar-xs .onyx-avatar-initials {
+  font-size: 0.625rem;
+}
+
+.onyx-avatar-sm .onyx-avatar-initials {
+  font-size: 0.75rem;
+}
+
+.onyx-avatar-md .onyx-avatar-initials {
+  font-size: 0.875rem;
+}
+
+.onyx-avatar-lg .onyx-avatar-initials {
+  font-size: 1.125rem;
+}
+
+.onyx-avatar-xl .onyx-avatar-initials {
+  font-size: 1.5rem;
+}
+
+/* Avatar Icon */
+.onyx-avatar-icon {
+  font-size: 1.25em;
+  filter: grayscale(100%);
+  opacity: 0.5;
+}
+
+/* Status Indicator */
+.onyx-avatar-status {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: var(--onyx-radius-full);
+  border: 2px solid var(--onyx-card);
+}
+
+.onyx-avatar-lg .onyx-avatar-status,
+.onyx-avatar-xl .onyx-avatar-status {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Status Colors */
+.onyx-avatar-status-online {
+  background-color: var(--onyx-success);
+}
+
+.onyx-avatar-status-offline {
+  background-color: var(--onyx-muted-fg);
+}
+
+.onyx-avatar-status-away {
+  background-color: var(--onyx-warning);
+}
+
+.onyx-avatar-status-busy {
+  background-color: var(--onyx-destructive);
+}
+
+/* Hover Effect */
+.onyx-avatar:hover {
+  border-color: var(--onyx-primary);
+  transition: border-color var(--onyx-transition-base) var(--onyx-ease-out);
+}
+</style>

@@ -1,4 +1,4 @@
-//! NEXUS Error Codes System
+//! Onyx Error Codes System
 //!
 //! Provides standardized error codes and responses for the frontend error handling system.
 //! Each error code maps to user-friendly messages and actionable recovery flows.
@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 pub struct ErrorResponse {
     /// Operation success (always false for errors)
     pub success: bool,
-    /// NEXUS error code (e.g., "SIGN-001")
+    /// Onyx error code (e.g., "SIGN-001")
     pub error_code: String,
     /// Human-readable error message
     pub error: String,

@@ -1,0 +1,132 @@
+/* ==========================================
+   ONYX TYPOGRAPHY SYSTEM
+   Application des polices selon la hiérarchie
+   ========================================== */
+
+/* ===== HERO / TITRES PRINCIPAUX ===== */
+
+/* Hero "ONYX" */
+.onyx-hero-title-true,
+.onyx-animated-letter,
+.cinematic-onyx-container {
+  font-family: var(--onyx-font-hero);
+}
+
+/* Titres de sections */
+.onyx-section-title-huge,
+.onyx-categories-title {
+  font-family: var(--onyx-font-hero);
+  letter-spacing: 0.05em;
+}
+
+/* ===== NAVIGATION / UI ===== */
+
+/* Logo "NX" */
+.onyx-grid-logo a {
+  font-family: var(--onyx-font-sans);
+  font-weight: 700;
+}
+
+/* Navigation menu */
+.onyx-grid-nav nav,
+.onyx-grid-nav a {
+  font-family: var(--onyx-font-sans);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+/* Boutons généraux */
+.onyx-btn,
+button.onyx-auth-icon,
+.onyx-toggle-dot {
+  font-family: var(--onyx-font-sans);
+  font-weight: 600;
+}
+
+/* ===== TECHNIQUE / MONOSPACE ===== */
+
+/* Typewriter header */
+.onyx-typewriter-content,
+#onyx-simple-typewriter-text,
+.onyx-cursor {
+  font-family: var(--onyx-font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* Categories */
+.onyx-category-box-title,
+.onyx-category-box-count {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Subtitles techniques */
+.onyx-hero-subtitle-true,
+.onyx-categories-subtitle,
+.onyx-section-subtitle-bold {
+  font-family: var(--onyx-font-mono);
+  letter-spacing: 0.15em;
+}
+
+/* Hero top text */
+.onyx-hero-top-text {
+  font-family: var(--onyx-font-mono);
+  letter-spacing: 0.2em;
+}
+
+/* Stats */
+.onyx-hero-stat-value,
+.onyx-hero-stat-label {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Cinematic typewriter */
+.cinematic-typewriter,
+#cinematic-typewriter-text,
+.cinematic-cursor {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Cinematic zoom strike */
+.cinematic-zoom-strike {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Metadata / Info technique */
+.onyx-listing-price,
+.onyx-listing-vendor,
+.onyx-listing-meta {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Forms inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  font-family: var(--onyx-font-mono);
+}
+
+/* Code blocks */
+code,
+pre,
+.code-block {
+  font-family: var(--onyx-font-mono);
+}
+
+/* ===== FALLBACKS ===== */
+
+/* Body text par défaut (si non spécifié) */
+body {
+  font-family: var(--onyx-font-sans);
+}
+
+/* Paragraphes */
+p {
+  font-family: var(--onyx-font-sans);
+}
+
+/* Liens généraux */
+a:not(.onyx-grid-nav a):not(.onyx-category-box) {
+  font-family: var(--onyx-font-sans);
+}

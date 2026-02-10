@@ -1,0 +1,244 @@
+{#
+  Onyx CATEGORY CARD COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/category-card.html" %}
+
+  Parameters:
+    - category_name (required): Category display name
+    - category_slug (required): Category URL slug
+    - listing_count (required): Number of listings in category
+    - icon (optional): Category icon (emoji or SVG)
+    - description (optional): Brief category description
+    - image_url (optional): Background image URL
+    - featured (optional): true|false - Apply featured styling (default: false)
+    - class (optional): Additional CSS classes
+#}
+
+{% set category_featured = featured | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-category-card" %}
+{% if category_featured %}
+  {% set css_classes = css_classes ~ " onyx-category-card-featured" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<a
+  href="/category/{{ category_slug }}"
+  class="{{ css_classes }}"
+  hx-boost="true"
+  hx-push-url="true"
+>
+  {# Background Image (if provided) #}
+  {% if image_url %}
+    <div class="onyx-category-card-bg" style="background-image: url('{{ image_url }}');"></div>
+  {% endif %}
+
+  {# Content Overlay #}
+  <div class="onyx-category-card-content">
+    {# Icon #}
+    {% if icon %}
+      <div class="onyx-category-card-icon">
+        {{ icon }}
+      </div>
+    {% endif %}
+
+    {# Name #}
+    <h3 class="onyx-category-card-name">{{ category_name }}</h3>
+
+    {# Description #}
+    {% if description %}
+      <p class="onyx-category-card-description">{{ description }}</p>
+    {% endif %}
+
+    {# Listing Count #}
+    <div class="onyx-category-card-count">
+      <span class="onyx-category-card-count-number">{{ listing_count }}</span>
+      <span class="onyx-category-card-count-label">
+        {% if listing_count == 1 %}listing{% else %}listings{% endif %}
+      </span>
+    </div>
+
+    {# Featured Badge #}
+    {% if category_featured %}
+      <div class="onyx-category-card-featured-badge">
+        {% include "partials/onyx/atoms/badge.html" %}
+      </div>
+    {% endif %}
+  </div>
+
+  {# Hover Overlay #}
+  <div class="onyx-category-card-hover-overlay"></div>
+</a>
+
+<style>
+/* Base Category Card */
+.onyx-category-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 200px;
+  background: linear-gradient(135deg, var(--onyx-muted) 0%, var(--onyx-bg) 100%);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  text-decoration: none;
+  color: inherit;
+}
+
+.onyx-category-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--onyx-shadow-lg);
+  border-color: var(--onyx-primary);
+}
+
+/* Background Image */
+.onyx-category-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.2;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-category-card:hover .onyx-category-card-bg {
+  opacity: 0.3;
+  transform: scale(1.05);
+}
+
+/* Content Overlay */
+.onyx-category-card-content {
+  position: relative;
+  z-index: 2;
+  padding: var(--onyx-space-5);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.7) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+
+/* Icon */
+.onyx-category-card-icon {
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: var(--onyx-space-3);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Name */
+.onyx-category-card-name {
+  font-size: var(--onyx-text-xl);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0 0 var(--onyx-space-2) 0;
+  line-height: var(--onyx-leading-tight);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* Description */
+.onyx-category-card-description {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  margin: 0 0 var(--onyx-space-3) 0;
+  line-height: var(--onyx-leading-normal);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Listing Count */
+.onyx-category-card-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-category-card-count-number {
+  font-size: var(--onyx-text-2xl);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-primary);
+  line-height: 1;
+}
+
+.onyx-category-card-count-label {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wide);
+}
+
+/* Featured Badge */
+.onyx-category-card-featured-badge {
+  position: absolute;
+  top: var(--onyx-space-3);
+  right: var(--onyx-space-3);
+  z-index: 10;
+}
+
+/* Featured Styling */
+.onyx-category-card-featured {
+  border: 2px solid var(--onyx-primary);
+  box-shadow: var(--onyx-glow-primary);
+}
+
+.onyx-category-card-featured:hover {
+  box-shadow:
+    var(--onyx-glow-primary),
+    var(--onyx-shadow-xl);
+}
+
+/* Hover Overlay */
+.onyx-category-card-hover-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 26, 92, 0.1) 0%,
+    rgba(138, 43, 226, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity var(--onyx-transition-base) var(--onyx-ease-out);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.onyx-category-card:hover .onyx-category-card-hover-overlay {
+  opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-category-card {
+    min-height: 160px;
+  }
+
+  .onyx-category-card-content {
+    padding: var(--onyx-space-4);
+  }
+
+  .onyx-category-card-icon {
+    font-size: 2.5rem;
+  }
+
+  .onyx-category-card-name {
+    font-size: var(--onyx-text-lg);
+  }
+
+  .onyx-category-card-count-number {
+    font-size: var(--onyx-text-xl);
+  }
+}
+</style>

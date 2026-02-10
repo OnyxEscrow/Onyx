@@ -11,7 +11,7 @@
 
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
-    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/onyx-industrial-unified.css?v=1.0.0">
     <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
 
     <script src="/static/js/htmx.min.js"></script>
@@ -33,7 +33,7 @@
             </a>
             <div class="chat-user-info">
                 <div class="chat-avatar">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)"
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)"
                         stroke-width="1.5">
                         <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
                         <circle cx="12" cy="7" r="4" />
@@ -67,7 +67,7 @@
         <!-- Unlock Prompt (if private key needs unlock) -->
         <div id="unlock-prompt" class="unlock-prompt" style="display: none;">
             <div class="unlock-content">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)" stroke-width="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
@@ -483,7 +483,7 @@
             flex-direction: column;
             height: 100vh;
             padding-top: 70px; /* Header height */
-            background: var(--nexus-bg, #252627);
+            background: var(--onyx-bg, #252627);
             position: relative;
         }
 
@@ -493,8 +493,8 @@
             align-items: center;
             gap: var(--space-md, 16px);
             padding: var(--space-md, 16px) var(--space-lg, 24px);
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border-bottom: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             backdrop-filter: blur(20px);
         }
 
@@ -506,16 +506,16 @@
             height: 40px;
             border-radius: 8px;
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
-            color: var(--nexus-text, #fff);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
+            color: var(--onyx-text, #fff);
             text-decoration: none;
             transition: all var(--transition-fast, 150ms ease);
         }
 
         .back-btn:hover {
             background: rgba(255, 255, 255, 0.06);
-            border-color: var(--nexus-gold, #D4AF37);
-            color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
         }
 
         .chat-user-info {
@@ -543,7 +543,7 @@
             font-weight: 600;
             letter-spacing: 0.02em;
             text-transform: uppercase;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         .chat-status {
@@ -554,7 +554,7 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--nexus-green, #22c55e);
+            color: var(--onyx-green, #22c55e);
         }
 
         /* Messages Container */
@@ -605,7 +605,7 @@
         }
 
         .message-own .message-bubble {
-            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            background: linear-gradient(135deg, var(--onyx-gold, #D4AF37), #B8962E);
             color: #000;
             border-top-right-radius: 12px;
             border-top-left-radius: 12px;
@@ -613,9 +613,9 @@
         }
 
         .message-other .message-bubble {
-            background: var(--nexus-bg-elevated, #2d2e30);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
-            color: var(--nexus-text, #fff);
+            background: var(--onyx-bg-elevated, #2d2e30);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
+            color: var(--onyx-text, #fff);
             border-top-right-radius: 12px;
             border-top-left-radius: 12px;
             border-bottom-right-radius: 12px;
@@ -654,8 +654,8 @@
         .unlock-content {
             text-align: center;
             padding: var(--space-xl, 32px);
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
             max-width: 420px;
         }
@@ -671,7 +671,7 @@
             font-size: 20px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         .unlock-content p {
@@ -688,10 +688,10 @@
         .unlock-form input {
             flex: 1;
             padding: 12px 16px;
-            background: var(--nexus-bg, #252627);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg, #252627);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
             font-family: var(--font-inter, 'Inter', sans-serif);
             font-size: 14px;
             transition: border-color var(--transition-fast, 150ms ease);
@@ -699,7 +699,7 @@
 
         .unlock-form input:focus {
             outline: none;
-            border-color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
         }
 
         .unlock-form input::placeholder {
@@ -708,7 +708,7 @@
 
         .unlock-form button {
             padding: 12px 24px;
-            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            background: linear-gradient(135deg, var(--onyx-gold, #D4AF37), #B8962E);
             border: none;
             border-radius: 4px;
             color: #000;
@@ -729,30 +729,30 @@
         /* Message Input Area */
         .message-input-container {
             padding: var(--space-md, 16px) var(--space-lg, 24px);
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border-top: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         .message-input-wrapper {
             display: flex;
             align-items: flex-end;
             gap: var(--space-sm, 8px);
-            background: var(--nexus-bg, #252627);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg, #252627);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
             padding: var(--space-sm, 8px);
             transition: border-color var(--transition-fast, 150ms ease);
         }
 
         .message-input-wrapper:focus-within {
-            border-color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
         }
 
         .message-input {
             flex: 1;
             background: none;
             border: none;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
             font-family: var(--font-inter, 'Inter', sans-serif);
             font-size: 14px;
             resize: none;
@@ -774,7 +774,7 @@
             width: 44px;
             height: 44px;
             border-radius: 4px;
-            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            background: linear-gradient(135deg, var(--onyx-gold, #D4AF37), #B8962E);
             border: none;
             color: #000;
             cursor: pointer;
@@ -788,7 +788,7 @@
         .send-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
-            background: var(--nexus-bg-elevated, #2d2e30);
+            background: var(--onyx-bg-elevated, #2d2e30);
             color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
         }
 
@@ -808,15 +808,15 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--nexus-green, #22c55e);
+            color: var(--onyx-green, #22c55e);
         }
 
         /* Spinner */
         .apple-spinner {
             width: 32px;
             height: 32px;
-            border: 2px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
-            border-top-color: var(--nexus-gold, #D4AF37);
+            border: 2px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
+            border-top-color: var(--onyx-gold, #D4AF37);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -835,7 +835,7 @@
             min-width: 44px;
             border-radius: 4px;
             background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
             cursor: pointer;
             display: flex;
@@ -847,15 +847,15 @@
 
         .attach-btn:hover {
             background: rgba(212, 175, 55, 0.1);
-            border-color: var(--nexus-gold, #D4AF37);
-            color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
         }
 
         /* Image Preview */
         .image-preview-container {
             padding: var(--space-sm, 12px) var(--space-lg, 24px);
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border-top: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             display: flex;
             align-items: center;
             gap: var(--space-sm, 12px);
@@ -870,7 +870,7 @@
             max-height: 80px;
             max-width: 120px;
             border-radius: 4px;
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             object-fit: cover;
         }
 
@@ -881,8 +881,8 @@
             width: 24px;
             height: 24px;
             border-radius: 4px;
-            background: var(--nexus-red, #dc2626);
-            border: 2px solid var(--nexus-bg-dark, #1a1b1c);
+            background: var(--onyx-red, #dc2626);
+            border: 2px solid var(--onyx-bg-dark, #1a1b1c);
             color: #fff;
             cursor: pointer;
             display: flex;
@@ -942,14 +942,14 @@
             max-height: 90vh;
             object-fit: contain;
             border-radius: 4px;
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         .image-modal-close {
             position: absolute;
             top: 20px;
             right: 30px;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
             font-size: 32px;
             font-weight: bold;
             cursor: pointer;
@@ -964,7 +964,7 @@
         }
 
         .image-modal-close:hover {
-            color: var(--nexus-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
             background: rgba(255, 255, 255, 0.1);
         }
 
@@ -980,7 +980,7 @@
 
         /* Other's Message Attachment */
         .message-other .message-attachment img {
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         /* Mobile Responsive */
@@ -1012,7 +1012,7 @@
     </style>
 
     <!-- WebSocket Notifications & Toast System -->
-    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <script src="/static/js/notifications-onyx.js?v=20260117_fix3"></script>
     <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
     <script src="/static/js/notification-routes.js"></script>
     <script src="/static/js/notification-center.js"></script>

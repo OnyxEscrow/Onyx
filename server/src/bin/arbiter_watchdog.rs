@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
     init_tracing();
 
     info!("╔═══════════════════════════════════════════════════════════════╗");
-    info!("║           NEXUS ARBITER WATCHDOG SERVICE v0.70.0              ║");
+    info!("║           ONYX ARBITER WATCHDOG SERVICE v0.70.0               ║");
     info!("╠═══════════════════════════════════════════════════════════════╣");
     info!("║  Automated arbiter signing for non-disputed escrows          ║");
     info!("╚═══════════════════════════════════════════════════════════════╝");

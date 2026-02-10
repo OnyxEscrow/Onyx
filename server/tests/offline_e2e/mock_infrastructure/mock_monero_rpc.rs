@@ -96,7 +96,7 @@ pub struct MockWallet {
 
 /// Mock Monero RPC client
 ///
-/// Provides deterministic responses for all RPC methods used in NEXUS.
+/// Provides deterministic responses for all RPC methods used in Onyx.
 /// Thread-safe with internal mutex for multi-threaded testing.
 pub struct MockMoneroRpc {
     /// Wallets indexed by name

@@ -136,7 +136,7 @@ async fn main() -> Result<()> {
     println!("- Each signer holds 2 of 3 sub-keys");
     println!("- Any 2 signers have all 3 sub-keys, but one is shared");
     println!();
-    println!("The current NEXUS CLSAG signing computes:");
+    println!("The current Onyx CLSAG signing computes:");
     println!("  x_total = x_vendor + x_buyer");
     println!("         = (derivation + spend_v) + spend_b");
     println!("         = derivation + k1 + k2 + k2 + k3");

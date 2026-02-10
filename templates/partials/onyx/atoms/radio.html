@@ -1,0 +1,103 @@
+{#
+  Onyx RADIO COMPONENT
+
+  Usage:
+    {% include "partials/onyx/atoms/radio.html" %}
+
+  Parameters:
+    - name (required): Radio name attribute (same for group)
+    - value (required): Radio value
+    - label (required): Label text
+    - checked (optional): true|false (default: false)
+    - required (optional): true|false (default: false)
+    - disabled (optional): true|false (default: false)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID (defaults to name_value)
+#}
+
+{% set radio_id = id | default(value=name ~ "_" ~ value) %}
+{% set radio_checked = checked | default(value=false) %}
+{% set radio_required = required | default(value=false) %}
+{% set radio_disabled = disabled | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-radio" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="onyx-radio-container">
+  <input
+    type="radio"
+    id="{{ radio_id }}"
+    name="{{ name }}"
+    value="{{ value }}"
+    class="{{ css_classes }}"
+    {% if radio_checked %}checked{% endif %}
+    {% if radio_required %}required{% endif %}
+    {% if radio_disabled %}disabled{% endif %}
+  >
+  <label for="{{ radio_id }}" class="onyx-radio-label">
+    {{ label }}
+  </label>
+</div>
+
+<style>
+.onyx-radio-container {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-radio {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--onyx-border);
+  border-radius: 50%;
+  background-color: var(--onyx-input);
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  flex-shrink: 0;
+  appearance: none;
+  position: relative;
+}
+
+.onyx-radio:checked {
+  border-color: var(--onyx-primary);
+  background-color: var(--onyx-input);
+}
+
+.onyx-radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background-color: var(--onyx-primary);
+}
+
+.onyx-radio:focus {
+  outline: 2px solid var(--onyx-ring);
+  outline-offset: 2px;
+}
+
+.onyx-radio:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.onyx-radio-label {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.onyx-radio:disabled + .onyx-radio-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

@@ -1,4 +1,4 @@
-//! Offline E2E Test Suite for NEXUS Monero Marketplace
+//! Offline E2E Test Suite for Onyx Monero Marketplace
 //!
 //! ## Purpose
 //! Comprehensive offline testing to find ALL code flaws before manual testing.

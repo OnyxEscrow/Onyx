@@ -1,0 +1,142 @@
+{#
+  Onyx ALERT COMPONENT - SIMPLIFIED
+
+  Expects from context:
+    - message (required): Alert message
+    - title (optional): Alert title
+    - variant (optional): info|success|warning|error (default: info)
+    - dismissible (optional): bool (default: false)
+#}
+
+{% set alert_variant = variant | default(value="info") %}
+{% set alert_dismissible = dismissible | default(value=false) %}
+
+{# Default icons - using if/elif instead of dictionary #}
+{% if alert_variant == "success" %}
+  {% set alert_icon = "✅" %}
+{% elif alert_variant == "warning" %}
+  {% set alert_icon = "⚠️" %}
+{% elif alert_variant == "error" %}
+  {% set alert_icon = "❌" %}
+{% else %}
+  {% set alert_icon = "ℹ️" %}
+{% endif %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-alert onyx-alert-" ~ alert_variant %}
+{% if alert_dismissible %}
+  {% set css_classes = css_classes ~ " onyx-alert-dismissible" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" role="alert"{% if id %} id="{{ id }}"{% endif %}>
+  {# Icon #}
+  <div class="onyx-alert-icon">{{ alert_icon }}</div>
+
+  {# Content #}
+  <div class="onyx-alert-content">
+    {% if title %}
+      <div class="onyx-alert-title">{{ title }}</div>
+    {% endif %}
+    <div class="onyx-alert-message">{{ message | safe }}</div>
+  </div>
+
+  {# Dismiss Button #}
+  {% if alert_dismissible %}
+    <button class="onyx-alert-close" aria-label="Close alert" onclick="this.parentElement.style.display='none'">✕</button>
+  {% endif %}
+</div>
+
+<style>
+/* Base Alert */
+.onyx-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--onyx-space-3);
+  padding: var(--onyx-space-4);
+  border-radius: var(--onyx-radius-md);
+  border: 1px solid transparent;
+  position: relative;
+  animation: onyx-alert-slide-in var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+@keyframes onyx-alert-slide-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.onyx-alert-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--onyx-fg);
+}
+
+.onyx-alert-success {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: var(--onyx-fg);
+}
+
+.onyx-alert-warning {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: var(--onyx-fg);
+}
+
+.onyx-alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--onyx-fg);
+}
+
+.onyx-alert-icon {
+  font-size: var(--onyx-text-xl);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.onyx-alert-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-alert-title {
+  font-size: var(--onyx-text-base);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+}
+
+.onyx-alert-message {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-fg);
+  opacity: 0.9;
+}
+
+.onyx-alert-close {
+  position: absolute;
+  top: var(--onyx-space-3);
+  right: var(--onyx-space-3);
+  background: none;
+  border: none;
+  color: var(--onyx-muted-fg);
+  font-size: var(--onyx-text-lg);
+  cursor: pointer;
+  padding: var(--onyx-space-1);
+  line-height: 1;
+  transition: all var(--onyx-transition-base);
+  border-radius: var(--onyx-radius-sm);
+}
+
+.onyx-alert-close:hover {
+  color: var(--onyx-fg);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.onyx-alert-dismissible {
+  padding-right: var(--onyx-space-10);
+}
+</style>

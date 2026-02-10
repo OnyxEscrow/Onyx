@@ -11,7 +11,7 @@
 
     <!-- CSS - Industrial Theme -->
     <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
-    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/onyx-industrial-unified.css?v=1.0.0">
     <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
 
     <!-- HTMX -->
@@ -292,7 +292,7 @@
                                 <span>Accepted Formats</span>
                             </div>
 
-                            <p class="dropzone-hint">.json &bull; nexus-shield-*.json</p>
+                            <p class="dropzone-hint">.json &bull; onyx-shield-*.json</p>
                         </div>
 
                         <!-- Processing State -->
@@ -521,8 +521,8 @@
                 const data = JSON.parse(content);
 
                 // Validate shield format
-                if (!data.nexus_recovery_shield && !data.frost_recovery_file) {
-                    throw new Error('This doesn\'t look like a NEXUS Recovery Shield file.');
+                if (!data.onyx_recovery_shield && !data.frost_recovery_file) {
+                    throw new Error('This doesn\'t look like a Onyx Recovery Shield file.');
                 }
 
                 // Store for decryption

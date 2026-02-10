@@ -1,0 +1,385 @@
+{#
+  Onyx NOTIFICATION CENTER COMPONENT
+
+  Usage:
+    {% include "partials/onyx/organisms/notification-center.html" with
+       notifications=[
+         {"type": "order", "title": "Order Shipped", "message": "Your order has been shipped", "timestamp": "2025-01-15T10:00:00Z", "read": false},
+         {"type": "message", "title": "New Message", "message": "You have a new message from vendor", "timestamp": "2025-01-14T15:30:00Z", "read": true}
+       ]
+    %}
+
+  Parameters:
+    - notifications (required): Array of notification objects with:
+        - type: order|message|system|security|payment
+        - title: Notification title
+        - message: Notification message
+        - timestamp: ISO timestamp
+        - read: true|false
+        - url: Optional action URL
+    - max_height (optional): Maximum height before scrolling (default: "500px")
+    - show_mark_all_read (optional): true|false - Show mark all read button (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set notif_max_height = max_height | default(value="500px") %}
+{% set notif_show_mark_all = show_mark_all_read | default(value=true) %}
+
+{# Count unread notifications #}
+{% set unread_count = 0 %}
+{% for notif in notifications %}
+  {% if not notif.read %}
+    {% set unread_count = unread_count + 1 %}
+  {% endif %}
+{% endfor %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-notification-center" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {# Header #}
+  <div class="onyx-notification-header">
+    <div class="onyx-notification-title-group">
+      <h3 class="onyx-notification-title">Notifications</h3>
+      {% if unread_count > 0 %}
+        <span class="onyx-notification-badge">{{ unread_count }}</span>
+      {% endif %}
+    </div>
+
+    {% if notif_show_mark_all and unread_count > 0 %}
+      <button
+        class="onyx-notification-mark-all"
+        hx-post="/api/notifications/mark-all-read"
+        hx-swap="outerHTML"
+      >
+        Mark all read
+      </button>
+    {% endif %}
+  </div>
+
+  {# Notifications List #}
+  <div class="onyx-notification-list" style="max-height: {{ notif_max_height }};">
+    {% if notifications | length > 0 %}
+      {% for notif in notifications %}
+        {% set notif_read = notif.read | default(value=false) %}
+
+        <div class="onyx-notification-item {% if not notif_read %}onyx-notification-item-unread{% endif %}">
+          {# Icon based on type #}
+          <div class="onyx-notification-icon onyx-notification-icon-{{ notif.type }}">
+            {% if notif.type == "order" %}📦
+            {% elif notif.type == "message" %}💬
+            {% elif notif.type == "system" %}ℹ️
+            {% elif notif.type == "security" %}🔒
+            {% elif notif.type == "payment" %}💰
+            {% else %}🔔
+            {% endif %}
+          </div>
+
+          {# Content #}
+          <div class="onyx-notification-content">
+            <div class="onyx-notification-content-header">
+              <span class="onyx-notification-content-title">{{ notif.title }}</span>
+              <span class="onyx-notification-timestamp">
+                {{ notif.timestamp | date(format="%Y-%m-%d %H:%M") }}
+              </span>
+            </div>
+
+            <p class="onyx-notification-message">{{ notif.message }}</p>
+
+            {% if notif.url %}
+              <a href="{{ notif.url }}" class="onyx-notification-action" hx-boost="true">
+                View Details →
+              </a>
+            {% endif %}
+          </div>
+
+          {# Mark as read button #}
+          {% if not notif_read %}
+            <button
+              class="onyx-notification-mark-read"
+              aria-label="Mark as read"
+              hx-post="/api/notifications/{{ notif.id }}/mark-read"
+              hx-swap="outerHTML"
+            >
+              ✓
+            </button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      {# Empty State #}
+      <div class="onyx-notification-empty">
+        <span class="onyx-notification-empty-icon">🔔</span>
+        <p class="onyx-notification-empty-text">No notifications</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+/* Base Notification Center */
+.onyx-notification-center {
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  overflow: hidden;
+  min-width: 400px;
+}
+
+/* Header */
+.onyx-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--onyx-space-4);
+  border-bottom: 1px solid var(--onyx-border);
+  background-color: var(--onyx-muted);
+}
+
+.onyx-notification-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-notification-title {
+  font-size: var(--onyx-text-lg);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0;
+}
+
+.onyx-notification-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--onyx-space-1);
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-bold);
+  background-color: var(--onyx-destructive);
+  color: var(--onyx-fg);
+  border-radius: var(--onyx-radius-full);
+}
+
+.onyx-notification-mark-all {
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--onyx-space-2);
+  border-radius: var(--onyx-radius-sm);
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-notification-mark-all:hover {
+  background-color: rgba(255, 26, 92, 0.1);
+}
+
+/* Notifications List */
+.onyx-notification-list {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.onyx-notification-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.onyx-notification-list::-webkit-scrollbar-track {
+  background: var(--onyx-muted);
+}
+
+.onyx-notification-list::-webkit-scrollbar-thumb {
+  background: var(--onyx-border);
+  border-radius: var(--onyx-radius-sm);
+}
+
+.onyx-notification-list::-webkit-scrollbar-thumb:hover {
+  background: var(--onyx-muted-fg);
+}
+
+/* Notification Item */
+.onyx-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--onyx-space-3);
+  padding: var(--onyx-space-4);
+  border-bottom: 1px solid var(--onyx-border);
+  transition: background-color var(--onyx-transition-base) var(--onyx-ease-out);
+  position: relative;
+}
+
+.onyx-notification-item:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.onyx-notification-item-unread {
+  background-color: rgba(255, 26, 92, 0.05);
+}
+
+.onyx-notification-item-unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--onyx-primary);
+}
+
+/* Icon */
+.onyx-notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: var(--onyx-text-xl);
+  background-color: var(--onyx-muted);
+  border-radius: var(--onyx-radius-md);
+  flex-shrink: 0;
+}
+
+.onyx-notification-icon-order {
+  background-color: rgba(168, 85, 247, 0.1);
+}
+
+.onyx-notification-icon-message {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.onyx-notification-icon-system {
+  background-color: rgba(251, 191, 36, 0.1);
+}
+
+.onyx-notification-icon-security {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.onyx-notification-icon-payment {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* Content */
+.onyx-notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-notification-content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-notification-content-title {
+  font-size: var(--onyx-text-sm);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  line-height: var(--onyx-leading-tight);
+}
+
+.onyx-notification-timestamp {
+  font-size: var(--onyx-text-xs);
+  color: var(--onyx-muted-fg);
+  font-family: var(--onyx-font-mono);
+  white-space: nowrap;
+}
+
+.onyx-notification-message {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  line-height: var(--onyx-leading-relaxed);
+  margin: 0;
+}
+
+.onyx-notification-action {
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-medium);
+  color: var(--onyx-primary);
+  text-decoration: none;
+  transition: color var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-notification-action:hover {
+  color: var(--onyx-primary-hover);
+  text-decoration: underline;
+}
+
+/* Mark as read button */
+.onyx-notification-mark-read {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  background: none;
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-full);
+  cursor: pointer;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  flex-shrink: 0;
+}
+
+.onyx-notification-mark-read:hover {
+  color: var(--onyx-success);
+  border-color: var(--onyx-success);
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* Empty State */
+.onyx-notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--onyx-space-3);
+  padding: var(--onyx-space-12);
+}
+
+.onyx-notification-empty-icon {
+  font-size: 4rem;
+  opacity: 0.3;
+}
+
+.onyx-notification-empty-text {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-notification-center {
+    min-width: auto;
+    max-width: 100%;
+  }
+
+  .onyx-notification-item {
+    padding: var(--onyx-space-3);
+  }
+
+  .onyx-notification-content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .onyx-notification-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--onyx-text-lg);
+  }
+}
+</style>

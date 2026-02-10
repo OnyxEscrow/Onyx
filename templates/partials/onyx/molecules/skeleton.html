@@ -1,0 +1,151 @@
+{#
+  Onyx SKELETON COMPONENT (Loading Placeholder)
+
+  Usage:
+    {% include "partials/onyx/molecules/skeleton.html" %}
+
+  Parameters:
+    - variant (optional): text|circle|rectangle|card (default: text)
+    - width (optional): Width in any CSS unit (e.g., "200px", "100%")
+    - height (optional): Height in any CSS unit
+    - lines (optional): Number of lines for text variant (default: 1)
+    - class (optional): Additional CSS classes
+#}
+
+{% set skeleton_variant = variant | default(value="text") %}
+{% set skeleton_lines = lines | default(value=1) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-skeleton onyx-skeleton-" ~ skeleton_variant %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+{% if skeleton_variant == "text" %}
+  {# Text Skeleton (multiple lines) #}
+  <div class="onyx-skeleton-text-container">
+    {% for i in range(end=skeleton_lines) %}
+      <div
+        class="{{ css_classes }}"
+        {% if width %}style="width: {{ width }};"{% endif %}
+      ></div>
+    {% endfor %}
+  </div>
+{% elif skeleton_variant == "card" %}
+  {# Card Skeleton (image + text) #}
+  <div class="onyx-skeleton-card">
+    <div class="onyx-skeleton onyx-skeleton-rectangle onyx-skeleton-card-image"></div>
+    <div class="onyx-skeleton-card-content">
+      <div class="onyx-skeleton onyx-skeleton-text" style="width: 80%;"></div>
+      <div class="onyx-skeleton onyx-skeleton-text" style="width: 60%;"></div>
+      <div class="onyx-skeleton onyx-skeleton-text" style="width: 40%;"></div>
+    </div>
+  </div>
+{% else %}
+  {# Single Skeleton (circle, rectangle) #}
+  <div
+    class="{{ css_classes }}"
+    {% if width %}style="width: {{ width }}; {% if height %}height: {{ height }};{% endif %}"
+    {% elif height %}style="height: {{ height }};"{% endif %}
+  ></div>
+{% endif %}
+
+<style>
+/* Base Skeleton */
+.onyx-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--onyx-muted) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    var(--onyx-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: onyx-skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--onyx-radius-sm);
+}
+
+@keyframes onyx-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Text Skeleton */
+.onyx-skeleton-text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: var(--onyx-space-2);
+}
+
+.onyx-skeleton-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-skeleton-text-container .onyx-skeleton-text:last-child {
+  width: 70%;
+  margin-bottom: 0;
+}
+
+/* Circle Skeleton */
+.onyx-skeleton-circle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--onyx-radius-full);
+}
+
+/* Rectangle Skeleton */
+.onyx-skeleton-rectangle {
+  width: 100%;
+  height: 10rem;
+  border-radius: var(--onyx-radius-md);
+}
+
+/* Card Skeleton */
+.onyx-skeleton-card {
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  overflow: hidden;
+}
+
+.onyx-skeleton-card-image {
+  width: 100%;
+  height: 12rem;
+  border-radius: 0;
+}
+
+.onyx-skeleton-card-content {
+  padding: var(--onyx-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--onyx-space-2);
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .onyx-skeleton {
+    animation: none;
+    background: var(--onyx-muted);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-skeleton-text {
+    height: 0.875rem;
+  }
+
+  .onyx-skeleton-card-image {
+    height: 10rem;
+  }
+
+  .onyx-skeleton-card-content {
+    padding: var(--onyx-space-3);
+  }
+}
+</style>

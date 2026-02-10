@@ -8,7 +8,7 @@
    ======================================== */
 
 /* Hero section avec shake support */
-.nexus-hero-true {
+.onyx-hero-true {
   transition: transform 0.1s ease-in-out;
 }
 
@@ -32,8 +32,8 @@
   min-height: 12rem;
 }
 
-/* NEXUS letters container - GRANDE TAILLE */
-.cinematic-nexus-container {
+/* ONYX letters container - GRANDE TAILLE */
+.cinematic-onyx-container {
   display: flex;
   align-items: baseline;
   justify-content: center;
@@ -46,18 +46,18 @@
   margin: 0;
 }
 
-/* Lettres NEXUS - forcer couleur noire */
-.cinematic-nexus-container .nexus-animated-letter {
+/* Lettres ONYX - forcer couleur noire */
+.cinematic-onyx-container .onyx-animated-letter {
   color: hsl(0, 0%, 5%);  /* NOIR */
 }
 
 /* E reste transparent pour montrer les 3 barres */
-.cinematic-nexus-container .nexus-letter-e {
+.cinematic-onyx-container .onyx-letter-e {
   color: transparent !important;
 }
 
 /* Désactiver hover pendant cinématique */
-.nexus-hero-true.cinematic-active .nexus-animated-letter {
+.onyx-hero-true.cinematic-active .onyx-animated-letter {
   pointer-events: none;
 }
 
@@ -78,7 +78,7 @@
 
 /* Phase 4: Zoom Strike */
 .cinematic-zoom-strike {
-  font-family: var(--nexus-font-mono);
+  font-family: var(--onyx-font-mono);
   font-size: 6rem;
   font-weight: 900;
   letter-spacing: -0.025em;
@@ -127,7 +127,7 @@
   }
 }
 
-.nexus-animated-letter.cinematic-jump {
+.onyx-animated-letter.cinematic-jump {
   animation: cinematic-jump-sync 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -196,23 +196,23 @@
   }
 }
 
-.nexus-animated-letter.cinematic-explode-0 {
+.onyx-animated-letter.cinematic-explode-0 {
   animation: cinematic-explode-0 0.5s ease-out forwards;
 }
 
-.nexus-animated-letter.cinematic-explode-1 {
+.onyx-animated-letter.cinematic-explode-1 {
   animation: cinematic-explode-1 0.5s ease-out forwards;
 }
 
-.nexus-animated-letter.cinematic-explode-2 {
+.onyx-animated-letter.cinematic-explode-2 {
   animation: cinematic-explode-2 0.5s ease-out forwards;
 }
 
-.nexus-animated-letter.cinematic-explode-3 {
+.onyx-animated-letter.cinematic-explode-3 {
   animation: cinematic-explode-3 0.5s ease-out forwards;
 }
 
-.nexus-animated-letter.cinematic-explode-4 {
+.onyx-animated-letter.cinematic-explode-4 {
   animation: cinematic-explode-4 0.5s ease-out forwards;
 }
 
@@ -263,7 +263,7 @@
   }
 }
 
-.nexus-hero-true.cinematic-shake {
+.onyx-hero-true.cinematic-shake {
   animation: cinematic-screen-shake 0.5s ease-in-out;
 }
 
@@ -395,23 +395,23 @@
   }
 }
 
-.nexus-animated-letter.cinematic-fall-0 {
+.onyx-animated-letter.cinematic-fall-0 {
   animation: cinematic-fall-0 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
 }
 
-.nexus-animated-letter.cinematic-fall-1 {
+.onyx-animated-letter.cinematic-fall-1 {
   animation: cinematic-fall-1 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
 }
 
-.nexus-animated-letter.cinematic-fall-2 {
+.onyx-animated-letter.cinematic-fall-2 {
   animation: cinematic-fall-2 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
 }
 
-.nexus-animated-letter.cinematic-fall-3 {
+.onyx-animated-letter.cinematic-fall-3 {
   animation: cinematic-fall-3 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
 }
 
-.nexus-animated-letter.cinematic-fall-4 {
+.onyx-animated-letter.cinematic-fall-4 {
   animation: cinematic-fall-4 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
 }
 

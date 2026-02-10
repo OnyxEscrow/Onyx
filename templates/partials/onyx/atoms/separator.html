@@ -1,0 +1,74 @@
+{#
+  Onyx SEPARATOR COMPONENT (Horizontal Rule)
+
+  Usage:
+    {% include "partials/onyx/atoms/separator.html" %}
+
+  Or with custom text:
+    {% include "partials/onyx/atoms/separator.html" %}
+
+  Parameters:
+    - text (optional): Text to display in center of separator
+    - orientation (optional): horizontal|vertical (default: horizontal)
+    - class (optional): Additional CSS classes
+#}
+
+{% set separator_orientation = orientation | default(value="horizontal") %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-separator onyx-separator-" ~ separator_orientation %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+{% if text %}
+  {# Separator with text #}
+  <div class="{{ css_classes }} onyx-separator-with-text" role="separator">
+    <span class="onyx-separator-line"></span>
+    <span class="onyx-separator-text">{{ text }}</span>
+    <span class="onyx-separator-line"></span>
+  </div>
+{% else %}
+  {# Simple separator #}
+  <hr class="{{ css_classes }}" role="separator">
+{% endif %}
+
+<style>
+/* Horizontal separator */
+.onyx-separator-horizontal {
+  border: none;
+  border-top: 1px solid var(--onyx-border);
+  margin: var(--onyx-space-6) 0;
+}
+
+/* Vertical separator */
+.onyx-separator-vertical {
+  width: 1px;
+  height: 100%;
+  background-color: var(--onyx-border);
+  margin: 0 var(--onyx-space-4);
+}
+
+/* Separator with text */
+.onyx-separator-with-text {
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-4);
+  margin: var(--onyx-space-6) 0;
+}
+
+.onyx-separator-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--onyx-border);
+}
+
+.onyx-separator-text {
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--onyx-tracking-wider);
+  color: var(--onyx-muted-fg);
+  white-space: nowrap;
+}
+</style>

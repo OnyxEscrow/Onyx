@@ -1,6 +1,6 @@
 //! API Documentation Handler
 //!
-//! Serves Swagger UI and OpenAPI specification for NEXUS EaaS API.
+//! Serves Swagger UI and OpenAPI specification for Onyx EaaS API.
 //! Provides interactive API documentation at /api/docs.
 
 use actix_web::{get, HttpResponse, Responder};
@@ -54,7 +54,7 @@ pub async fn serve_swagger_ui() -> impl Responder {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS API Documentation</title>
+    <title>Onyx API Documentation</title>
     <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css">
     <style>
         body {
@@ -66,7 +66,7 @@ pub async fn serve_swagger_ui() -> impl Responder {
             max-width: 1400px;
             margin: 0 auto;
         }
-        /* NEXUS brand colors */
+        /* Onyx brand colors */
         .swagger-ui .topbar {
             background-color: #0a0a0a;
             border-bottom: 1px solid #D4AF37;
@@ -150,25 +150,25 @@ pub async fn serve_swagger_ui() -> impl Responder {
             color: #61affe;
         }
         /* Header styling */
-        .nexus-header {
+        .onyx-header {
             background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
             padding: 20px;
             text-align: center;
             border-bottom: 2px solid #D4AF37;
         }
-        .nexus-header h1 {
+        .onyx-header h1 {
             color: #D4AF37;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 2.5em;
             margin: 0;
             letter-spacing: 3px;
         }
-        .nexus-header p {
+        .onyx-header p {
             color: #888;
             margin: 10px 0 0 0;
             font-size: 1.1em;
         }
-        .nexus-header .badge {
+        .onyx-header .badge {
             display: inline-block;
             background: #D4AF37;
             color: #0a0a0a;
@@ -181,8 +181,8 @@ pub async fn serve_swagger_ui() -> impl Responder {
     </style>
 </head>
 <body>
-    <div class="nexus-header">
-        <h1>NEXUS <span class="badge">EaaS</span></h1>
+    <div class="onyx-header">
+        <h1>Onyx <span class="badge">EaaS</span></h1>
         <p>Non-Custodial Monero Escrow API</p>
     </div>
     <div id="swagger-ui"></div>
@@ -217,13 +217,13 @@ pub async fn serve_swagger_ui() -> impl Responder {
                 },
                 requestInterceptor: (req) => {
                     // Add timestamp to requests for debugging
-                    console.log('[NEXUS API]', new Date().toISOString(), req.method, req.url);
+                    console.log('[Onyx API]', new Date().toISOString(), req.method, req.url);
                     return req;
                 },
                 responseInterceptor: (res) => {
                     // Log rate limit headers
                     if (res.headers && res.headers['x-ratelimit-remaining']) {
-                        console.log('[NEXUS API] Rate limit remaining:', res.headers['x-ratelimit-remaining']);
+                        console.log('[Onyx API] Rate limit remaining:', res.headers['x-ratelimit-remaining']);
                     }
                     return res;
                 }
@@ -248,7 +248,7 @@ pub async fn serve_redoc_ui() -> impl Responder {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS API Documentation - ReDoc</title>
+    <title>Onyx API Documentation - ReDoc</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {

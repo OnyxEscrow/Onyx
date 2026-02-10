@@ -1,0 +1,232 @@
+{#
+  Onyx CARD COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/card.html" %}
+
+  Full example with all features:
+    {% include "partials/onyx/molecules/card.html" %}
+
+  Parameters:
+    - title (optional): Card title text
+    - subtitle (optional): Card subtitle text
+    - content (optional): Main content HTML
+    - footer (optional): Footer content HTML
+    - variant (optional): default|elevated|outlined|ghost (default: default)
+    - glassmorphism (optional): true|false - Apply glassmorphism effect (default: false)
+    - hover_effect (optional): none|lift|shadow|glow (default: none)
+    - image_url (optional): Header image URL
+    - badge_text (optional): Badge text to display in top-right corner
+    - badge_variant (optional): Badge variant if badge_text is set
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set card_variant = variant | default(value="default") %}
+{% set card_glassmorphism = glassmorphism | default(value=false) %}
+{% set card_hover_effect = hover_effect | default(value="none") %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-card onyx-card-" ~ card_variant %}
+{% if card_glassmorphism %}
+  {% set css_classes = css_classes ~ " onyx-card-glass" %}
+{% endif %}
+{% if card_hover_effect != "none" %}
+  {% set css_classes = css_classes ~ " onyx-card-hover-" ~ card_hover_effect %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>
+  {# Badge (top-right corner) #}
+  {% if badge_text %}
+    <div class="onyx-card-badge">
+      {% include "partials/onyx/atoms/badge.html" %}
+    </div>
+  {% endif %}
+
+  {# Header Image #}
+  {% if image_url %}
+    <div class="onyx-card-image">
+      <img src="{{ image_url }}" alt="{{ title | default(value='') }}" loading="lazy">
+    </div>
+  {% endif %}
+
+  {# Header (Title + Subtitle) #}
+  {% if title or subtitle %}
+    <div class="onyx-card-header">
+      {% if title %}
+        <h3 class="onyx-card-title">{{ title }}</h3>
+      {% endif %}
+      {% if subtitle %}
+        <p class="onyx-card-subtitle">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Content #}
+  {% if content %}
+    <div class="onyx-card-content">
+      {{ content | safe }}
+    </div>
+  {% endif %}
+
+  {# Footer #}
+  {% if footer %}
+    <div class="onyx-card-footer">
+      {{ footer | safe }}
+    </div>
+  {% endif %}
+</div>
+
+<style>
+/* Base Card */
+.onyx-card {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--onyx-card);
+  border: 1px solid var(--onyx-border);
+  border-radius: var(--onyx-radius-lg);
+  overflow: hidden;
+  position: relative;
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+/* Card Variants */
+.onyx-card-default {
+  background-color: var(--onyx-card);
+}
+
+.onyx-card-elevated {
+  box-shadow: var(--onyx-shadow-md);
+  border: none;
+}
+
+.onyx-card-outlined {
+  background-color: transparent;
+  border: 2px solid var(--onyx-border);
+}
+
+.onyx-card-ghost {
+  background-color: transparent;
+  border: none;
+}
+
+/* Glassmorphism Effect */
+.onyx-card-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Hover Effects */
+.onyx-card-hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+.onyx-card-hover-shadow:hover {
+  box-shadow: var(--onyx-shadow-lg);
+}
+
+.onyx-card-hover-glow:hover {
+  box-shadow: var(--onyx-glow-primary);
+  border-color: var(--onyx-primary);
+}
+
+/* Card Badge (top-right corner) */
+.onyx-card-badge {
+  position: absolute;
+  top: var(--onyx-space-3);
+  right: var(--onyx-space-3);
+  z-index: 10;
+}
+
+/* Card Image */
+.onyx-card-image {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background-color: var(--onyx-muted);
+  position: relative;
+}
+
+.onyx-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--onyx-transition-base) var(--onyx-ease-out);
+}
+
+.onyx-card:hover .onyx-card-image img {
+  transform: scale(1.05);
+}
+
+/* Card Header */
+.onyx-card-header {
+  padding: var(--onyx-space-4);
+  padding-bottom: var(--onyx-space-2);
+}
+
+.onyx-card-title {
+  font-size: var(--onyx-text-lg);
+  font-weight: var(--onyx-weight-bold);
+  color: var(--onyx-fg);
+  margin: 0;
+  line-height: var(--onyx-leading-tight);
+}
+
+.onyx-card-subtitle {
+  font-size: var(--onyx-text-sm);
+  color: var(--onyx-muted-fg);
+  margin: var(--onyx-space-1) 0 0 0;
+  line-height: var(--onyx-leading-normal);
+}
+
+/* Card Content */
+.onyx-card-content {
+  padding: var(--onyx-space-4);
+  flex: 1;
+  color: var(--onyx-fg);
+  font-size: var(--onyx-text-sm);
+  line-height: var(--onyx-leading-relaxed);
+}
+
+/* If no header, adjust content padding */
+.onyx-card:not(:has(.onyx-card-header)) .onyx-card-content {
+  padding-top: var(--onyx-space-4);
+}
+
+/* Card Footer */
+.onyx-card-footer {
+  padding: var(--onyx-space-4);
+  padding-top: var(--onyx-space-2);
+  border-top: 1px solid var(--onyx-border);
+  background-color: var(--onyx-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--onyx-space-2);
+}
+
+.onyx-card-glass .onyx-card-footer {
+  background-color: rgba(255, 255, 255, 0.03);
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .onyx-card-image {
+    height: 160px;
+  }
+
+  .onyx-card-header,
+  .onyx-card-content,
+  .onyx-card-footer {
+    padding: var(--onyx-space-3);
+  }
+}
+</style>

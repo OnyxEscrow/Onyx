@@ -1,0 +1,194 @@
+{#
+  Onyx TOOLTIP COMPONENT
+
+  Usage:
+    {% include "partials/onyx/molecules/tooltip.html" %}
+
+  Parameters:
+    - text (required): Tooltip text
+    - content (required): Content that triggers the tooltip
+    - position (optional): top|bottom|left|right (default: top)
+    - delay (optional): Delay in ms before showing (default: 200)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set tooltip_position = position | default(value="top") %}
+{% set tooltip_delay = delay | default(value=200) %}
+{% set tooltip_id = id | default(value="tooltip-" ~ range(end=10000) | random) %}
+
+{# Build CSS classes #}
+{% set css_classes = "onyx-tooltip-wrapper" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ tooltip_id }}">
+  {# Content (trigger) #}
+  <div
+    class="onyx-tooltip-trigger"
+    onmouseenter="showTooltip('{{ tooltip_id }}', {{ tooltip_delay }})"
+    onmouseleave="hideTooltip('{{ tooltip_id }}')"
+    onfocus="showTooltip('{{ tooltip_id }}', {{ tooltip_delay }})"
+    onblur="hideTooltip('{{ tooltip_id }}')"
+  >
+    {{ content | safe }}
+  </div>
+
+  {# Tooltip #}
+  <div class="onyx-tooltip onyx-tooltip-{{ tooltip_position }}" role="tooltip" aria-hidden="true">
+    {{ text }}
+  </div>
+</div>
+
+<script>
+var tooltipTimeouts = {};
+
+function showTooltip(id, delay) {
+  var wrapper = document.getElementById(id);
+  var tooltip = wrapper.querySelector('.onyx-tooltip');
+
+  tooltipTimeouts[id] = setTimeout(function() {
+    tooltip.setAttribute('aria-hidden', 'false');
+  }, delay);
+}
+
+function hideTooltip(id) {
+  if (tooltipTimeouts[id]) {
+    clearTimeout(tooltipTimeouts[id]);
+    delete tooltipTimeouts[id];
+  }
+
+  var wrapper = document.getElementById(id);
+  var tooltip = wrapper.querySelector('.onyx-tooltip');
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+</script>
+
+<style>
+/* Tooltip Wrapper */
+.onyx-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip Trigger */
+.onyx-tooltip-trigger {
+  display: inline-block;
+}
+
+/* Base Tooltip */
+.onyx-tooltip {
+  position: absolute;
+  z-index: 9999;
+  padding: var(--onyx-space-2) var(--onyx-space-3);
+  background-color: var(--onyx-fg);
+  color: var(--onyx-bg);
+  font-size: var(--onyx-text-xs);
+  font-weight: var(--onyx-weight-medium);
+  line-height: var(--onyx-leading-tight);
+  border-radius: var(--onyx-radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all var(--onyx-transition-base) var(--onyx-ease-out);
+  pointer-events: none;
+  box-shadow: var(--onyx-shadow-lg);
+}
+
+.onyx-tooltip[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
+/* Tooltip Arrow (using ::after pseudo-element) */
+.onyx-tooltip::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+}
+
+/* Position: Top */
+.onyx-tooltip-top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.onyx-tooltip-top[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.onyx-tooltip-top::after {
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-top-color: var(--onyx-fg);
+}
+
+/* Position: Bottom */
+.onyx-tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.onyx-tooltip-bottom[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.onyx-tooltip-bottom::after {
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-bottom-color: var(--onyx-fg);
+}
+
+/* Position: Left */
+.onyx-tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.onyx-tooltip-left[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.onyx-tooltip-left::after {
+  left: 100%;
+  top: 50%;
+  margin-top: -5px;
+  border-left-color: var(--onyx-fg);
+}
+
+/* Position: Right */
+.onyx-tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.onyx-tooltip-right[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.onyx-tooltip-right::after {
+  right: 100%;
+  top: 50%;
+  margin-top: -5px;
+  border-right-color: var(--onyx-fg);
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .onyx-tooltip {
+    transition: opacity 0.1s ease-out;
+    transform: scale(1) !important;
+  }
+}
+</style>

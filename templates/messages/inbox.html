@@ -11,7 +11,7 @@
 
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
-    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/onyx-industrial-unified.css?v=1.0.0">
     <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
 
     <script src="/static/js/htmx.min.js"></script>
@@ -38,7 +38,7 @@
             <!-- Setup Banner (if no keypair) -->
             <div id="setup-banner" class="setup-banner" style="display: none;">
                 <div class="setup-banner-content">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)" stroke-width="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
@@ -145,7 +145,7 @@
             </div>
             <div class="modal-body">
                 <div class="setup-icon">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)"
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)"
                         stroke-width="1.5">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -222,7 +222,7 @@
                     <a href="/messages/${conv.other_user_id}" class="conversation-item"
                        style="display: flex; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); text-decoration: none; color: inherit; transition: background 0.2s;">
                         <div class="conversation-avatar" style="width: 48px; height: 48px; border-radius: 50%; background: rgba(201, 164, 69, 0.2); display: flex; align-items: center; justify-content: center; margin-right: 16px;">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="1.5">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--onyx-gold)" stroke-width="1.5">
                                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
                                 <circle cx="12" cy="7" r="4"/>
                             </svg>
@@ -230,7 +230,7 @@
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
                                 <span style="font-weight: 600; font-size: 15px;">${escapeHtml(conv.other_username)}</span>
-                                ${conv.unread_count > 0 ? `<span class="unread-badge" style="background: var(--nexus-gold); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;">${conv.unread_count}</span>` : ''}
+                                ${conv.unread_count > 0 ? `<span class="unread-badge" style="background: var(--onyx-gold); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;">${conv.unread_count}</span>` : ''}
                             </div>
                             <div style="font-size: 13px; color: rgba(255,255,255,0.5);">
                                 ${conv.has_keypair ? 'E2E encrypted' : 'Waiting for setup...'}
@@ -366,7 +366,7 @@
             min-height: 100vh;
             padding-top: 100px;
             padding-bottom: 64px;
-            background: var(--nexus-bg, #252627);
+            background: var(--onyx-bg, #252627);
         }
 
         .inbox-container {
@@ -387,11 +387,11 @@
             letter-spacing: 0.1em;
             text-transform: uppercase;
             margin: 0 0 12px;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         .inbox-title .text-gold {
-            color: var(--nexus-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
         }
 
         .inbox-subtitle {
@@ -428,7 +428,7 @@
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            color: var(--nexus-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
         }
 
         .setup-banner-text p {
@@ -439,8 +439,8 @@
 
         /* Conversations Card */
         .conversations-card {
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
             overflow: hidden;
         }
@@ -450,7 +450,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 20px 24px;
-            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-bottom: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         .conversations-header h2 {
@@ -460,7 +460,7 @@
             font-weight: 600;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         /* Loading & Empty States */
@@ -490,8 +490,8 @@
             width: 32px;
             height: 32px;
             margin: 0 auto 16px;
-            border: 2px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
-            border-top-color: var(--nexus-gold, #D4AF37);
+            border: 2px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
+            border-top-color: var(--onyx-gold, #D4AF37);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -512,7 +512,7 @@
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--nexus-green, #22c55e);
+            color: var(--onyx-green, #22c55e);
         }
 
         /* Buttons */
@@ -533,7 +533,7 @@
         }
 
         .btn-gold {
-            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            background: linear-gradient(135deg, var(--onyx-gold, #D4AF37), #B8962E);
             color: #000;
         }
 
@@ -544,13 +544,13 @@
 
         .btn-outline {
             background: transparent;
-            border-color: var(--nexus-grid, rgba(255, 255, 255, 0.12));
-            color: var(--nexus-text, #fff);
+            border-color: var(--onyx-grid, rgba(255, 255, 255, 0.12));
+            color: var(--onyx-text, #fff);
         }
 
         .btn-outline:hover {
-            border-color: var(--nexus-gold, #D4AF37);
-            color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
+            color: var(--onyx-gold, #D4AF37);
         }
 
         .btn-ghost {
@@ -559,7 +559,7 @@
         }
 
         .btn-ghost:hover {
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         /* Modal */
@@ -581,8 +581,8 @@
 
         .modal-content {
             position: relative;
-            background: var(--nexus-bg-dark, #1a1b1c);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg-dark, #1a1b1c);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
             width: 90%;
             max-width: 500px;
@@ -599,7 +599,7 @@
             align-items: center;
             justify-content: space-between;
             padding: 20px 24px;
-            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-bottom: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         .modal-header h3 {
@@ -621,7 +621,7 @@
         }
 
         .modal-close:hover {
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
         }
 
         .modal-body {
@@ -633,7 +633,7 @@
             justify-content: flex-end;
             gap: 12px;
             padding: 16px 24px;
-            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-top: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
         }
 
         /* Setup Icon */
@@ -674,10 +674,10 @@
         .form-input, .form-textarea {
             width: 100%;
             padding: 12px 16px;
-            background: var(--nexus-bg, #252627);
-            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            background: var(--onyx-bg, #252627);
+            border: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.12));
             border-radius: 4px;
-            color: var(--nexus-text, #fff);
+            color: var(--onyx-text, #fff);
             font-family: var(--font-inter, 'Inter', sans-serif);
             font-size: 14px;
             transition: border-color 150ms ease;
@@ -685,7 +685,7 @@
 
         .form-input:focus, .form-textarea:focus {
             outline: none;
-            border-color: var(--nexus-gold, #D4AF37);
+            border-color: var(--onyx-gold, #D4AF37);
         }
 
         .form-input::placeholder, .form-textarea::placeholder {
@@ -709,7 +709,7 @@
             display: flex;
             align-items: center;
             padding: 16px 24px;
-            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.08));
+            border-bottom: 1px solid var(--onyx-grid, rgba(255, 255, 255, 0.08));
             text-decoration: none;
             color: inherit;
             transition: background 150ms ease;
@@ -751,7 +751,7 @@
     </style>
 
     <!-- WebSocket Notifications & Toast System -->
-    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <script src="/static/js/notifications-onyx.js?v=20260117_fix3"></script>
     <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
     <script src="/static/js/notification-routes.js"></script>
     <script src="/static/js/notification-center.js"></script>

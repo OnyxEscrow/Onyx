@@ -1,9 +1,9 @@
 [workspace]
 members = [
     "common",
-    "nexus-types",
-    "nexus-crypto-core",
-    "nexus-crypto-core/wasm",
+    "onyx-types",
+    "onyx-crypto-core",
+    "onyx-crypto-core/wasm",
     "wallet",
     "wallet/wasm",
     "cli",
@@ -39,8 +39,8 @@ hex = "0.4"
 hmac = "0.12"
 
 # Shared types
-nexus-types = { path = "nexus-types" }
-nexus-crypto-core = { path = "nexus-crypto-core" }
+onyx-types = { path = "onyx-types" }
+onyx-crypto-core = { path = "onyx-crypto-core" }
 
 # CLI
 clap = { version = "4.4", features = ["derive"] }

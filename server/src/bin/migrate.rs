@@ -58,7 +58,7 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
 }
 
 fn main() -> Result<()> {
-    println!("🔐 NEXUS Database Migration Tool");
+    println!("🔐 Onyx Database Migration Tool");
     println!("================================\n");
 
     // Load environment variables from .env
