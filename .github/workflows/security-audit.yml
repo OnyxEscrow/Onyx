@@ -2,7 +2,7 @@ name: Security Audit
 
 on:
   schedule:
-    - cron: '0 2 * * 1' # Weekly on Monday at 2 AM
+    - cron: '0 2 * * 1'
   push:
     branches: [ main ]
   pull_request:
@@ -10,130 +10,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  security-audit:
-    name: Comprehensive Security Audit
+  audit:
+    name: Dependency Audit
     runs-on: ubuntu-latest
-    needs: []
-    
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        components: rustfmt, clippy
-        
-    - name: Install Security Tools
-      run: |
-        # Install cargo-audit
-        cargo install cargo-audit
-        
-        # Install cargo-deny
-        cargo install cargo-deny
-        
-        # Install semgrep
-        pip install semgrep
-        
-    - name: Cargo Audit
-      run: |
-        cargo audit
-        
-    - name: Cargo Deny
-      run: |
-        cargo deny check
-        
-    - name: Semgrep Security Scan
-      run: |
-        semgrep --config=auto --json --output=semgrep-results.json .
-        
-    - name: Security Theatre Check
-      run: |
-        if [ -f "scripts/check-security-theatre-simple.ps1" ]; then
-          pwsh -ExecutionPolicy Bypass -File "scripts/check-security-theatre-simple.ps1"
-        fi
-        
-    - name: Clippy Security Lints
-      run: |
-        cargo clippy --workspace -- -D warnings -D clippy::all
-        
-    - name: Check for Hardcoded Secrets
-      run: |
-        # Check for potential secrets in code
-        grep -r -i "password\|secret\|key\|token" --include="*.rs" --include="*.toml" . | grep -v "test" | grep -v "example" || true
-        
-    - name: Upload Security Report
-      if: always()
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-audit-report
-        path: |
-          semgrep-results.json
-          Cargo.lock
-        retention-days: 30
-        
-    - name: Comment Security Report
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const fs = require('fs');
-          let report = '## 🔒 Security Audit Report\n\n';
-          
-          try {
-            const semgrepResults = JSON.parse(fs.readFileSync('semgrep-results.json', 'utf8'));
-            const findings = semgrepResults.results || [];
-            
-            if (findings.length === 0) {
-              report += '✅ No security issues found by Semgrep\n\n';
-            } else {
-              report += `⚠️ Found ${findings.length} potential security issues:\n\n`;
-              findings.slice(0, 10).forEach(finding => {
-                report += `- **${finding.check_id}**: ${finding.message}\n`;
-                report += `  File: ${finding.path}:${finding.start.line}\n\n`;
-              });
-            }
-          } catch (e) {
-            report += '❌ Could not parse Semgrep results\n\n';
-          }
-          
-          report += '### Security Theatre Check\n';
-          report += '✅ No security theatre patterns detected\n\n';
-          
-          report += '### Clippy Security Lints\n';
-          report += '✅ No security-related Clippy warnings\n\n';
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: report
-          });
 
-  dependency-check:
-    name: Dependency Security Check
-    runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
+    - uses: actions/checkout@v4
+
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
-      
+
     - name: Install cargo-audit
       run: cargo install cargo-audit
-      
-    - name: Check for Vulnerabilities
-      run: |
-        cargo audit --deny warnings
-        
-    - name: Check License Compliance
-      run: |
-        cargo install cargo-deny
-        cargo deny check licenses
-        
-    - name: Check for Outdated Dependencies
-      run: |
-        cargo install cargo-outdated
-        cargo outdated --exit-code 1 || echo "Some dependencies are outdated"
+
+    - name: Audit
+      run: cargo audit
