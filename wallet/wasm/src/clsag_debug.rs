@@ -4,9 +4,7 @@
 //! Every intermediate value is logged to allow comparison with reference implementations.
 
 use curve25519_dalek::{
-    constants::{ED25519_BASEPOINT_POINT, ED25519_BASEPOINT_TABLE},
-    edwards::EdwardsPoint,
-    scalar::Scalar,
+    constants::ED25519_BASEPOINT_POINT, edwards::EdwardsPoint, scalar::Scalar,
     traits::VartimeMultiscalarMul,
 };
 use monero_generators::{hash_to_point, H};

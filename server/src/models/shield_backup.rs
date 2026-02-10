@@ -7,7 +7,7 @@
 use anyhow::{Context, Result};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::schema::shield_backups;

@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! FROST CLSAG Full Signing Test
 //!
 //! This test validates the complete CLSAG signing flow with FROST 2-of-3:

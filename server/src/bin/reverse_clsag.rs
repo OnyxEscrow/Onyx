@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Reverse engineer a VALID stagenet TX to understand exact CLSAG format
 //!
 //! 1. Fetch a recent valid TX from stagenet
@@ -5,12 +12,10 @@
 //! 3. Verify the signature using Monero's exact algorithm
 //! 4. Compare with our implementation
 
-use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
-use monero_generators::hash_to_point;
 use serde::Deserialize;
-use sha3::{Digest, Keccak256};
+use sha3::Digest;
 
 /// Get daemon URL from environment or use default based on network
 fn get_daemon_url() -> String {

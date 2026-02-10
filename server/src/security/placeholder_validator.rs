@@ -133,7 +133,7 @@ pub fn validate_all_critical_env_vars() {
         "ARBITER_PUBKEY",
     ];
 
-    let mut found_placeholders = false;
+    let found_placeholders = false;
 
     for var_name in critical_vars {
         if let Ok(value) = env::var(var_name) {

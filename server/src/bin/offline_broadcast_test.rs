@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Offline Complete Broadcast Test for FROST 2-of-3 CLSAG
 //!
 //! This test bypasses the browser entirely:

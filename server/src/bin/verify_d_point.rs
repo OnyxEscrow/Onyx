@@ -1,10 +1,16 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify D point computation for FROST 2-of-3 CLSAG
 //! Run: cargo run --release --bin verify_d_point
 
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use monero_generators::hash_to_point;
-use sha3::{Digest, Keccak256};
 
 // From server logs and verify_ki.rs
 const SIGNER_PUBKEY: &str = "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";

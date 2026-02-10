@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = []
 debug-endpoints = []
+qr_generation = []
 
 [dependencies]
 actix-web = "4.4"

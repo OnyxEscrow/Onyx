@@ -29,7 +29,7 @@
 //! }
 //! ```
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use monero_bulletproofs_mirror::Bulletproof;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};

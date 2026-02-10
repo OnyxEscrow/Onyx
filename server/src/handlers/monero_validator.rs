@@ -1,9 +1,6 @@
-use crate::wallet_manager::WalletManager;
 use actix_web::{post, web, HttpResponse};
 use monero_marketplace_common::MONERO_RPC_URL;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::Mutex;
 
 #[derive(Serialize, Deserialize)]
 pub struct AddressValidationRequest {

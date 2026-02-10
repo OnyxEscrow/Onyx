@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! FROST E2E Test - Validates the complete FROST 2-of-3 multisig flow offline
 //!
 //! This test verifies:

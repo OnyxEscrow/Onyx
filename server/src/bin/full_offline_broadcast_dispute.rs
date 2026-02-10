@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Full Offline Broadcast DISPUTE - FROST CLSAG Signing for Arbiter Resolution
 //!
 //! This binary is SEPARATE from full_offline_broadcast to preserve the happy path.

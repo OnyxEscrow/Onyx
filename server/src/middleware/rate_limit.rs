@@ -1,7 +1,7 @@
 use actix_web::{
     body::{BoxBody, EitherBody},
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error, HttpMessage, HttpResponse,
+    Error, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
 use std::collections::HashMap;

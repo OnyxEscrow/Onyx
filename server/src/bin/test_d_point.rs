@@ -1,7 +1,6 @@
 //! Test that D point is correctly computed (not identity) when pseudo_mask differs from funding_mask
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
-use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use monero_generators::hash_to_point;
 use rand::RngCore;

@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify funding mask and pseudo_out for any escrow
 //! Usage: cargo run --release --bin verify_mask <escrow_id>
 

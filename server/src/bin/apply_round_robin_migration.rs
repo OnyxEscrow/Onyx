@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Migration utility for adding round-robin signing columns (v0.8.0)
 //!
 //! This utility applies the round-robin signing migration to an encrypted SQLCipher database

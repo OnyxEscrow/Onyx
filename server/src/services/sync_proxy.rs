@@ -24,7 +24,6 @@
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 
 // ============================================================================
 // ERROR TYPES

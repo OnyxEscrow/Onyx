@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    deprecated,
+    unused_assignments
+)]
 //! Module de gestion des dépendances externes
 //!
 //! Ce module s'occupe de vérifier et de démarrer automatiquement les services
@@ -8,7 +15,7 @@ use anyhow::{Context, Result};
 use std::env;
 use std::process::Command;
 use tokio::time::{sleep, Duration};
-use tracing::{info, warn};
+use tracing::info;
 
 /// Configuration réseau Monero
 struct NetworkConfig {

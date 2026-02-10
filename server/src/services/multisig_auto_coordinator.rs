@@ -9,7 +9,7 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::interval;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use crate::db::DbPool;
 use crate::models::escrow::Escrow;

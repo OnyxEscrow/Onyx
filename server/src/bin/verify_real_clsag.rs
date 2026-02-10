@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify a REAL stagenet CLSAG - EXACT Monero format
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;

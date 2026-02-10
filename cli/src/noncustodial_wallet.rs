@@ -596,7 +596,7 @@ impl NonCustodialClient {
 
         // CRITICAL OPTIMIZATION: Get current blockchain height to skip historical scanning
         // This reduces wallet creation from 30+ seconds (full scan) to <5 seconds
-        let restore_height = match self.local_wallet.rpc().get_block_height().await {
+        let _restore_height = match self.local_wallet.rpc().get_block_height().await {
             Ok(height) => {
                 info!("🔍 Current blockchain height: {}", height);
                 Some(height)

@@ -14,9 +14,8 @@
 //! - B = multisig spend PUBLIC key
 //! - Overlap = S - B (should equal k2*G for 2-of-3)
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use curve25519_dalek::edwards::CompressedEdwardsY;
-use curve25519_dalek::traits::Identity;
 use std::env;
 
 #[tokio::main]

@@ -22,7 +22,7 @@
 use frost_ed25519::{
     keys::{
         dkg::{self, round1, round2},
-        KeyPackage, PublicKeyPackage,
+        KeyPackage,
     },
     Identifier,
 };

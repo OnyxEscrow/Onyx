@@ -33,17 +33,12 @@ fn get_monitoring_rpc_ports() -> Vec<u16> {
     }
 }
 
-use crate::crypto::encryption::decrypt_field;
-use crate::crypto::mask_derivation::{derive_commitment_mask, find_our_output_and_derive_mask};
+use crate::crypto::mask_derivation::find_our_output_and_derive_mask;
 use crate::crypto::view_key::validate_view_key_matches_address;
-use crate::db::{
-    db_load_escrow, db_load_escrow_by_str, db_update_escrow_status, db_update_escrow_status_by_str,
-    DbPool,
-};
+use crate::db::{db_load_escrow_by_str, db_update_escrow_status_by_str, DbPool};
 use crate::models::escrow::Escrow;
 use crate::models::notification::{NewNotification, Notification, NotificationType};
 // Order model removed in EaaS transformation - escrow status is the source of truth
-use crate::models::wallet_rpc_config::WalletRpcConfig;
 use crate::wallet_manager::WalletManager;
 use crate::websocket::WebSocketServer;
 

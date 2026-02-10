@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Full Offline Broadcast - Complete FROST CLSAG Signing with MoneroTransactionBuilder
 //!
 //! This binary:

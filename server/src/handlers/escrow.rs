@@ -2177,7 +2177,7 @@ pub async fn sign_action(
     };
 
     // 1. Verify user has role in this escrow (EaaS: roles stored in user_escrow_roles table)
-    use crate::models::user_escrow_role::{EscrowRole, UserEscrowRole};
+    use crate::models::user_escrow_role::UserEscrowRole;
 
     let role = match UserEscrowRole::get_user_role(&mut conn, user_id, escrow_id) {
         Ok(r) => r,
@@ -2196,7 +2196,7 @@ pub async fn sign_action(
     // 2. Check if this is a WASM escrow (client-side keys)
     use crate::models::escrow::Escrow;
 
-    let mut escrow = match Escrow::find_by_id(&mut conn, escrow_id.to_string()) {
+    let escrow = match Escrow::find_by_id(&mut conn, escrow_id.to_string()) {
         Ok(e) => e,
         Err(e) => {
             tracing::error!(
@@ -2374,7 +2374,7 @@ pub async fn sign_action(
         }
     };
 
-    let mut master_seed = match decrypt_bytes(&encrypted_seed, &decryption_key) {
+    let master_seed = match decrypt_bytes(&encrypted_seed, &decryption_key) {
         Ok(seed) => SensitiveBytes::new(seed),
         Err(e) => {
             tracing::error!("Failed to decrypt master seed: {}", e);

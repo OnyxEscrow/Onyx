@@ -1,10 +1,16 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify commitment mask against on-chain commitment
 //!
 //! Usage: cargo run --release --bin verify_commitment
 
 use anyhow::{Context, Result};
 use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
-use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
 use sha3::{Digest, Keccak256};

@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify Bulletproof+ range proof from TX
 
 use curve25519_dalek::edwards::CompressedEdwardsY;

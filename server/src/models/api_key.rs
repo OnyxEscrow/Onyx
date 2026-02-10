@@ -8,7 +8,7 @@
 //! - Usage tracking
 
 use anyhow::{Context, Result};
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

@@ -1,8 +1,14 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify hash_to_point matches Monero's implementation
 //! Test vector: Hp(G) where G is the basepoint
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_COMPRESSED;
-use curve25519_dalek::edwards::CompressedEdwardsY;
 use monero_generators::hash_to_point;
 
 fn main() {

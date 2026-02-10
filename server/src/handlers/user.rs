@@ -7,7 +7,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{error, info};
 use uuid::Uuid;
 
 use crate::db::DbPool;

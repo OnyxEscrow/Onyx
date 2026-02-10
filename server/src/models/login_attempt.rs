@@ -97,8 +97,6 @@ impl LoginAttempt {
     ///
     /// Returns the number of failed attempts in the last ATTEMPT_WINDOW_SECS
     pub fn count_recent_failed(conn: &mut SqliteConnection, username: &str) -> Result<i64> {
-        use diesel::dsl::*;
-
         let cutoff =
             chrono::Utc::now().naive_utc() - chrono::Duration::seconds(ATTEMPT_WINDOW_SECS);
 

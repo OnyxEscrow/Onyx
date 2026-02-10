@@ -136,9 +136,7 @@ pub fn aggregate_partial_key_images_with_lagrange(
     signer1_role: &str,
     signer2_role: &str,
 ) -> Result<String> {
-    use curve25519_dalek::edwards::EdwardsPoint;
     use curve25519_dalek::scalar::Scalar;
-    use curve25519_dalek::traits::Identity;
 
     // Decode hex to bytes
     let pki1_bytes =
@@ -489,7 +487,6 @@ pub fn add_derivation_to_key_image(
     view_key_hex: &str,
     output_index: u64,
 ) -> Result<String> {
-    use curve25519_dalek::edwards::EdwardsPoint;
     use curve25519_dalek::scalar::Scalar;
     use monero_generators::hash_to_point;
     use sha3::{Digest, Keccak256};

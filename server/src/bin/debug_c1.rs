@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Debug c1 computation by tracing the exact challenge chain
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;

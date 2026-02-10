@@ -7,9 +7,7 @@
 //! If this address is invalid or on the wrong network, ALL PLATFORM FEES
 //! WILL BE PERMANENTLY LOST.
 
-use crate::crypto::address_validation::{
-    validate_address, validate_address_for_network, MoneroNetwork,
-};
+use crate::crypto::address_validation::{validate_address, MoneroNetwork};
 use once_cell::sync::Lazy;
 use std::env;
 use std::sync::RwLock;

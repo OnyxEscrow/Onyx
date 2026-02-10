@@ -1,3 +1,11 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case,
+    unused_comparisons
+)]
 //! Complete cryptographic validation for escrow #ef57f177
 //!
 //! Tests EVERY step of the signing flow with known values.

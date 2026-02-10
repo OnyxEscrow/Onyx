@@ -18,7 +18,7 @@ use crate::config::{get_fee_reserve, get_wallet_password};
 use crate::db::DbPool;
 use crate::models::multisig_state::{MultisigPhase, MultisigSnapshot};
 use crate::repositories::MultisigStateRepository;
-use crate::wallet_pool::{WalletPool, WalletRole as PoolWalletRole};
+use crate::wallet_pool::WalletPool;
 
 // Global mutex to ensure only ONE wallet creation happens at a time across the entire server
 // This prevents race conditions with monero-wallet-rpc which can only handle one wallet at a time
@@ -2952,7 +2952,7 @@ impl WalletManager {
             // Update last_connected_at timestamp
             if let Some(ref pool) = self.db_pool {
                 use crate::models::wallet_rpc_config::WalletRpcConfig;
-                let mut conn = pool.get().ok();
+                let conn = pool.get().ok();
                 if let Some(mut c) = conn {
                     let _ =
                         WalletRpcConfig::update_last_connected(&mut c, &wallet_uuid.to_string());

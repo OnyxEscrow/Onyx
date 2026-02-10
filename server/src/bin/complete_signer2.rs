@@ -1,11 +1,17 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! CLI tool to complete Signer 2's signature and submit to server
 //! Usage: cargo run --bin complete_signer2 -- --escrow-id <id> --spend-key <hex>
 
 use anyhow::{Context, Result};
-use curve25519_dalek::{edwards::CompressedEdwardsY, scalar::Scalar};
+use curve25519_dalek::scalar::Scalar;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sha3::Keccak256;
 
 #[derive(Debug, Deserialize)]
 struct PartialTx {

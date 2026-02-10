@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    deprecated
+)]
 pub mod clsag_debug; // Debug instrumentation for CLSAG
 pub mod core; // onyx-crypto-core re-exports for gradual migration
 pub mod crypto;

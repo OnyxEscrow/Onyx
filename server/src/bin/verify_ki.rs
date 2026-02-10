@@ -4,7 +4,6 @@
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::EdwardsPoint;
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::MultiscalarMul;
 use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};
 

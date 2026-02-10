@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Manual migration utility for applying Phase 1 temp wallet columns
 //!
 //! This utility applies the missing migration to an encrypted SQLCipher database

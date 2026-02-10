@@ -13,14 +13,12 @@ use actix_session::Session;
 use actix_web::{web, HttpRequest, HttpResponse};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tracing::{error, info};
 
 use crate::handlers::auth_helpers::get_authenticated_identity;
 use crate::handlers::frost_escrow::ApiResponse;
-use crate::services::frost_signing_coordinator::{
-    FrostSigningCoordinator, NonceCommitment, SigningStatus, TxSigningData,
-};
+use crate::services::frost_signing_coordinator::{FrostSigningCoordinator, TxSigningData};
 
 type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 

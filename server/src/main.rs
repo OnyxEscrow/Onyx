@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    deprecated,
+    unused_assignments
+)]
 use actix::{Actor, Addr};
 use actix_cors::Cors;
 use actix_files as fs;
@@ -13,10 +20,10 @@ use monero_marketplace_common::types::MoneroConfig;
 use server::coordination::{DbMultisigCoordinator, EscrowCoordinator};
 use server::db::{create_pool, DatabaseConfig, DatabaseManager};
 use server::handlers::{
-    airgap_dispute, analytics, api_keys, auth, batch, client_fees, dispute_evidence, docs,
-    encrypted_relay, escrow, escrow_chat, fees, frost_escrow, monero_validator, monitoring,
-    multisig, multisig_challenge, multisig_wallet, noncustodial, notifications, secure_messages,
-    sync, user, wallet, wasm_multisig, webhooks,
+    analytics, api_keys, auth, batch, client_fees, dispute_evidence, docs, encrypted_relay, escrow,
+    escrow_chat, fees, frost_escrow, monero_validator, monitoring, multisig, multisig_challenge,
+    multisig_wallet, noncustodial, notifications, secure_messages, sync, user, wallet,
+    wasm_multisig, webhooks,
 };
 use server::middleware::{
     admin_auth::AdminAuth,

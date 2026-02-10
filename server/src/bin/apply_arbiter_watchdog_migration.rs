@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Migration utility for Arbiter Watchdog fields
 //!
 //! This utility applies the arbiter watchdog migration to an encrypted SQLCipher database

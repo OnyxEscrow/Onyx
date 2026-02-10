@@ -18,10 +18,10 @@
 //! - Ring signature construction requires server-provided decoys
 //! - Key image calculation requires blockchain data from server
 
-use curve25519_dalek::constants::{ED25519_BASEPOINT_POINT, ED25519_BASEPOINT_TABLE};
+use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::{Identity, VartimeMultiscalarMul};
+use curve25519_dalek::traits::VartimeMultiscalarMul;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use wasm_bindgen::prelude::*;
@@ -644,7 +644,7 @@ pub fn make_multisig_wasm(
 // TRANSACTION SIGNING (CLSAG - Real Implementation with monero-clsag-mirror)
 // ============================================================================
 
-use monero_clsag_mirror::{Clsag, ClsagContext, ClsagError};
+use monero_clsag_mirror::{Clsag, ClsagContext};
 use monero_generators::hash_to_point;
 use monero_primitives_mirror::{Commitment, Decoys};
 
@@ -1087,7 +1087,7 @@ pub fn generate_nonce_commitment(
     _tx_prefix_hash: &str, // Not used for nonce generation, but kept for API consistency
     multisig_pub_key: &str,
 ) -> Result<JsValue, JsValue> {
-    use curve25519_dalek::{constants, edwards::CompressedEdwardsY};
+    use curve25519_dalek::constants;
 
     // Generate random nonce (alpha)
     let mut alpha_bytes = [0u8; 32];
@@ -1276,7 +1276,7 @@ pub fn sign_clsag_wasm(
         .map_err(|e| JsValue::from_str(&format!("CLSAG context error: {:?}", e)))?;
 
     // Generate RNG from seed (deterministic for WASM reproducibility)
-    use rand_core::SeedableRng;
+
     let mut rng_seed = [0u8; 32];
     getrandom::getrandom(&mut rng_seed)
         .map_err(|e| JsValue::from_str(&format!("RNG error: {}", e)))?;

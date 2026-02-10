@@ -1,7 +1,7 @@
 //! Verify key image derivation step by step
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_POINT as G;
-use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
+use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
 use monero_generators::hash_to_point;
 

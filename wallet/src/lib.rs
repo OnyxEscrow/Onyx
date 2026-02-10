@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Monero wallet integration and multisig functionality
 //!
 //! This crate provides the core functionality for interacting with

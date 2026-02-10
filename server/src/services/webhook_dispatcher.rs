@@ -24,9 +24,7 @@ use tracing::{error, info, warn};
 
 use crate::db::DbPool;
 use crate::models::webhook::{Webhook, WebhookEventType};
-use crate::models::webhook_delivery::{
-    DeliveryStatus, NewWebhookDelivery, WebhookDelivery, MAX_ATTEMPTS,
-};
+use crate::models::webhook_delivery::{NewWebhookDelivery, WebhookDelivery, MAX_ATTEMPTS};
 
 /// HTTP client timeout for webhook delivery
 const DELIVERY_TIMEOUT_SECS: u64 = 30;

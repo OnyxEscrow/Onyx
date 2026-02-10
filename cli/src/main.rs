@@ -1,3 +1,4 @@
+#![allow(dead_code, unused_imports)]
 //! Monero Marketplace CLI
 //!
 //! Command-line interface for the Monero Marketplace

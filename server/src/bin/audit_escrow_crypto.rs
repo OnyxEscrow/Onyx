@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Audit Escrow Cryptographic Values
 //!
 //! This script verifies all cryptographic computations for a specific escrow

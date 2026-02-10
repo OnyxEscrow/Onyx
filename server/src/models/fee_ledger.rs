@@ -63,7 +63,6 @@ impl FeeLedgerEntry {
     }
 
     pub fn sum_by_client(conn: &mut SqliteConnection, client_id: &str) -> Result<i64> {
-        use diesel::sql_types::BigInt;
         let results: Vec<i64> = fee_ledger::table
             .filter(fee_ledger::client_id.eq(client_id))
             .select(fee_ledger::amount_atomic)

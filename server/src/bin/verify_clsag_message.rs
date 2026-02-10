@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify CLSAG message computation (get_pre_mlsag_hash)
 //!
 //! Monero CLSAG signs a 32-byte message computed from:

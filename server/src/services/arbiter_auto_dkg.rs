@@ -18,7 +18,7 @@
 
 use anyhow::{Context, Result};
 use diesel::prelude::*;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, info};
 
 use crate::db::DbPool;
 use crate::models::frost_dkg::FrostRole;

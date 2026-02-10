@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Test FROST 2-of-3 CLSAG with v0.51.0 fix
 //!
 //! This test verifies that the Lagrange coefficient is NOT applied to the derivation 'd',
@@ -8,7 +15,6 @@
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::MultiscalarMul;
 use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};
 

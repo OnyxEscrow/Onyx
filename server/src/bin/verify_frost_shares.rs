@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Verify FROST share reconstruction
 //!
 //! Validates that λ_buyer * buyer_share + λ_vendor * vendor_share = group_secret

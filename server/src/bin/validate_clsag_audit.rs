@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! CLSAG Audit Validator - v0.50.0
 //!
 //! Validates CLSAG signing against known funding TX values
@@ -11,7 +18,6 @@ use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G,
     edwards::{CompressedEdwardsY, EdwardsPoint},
     scalar::Scalar,
-    traits::MultiscalarMul,
 };
 use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};

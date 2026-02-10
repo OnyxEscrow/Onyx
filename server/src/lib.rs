@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_imports,
+    unused_variables,
+    unused_assignments,
+    deprecated
+)]
 // TM-006: Export macros pour sanitization des logs (AVANT modules)
 #[macro_export]
 macro_rules! log_uuid {

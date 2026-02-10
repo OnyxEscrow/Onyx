@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Onyx CLSAG Debug Script v0.38.9
 //!
 //! Comprehensive debugging tool for tracing the entire CLSAG signing flow.

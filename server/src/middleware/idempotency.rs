@@ -19,7 +19,7 @@ use actix_web::dev::{forward_ready, Service, Transform};
 use actix_web::{
     body::{BoxBody, EitherBody},
     dev::{ServiceRequest, ServiceResponse},
-    http::{header::HeaderValue, Method, StatusCode},
+    http::{Method, StatusCode},
     Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::{ok, LocalBoxFuture, Ready};

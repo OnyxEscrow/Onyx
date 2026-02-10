@@ -21,7 +21,7 @@ use std::future::{ready, Ready};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
-use tracing::{info, warn};
+use tracing::warn;
 
 use crate::db::DbPool;
 use crate::models::api_key::ApiKey;

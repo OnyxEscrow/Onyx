@@ -158,8 +158,8 @@ monitor-wallets/
 # Large binaries
 frontend-build/tailwindcss
 
-# AI tooling (exclude from public repo)
-.claude/
+# Dev tooling
+.ai/
 .github/workflows/ai-*.yml
 
 # Internal docs (not for public release)

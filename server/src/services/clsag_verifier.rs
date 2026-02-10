@@ -9,7 +9,6 @@ use curve25519_dalek::{
     constants::ED25519_BASEPOINT_TABLE,
     edwards::{CompressedEdwardsY, EdwardsPoint},
     scalar::Scalar,
-    traits::Identity,
 };
 use sha3::{Digest, Keccak256};
 use tracing::{debug, error, info, warn};

@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    deprecated
+)]
 //! # onyx-crypto-core
 //!
 //! Core cryptographic library for Onyx Escrow-as-a-Service (EaaS).

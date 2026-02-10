@@ -1,3 +1,11 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case,
+    unused_comparisons
+)]
 //! Complete signing flow debug with known values
 //!
 //! Simulates the ENTIRE CLSAG signing flow step by step
@@ -8,7 +16,6 @@
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::traits::Identity;
 use rand::rngs::OsRng;
 use rand::RngCore;
 use sha3::{Digest, Keccak256};

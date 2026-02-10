@@ -82,13 +82,13 @@ pub struct NewWallet {
     pub spend_key_pub: Option<String>,
     pub view_key_pub: Option<String>,
     pub signature: Option<String>,
-    #[column_name = "daily_limit_atomic"]
+    #[diesel(column_name = daily_limit_atomic)]
     pub daily_limit_atomic: Option<i64>,
-    #[column_name = "monthly_limit_atomic"]
+    #[diesel(column_name = monthly_limit_atomic)]
     pub monthly_limit_atomic: Option<i64>,
-    #[column_name = "last_withdrawal_date"]
+    #[diesel(column_name = last_withdrawal_date)]
     pub last_withdrawal_date: Option<NaiveDate>,
-    #[column_name = "withdrawn_today_atomic"]
+    #[diesel(column_name = withdrawn_today_atomic)]
     pub withdrawn_today_atomic: Option<i64>,
 }
 

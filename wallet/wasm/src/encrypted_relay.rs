@@ -19,7 +19,7 @@ use chacha20poly1305::{
 use rand_core::OsRng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
+use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
 /// Result of generating an ephemeral keypair

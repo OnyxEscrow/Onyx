@@ -1,3 +1,10 @@
+#![allow(
+    dead_code,
+    unused_variables,
+    unused_imports,
+    unused_assignments,
+    non_snake_case
+)]
 //! Complete v0.52.0 FROST CLSAG Test
 //!
 //! This test verifies the CLSAG signature with:

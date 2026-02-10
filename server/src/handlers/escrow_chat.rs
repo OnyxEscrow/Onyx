@@ -21,15 +21,14 @@ use actix::Addr;
 use actix_session::Session;
 use actix_web::{web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
-use tracing::{error, info, warn};
+use tracing::{error, info};
 
 use crate::db::DbPool;
 use crate::models::escrow::Escrow;
 use crate::models::escrow_message::{
-    EscrowKeypairsDto, EscrowMessageKeypair, EscrowMessageReadReceipt, NewEscrowMessageKeypair,
+    EscrowMessageKeypair, EscrowMessageReadReceipt, NewEscrowMessageKeypair,
     NewSecureEscrowMessage, SecureEscrowMessage, SecureEscrowMessageDto,
 };
-use crate::models::user::User;
 use crate::websocket::{NotifyUser, WebSocketServer, WsEvent};
 
 // ============================================================================

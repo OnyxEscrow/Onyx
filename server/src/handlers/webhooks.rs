@@ -25,9 +25,7 @@ use url::Url;
 
 use crate::db::DbPool;
 use crate::models::webhook::{NewWebhook, Webhook, WebhookEventType, WebhookResponse};
-use crate::models::webhook_delivery::{
-    WebhookDelivery, WebhookDeliveryResponse, WebhookDeliveryStats,
-};
+use crate::models::webhook_delivery::{WebhookDelivery, WebhookDeliveryResponse};
 use crate::services::webhook_dispatcher::WebhookDispatcher;
 
 /// Request body for creating a webhook
