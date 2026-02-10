@@ -505,7 +505,7 @@ The shared view key does **not** enable:
 | Key exchange | `x25519-dalek` | 2.0 | RFC 7748 |
 | AEAD encryption | `chacha20poly1305` | 0.10 | RFC 8439 |
 | Hash functions | `sha3` (Keccak256) | 0.10 | FIPS 202 |
-| Monero generators | `monero-generators` | 0.4 | CryptoNote |
+| Monero generators | `monero-serai` | 0.4+ | CryptoNote (Cuprate-compatible) |
 | WASM target | `wasm-bindgen` | 0.2 | W3C WebAssembly |
 
 The WASM module compiles to `wasm32-unknown-unknown` with `opt-level = "z"` and LTO enabled. Randomness is sourced from `crypto.getRandomValues()` via the `getrandom` crate with the `js` feature.
