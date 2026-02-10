@@ -7,10 +7,7 @@ fn main() {
 
     // H from monero-generators
     let h_from_lib = H.compress().to_bytes();
-    println!(
-        "H from monero-generators: {}",
-        hex::encode(&h_from_lib)
-    );
+    println!("H from monero-generators: {}", hex::encode(&h_from_lib));
 
     // H from our code
     let h_our: [u8; 32] = [
