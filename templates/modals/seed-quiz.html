@@ -1,0 +1,98 @@
+<!-- Aura Modal: Seed Backup Verification Quiz -->
+<div id="seed-quiz-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/80 transition-opacity duration-300 opacity-0"
+    style="display: none;">
+    <div class="relative w-full max-w-lg transform rounded-3xl bg-[#0a0a0a] border border-white/10 shadow-2xl shadow-black/50 transition-all duration-300 scale-95 opacity-0 translate-y-4"
+        id="seed-quiz-modal-content">
+        <!-- Background Gradients -->
+        <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="relative p-6 border-b border-white/5 flex items-center justify-between">
+            <h3 class="text-xl text-white font-light flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-yellow-500/20 text-yellow-400">
+                    <i data-lucide="shield-check" class="w-5 h-5"></i>
+                </div>
+                Verify Your Backup
+            </h3>
+            <button onclick="closeSeedQuizModal()"
+                class="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="relative p-6 space-y-6">
+            <!-- Info Notice -->
+            <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-4">
+                <i data-lucide="info" class="w-6 h-6 text-blue-400 flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <strong class="text-blue-400 font-medium block mb-1">Hardware Wallet Standard</strong>
+                    <p class="text-gray-300 text-sm mb-2">To prove you've backed up your seed phrase, enter the 3 words
+                        at the positions shown below.</p>
+                    <p class="text-xs text-gray-500">This verification is identical to Ledger, Trezor, and other
+                        hardware wallets.</p>
+                </div>
+            </div>
+
+            <!-- Quiz Inputs -->
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-400 uppercase tracking-wider">Word #<span
+                            id="quiz-idx-1" class="text-white">?</span></label>
+                    <input type="text" id="quiz-word-1"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all font-mono"
+                        autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter the word...">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-400 uppercase tracking-wider">Word #<span
+                            id="quiz-idx-2" class="text-white">?</span></label>
+                    <input type="text" id="quiz-word-2"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all font-mono"
+                        autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter the word...">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-400 uppercase tracking-wider">Word #<span
+                            id="quiz-idx-3" class="text-white">?</span></label>
+                    <input type="text" id="quiz-word-3"
+                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 transition-all font-mono"
+                        autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Enter the word...">
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="quiz-error-msg"
+                class="hidden p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4"></i>
+                <span></span>
+            </div>
+
+            <!-- Hint -->
+            <div class="p-3 rounded-xl bg-yellow-500/5 border border-yellow-500/10 flex items-center gap-3">
+                <i data-lucide="help-circle" class="w-4 h-4 text-yellow-400"></i>
+                <p class="text-xs text-gray-400">Check your paper or file backup to find the words at the positions
+                    shown.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="relative p-6 border-t border-white/5 flex justify-end gap-3">
+            <button onclick="closeSeedQuizModal()"
+                class="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors font-medium">
+                Cancel
+            </button>
+            <button id="verify-quiz-btn" onclick="verifySeedQuiz()" disabled
+                class="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none hover:opacity-90 transition-all flex items-center gap-2">
+                Verify
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Quiz logic is handled by /static/js/seed-quiz.js -->

@@ -1,0 +1,12 @@
+-- Add ring_data_json column to store ring members for transaction broadcast
+-- This data is generated during prepare_sign and needed for exact reconstruction at broadcast time
+--
+-- JSON format:
+-- {
+--   "ring_member_indices": [u64, ...],     -- 16 global output indices
+--   "signer_index": u8,                     -- Position of real output in ring (0-15)
+--   "real_global_index": u64,               -- Real output's global index
+--   "ring_public_keys": ["hex", ...],       -- 16 public keys (32 bytes each)
+--   "ring_commitments": ["hex", ...]        -- 16 commitments (32 bytes each)
+-- }
+ALTER TABLE escrows ADD COLUMN ring_data_json TEXT;

@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with {{ other_username }} - FROST MARKET</title>
+    <meta name="description" content="Secure E2E encrypted conversation">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
+
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+
+<body class="industrial-stealth">
+    <!-- Grid Overlay (Vertical Lines) -->
+    <div class="grid-overlay"></div>
+
+    {% include "partials/header-industrial.html" %}
+
+    <main class="conversation-page">
+        <!-- Chat Header -->
+        <div class="chat-header">
+            <a href="/messages" class="back-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </a>
+            <div class="chat-user-info">
+                <div class="chat-avatar">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)"
+                        stroke-width="1.5">
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </div>
+                <div>
+                    <h2 class="chat-username">{{ other_username }}</h2>
+                    <div class="chat-status">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        E2E Encrypted
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div id="messages-container" class="messages-container">
+            <!-- Loading state -->
+            <div id="loading-messages" class="text-center" style="padding: 48px;">
+                <div class="apple-spinner" style="margin: 0 auto 16px;"></div>
+                <p style="color: rgba(255,255,255,0.6);">Loading messages...</p>
+            </div>
+
+            <!-- Messages will be rendered here -->
+            <div id="messages-list"></div>
+        </div>
+
+        <!-- Unlock Prompt (if private key needs unlock) -->
+        <div id="unlock-prompt" class="unlock-prompt" style="display: none;">
+            <div class="unlock-content">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <div>
+                    <strong>Unlock to decrypt messages</strong>
+                    <p>Enter your password to decrypt this conversation.</p>
+                </div>
+                <div class="unlock-form">
+                    <input type="password" id="unlock-password" placeholder="Your password">
+                    <button id="unlock-btn">Unlock</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Preview (hidden by default) -->
+        <div id="image-preview-container" class="image-preview-container" style="display: none;">
+            <div class="image-preview-wrapper">
+                <img id="image-preview" src="" alt="Preview">
+                <button type="button" class="image-preview-remove" onclick="removeImageAttachment()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <span class="image-preview-name" id="image-preview-name"></span>
+        </div>
+
+        <!-- Message Input -->
+        <div class="message-input-container">
+            <div class="message-input-wrapper">
+                <!-- Hidden file input -->
+                <input type="file" id="image-input" accept="image/jpeg,image/png,image/gif,image/webp" style="display: none;">
+
+                <!-- Attachment button -->
+                <button type="button" class="attach-btn" onclick="document.getElementById('image-input').click()" title="Attach image (max 2MB)">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                </button>
+
+                <textarea id="message-input" class="message-input" placeholder="Type a secure message..."
+                    rows="1"></textarea>
+                <button id="send-btn" class="send-btn" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+            <div class="encryption-notice">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                Messages are end-to-end encrypted (images included)
+            </div>
+        </div>
+
+        <!-- Image Modal for full-size view -->
+        <div id="image-modal" class="image-modal" onclick="closeImageModal()">
+            <span class="image-modal-close">&times;</span>
+            <img id="image-modal-img" src="">
+        </div>
+    </main>
+
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/secure-messages.js"></script>
+
+    <script>
+        // State
+        const otherUserId = '{{ other_user_id }}';
+        const otherUsername = '{{ other_username }}';
+        let messages = [];
+        let privateKey = null;
+        let isUnlocked = false;
+        let selectedImageFile = null; // For image attachment
+
+        // Elements
+        const messagesContainer = document.getElementById('messages-container');
+        const messagesList = document.getElementById('messages-list');
+        const loadingEl = document.getElementById('loading-messages');
+        const unlockPrompt = document.getElementById('unlock-prompt');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const imageInput = document.getElementById('image-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const imagePreviewName = document.getElementById('image-preview-name');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadMessages();
+            setupInputHandlers();
+            scrollToBottom();
+        });
+
+        // Load messages
+        async function loadMessages() {
+            try {
+                const result = await SecureMessages.getConversation(otherUserId);
+                messages = result.data?.messages || [];
+
+                loadingEl.style.display = 'none';
+
+                if (messages.length === 0) {
+                    messagesList.innerHTML = `
+                        <div class="empty-chat">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1.5">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <p>No messages yet. Say hello!</p>
+                        </div>
+                    `;
+                    // New conversation - enable sending without unlock
+                    isUnlocked = true;
+                    updateSendButton();
+                    return;
+                }
+
+                // Show unlock prompt
+                unlockPrompt.style.display = 'flex';
+            } catch (e) {
+                console.error('Failed to load messages:', e);
+                loadingEl.innerHTML = '<p style="color: #ef4444;">Failed to load messages</p>';
+            }
+        }
+
+        // Decrypt and render messages
+        async function decryptAndRender(password) {
+            try {
+                const decrypted = await SecureMessages.decryptConversation(messages, password);
+                isUnlocked = true;
+                unlockPrompt.style.display = 'none';
+
+                // Render messages
+                messagesList.innerHTML = decrypted.map(msg => {
+                    const isOwn = msg.is_own_message;
+                    const time = formatTime(msg.created_at);
+
+                    // Parse message content (handles v1 text and v2 with attachments)
+                    const parsed = SecureMessages.parseMessage(msg.content || '');
+                    let contentHtml = '';
+
+                    // Render attachments (images)
+                    if (parsed.attachments && parsed.attachments.length > 0) {
+                        contentHtml += SecureMessages.renderAttachments(parsed.attachments);
+                    }
+
+                    // Render text
+                    if (parsed.text) {
+                        contentHtml += `<div class="message-text">${escapeHtml(parsed.text)}</div>`;
+                    }
+
+                    // Fallback for unparseable content
+                    if (!contentHtml) {
+                        contentHtml = escapeHtml(msg.content || msg.encrypted_content.substring(0, 20) + '...');
+                    }
+
+                    return `
+                        <div class="message ${isOwn ? 'message-own' : 'message-other'}">
+                            <div class="message-bubble">
+                                <div class="message-content">${contentHtml}</div>
+                                <div class="message-meta">
+                                    <span class="message-time">${time}</span>
+                                    ${msg.decrypted ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                scrollToBottom();
+            } catch (e) {
+                console.error('Decryption failed:', e);
+                alert('Failed to decrypt: ' + e.message);
+            }
+        }
+
+        // Unlock button handler
+        document.getElementById('unlock-btn').addEventListener('click', async () => {
+            const password = document.getElementById('unlock-password').value;
+            if (!password) return;
+
+            const btn = document.getElementById('unlock-btn');
+            btn.disabled = true;
+            btn.textContent = 'Unlocking...';
+
+            await decryptAndRender(password);
+
+            btn.disabled = false;
+            btn.textContent = 'Unlock';
+        });
+
+        // Update send button state
+        function updateSendButton() {
+            // Can send if unlocked AND (has text OR has image)
+            const hasContent = messageInput.value.trim() || selectedImageFile;
+            sendBtn.disabled = !hasContent || !isUnlocked;
+        }
+
+        // Image file selection handler
+        function handleImageSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate image
+            const validation = SecureMessages.validateImage(file);
+            if (!validation.valid) {
+                alert(validation.error);
+                imageInput.value = '';
+                return;
+            }
+
+            selectedImageFile = file;
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                imagePreviewName.textContent = file.name + ' (' + formatFileSize(file.size) + ')';
+                imagePreviewContainer.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+
+            updateSendButton();
+        }
+
+        // Remove selected image
+        function removeImageAttachment() {
+            selectedImageFile = null;
+            imageInput.value = '';
+            imagePreviewContainer.style.display = 'none';
+            imagePreview.src = '';
+            imagePreviewName.textContent = '';
+            updateSendButton();
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Image modal functions
+        function openImageModal(src) {
+            const modal = document.getElementById('image-modal');
+            const modalImg = document.getElementById('image-modal-img');
+            modal.style.display = 'flex';
+            modalImg.src = src;
+        }
+
+        function closeImageModal() {
+            document.getElementById('image-modal').style.display = 'none';
+        }
+
+        // Input handlers
+        function setupInputHandlers() {
+            messageInput.addEventListener('input', () => {
+                updateSendButton();
+                autoResize();
+            });
+
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!sendBtn.disabled) {
+                        sendMessage();
+                    }
+                }
+            });
+
+            sendBtn.addEventListener('click', sendMessage);
+
+            // Image input handler
+            imageInput.addEventListener('change', handleImageSelect);
+
+            // Close modal on Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') closeImageModal();
+            });
+        }
+
+        // Send message
+        async function sendMessage() {
+            const content = messageInput.value.trim();
+            const hasImage = !!selectedImageFile;
+
+            // Must have content or image
+            if (!content && !hasImage) return;
+
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+
+            // Show sending indicator if image
+            if (hasImage) {
+                sendBtn.innerHTML = '<span class="sending-spinner"></span>';
+            }
+
+            try {
+                const result = await SecureMessages.sendMessage(otherUserId, content, {
+                    imageFile: selectedImageFile
+                });
+
+                if (result.success) {
+                    // Add message to UI
+                    const msg = result.message;
+                    const time = formatTime(msg.created_at);
+
+                    // Build message content HTML
+                    let contentHtml = '';
+                    if (hasImage) {
+                        contentHtml += `
+                            <div class="message-image-sent">
+                                <img src="${imagePreview.src}" alt="Sent image"
+                                     onclick="openImageModal(this.src)"
+                                     style="max-width: 100%; max-height: 200px; border-radius: 8px; cursor: pointer;">
+                            </div>
+                        `;
+                    }
+                    if (content) {
+                        contentHtml += `<div class="message-text">${escapeHtml(content)}</div>`;
+                    }
+
+                    messagesList.innerHTML += `
+                        <div class="message message-own">
+                            <div class="message-bubble">
+                                <div class="message-content">${contentHtml}</div>
+                                <div class="message-meta">
+                                    <span class="message-time">${time}</span>
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Clear input and image
+                    messageInput.value = '';
+                    removeImageAttachment();
+                    autoResize();
+                    scrollToBottom();
+                } else {
+                    alert('Failed to send: ' + result.error);
+                }
+            } catch (e) {
+                alert('Failed to send: ' + e.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = `
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                `;
+                messageInput.disabled = false;
+                messageInput.focus();
+            }
+        }
+
+        // Auto-resize textarea
+        function autoResize() {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+        }
+
+        // Scroll to bottom
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Format time
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // WebSocket handler for real-time messages
+        if (window.wsConnection) {
+            window.wsConnection.addEventListener('message', (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.SecureMessageReceived && data.sender_id === otherUserId) {
+                        // Reload to show new message
+                        loadMessages();
+                    }
+                } catch (e) {
+                    // Ignore non-JSON messages
+                }
+            });
+        }
+    </script>
+
+    <style>
+        /* ==========================================================================
+           CONVERSATION PAGE - Industrial Stealth Theme
+           ========================================================================== */
+
+        /* Page Layout */
+        .conversation-page {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding-top: 70px; /* Header height */
+            background: var(--nexus-bg, #252627);
+            position: relative;
+        }
+
+        /* Chat Header */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md, 16px);
+            padding: var(--space-md, 16px) var(--space-lg, 24px);
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            backdrop-filter: blur(20px);
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            color: var(--nexus-text, #fff);
+            text-decoration: none;
+            transition: all var(--transition-fast, 150ms ease);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--nexus-gold, #D4AF37);
+            color: var(--nexus-gold, #D4AF37);
+        }
+
+        .chat-user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm, 12px);
+            flex: 1;
+        }
+
+        .chat-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-username {
+            margin: 0;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: var(--nexus-text, #fff);
+        }
+
+        .chat-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--nexus-green, #22c55e);
+        }
+
+        /* Messages Container */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--space-lg, 24px);
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, transparent 100%);
+        }
+
+        .empty-chat {
+            text-align: center;
+            padding: var(--space-3xl, 64px) var(--space-lg, 24px);
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        .empty-chat svg {
+            margin-bottom: var(--space-md, 16px);
+            opacity: 0.3;
+        }
+
+        .empty-chat p {
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* Message Bubbles */
+        .message {
+            display: flex;
+            margin-bottom: var(--space-sm, 12px);
+        }
+
+        .message-own {
+            justify-content: flex-end;
+        }
+
+        .message-other {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: var(--space-sm, 12px) var(--space-md, 16px);
+            border-radius: 4px;
+            font-family: var(--font-inter, 'Inter', sans-serif);
+        }
+
+        .message-own .message-bubble {
+            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            color: #000;
+            border-top-right-radius: 12px;
+            border-top-left-radius: 12px;
+            border-bottom-left-radius: 12px;
+        }
+
+        .message-other .message-bubble {
+            background: var(--nexus-bg-elevated, #2d2e30);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            color: var(--nexus-text, #fff);
+            border-top-right-radius: 12px;
+            border-top-left-radius: 12px;
+            border-bottom-right-radius: 12px;
+        }
+
+        .message-content {
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .message-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 10px;
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Unlock Prompt */
+        .unlock-prompt {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .unlock-content {
+            text-align: center;
+            padding: var(--space-xl, 32px);
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            max-width: 420px;
+        }
+
+        .unlock-content svg {
+            margin-bottom: var(--space-md, 16px);
+        }
+
+        .unlock-content strong {
+            display: block;
+            margin-bottom: var(--space-sm, 8px);
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--nexus-text, #fff);
+        }
+
+        .unlock-content p {
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+            font-size: 13px;
+            margin-bottom: var(--space-lg, 24px);
+        }
+
+        .unlock-form {
+            display: flex;
+            gap: var(--space-sm, 12px);
+        }
+
+        .unlock-form input {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--nexus-bg, #252627);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            color: var(--nexus-text, #fff);
+            font-family: var(--font-inter, 'Inter', sans-serif);
+            font-size: 14px;
+            transition: border-color var(--transition-fast, 150ms ease);
+        }
+
+        .unlock-form input:focus {
+            outline: none;
+            border-color: var(--nexus-gold, #D4AF37);
+        }
+
+        .unlock-form input::placeholder {
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        .unlock-form button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            border: none;
+            border-radius: 4px;
+            color: #000;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all var(--transition-fast, 150ms ease);
+        }
+
+        .unlock-form button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* Message Input Area */
+        .message-input-container {
+            padding: var(--space-md, 16px) var(--space-lg, 24px);
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        .message-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: var(--space-sm, 8px);
+            background: var(--nexus-bg, #252627);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            padding: var(--space-sm, 8px);
+            transition: border-color var(--transition-fast, 150ms ease);
+        }
+
+        .message-input-wrapper:focus-within {
+            border-color: var(--nexus-gold, #D4AF37);
+        }
+
+        .message-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--nexus-text, #fff);
+            font-family: var(--font-inter, 'Inter', sans-serif);
+            font-size: 14px;
+            resize: none;
+            max-height: 120px;
+            line-height: 1.5;
+            padding: 8px 12px;
+        }
+
+        .message-input:focus {
+            outline: none;
+        }
+
+        .message-input::placeholder {
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        /* Send Button */
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            border: none;
+            color: #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast, 150ms ease);
+            flex-shrink: 0;
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: var(--nexus-bg-elevated, #2d2e30);
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        .send-btn:not(:disabled):hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* Encryption Notice */
+        .encryption-notice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: var(--space-sm, 12px);
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--nexus-green, #22c55e);
+        }
+
+        /* Spinner */
+        .apple-spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-top-color: var(--nexus-gold, #D4AF37);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==========================================================================
+           IMAGE ATTACHMENT STYLES - Industrial Theme
+           ========================================================================== */
+
+        .attach-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast, 150ms ease);
+            flex-shrink: 0;
+        }
+
+        .attach-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--nexus-gold, #D4AF37);
+            color: var(--nexus-gold, #D4AF37);
+        }
+
+        /* Image Preview */
+        .image-preview-container {
+            padding: var(--space-sm, 12px) var(--space-lg, 24px);
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm, 12px);
+        }
+
+        .image-preview-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .image-preview-wrapper img {
+            max-height: 80px;
+            max-width: 120px;
+            border-radius: 4px;
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            object-fit: cover;
+        }
+
+        .image-preview-remove {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            background: var(--nexus-red, #dc2626);
+            border: 2px solid var(--nexus-bg-dark, #1a1b1c);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast, 150ms ease);
+        }
+
+        .image-preview-remove:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
+        .image-preview-name {
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 11px;
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Images in Messages */
+        .message-image, .message-image-sent {
+            margin-bottom: var(--space-sm, 8px);
+        }
+
+        .message-image img, .message-image-sent img {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity var(--transition-fast, 150ms ease);
+        }
+
+        .message-image img:hover, .message-image-sent img:hover {
+            opacity: 0.85;
+        }
+
+        .message-text {
+            margin-top: 6px;
+        }
+
+        /* Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .image-modal img {
+            max-width: 90vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: var(--nexus-text, #fff);
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color var(--transition-fast, 150ms ease);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .image-modal-close:hover {
+            color: var(--nexus-gold, #D4AF37);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sending Spinner */
+        .sending-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 0, 0, 0.2);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Other's Message Attachment */
+        .message-other .message-attachment img {
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .conversation-page {
+                padding-top: 60px;
+            }
+
+            .chat-header {
+                padding: var(--space-sm, 12px) var(--space-md, 16px);
+            }
+
+            .chat-username {
+                font-size: 16px;
+            }
+
+            .messages-container {
+                padding: var(--space-md, 16px);
+            }
+
+            .message-bubble {
+                max-width: 85%;
+            }
+
+            .message-input-container {
+                padding: var(--space-sm, 12px) var(--space-md, 16px);
+            }
+        }
+    </style>
+
+    <!-- WebSocket Notifications & Toast System -->
+    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
+    <script src="/static/js/notification-routes.js"></script>
+    <script src="/static/js/notification-center.js"></script>
+</body>
+
+</html>

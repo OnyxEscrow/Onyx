@@ -1,0 +1,179 @@
+/**
+ * order-escrow.css - Styles for order escrow funding instructions
+ *
+ * This file contains all styles for the escrow payment instructions
+ * to avoid CSP violations from inline styles.
+ */
+
+/* Escrow instructions container */
+#escrow-instructions {
+    display: none;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #1a1a3a;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+}
+
+#escrow-instructions.show {
+    display: block;
+}
+
+#escrow-instructions h3 {
+    font-size: 12px;
+    color: #3b82f6;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+}
+
+/* Escrow address section */
+.escrow-address-section {
+    margin-bottom: 10px;
+}
+
+.escrow-address-label {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+#escrow-address {
+    background: #0a0a0a;
+    padding: 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 10px;
+    word-break: break-all;
+    color: #f5f5f5;
+}
+
+/* Copy address button */
+#copy-address-btn {
+    margin-top: 5px;
+    font-size: 10px;
+    padding: 4px 8px;
+    background: #2a2a2a;
+    border: 1px solid #3b82f6;
+    color: #3b82f6;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+#copy-address-btn:hover {
+    background: #3b82f6;
+    color: #fff;
+}
+
+/* Amount section */
+.escrow-amount-section {
+    margin-bottom: 10px;
+}
+
+.escrow-amount-label {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.escrow-amount-value {
+    background: #0a0a0a;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #22c55e;
+}
+
+/* Escrow info box */
+.escrow-info-box {
+    padding: 10px;
+    background: #1a3a1a;
+    border: 1px solid #22c55e;
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.escrow-info-box p {
+    font-size: 10px;
+    color: #22c55e;
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* DEV: Simulate Payment Button */
+#dev-simulate-payment-btn {
+    margin-top: 15px;
+    width: 100%;
+    padding: 10px;
+    background: rgba(234, 179, 8, 0.15);
+    border: 1px solid rgba(234, 179, 8, 0.5);
+    color: rgba(234, 179, 8, 1);
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    transition: all 0.2s ease;
+}
+
+#dev-simulate-payment-btn:hover {
+    background: rgba(234, 179, 8, 0.25);
+    border-color: rgba(234, 179, 8, 0.7);
+}
+
+#dev-simulate-payment-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Payment status messages */
+#payment-status {
+    margin-top: 10px;
+}
+
+.payment-status-success {
+    padding: 10px;
+    background: #1a3a1a;
+    border: 1px solid #22c55e;
+    border-radius: 4px;
+}
+
+.payment-status-success p {
+    font-size: 11px;
+    color: #22c55e;
+    margin: 0;
+    font-weight: bold;
+}
+
+.payment-status-error {
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 4px;
+}
+
+.payment-status-error p {
+    font-size: 11px;
+    color: rgba(239, 68, 68, 0.9);
+    margin: 0;
+}
+
+.payment-status-warning {
+    padding: 10px;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 4px;
+    margin-top: 10px;
+}
+
+.payment-status-warning p {
+    font-size: 10px;
+    color: rgba(234, 179, 8, 0.9);
+    margin: 0;
+}
+
+/* Order data container (hidden) */
+#order-data {
+    display: none;
+}

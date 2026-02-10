@@ -1,0 +1,155 @@
+<!-- Apple Modal: Refund Funds to Buyer -->
+<div class="apple-modal active" id="refund-modal">
+    <div class="apple-modal-content" onclick="event.stopPropagation()">
+        <div class="apple-modal-header">
+            <h3 class="apple-modal-title">
+                <span class="apple-modal-title-icon apple-modal-title-icon-info">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                    </svg>
+                </span>
+                Refund Funds to Buyer
+            </h3>
+            <button class="apple-modal-close" onclick="document.getElementById('refund-modal').remove()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="apple-modal-body">
+            <!-- Info Notice -->
+            <div class="apple-alert apple-alert-info" style="margin-bottom: 24px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <div>
+                    <strong>Refund Process</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 13px;">This will return the escrow funds to the buyer. Requires 2-of-3 signatures (Vendor + Arbiter).</p>
+                </div>
+            </div>
+
+            <!-- Refund Form -->
+            <form id="refund-form"
+                  hx-post="/api/escrow/{{ escrow_id }}/refund"
+                  hx-ext="json-enc"
+                  hx-target="#refund-result"
+                  hx-swap="innerHTML"
+                  hx-indicator="#refund-spinner"
+                  hx-timeout="30000"
+                  hx-disabled-elt="find button[type='submit']">
+
+                {% if csrf_token %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                {% endif %}
+
+                <!-- Buyer Address -->
+                <div class="apple-form-group">
+                    <label for="buyer_address" class="apple-form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 12V7H5a2 2 0 010-4h14v4" />
+                            <path d="M3 5v14a2 2 0 002 2h16v-5" />
+                            <path d="M18 12a2 2 0 100 4 2 2 0 000-4z" />
+                        </svg>
+                        Buyer Monero Address
+                    </label>
+                    <input type="text"
+                           name="buyer_address"
+                           id="buyer_address"
+                           class="apple-input apple-input-mono"
+                           placeholder="4ABC...xyz (95 characters)"
+                           required
+                           pattern="^4[0-9A-Za-z]{94}$"
+                           minlength="95"
+                           maxlength="95">
+                    <span class="apple-form-hint">Monero testnet addresses start with '4' and are exactly 95 characters long.</span>
+                </div>
+
+                <!-- Transaction Details -->
+                <div class="apple-alert apple-alert-info" style="flex-direction: column; align-items: stretch;">
+                    <h4 class="apple-info-title">Transaction Details</h4>
+                    <div class="apple-details-grid">
+                        <span class="apple-detail-label">Amount:</span>
+                        <span class="apple-detail-value">{{ amount_xmr }} XMR</span>
+
+                        <span class="apple-detail-label">Signatures Required:</span>
+                        <span class="apple-detail-value">2-of-3 (Vendor + Arbiter)</span>
+
+                        <span class="apple-detail-label">Status After Refund:</span>
+                        <span class="apple-detail-value">
+                            <span class="apple-badge apple-badge-purple">Refunding</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Result Container -->
+                <div id="refund-result"></div>
+            </form>
+        </div>
+
+        <!-- Actions -->
+        <div class="apple-modal-footer">
+            <button type="button"
+                    class="apple-btn apple-btn-ghost"
+                    onclick="document.getElementById('refund-modal').remove()">
+                Cancel
+            </button>
+            <button type="submit"
+                    form="refund-form"
+                    class="apple-btn apple-btn-gold">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                Refund {{ amount_xmr }} XMR
+            </button>
+            <div id="refund-spinner" class="apple-spinner-inline htmx-indicator">
+                <div class="apple-spinner-sm"></div>
+                <span>Processing refund...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Close modal on overlay click
+document.getElementById('refund-modal')?.addEventListener('click', function(e) {
+    if (e.target === this) {
+        this.remove();
+    }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('refund-modal');
+        if (modal) modal.remove();
+    }
+}, { once: true });
+
+// Handle HTMX response
+document.getElementById('refund-form')?.addEventListener('htmx:afterRequest', function(event) {
+    if (event.detail.successful) {
+        if (window.notificationManager) {
+            window.notificationManager.showToast(
+                'Refund Initiated',
+                'Transaction submitted successfully. Awaiting blockchain confirmation.',
+                'success',
+                5000
+            );
+        }
+
+        setTimeout(() => {
+            document.getElementById('refund-modal')?.remove();
+            window.location.reload();
+        }, 2000);
+    } else {
+        const errorMessage = event.detail.xhr.responseText || 'Failed to process refund';
+        if (window.notificationManager) {
+            window.notificationManager.showToast(
+                'Refund Failed',
+                errorMessage,
+                'error',
+                8000
+            );
+        }
+    }
+});
+</script>

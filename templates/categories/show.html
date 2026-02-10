@@ -1,0 +1,355 @@
+{% extends "base-nexus.html" %}
+
+{% block title %}{{ category_name }} - FROST MARKET{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Category Page Styles */
+.category-page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: var(--nexus-space-8, 2rem) var(--nexus-space-4, 1rem);
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: var(--nexus-space-2, 0.5rem);
+    margin-bottom: var(--nexus-space-6, 1.5rem);
+    font-size: var(--nexus-text-sm, 0.875rem);
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+}
+
+.breadcrumb a {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    text-decoration: none;
+    transition: color var(--nexus-transition-base, 300ms);
+}
+
+.breadcrumb a:hover {
+    color: var(--nexus-primary, #ff1a5c);
+}
+
+.breadcrumb span:not(:last-child) {
+    opacity: 0.5;
+}
+
+/* Category Header */
+.category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--nexus-space-8, 2rem);
+    flex-wrap: wrap;
+    gap: var(--nexus-space-4, 1rem);
+}
+
+.category-header h1 {
+    font-size: var(--nexus-text-3xl, 2rem);
+    font-weight: var(--nexus-weight-bold, 700);
+}
+
+.listing-count {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--nexus-text-lg, 1.125rem);
+}
+
+/* Filter Bar */
+.filter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--nexus-space-4, 1rem);
+    margin-bottom: var(--nexus-space-6, 1.5rem);
+    padding: var(--nexus-space-4, 1rem);
+    background: var(--nexus-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
+    border-radius: var(--nexus-radius-lg, 1rem);
+}
+
+.filter-bar label {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--nexus-text-sm, 0.875rem);
+}
+
+.filter-bar select {
+    padding: var(--nexus-space-2, 0.5rem) var(--nexus-space-4, 1rem);
+    background: var(--nexus-bg, #0a0a0a);
+    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
+    border-radius: var(--nexus-radius-md, 0.75rem);
+    color: var(--nexus-fg, #fff);
+    font-size: var(--nexus-text-sm, 0.875rem);
+    cursor: pointer;
+    transition: border-color var(--nexus-transition-base, 300ms);
+}
+
+.filter-bar select:hover,
+.filter-bar select:focus {
+    border-color: var(--nexus-primary, #ff1a5c);
+    outline: none;
+}
+
+/* Listings Grid */
+.listings-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--nexus-space-6, 1.5rem);
+    margin-bottom: var(--nexus-space-8, 2rem);
+}
+
+/* Product Card */
+.product-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--nexus-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
+    border-radius: var(--nexus-radius-lg, 1rem);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--nexus-fg, #fff);
+    transition: all var(--nexus-transition-base, 300ms);
+}
+
+.product-card:hover {
+    border-color: var(--nexus-primary, #ff1a5c);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(255, 26, 92, 0.1);
+}
+
+.product-image {
+    aspect-ratio: 4/3;
+    background: var(--nexus-bg, #0a0a0a);
+    overflow: hidden;
+}
+
+.product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--nexus-transition-base, 300ms);
+}
+
+.product-card:hover .product-image img {
+    transform: scale(1.05);
+}
+
+.product-info {
+    padding: var(--nexus-space-4, 1rem);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.product-title {
+    font-size: var(--nexus-text-base, 1rem);
+    font-weight: var(--nexus-weight-semibold, 600);
+    margin-bottom: var(--nexus-space-2, 0.5rem);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.product-vendor {
+    font-size: var(--nexus-text-xs, 0.75rem);
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    margin-bottom: var(--nexus-space-3, 0.75rem);
+}
+
+.product-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+}
+
+.product-price {
+    font-size: var(--nexus-text-lg, 1.125rem);
+    font-weight: var(--nexus-weight-bold, 700);
+    color: var(--nexus-success, #00ff88);
+    font-family: var(--nexus-font-mono, 'JetBrains Mono', monospace);
+}
+
+.product-stock {
+    font-size: var(--nexus-text-xs, 0.75rem);
+    padding: var(--nexus-space-1, 0.25rem) var(--nexus-space-2, 0.5rem);
+    background: var(--nexus-bg, #0a0a0a);
+    border-radius: var(--nexus-radius-sm, 0.375rem);
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+}
+
+.product-stock.in-stock {
+    color: var(--nexus-success, #00ff88);
+}
+
+.product-stock.low-stock {
+    color: var(--nexus-warning, #ffaa00);
+}
+
+/* Empty State */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: var(--nexus-space-16, 4rem) var(--nexus-space-4, 1rem);
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+}
+
+.empty-state p {
+    margin-bottom: var(--nexus-space-4, 1rem);
+    font-size: var(--nexus-text-lg, 1.125rem);
+}
+
+.empty-state a {
+    color: var(--nexus-primary, #ff1a5c);
+    text-decoration: none;
+}
+
+.empty-state a:hover {
+    text-decoration: underline;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--nexus-space-4, 1rem);
+    padding: var(--nexus-space-4, 1rem);
+}
+
+.pagination a,
+.pagination span {
+    padding: var(--nexus-space-2, 0.5rem) var(--nexus-space-4, 1rem);
+    border-radius: var(--nexus-radius-md, 0.75rem);
+    font-size: var(--nexus-text-sm, 0.875rem);
+}
+
+.pagination a {
+    background: var(--nexus-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
+    color: var(--nexus-fg, #fff);
+    text-decoration: none;
+    transition: all var(--nexus-transition-base, 300ms);
+}
+
+.pagination a:hover {
+    border-color: var(--nexus-primary, #ff1a5c);
+    color: var(--nexus-primary, #ff1a5c);
+}
+
+.pagination span {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .listings-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="category-page">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span>/</span>
+        <a href="/categories">Categories</a>
+        <span>/</span>
+        <span aria-current="page">{{ category_name }}</span>
+    </nav>
+
+    <header class="category-header">
+        <h1>{{ category_name }}</h1>
+        <span class="listing-count">{{ total_count }} product{% if total_count != 1 %}s{% endif %}</span>
+    </header>
+
+    <div class="filter-bar">
+        <label for="sort-select">Sort by:</label>
+        <select id="sort-select"
+                name="sort"
+                hx-get="/categories/{{ category_slug }}"
+                hx-include="[name='sort']"
+                hx-target="main"
+                hx-swap="outerHTML"
+                hx-push-url="true">
+            <option value="newest" {% if sort == "newest" %}selected{% endif %}>Newest First</option>
+            <option value="oldest" {% if sort == "oldest" %}selected{% endif %}>Oldest First</option>
+            <option value="price_asc" {% if sort == "price_asc" %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if sort == "price_desc" %}selected{% endif %}>Price: High to Low</option>
+        </select>
+    </div>
+
+    <div id="listings-grid" class="listings-grid">
+        {% for listing in listings %}
+        <a href="/listings/{{ listing.id }}" class="product-card">
+            <div class="product-image">
+                {% if listing.image_cid %}
+                <img src="/ipfs/{{ listing.image_cid }}"
+                     alt="{{ listing.title }}"
+                     loading="lazy">
+                {% else %}
+                <img src="/static/images/placeholder-product.png"
+                     alt="{{ listing.title }}"
+                     loading="lazy">
+                {% endif %}
+            </div>
+            <div class="product-info">
+                <h3 class="product-title">{{ listing.title }}</h3>
+                <div class="product-vendor">by {{ listing.vendor }}</div>
+                <div class="product-meta">
+                    <span class="product-price">{{ listing.price }}</span>
+                    <span class="product-stock {% if listing.stock > 5 %}in-stock{% elif listing.stock > 0 %}low-stock{% endif %}">
+                        {% if listing.stock > 5 %}
+                        In Stock
+                        {% elif listing.stock > 0 %}
+                        Only {{ listing.stock }} left
+                        {% else %}
+                        Out of Stock
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+
+        {% if listings | length == 0 %}
+        <div class="empty-state">
+            <p>No products in this category yet.</p>
+            <a href="/categories">Browse other categories</a>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if total_pages > 1 %}
+    <nav class="pagination" aria-label="Pagination">
+        {% if current_page > 1 %}
+        <a href="/categories/{{ category_slug }}?page={{ current_page - 1 }}&sort={{ sort }}">
+            &larr; Previous
+        </a>
+        {% endif %}
+
+        <span>Page {{ current_page }} of {{ total_pages }}</span>
+
+        {% if current_page < total_pages %}
+        <a href="/categories/{{ category_slug }}?page={{ current_page + 1 }}&sort={{ sort }}">
+            Next &rarr;
+        </a>
+        {% endif %}
+    </nav>
+    {% endif %}
+</main>
+{% endblock %}

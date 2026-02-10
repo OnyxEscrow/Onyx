@@ -1,0 +1,257 @@
+{# Filter Sidebar - Aura Design #}
+{# Slide-in sidebar with price/tags/vendor filters #}
+
+<!-- Filter Sidebar Backdrop -->
+<div id="filter-backdrop"
+     class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity opacity-0 pointer-events-none"
+     onclick="toggleFilterSidebar()">
+</div>
+
+<!-- Filter Sidebar Panel -->
+<div id="filter-sidebar"
+     class="fixed inset-y-0 left-0 w-80 bg-charcoal/95 backdrop-blur-2xl z-50 transform transition-transform duration-500 ease-in-out border-r border-white/10 shadow-2xl -translate-x-full">
+
+    <div class="h-full overflow-y-auto p-8 flex flex-col">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-xl font-light tracking-wide text-white">Filters</h2>
+            <button onclick="toggleFilterSidebar()" class="text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <!-- Active Filters Summary -->
+        <div id="active-filters-summary" class="mb-6 hidden">
+            <button
+                onclick="clearAllFilters()"
+                class="text-xs text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 mb-4">
+                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                Clear All Filters
+            </button>
+        </div>
+
+        <!-- Price Filter -->
+        <div class="mb-8">
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Price Range (XMR)</h3>
+            <div class="flex items-center justify-between text-sm text-white mb-4">
+                <span id="price-min-label">0</span>
+                <span id="price-max-label">100</span>
+            </div>
+            <div class="space-y-4">
+                <input
+                    type="range"
+                    id="price-min"
+                    name="price_min"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value="0"
+                    oninput="updatePriceFilter()"
+                    class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+                <input
+                    type="range"
+                    id="price-max"
+                    name="price_max"
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    value="100"
+                    oninput="updatePriceFilter()"
+                    class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                />
+            </div>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="mb-8">
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Categories</h3>
+            <div class="flex flex-wrap gap-2" id="category-filters">
+                {% for category in categories | default(value=["Digital", "Physical", "Services"]) %}
+                <button
+                    data-category="{{ category }}"
+                    onclick="toggleCategoryFilter('{{ category }}')"
+                    class="filter-tag px-3 py-1 rounded-full text-xs border transition-all duration-300 bg-white/5 border-white/10 text-gray-400 hover:border-white/30 hover:text-white">
+                    {{ category }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Vendor Filter -->
+        <div class="mb-8 flex-1">
+            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Vendors</h3>
+            <div class="space-y-2" id="vendor-filters">
+                {% for vendor in vendors | default(value=[]) %}
+                <label class="flex items-center gap-3 cursor-pointer group">
+                    <div class="vendor-checkbox w-4 h-4 rounded border border-white/20 group-hover:border-white/50 flex items-center justify-center transition-colors"
+                         data-vendor="{{ vendor.username }}">
+                    </div>
+                    <input
+                        type="checkbox"
+                        class="hidden"
+                        name="vendor"
+                        value="{{ vendor.username }}"
+                        onchange="toggleVendorFilter('{{ vendor.username }}')"
+                    />
+                    <span class="text-sm text-gray-400 group-hover:text-white transition-colors">
+                        {{ vendor.username }}
+                    </span>
+                    {% if vendor.rating %}
+                    <span class="text-xs text-yellow-400 flex items-center gap-0.5">
+                        <i data-lucide="star" class="w-3 h-3 fill-yellow-400"></i>
+                        {{ vendor.rating }}
+                    </span>
+                    {% endif %}
+                </label>
+                {% else %}
+                <p class="text-gray-500 text-sm">No vendors available</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Apply Button -->
+        <div class="mt-auto pt-6 border-t border-white/10">
+            <button
+                onclick="applyFilters()"
+                class="w-full py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-semibold rounded-xl transition-colors">
+                Apply Filters
+            </button>
+            <p class="text-xs text-gray-600 text-center mt-4">FROST MARKET</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filter state
+let filterState = {
+    priceMin: 0,
+    priceMax: 100,
+    categories: [],
+    vendors: []
+};
+
+function toggleFilterSidebar() {
+    const sidebar = document.getElementById('filter-sidebar');
+    const backdrop = document.getElementById('filter-backdrop');
+    const isOpen = !sidebar.classList.contains('-translate-x-full');
+
+    if (isOpen) {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+    } else {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    // Re-initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function updatePriceFilter() {
+    const minInput = document.getElementById('price-min');
+    const maxInput = document.getElementById('price-max');
+    const minLabel = document.getElementById('price-min-label');
+    const maxLabel = document.getElementById('price-max-label');
+
+    filterState.priceMin = parseFloat(minInput.value);
+    filterState.priceMax = parseFloat(maxInput.value);
+
+    minLabel.textContent = filterState.priceMin.toFixed(1);
+    maxLabel.textContent = filterState.priceMax.toFixed(1);
+
+    updateActiveFiltersSummary();
+}
+
+function toggleCategoryFilter(category) {
+    const btn = document.querySelector(`[data-category="${category}"]`);
+    const idx = filterState.categories.indexOf(category);
+
+    if (idx > -1) {
+        filterState.categories.splice(idx, 1);
+        btn.classList.remove('bg-cyan-500/20', 'border-cyan-500', 'text-cyan-200');
+        btn.classList.add('bg-white/5', 'border-white/10', 'text-gray-400');
+    } else {
+        filterState.categories.push(category);
+        btn.classList.add('bg-cyan-500/20', 'border-cyan-500', 'text-cyan-200');
+        btn.classList.remove('bg-white/5', 'border-white/10', 'text-gray-400');
+    }
+
+    updateActiveFiltersSummary();
+}
+
+function toggleVendorFilter(vendor) {
+    const checkbox = document.querySelector(`[data-vendor="${vendor}"]`);
+    const idx = filterState.vendors.indexOf(vendor);
+
+    if (idx > -1) {
+        filterState.vendors.splice(idx, 1);
+        checkbox.classList.remove('bg-cyan-500', 'border-cyan-500');
+        checkbox.innerHTML = '';
+    } else {
+        filterState.vendors.push(vendor);
+        checkbox.classList.add('bg-cyan-500', 'border-cyan-500');
+        checkbox.innerHTML = '<i data-lucide="check" class="w-3 h-3 text-black"></i>';
+    }
+
+    updateActiveFiltersSummary();
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function updateActiveFiltersSummary() {
+    const summary = document.getElementById('active-filters-summary');
+    const hasFilters = filterState.categories.length > 0 ||
+                       filterState.vendors.length > 0 ||
+                       filterState.priceMin > 0 ||
+                       filterState.priceMax < 100;
+
+    if (hasFilters) {
+        summary.classList.remove('hidden');
+    } else {
+        summary.classList.add('hidden');
+    }
+}
+
+function clearAllFilters() {
+    filterState = { priceMin: 0, priceMax: 100, categories: [], vendors: [] };
+
+    // Reset UI
+    document.getElementById('price-min').value = 0;
+    document.getElementById('price-max').value = 100;
+    document.getElementById('price-min-label').textContent = '0';
+    document.getElementById('price-max-label').textContent = '100';
+
+    document.querySelectorAll('[data-category]').forEach(btn => {
+        btn.classList.remove('bg-cyan-500/20', 'border-cyan-500', 'text-cyan-200');
+        btn.classList.add('bg-white/5', 'border-white/10', 'text-gray-400');
+    });
+
+    document.querySelectorAll('[data-vendor]').forEach(cb => {
+        cb.classList.remove('bg-cyan-500', 'border-cyan-500');
+        cb.innerHTML = '';
+    });
+
+    updateActiveFiltersSummary();
+}
+
+function applyFilters() {
+    const params = new URLSearchParams();
+
+    if (filterState.priceMin > 0) params.set('min_price', filterState.priceMin);
+    if (filterState.priceMax < 100) params.set('max_price', filterState.priceMax);
+    // Use first selected category for now (single category filter)
+    if (filterState.categories.length > 0) params.set('category', filterState.categories[0]);
+    if (filterState.vendors.length > 0) params.set('vendors', filterState.vendors.join(','));
+
+    const queryString = params.toString();
+    const targetUrl = queryString ? `/listings?${queryString}` : '/listings';
+
+    // Navigate to filtered listings page
+    window.location.href = targetUrl;
+    toggleFilterSidebar();
+}
+</script>

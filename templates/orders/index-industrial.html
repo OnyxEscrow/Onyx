@@ -1,0 +1,173 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}My Orders — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="orders-interface">
+    <div class="container-industrial">
+
+        {# ===== HEADER ===== #}
+        <div class="orders-header">
+            <h1 class="h1-massive">
+                My <span class="text-gold">Orders</span>
+            </h1>
+            <p class="orders-header__subtitle">
+                Track your purchases and manage your transactions securely.
+            </p>
+        </div>
+
+        {# ===== ORDERS LIST ===== #}
+        <div class="orders-list">
+            {% if orders and orders | length > 0 %}
+                {% for order in orders %}
+                <a href="/orders/{{ order.id }}" class="order-card" style="animation-delay: {{ loop.index0 * 50 }}ms;">
+                    <div class="order-card__main">
+                        {# Order ID & Status #}
+                        <div class="order-card__header">
+                            <span class="order-card__id">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m7.5 4.27 9 5.15"/>
+                                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    <path d="m3.3 7 8.7 5 8.7-5"/>
+                                    <path d="M12 22V12"/>
+                                </svg>
+                                #{{ order.id | truncate(length=8, end="") | upper }}
+                            </span>
+
+                            {# Status Badge #}
+                            {% if order.status == "pending" %}
+                            <span class="order-card__status status--pending">Pending</span>
+                            {% elif order.status == "funded" %}
+                            <span class="order-card__status status--funded">Funded</span>
+                            {% elif order.status == "shipped" %}
+                            <span class="order-card__status status--shipped">Shipped</span>
+                            {% elif order.status == "releasing" %}
+                            <span class="order-card__status status--releasing">Confirming</span>
+                            {% elif order.status == "completed" %}
+                            <span class="order-card__status status--completed">Completed</span>
+                            {% elif order.status == "cancelled" %}
+                            <span class="order-card__status status--cancelled">Cancelled</span>
+                            {% elif order.status == "disputed" %}
+                            <span class="order-card__status status--disputed">Disputed</span>
+                            {% elif order.status == "refunded" %}
+                            <span class="order-card__status status--refunded">Refunded</span>
+                            {% else %}
+                            <span class="order-card__status">{{ order.status | upper }}</span>
+                            {% endif %}
+                        </div>
+
+                        {# Order Details #}
+                        <div class="order-card__details">
+                            <span class="order-card__detail">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                                    <line x1="16" x2="16" y1="2" y2="6"/>
+                                    <line x1="8" x2="8" y1="2" y2="6"/>
+                                    <line x1="3" x2="21" y1="10" y2="10"/>
+                                </svg>
+                                {{ order.created_at | date(format="%Y-%m-%d %H:%M") }}
+                            </span>
+                            {% if order.listing_title %}
+                            <span class="order-card__detail">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+                                    <path d="M7 7h.01"/>
+                                </svg>
+                                {{ order.listing_title | truncate(length=30, end="...") }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# Price & Arrow #}
+                    <div class="order-card__right">
+                        {% if order.total_price_xmr %}
+                        <span class="order-card__price">{{ order.total_price_xmr }} XMR</span>
+                        {% endif %}
+                        <svg class="order-card__arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"/>
+                        </svg>
+                    </div>
+                </a>
+                {% endfor %}
+
+            {% else %}
+            {# ===== EMPTY STATE - Using Unified Design System ===== #}
+            <div class="nx-empty-state">
+                <div class="nx-empty-state__icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                        <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                        <path d="M9 14h6"/>
+                        <path d="M9 18h6"/>
+                    </svg>
+                </div>
+                <h2 class="nx-empty-state__title">No orders yet</h2>
+                <p class="nx-empty-state__description">
+                    When you make a purchase, your orders will appear here with real-time tracking.
+                </p>
+                <a href="/listings" class="nx-btn nx-btn--primary nx-btn--lg">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    Explore Listings
+                </a>
+                <div class="nx-empty-state__hints">
+                    <div class="nx-empty-state__hint">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>All purchases protected by multisig escrow</span>
+                    </div>
+                    <div class="nx-empty-state__hint">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/>
+                            <path d="M12 2v4"/>
+                            <path d="M12 18v4"/>
+                            <path d="M4.93 4.93l2.83 2.83"/>
+                            <path d="M16.24 16.24l2.83 2.83"/>
+                        </svg>
+                        <span>Real-time order tracking and notifications</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ===== INFO CARD ===== #}
+        {% if orders and orders | length > 0 %}
+        <div class="orders-info">
+            <h3 class="orders-info__title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                    <path d="m9 12 2 2 4-4"/>
+                </svg>
+                Order Protection
+            </h3>
+            <div class="orders-info__list">
+                <div class="orders-info__item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>2-of-3 multisig escrow on all transactions</span>
+                </div>
+                <div class="orders-info__item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Funds released only after confirmation</span>
+                </div>
+                <div class="orders-info__item">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Dispute resolution available for all orders</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

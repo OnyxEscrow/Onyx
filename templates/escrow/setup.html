@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Protection Setup - FROST MARKET</title>
+    <meta name="description" content="Set up your secure dual-approval payment protection on FROST MARKET">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <!-- CSS - Industrial Theme + Apple Components -->
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+
+    <!-- HTMX -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="/static/js/lucide.min.js"></script>
+
+    <!-- Shield Protection CSS -->
+    <style>
+        /* Protected content - blurred until shield downloaded */
+        .shield-protected {
+            filter: blur(12px);
+            pointer-events: none;
+            user-select: none;
+            transition: filter 0.5s ease;
+        }
+        .shield-protected.unlocked {
+            filter: none;
+            pointer-events: auto;
+            user-select: auto;
+        }
+        /* Shield overlay warning */
+        .shield-lock-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            border-radius: 12px;
+            z-index: 10;
+        }
+        .shield-lock-overlay.hidden {
+            display: none;
+        }
+        .shield-lock-icon {
+            width: 48px;
+            height: 48px;
+            color: var(--nexus-gold);
+            margin-bottom: 12px;
+        }
+        .shield-lock-text {
+            color: var(--nexus-gold);
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body class="industrial-stealth" data-user-role="{{ user_role }}" data-escrow-id="{{ escrow_id }}" data-frost-enabled="true" data-monero-network="{{ monero_network | default(value='mainnet') }}">
+    <!-- Grid Overlay (Vertical Lines) -->
+    <div class="grid-overlay"></div>
+
+    {% include "partials/header-industrial.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 80px; padding-bottom: 80px; max-width: 900px;">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 48px;">
+                <h1 class="apple-page-title">
+                    Payment <span class="text-gold">Protection Setup</span>
+                </h1>
+                <p class="apple-page-subtitle">
+                    Order #<span id="escrow-id">{{ escrow_id | truncate(length=8, end="") }}</span>
+                </p>
+            </div>
+
+            <!-- Progress Stepper -->
+            <div class="apple-stepper" style="margin-bottom: 48px;">
+                <div class="apple-stepper-track">
+                    <div class="apple-stepper-progress" id="progress-line" style="width: 0%;"></div>
+                </div>
+                <div class="apple-stepper-steps">
+                    <div class="apple-stepper-step active" id="step1">
+                        <div class="apple-stepper-step-circle">1</div>
+                        <span class="apple-stepper-step-label">Create Wallet</span>
+                    </div>
+                    <div class="apple-stepper-step" id="step2">
+                        <div class="apple-stepper-step-circle">2</div>
+                        <span class="apple-stepper-step-label">Connected</span>
+                    </div>
+                    <div class="apple-stepper-step" id="step3">
+                        <div class="apple-stepper-step-circle">3</div>
+                        <span class="apple-stepper-step-label">Security Setup</span>
+                    </div>
+                    <div class="apple-stepper-step" id="step4">
+                        <div class="apple-stepper-step-circle">4</div>
+                        <span class="apple-stepper-step-label">Ready to Pay</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step Content -->
+            <div class="apple-card">
+                <div class="apple-card-body" style="padding: 32px;">
+
+                    <!-- Step 1: WASM Wallet Generation -->
+                    <div class="step-content active" id="content-step1">
+                        <h2 class="apple-section-title">Step 1: Create Your Secure Wallet</h2>
+
+                        <div class="apple-alert apple-alert-info" style="margin: 24px 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            <div>
+                                <strong>Complete Browser Security</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                    Your wallet is generated directly in your browser using WebAssembly.
+                                    Your private keys NEVER leave your computer - this is true self-custody.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div id="wallet-generation-section">
+                            <!-- Wallet Choice -->
+                            <div id="wallet-choice" style="display: flex; gap: 16px; justify-content: center; margin: 32px 0;">
+                                <button class="apple-btn apple-btn-gold" id="generate-wallet-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                                    </svg>
+                                    Generate New Wallet
+                                </button>
+                                <button class="apple-btn apple-btn-ghost" id="restore-wallet-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <polyline points="1 4 1 10 7 10" />
+                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                    </svg>
+                                    Restore From Backup
+                                </button>
+                            </div>
+
+                            <!-- Restore Form -->
+                            <div id="restore-form" style="display: none;">
+                                <div class="apple-alert apple-alert-info" style="margin-bottom: 20px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                        <polyline points="14 2 14 8 20 8" />
+                                    </svg>
+                                    <div>
+                                        <strong>Restore Your Existing Wallet</strong>
+                                        <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                            Enter your 12 recovery words to restore your wallet.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="apple-form-group">
+                                    <label class="apple-label" for="restore-seed-input">Recovery Words (12 words separated by spaces)</label>
+                                    <textarea
+                                        id="restore-seed-input"
+                                        class="apple-textarea"
+                                        rows="3"
+                                        placeholder="word1 word2 word3 ... word12"
+                                        style="font-family: monospace;"
+                                    ></textarea>
+                                </div>
+
+                                <div style="display: flex; gap: 12px; justify-content: center; margin-top: 24px;">
+                                    <button class="apple-btn apple-btn-gold" id="confirm-restore-btn">
+                                        Restore Wallet
+                                    </button>
+                                    <button class="apple-btn apple-btn-ghost" id="cancel-restore-btn">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Wallet Display -->
+                            <div id="wallet-display" style="display: none;">
+                                <div class="apple-alert apple-alert-success" style="margin-bottom: 24px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                        <polyline points="22 4 12 14.01 9 11.01" />
+                                    </svg>
+                                    <div>
+                                        <strong>Wallet Ready!</strong>
+                                        <p id="wallet-success-message" style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                            Your wallet is configured and ready for escrow.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="apple-alert apple-alert-warning" id="seed-display-section" style="margin-bottom: 24px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    <div style="flex: 1;">
+                                        <strong>RECOVERY WORDS (12 words) - SAVE THIS!</strong>
+                                        <div id="seed-phrase" style="background: rgba(0,0,0,0.3); padding: 16px; border-radius: 8px; margin: 12px 0; font-family: monospace; word-wrap: break-word; font-size: 14px;">
+                                            <!-- Seed will be inserted here -->
+                                        </div>
+                                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 12px;">
+                                            <input type="checkbox" id="seed-saved-checkbox" class="apple-checkbox">
+                                            <span style="font-size: 13px;">I have saved my recovery words (verification by quiz)</span>
+                                        </label>
+                                        <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">
+                                            A 3-word random quiz will be required to prove your backup (hardware wallet standard).
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="apple-card" style="background: var(--apple-bg-secondary);">
+                                    <div class="apple-card-body">
+                                        <h4 style="font-size: 13px; color: var(--apple-gray); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 0;">Monero Address</h4>
+                                        <div id="wallet-address" style="font-family: monospace; font-size: 13px; word-wrap: break-word; color: var(--apple-gold);">
+                                            <!-- Address will be inserted here -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 32px;">
+                            <p style="display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--apple-gray); font-size: 14px;">
+                                <span class="apple-status-indicator checking" id="wasm-status"></span>
+                                <span id="wasm-status-text">WASM wallet ready...</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Wallets Registered -->
+                    <div class="step-content" id="content-step2" style="display: none;">
+                        <h2 class="apple-section-title">Step 2: Wallets Connected</h2>
+
+                        <div class="apple-alert apple-alert-success" style="margin: 24px 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                            <div>
+                                <strong>Wallet Connected!</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                    Your local wallet is detected and secured.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="apple-card" style="background: var(--apple-bg-secondary); margin-bottom: 24px;">
+                            <div class="apple-card-header">
+                                <h3 class="apple-card-title">Registered Participants</h3>
+                            </div>
+                            <div class="apple-card-body">
+                                <div id="participants-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                        <span class="apple-status-indicator disconnected"></span>
+                                        <span>Buyer</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                        <span class="apple-status-indicator disconnected"></span>
+                                        <span>Vendor</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                                        <span class="apple-status-indicator disconnected"></span>
+                                        <span>Arbiter</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <div class="apple-spinner"></div>
+                            <p style="margin-top: 16px; color: var(--apple-gray); font-size: 14px;">
+                                Waiting for other participants...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Security Setup -->
+                    <div class="step-content" id="content-step3" style="display: none;">
+                        <h2 class="apple-section-title">Step 3: Creating Dual-Approval Protection</h2>
+
+                        <div class="apple-alert apple-alert-info" style="margin: 24px 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            <div>
+                                <strong>Setting Up Payment Protection</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                    All parties are exchanging security information to create a protected address requiring dual approval for any payment release.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Security Setup Status Display -->
+                        <div id="frost-dkg-status" class="apple-card" style="background: var(--apple-bg-secondary); margin-bottom: 24px;">
+                            <div class="apple-card-body">
+                                <div id="multisig-log" style="font-family: monospace; font-size: 13px; color: var(--apple-gold); line-height: 1.8;">
+                                    &gt; Starting security setup...<br>
+                                    &gt; Generating protection keys...<br>
+                                    &gt; Coordinating with other participants...
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 32px;">
+                            <div class="apple-spinner"></div>
+                            <p style="margin-top: 16px; color: var(--apple-gray); font-size: 14px;">
+                                Security setup in progress...
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 4: Address Ready -->
+                    <div class="step-content" id="content-step4" style="display: none;">
+                        <h2 class="apple-section-title">Step 4: Payment Address Ready!</h2>
+
+                        <div class="apple-alert apple-alert-success" style="margin: 24px 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                <polyline points="22 4 12 14.01 9 11.01" />
+                            </svg>
+                            <div>
+                                <strong>Payment Protection Ready</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.8;">
+                                    Buyer can now send payment to this protected address.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="apple-card" style="background: var(--nexus-bg-card); margin-bottom: 24px; position: relative;">
+                            <!-- Shield Lock Overlay - shown until shield downloaded -->
+                            <div id="shield-lock-overlay" class="shield-lock-overlay" style="padding: 32px; text-align: center;">
+                                <svg class="shield-lock-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    <path d="M9 12l2 2 4-4"/>
+                                </svg>
+
+                                <h3 style="color: var(--nexus-gold); font-size: 18px; margin-bottom: 16px; font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.05em;">
+                                    Security First
+                                </h3>
+
+                                <div style="max-width: 400px; margin: 0 auto 20px; text-align: left; font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.8);">
+                                    <p style="margin-bottom: 12px;">
+                                        <strong style="color: #fff;">Why we require this:</strong>
+                                    </p>
+                                    <ul style="margin: 0; padding-left: 20px; color: rgba(255,255,255,0.7);">
+                                        <li style="margin-bottom: 8px;"><strong>Non-custodial:</strong> We NEVER store your keys. Your Shield is the ONLY backup.</li>
+                                        <li style="margin-bottom: 8px;"><strong>Tor browser risk:</strong> Closing Tor clears localStorage. Without Shield = funds lost forever.</li>
+                                        <li style="margin-bottom: 8px;"><strong>Dual-approval:</strong> If you lose your key, the payment cannot be released.</li>
+                                    </ul>
+                                </div>
+
+                                <p style="font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 20px;">
+                                    The Shield file is encrypted with YOUR password. We cannot access it.
+                                </p>
+
+                                <button id="overlay-download-shield-btn"
+                                    onclick="showMandatoryShieldDownload(document.body.dataset.escrowId, document.body.dataset.userRole)"
+                                    style="
+                                        background: linear-gradient(135deg, #D4AF37, #B8962E);
+                                        color: #000;
+                                        border: none;
+                                        padding: 14px 32px;
+                                        border-radius: 8px;
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                        cursor: pointer;
+                                        display: inline-flex;
+                                        align-items: center;
+                                        gap: 10px;
+                                        font-family: 'Oswald', sans-serif;
+                                        text-transform: uppercase;
+                                        letter-spacing: 0.05em;
+                                        transition: all 0.2s;
+                                    "
+                                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(212,175,55,0.3)'"
+                                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+                                    </svg>
+                                    Download Recovery Shield
+                                </button>
+                            </div>
+                            <div class="apple-card-header">
+                                <h3 class="apple-card-title">Protected Payment Address</h3>
+                            </div>
+                            <div class="apple-card-body">
+                                <div id="escrow-address" class="shield-protected" style="font-family: monospace; font-size: 13px; color: var(--nexus-gold); word-wrap: break-word;">
+                                    ████████████████████████████████████████████████████████████████████████████████████████████████
+                                </div>
+                                <!-- QR Code for mobile funding -->
+                                <div style="display: flex; flex-direction: column; align-items: center; margin-top: 20px;">
+                                    <div id="multisig-qr-code" class="shield-protected" style="border-radius: 8px; background: white; padding: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);"></div>
+                                    <p class="apple-text-muted" style="text-align: center; margin-top: 8px; font-size: 12px;">
+                                        Scan with your Monero wallet to fund
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="apple-alert apple-alert-warning" style="margin-bottom: 32px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <polyline points="14 2 14 8 20 8" />
+                            </svg>
+                            <div>
+                                <strong>Next Steps:</strong>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; line-height: 1.6;">
+                                    1. The buyer sends funds to this address<br>
+                                    2. The vendor delivers the product/service<br>
+                                    3. Automatic release or arbitration if needed
+                                </p>
+                            </div>
+                        </div>
+
+                        <div id="dashboard-btn-container" style="text-align: center; display: none;">
+                            <a href="/profile" class="apple-btn apple-btn-gold" data-action="dashboard">
+                                Go to Dashboard
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    {% include "modals/seed-quiz.html" %}
+
+    <!-- Scripts -->
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script type="module" src="/static/js/wasm-loader.js?v=20251228_v580_rebuild2"></script>
+    <script src="/static/js/seed-quiz.js?v=3"></script>
+    <script src="/static/js/qrcode.min.js"></script>
+    <script src="/static/js/frost-escrow.js?v=20260117"></script>
+    <script src="/static/js/escrow-setup.js?v=20260117_nuclear"></script>
+
+    <!-- QR Code Generation for Step 4 -->
+    <script>
+    (function() {
+        let qrGenerated = false;
+
+        // Watch for address changes and generate QR code
+        function tryGenerateQR() {
+            if (qrGenerated) return true;
+
+            const addressEl = document.getElementById('escrow-address');
+            const qrContainer = document.getElementById('multisig-qr-code');
+
+            if (!addressEl || !qrContainer) return false;
+
+            const address = addressEl.textContent.trim();
+            if (!address || address === 'Loading...' || address.length < 90) return false;
+
+            // Check if QRCode library is available
+            if (typeof QRCode === 'undefined') {
+                console.warn('[QR] QRCode library not loaded');
+                return false;
+            }
+
+            // Generate QR code using correct API: new QRCode(element, options)
+            console.log('[QR] Generating QR for address:', address.substring(0, 20) + '...');
+            try {
+                // Clear any existing content
+                qrContainer.innerHTML = '';
+
+                new QRCode(qrContainer, {
+                    text: address,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                console.log('[QR] QR code generated successfully');
+                qrGenerated = true;
+                return true;
+            } catch (error) {
+                console.error('[QR] Generation error:', error);
+                qrContainer.style.display = 'none';
+                return false;
+            }
+        }
+
+        // Try immediately
+        if (!tryGenerateQR()) {
+            // Watch for changes with MutationObserver
+            const addressEl = document.getElementById('escrow-address');
+            if (addressEl) {
+                const observer = new MutationObserver(function(mutations) {
+                    if (tryGenerateQR()) {
+                        observer.disconnect();
+                    }
+                });
+                observer.observe(addressEl, { childList: true, characterData: true, subtree: true });
+            }
+
+            // Also poll as fallback
+            let attempts = 0;
+            const maxAttempts = 30;
+            const pollInterval = setInterval(function() {
+                attempts++;
+                if (tryGenerateQR() || attempts >= maxAttempts) {
+                    clearInterval(pollInterval);
+                }
+            }, 500);
+        }
+    })();
+    </script>
+
+    <style>
+        /* ==========================================================================
+           ESCROW SETUP - Industrial Premium Design System
+           ========================================================================== */
+
+        :root {
+            --nexus-gold: #D4AF37;
+            --nexus-gold-dim: rgba(212, 175, 55, 0.15);
+            --nexus-bg: #0a0a0b;
+            --nexus-bg-elevated: #111113;
+            --nexus-bg-card: #151517;
+            --nexus-border: rgba(255, 255, 255, 0.08);
+            --nexus-border-gold: rgba(212, 175, 55, 0.25);
+            --nexus-text: #ffffff;
+            --nexus-text-muted: rgba(255, 255, 255, 0.5);
+            --nexus-green: #22c55e;
+            --nexus-red: #ef4444;
+            --nexus-yellow: #eab308;
+        }
+
+        /* Force body dark background */
+        body, html {
+            background: var(--nexus-bg) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        /* Page Layout */
+        .apple-page {
+            background: var(--nexus-bg);
+            min-height: 100vh;
+            padding-top: 100px;
+        }
+
+        .apple-container {
+            max-width: 720px !important;
+            padding: 0 24px 80px !important;
+        }
+
+        /* Page Header */
+        .apple-page-title {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--nexus-text);
+            margin: 0 0 8px;
+        }
+
+        .apple-page-title .text-gold {
+            color: var(--nexus-gold);
+        }
+
+        .apple-page-subtitle {
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--nexus-text-muted);
+        }
+
+        /* ==========================================================================
+           STEPPER - Premium Industrial Design
+           ========================================================================== */
+        .apple-stepper {
+            position: relative;
+            padding: 0 20px;
+            margin-bottom: 40px !important;
+        }
+
+        .apple-stepper-track {
+            position: absolute;
+            top: 16px;
+            left: 60px;
+            right: 60px;
+            height: 2px;
+            background: var(--nexus-border);
+            z-index: 0;
+        }
+
+        .apple-stepper-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--nexus-gold), var(--nexus-green));
+            transition: width 0.5s ease;
+        }
+
+        .apple-stepper-steps {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            z-index: 1;
+        }
+
+        .apple-stepper-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .apple-stepper-step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: var(--nexus-bg-card);
+            border: 1px solid var(--nexus-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono, monospace);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--nexus-text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .apple-stepper-step.active .apple-stepper-step-circle,
+        .apple-stepper-step.completed .apple-stepper-step-circle {
+            background: linear-gradient(135deg, var(--nexus-gold), #B8962E);
+            border-color: var(--nexus-gold);
+            color: #000;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .apple-stepper-step-label {
+            font-family: var(--font-mono, monospace);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--nexus-text-muted);
+            text-align: center;
+            max-width: 80px;
+        }
+
+        .apple-stepper-step.active .apple-stepper-step-label {
+            color: var(--nexus-gold);
+        }
+
+        /* ==========================================================================
+           CARDS - Glassmorphism Industrial
+           ========================================================================== */
+        .apple-card {
+            background: var(--nexus-bg-card);
+            border: 1px solid var(--nexus-border);
+            border-radius: 4px;
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+        }
+
+        .apple-card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--nexus-border);
+        }
+
+        .apple-card-title {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--nexus-text);
+            margin: 0;
+        }
+
+        .apple-card-body {
+            padding: 24px !important;
+        }
+
+        /* ==========================================================================
+           ALERTS - Compact Industrial Style
+           ========================================================================== */
+        .apple-alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 4px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin: 20px 0 !important;
+        }
+
+        .apple-alert svg {
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .apple-alert strong {
+            display: block;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 12px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .apple-alert p {
+            font-size: 12px !important;
+            opacity: 0.85;
+            margin: 0 !important;
+        }
+
+        .apple-alert-info {
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid var(--nexus-border-gold);
+            color: var(--nexus-text);
+        }
+
+        .apple-alert-info svg {
+            color: var(--nexus-gold);
+        }
+
+        .apple-alert-success {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.25);
+            color: var(--nexus-text);
+        }
+
+        .apple-alert-success svg {
+            color: var(--nexus-green);
+        }
+
+        .apple-alert-warning {
+            background: rgba(234, 179, 8, 0.08);
+            border: 1px solid rgba(234, 179, 8, 0.25);
+            color: var(--nexus-text);
+        }
+
+        .apple-alert-warning svg {
+            color: var(--nexus-yellow);
+        }
+
+        /* ==========================================================================
+           BUTTONS - Industrial Premium
+           ========================================================================== */
+        .apple-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            border-radius: 4px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .apple-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .apple-btn-gold {
+            background: linear-gradient(135deg, var(--nexus-gold), #B8962E);
+            color: #000;
+            border-color: var(--nexus-gold);
+        }
+
+        .apple-btn-gold:hover {
+            filter: brightness(1.1);
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .apple-btn-ghost {
+            background: transparent;
+            color: var(--nexus-text-muted);
+            border-color: var(--nexus-border);
+        }
+
+        .apple-btn-ghost:hover {
+            color: var(--nexus-text);
+            border-color: var(--nexus-gold);
+            background: var(--nexus-gold-dim);
+        }
+
+        /* ==========================================================================
+           FORM ELEMENTS - Compact & Premium
+           ========================================================================== */
+        .apple-form-group {
+            margin-bottom: 16px;
+        }
+
+        .apple-label {
+            display: block;
+            font-family: var(--font-mono, monospace);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--nexus-text-muted);
+            margin-bottom: 8px;
+        }
+
+        .apple-input,
+        .apple-textarea {
+            width: 100%;
+            padding: 12px 14px;
+            font-family: var(--font-mono, monospace);
+            font-size: 13px;
+            color: var(--nexus-text);
+            background: var(--nexus-bg);
+            border: 1px solid var(--nexus-border);
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .apple-textarea {
+            resize: vertical;
+            min-height: 80px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        .apple-input:focus,
+        .apple-textarea:focus {
+            outline: none;
+            border-color: var(--nexus-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        .apple-input::placeholder,
+        .apple-textarea::placeholder {
+            color: var(--nexus-text-muted);
+            opacity: 0.6;
+        }
+
+        .apple-checkbox {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--nexus-gold);
+            cursor: pointer;
+        }
+
+        /* ==========================================================================
+           SECTION TITLES
+           ========================================================================== */
+        .apple-section-title {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--nexus-text);
+            margin: 0 0 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--nexus-border);
+        }
+
+        /* ==========================================================================
+           STATUS INDICATORS
+           ========================================================================== */
+        .apple-status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        .apple-status-indicator.checking {
+            background: var(--nexus-yellow);
+            animation: pulse-indicator 1.5s infinite;
+        }
+
+        .apple-status-indicator.connected {
+            background: var(--nexus-green);
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+
+        .apple-status-indicator.disconnected {
+            background: var(--nexus-red);
+        }
+
+        @keyframes pulse-indicator {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ==========================================================================
+           SPINNER - Industrial
+           ========================================================================== */
+        .apple-spinner {
+            width: 28px;
+            height: 28px;
+            border: 2px solid var(--nexus-border);
+            border-top-color: var(--nexus-gold);
+            border-radius: 4px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ==========================================================================
+           STEP CONTENT
+           ========================================================================== */
+        .step-content {
+            animation: fadeIn 0.4s ease;
+        }
+
+        .step-content.active {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Force step 4 visibility */
+        #content-step4.active {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            background: var(--nexus-bg) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        #content-step4 h2,
+        #content-step4 h3,
+        #content-step4 p,
+        #content-step4 strong,
+        #content-step4 div {
+            color: inherit !important;
+        }
+
+        #content-step4 .apple-section-title {
+            color: var(--nexus-text) !important;
+        }
+
+        #content-step4 .apple-alert-success {
+            background: rgba(34, 197, 94, 0.1) !important;
+            border: 1px solid rgba(34, 197, 94, 0.3) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        #content-step4 .apple-alert-warning {
+            background: rgba(212, 175, 55, 0.1) !important;
+            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ==========================================================================
+           SEED PHRASE DISPLAY
+           ========================================================================== */
+        #seed-phrase {
+            background: var(--nexus-bg) !important;
+            padding: 16px 18px !important;
+            border-radius: 4px !important;
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 15px !important;
+            line-height: 1.8 !important;
+            color: var(--nexus-gold) !important;
+            border: 1px solid var(--nexus-border-gold);
+            word-spacing: 6px;
+        }
+
+        /* ==========================================================================
+           WALLET ADDRESS
+           ========================================================================== */
+        #wallet-address,
+        #escrow-address {
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 11px !important;
+            color: var(--nexus-gold) !important;
+            word-break: break-all;
+            padding: 12px;
+            background: var(--nexus-bg);
+            border-radius: 4px;
+            border: 1px solid var(--nexus-border);
+        }
+
+        /* ==========================================================================
+           PARTICIPANTS LIST
+           ========================================================================== */
+        #participants-list > div {
+            background: var(--nexus-bg) !important;
+            border: 1px solid var(--nexus-border);
+            border-radius: 4px;
+            padding: 10px 14px !important;
+            font-family: var(--font-mono, monospace);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ==========================================================================
+           MULTISIG LOG
+           ========================================================================== */
+        #multisig-log {
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 11px !important;
+            line-height: 1.8 !important;
+            color: var(--nexus-green) !important;
+            padding: 16px;
+            background: var(--nexus-bg);
+            border-radius: 4px;
+            border: 1px solid var(--nexus-border);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* ==========================================================================
+           FOOTER
+           ========================================================================== */
+        .apple-footer {
+            background: var(--nexus-bg);
+            border-top: 1px solid var(--nexus-border);
+            padding: 40px 0;
+        }
+
+        .apple-footer-logo {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 20px;
+            letter-spacing: 0.15em;
+            color: var(--nexus-text-muted);
+        }
+
+        .apple-footer-tagline {
+            font-size: 12px;
+            color: var(--nexus-text-muted);
+            margin: 8px 0 24px;
+        }
+
+        .apple-footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .apple-footer-link {
+            font-size: 12px;
+            color: var(--nexus-text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .apple-footer-link:hover {
+            color: var(--nexus-gold);
+        }
+
+        .apple-footer-copyright,
+        .apple-footer-note {
+            font-size: 11px;
+            color: var(--nexus-text-muted);
+            opacity: 0.6;
+        }
+
+        /* ==========================================================================
+           SEED SAVED CHECKBOX - Industrial Style
+           ========================================================================== */
+        #seed-saved-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            width: 20px !important;
+            height: 20px !important;
+            min-width: 20px !important;
+            min-height: 20px !important;
+            background: var(--nexus-bg) !important;
+            border: 2px solid var(--nexus-border) !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+            position: relative !important;
+            transition: all 0.2s ease !important;
+            flex-shrink: 0 !important;
+        }
+
+        #seed-saved-checkbox:hover {
+            border-color: var(--nexus-gold) !important;
+        }
+
+        #seed-saved-checkbox:checked {
+            background: var(--nexus-gold) !important;
+            border-color: var(--nexus-gold) !important;
+        }
+
+        #seed-saved-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 6px;
+            height: 11px;
+            border: solid #000;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        #seed-saved-checkbox:focus {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        /* ==========================================================================
+           SEED QUIZ MODAL - Complete Industrial Override
+           ========================================================================== */
+        #seed-quiz-modal {
+            background: rgba(0, 0, 0, 0.9) !important;
+            backdrop-filter: blur(12px) !important;
+        }
+
+        #seed-quiz-modal-content {
+            background: var(--nexus-bg-card) !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-radius: 4px !important;
+            max-width: 480px !important;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        /* Hide the gradient blurs */
+        #seed-quiz-modal-content > div:first-child {
+            display: none !important;
+        }
+
+        /* Modal Header */
+        #seed-quiz-modal-content > div:nth-child(2) {
+            padding: 20px 24px !important;
+            border-bottom: 1px solid var(--nexus-border) !important;
+            background: transparent !important;
+        }
+
+        #seed-quiz-modal h3 {
+            font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.1em !important;
+            text-transform: uppercase !important;
+            color: var(--nexus-text) !important;
+        }
+
+        #seed-quiz-modal h3 > div {
+            background: var(--nexus-gold-dim) !important;
+            border-radius: 4px !important;
+            padding: 8px !important;
+        }
+
+        #seed-quiz-modal h3 svg,
+        #seed-quiz-modal h3 i {
+            color: var(--nexus-gold) !important;
+            width: 18px !important;
+            height: 18px !important;
+        }
+
+        /* Close button */
+        #seed-quiz-modal button[onclick="closeSeedQuizModal()"] {
+            background: transparent !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-radius: 4px !important;
+            color: var(--nexus-text-muted) !important;
+            padding: 8px !important;
+        }
+
+        #seed-quiz-modal button[onclick="closeSeedQuizModal()"]:hover {
+            border-color: var(--nexus-gold) !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Modal Body */
+        #seed-quiz-modal-content > div:nth-child(3) {
+            padding: 24px !important;
+            background: transparent !important;
+        }
+
+        /* Info Notice */
+        #seed-quiz-modal .bg-blue-500\/10 {
+            background: var(--nexus-gold-dim) !important;
+            border: 1px solid var(--nexus-border-gold) !important;
+            border-radius: 4px !important;
+            padding: 14px 16px !important;
+        }
+
+        #seed-quiz-modal .bg-blue-500\/10 strong,
+        #seed-quiz-modal .text-blue-400 {
+            color: var(--nexus-gold) !important;
+            font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
+            font-size: 12px !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+        }
+
+        #seed-quiz-modal .bg-blue-500\/10 p,
+        #seed-quiz-modal .text-gray-300,
+        #seed-quiz-modal .text-gray-500 {
+            color: var(--nexus-text-muted) !important;
+            font-size: 12px !important;
+        }
+
+        #seed-quiz-modal .bg-blue-500\/10 i,
+        #seed-quiz-modal .bg-blue-500\/10 svg {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Quiz Labels */
+        #seed-quiz-modal label {
+            display: block !important;
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 11px !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.1em !important;
+            color: var(--nexus-text-muted) !important;
+            margin-bottom: 8px !important;
+            background: transparent !important;
+        }
+
+        #seed-quiz-modal label span {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Quiz Inputs - CRITICAL FIX */
+        #seed-quiz-modal input[type="text"],
+        #quiz-word-1,
+        #quiz-word-2,
+        #quiz-word-3 {
+            width: 100% !important;
+            padding: 12px 14px !important;
+            font-family: var(--font-mono, monospace) !important;
+            font-size: 14px !important;
+            color: var(--nexus-text) !important;
+            background: var(--nexus-bg) !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-radius: 4px !important;
+            box-sizing: border-box !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            line-height: 1.4 !important;
+        }
+
+        #seed-quiz-modal input[type="text"]:focus {
+            border-color: var(--nexus-gold) !important;
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.15) !important;
+        }
+
+        #seed-quiz-modal input[type="text"]::placeholder {
+            color: var(--nexus-text-muted) !important;
+            opacity: 0.5 !important;
+        }
+
+        /* Error Message */
+        #quiz-error-msg {
+            background: rgba(239, 68, 68, 0.1) !important;
+            border: 1px solid rgba(239, 68, 68, 0.25) !important;
+            border-radius: 4px !important;
+            padding: 12px 14px !important;
+            color: var(--nexus-red) !important;
+            font-size: 12px !important;
+        }
+
+        /* Hint Box */
+        #seed-quiz-modal .bg-yellow-500\/5 {
+            background: rgba(212, 175, 55, 0.05) !important;
+            border: 1px solid rgba(212, 175, 55, 0.15) !important;
+            border-radius: 4px !important;
+            padding: 10px 14px !important;
+        }
+
+        #seed-quiz-modal .bg-yellow-500\/5 p {
+            color: var(--nexus-text-muted) !important;
+            font-size: 11px !important;
+        }
+
+        #seed-quiz-modal .bg-yellow-500\/5 i,
+        #seed-quiz-modal .bg-yellow-500\/5 svg,
+        #seed-quiz-modal .text-yellow-400 {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Modal Footer */
+        #seed-quiz-modal-content > div:last-child {
+            padding: 16px 24px !important;
+            border-top: 1px solid var(--nexus-border) !important;
+            background: transparent !important;
+            display: flex !important;
+            justify-content: flex-end !important;
+            gap: 12px !important;
+        }
+
+        /* Cancel Button */
+        #seed-quiz-modal button.bg-white\/5,
+        #seed-quiz-modal-content > div:last-child > button:first-child {
+            padding: 10px 20px !important;
+            background: transparent !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-radius: 4px !important;
+            color: var(--nexus-text-muted) !important;
+            font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            cursor: pointer !important;
+        }
+
+        #seed-quiz-modal button.bg-white\/5:hover,
+        #seed-quiz-modal-content > div:last-child > button:first-child:hover {
+            border-color: var(--nexus-gold) !important;
+            color: var(--nexus-gold) !important;
+            background: var(--nexus-gold-dim) !important;
+        }
+
+        /* Verify Button */
+        #verify-quiz-btn {
+            padding: 10px 20px !important;
+            background: linear-gradient(135deg, var(--nexus-gold), #B8962E) !important;
+            border: none !important;
+            border-radius: 4px !important;
+            color: #000 !important;
+            font-family: var(--font-oswald, 'Oswald', sans-serif) !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.08em !important;
+            text-transform: uppercase !important;
+            cursor: pointer !important;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.3) !important;
+        }
+
+        #verify-quiz-btn:disabled {
+            opacity: 0.4 !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+        }
+
+        #verify-quiz-btn:not(:disabled):hover {
+            filter: brightness(1.1) !important;
+        }
+
+        /* Space between inputs */
+        #seed-quiz-modal .space-y-4 > div {
+            margin-bottom: 16px !important;
+        }
+
+        #seed-quiz-modal .space-y-2 {
+            margin-bottom: 0 !important;
+        }
+
+        /* ==========================================================================
+           RESPONSIVE
+           ========================================================================== */
+        @media (max-width: 768px) {
+            .apple-container {
+                padding: 0 16px 60px !important;
+            }
+
+            .apple-page-title {
+                font-size: 24px;
+            }
+
+            .apple-stepper-step-label {
+                font-size: 9px;
+                max-width: 60px;
+            }
+
+            .apple-stepper-track {
+                left: 40px;
+                right: 40px;
+            }
+
+            .apple-btn {
+                padding: 10px 18px;
+                font-size: 12px;
+            }
+
+            #wallet-choice {
+                flex-direction: column;
+            }
+
+            /* ====== MOBILE SEED BACKUP OPTIMIZATION ====== */
+
+            /* Larger seed phrase for mobile readability */
+            #seed-phrase {
+                font-size: 18px !important;
+                line-height: 2.0 !important;
+                word-spacing: 8px !important;
+                padding: 20px !important;
+            }
+
+            /* Larger checkbox for touch */
+            #seed-saved-checkbox {
+                width: 26px !important;
+                height: 26px !important;
+                min-width: 26px !important;
+                min-height: 26px !important;
+            }
+
+            #seed-saved-checkbox:checked::after {
+                left: 7px;
+                top: 2px;
+                width: 8px;
+                height: 14px;
+            }
+
+            /* Larger buttons for wallet choice */
+            #wallet-choice .apple-btn {
+                padding: 16px 24px !important;
+                font-size: 14px !important;
+            }
+
+            /* Seed warning alert - larger text */
+            #seed-display-section {
+                padding: 18px !important;
+            }
+
+            #seed-display-section strong {
+                font-size: 14px !important;
+            }
+
+            #seed-display-section label span {
+                font-size: 15px !important;
+            }
+
+            #seed-display-section p {
+                font-size: 13px !important;
+            }
+
+            /* ====== MOBILE SEED QUIZ MODAL ====== */
+
+            #seed-quiz-modal-content {
+                margin: 12px !important;
+                max-height: 92vh !important;
+                border-radius: 16px !important;
+            }
+
+            #seed-quiz-modal input[type="text"],
+            #quiz-word-1,
+            #quiz-word-2,
+            #quiz-word-3 {
+                font-size: 18px !important;
+                padding: 16px 18px !important;
+                border-radius: 8px !important;
+            }
+
+            #seed-quiz-modal label {
+                font-size: 14px !important;
+            }
+
+            #seed-quiz-modal label span {
+                font-size: 20px !important;
+                font-weight: 700 !important;
+            }
+
+            #seed-quiz-modal .bg-blue-500\/10 p,
+            #seed-quiz-modal .text-gray-300 {
+                font-size: 14px !important;
+            }
+
+            #verify-quiz-btn {
+                padding: 14px 20px !important;
+                font-size: 14px !important;
+            }
+        }
+    </style>
+
+    <!-- WebSocket Notifications & Toast System -->
+    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <!-- Notification Center -->
+    <script src="/static/js/notification-routes.js"></script>
+    <script src="/static/js/notification-center.js"></script>
+
+    <!-- Recovery Shield Export Modal -->
+    {% include "escrow/modals/recovery-shield-export.html" %}
+
+    <script>
+        /**
+         * Check if recovery is needed for this escrow
+         * If DKG complete on server but no local keys, redirect to recover page
+         */
+        async function checkRecoveryNeeded() {
+            const escrowId = document.body.dataset?.escrowId;
+            const role = document.body.dataset?.userRole;
+            if (!escrowId || !role) return;
+
+            console.log('[Recovery] Checking if recovery needed...');
+            // OPSEC: Don't log escrow ID
+
+            // Check if we have local FROST keys
+            const hasLocalKeys = !!(
+                localStorage.getItem(`frost_secret_share_${escrowId}_${role}`) ||
+                localStorage.getItem(`frost_dkg_${escrowId}_${role}_key_package`) ||
+                localStorage.getItem('monero_seed_phrase')
+            );
+
+            if (hasLocalKeys) {
+                console.log('[Recovery] Local keys found, no recovery needed');
+                return;
+            }
+
+            // No local keys - check if DKG was completed on server
+            try {
+                const response = await fetch(`/api/escrow/frost/${escrowId}/status`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    console.log('[Recovery] No DKG state on server, fresh escrow');
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('[Recovery] Server DKG status:', data);
+
+                // Check if DKG is complete on server
+                if (data.success && data.data) {
+                    const dkgComplete = data.data.dkg_complete ||
+                                       data.data.current_round === 'complete' ||
+                                       data.data.round3_complete;
+
+                    if (dkgComplete) {
+                        console.log('[Recovery] ⚠️ DKG complete on server but NO local keys! Redirecting to recovery...');
+                        // Redirect to recover page with escrow context
+                        window.location.href = `/escrow/recover?escrow_id=${escrowId}&return_to=${encodeURIComponent(window.location.pathname)}`;
+                    }
+                }
+            } catch (error) {
+                console.log('[Recovery] Error checking server status:', error);
+            }
+        }
+
+        // Check on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Delay to let other scripts initialize
+            setTimeout(checkRecoveryNeeded, 300);
+        });
+    </script>
+</body>
+
+</html>

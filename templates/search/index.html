@@ -1,0 +1,330 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Search — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="market-interface">
+    <div class="container-industrial">
+
+        {# ===== HEADER SECTION ===== #}
+        <div class="market-header">
+            <div class="market-header__left">
+                <h1 class="h1-massive">
+                    Search <span class="text-gold">Products</span>
+                </h1>
+                <p class="market-header__subtitle">
+                    Find exactly what you're looking for across all verified listings.
+                </p>
+            </div>
+
+            <div class="market-header__right">
+                <div class="market-stats">
+                    <div class="market-stat">
+                        <span class="market-stat__value">{{ results_count | default(value=0) }}</span>
+                        <span class="market-stat__label">Results</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# ===== SEARCH BAR ===== #}
+        <form id="search-form" action="/search" method="get">
+            <div class="search-industrial search-container">
+                <svg class="search-industrial__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text"
+                       id="search-input"
+                       name="q"
+                       class="search-industrial__input"
+                       placeholder="Search products, vendors, categories..."
+                       value="{{ query | default(value='') }}"
+                       autocomplete="off">
+                {% if query %}
+                <button type="button" class="search-industrial__clear"
+                        onclick="document.getElementById('search-input').value=''; document.getElementById('search-form').requestSubmit();">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                {% endif %}
+
+                {# Instant Search Overlay #}
+                <div id="search-overlay" class="search-overlay" role="listbox" aria-label="Search results">
+                    {# Populated by JavaScript instant-search.js #}
+                </div>
+            </div>
+
+            {# Hidden filter inputs #}
+            <input type="hidden" name="category" id="filter-category" value="{{ category | default(value='all') }}">
+            <input type="hidden" name="price_range" id="filter-price" value="{{ price_range | default(value='all') }}">
+            <input type="hidden" name="sort" id="filter-sort" value="{{ sort | default(value='newest') }}">
+        </form>
+
+        {# ===== FILTERS SECTION ===== #}
+        <div class="filters-industrial" id="filters-section">
+            <div class="filters-industrial__row">
+                {# Category Filter #}
+                <div class="filter-group">
+                    <label class="filter-group__label">Category</label>
+                    <select class="filter-group__select"
+                            onchange="document.getElementById('filter-category').value = this.value; document.getElementById('search-form').requestSubmit();">
+                        <option value="all" {% if category == 'all' %}selected{% endif %}>All Categories</option>
+                        <option value="digital" {% if category == 'digital' %}selected{% endif %}>Digital Goods</option>
+                        <option value="physical" {% if category == 'physical' %}selected{% endif %}>Physical Goods</option>
+                        <option value="services" {% if category == 'services' %}selected{% endif %}>Services</option>
+                        <option value="software" {% if category == 'software' %}selected{% endif %}>Software & Tools</option>
+                    </select>
+                </div>
+
+                {# Price Range Filter #}
+                <div class="filter-group">
+                    <label class="filter-group__label">Price Range</label>
+                    <select class="filter-group__select"
+                            onchange="document.getElementById('filter-price').value = this.value; document.getElementById('search-form').requestSubmit();">
+                        <option value="all" {% if price_range == 'all' %}selected{% endif %}>All Prices</option>
+                        <option value="0-0.5" {% if price_range == '0-0.5' %}selected{% endif %}>0 - 0.5 XMR</option>
+                        <option value="0.5-1" {% if price_range == '0.5-1' %}selected{% endif %}>0.5 - 1 XMR</option>
+                        <option value="1-2" {% if price_range == '1-2' %}selected{% endif %}>1 - 2 XMR</option>
+                        <option value="2+" {% if price_range == '2+' %}selected{% endif %}>2+ XMR</option>
+                    </select>
+                </div>
+
+                {# Sort Filter #}
+                <div class="filter-group">
+                    <label class="filter-group__label">Sort By</label>
+                    <select class="filter-group__select"
+                            onchange="document.getElementById('filter-sort').value = this.value; document.getElementById('search-form').requestSubmit();">
+                        <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Newest First</option>
+                        <option value="price-low" {% if sort == 'price-low' %}selected{% endif %}>Price: Low to High</option>
+                        <option value="price-high" {% if sort == 'price-high' %}selected{% endif %}>Price: High to Low</option>
+                        <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            {# Active Filters Tags #}
+            {% if category != 'all' or price_range != 'all' %}
+            <div class="filters-industrial__active">
+                <span class="filters-industrial__active-label">Active filters:</span>
+                {% if category != 'all' %}
+                <button class="filter-tag" type="button"
+                        onclick="document.getElementById('filter-category').value='all'; document.getElementById('search-form').requestSubmit();">
+                    {{ category }}
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                {% endif %}
+                {% if price_range != 'all' %}
+                <button class="filter-tag" type="button"
+                        onclick="document.getElementById('filter-price').value='all'; document.getElementById('search-form').requestSubmit();">
+                    {{ price_range }} XMR
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+                {% endif %}
+                <button class="filter-tag filter-tag--clear" type="button"
+                        onclick="document.getElementById('filter-category').value='all'; document.getElementById('filter-price').value='all'; document.getElementById('search-form').requestSubmit();">
+                    Clear All
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        {# ===== SEARCH RESULTS ===== #}
+        <div id="search-results">
+            {% if results and results | length > 0 %}
+            <div class="product-grid">
+                {% for product in results %}
+                <a href="/listings/{{ product.id }}" class="product-card" hx-boost="true">
+                    <div class="product-card__image">
+                        {% if product.first_image_cid %}
+                        <img src="http://127.0.0.1:8081/ipfs/{{ product.first_image_cid }}"
+                             alt="{{ product.title }}" loading="lazy">
+                        {% else %}
+                        <div class="product-card__placeholder">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5"/>
+                                <polyline points="21 15 16 10 5 21"/>
+                            </svg>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="product-card__content">
+                        <div class="product-card__meta">
+                            <span class="product-card__category">{{ product.category | default(value="General") }}</span>
+                            {% if product.stock > 0 %}
+                            <span class="product-card__stock product-card__stock--in">{{ product.stock }} in stock</span>
+                            {% else %}
+                            <span class="product-card__stock product-card__stock--out">Out of stock</span>
+                            {% endif %}
+                        </div>
+                        <h3 class="product-card__title">{{ product.title }}</h3>
+                        <div class="product-card__footer">
+                            <div class="product-card__price">
+                                <span class="product-card__price-value">{{ product.price_xmr }}</span>
+                                <span class="product-card__price-currency">XMR</span>
+                            </div>
+                            <span class="product-card__cta">View →</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            {# ===== EMPTY STATE ===== #}
+            <div class="nx-empty-state">
+                <div class="nx-empty-state__icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.3-4.3"/>
+                    </svg>
+                </div>
+                <h3 class="nx-empty-state__title">No Results Found</h3>
+                <p class="nx-empty-state__text">
+                    Try adjusting your search or filters to find what you're looking for.
+                </p>
+                <button type="button" class="btn-gold"
+                        onclick="document.getElementById('search-input').value=''; document.getElementById('filter-category').value='all'; document.getElementById('filter-price').value='all'; document.getElementById('search-form').requestSubmit();">
+                    Clear All Filters
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<style>
+/* Search Industrial Styles */
+.filters-industrial {
+    margin: 24px 0;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+}
+
+.filters-industrial__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filter-group__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.filter-group__select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-group__select:hover {
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+.filter-group__select:focus {
+    outline: none;
+    border-color: var(--nexus-gold, #d4af37);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.filters-industrial__active {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+}
+
+.filters-industrial__active-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.filter-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
+    color: var(--nexus-gold, #d4af37);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-tag:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.5);
+}
+
+.filter-tag--clear {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.filter-tag--clear:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.search-industrial__clear {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.search-industrial__clear:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Make search input relative for clear button positioning */
+.search-industrial {
+    position: relative;
+}
+
+.search-industrial__input {
+    padding-right: 50px;
+}
+</style>
+{% endblock %}

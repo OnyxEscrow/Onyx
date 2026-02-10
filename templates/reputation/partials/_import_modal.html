@@ -1,0 +1,190 @@
+{# Import/Verify Reputation Modal #}
+{# Can be included on any page where verification is needed #}
+
+<div id="verify-modal" class="modal-overlay">
+    <div class="modal-content modal-content--lg">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+                Verify Reputation
+            </h3>
+            <button type="button" class="modal-close" data-action="close-verify-modal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            {# Input Section - Tabs for IPFS Hash or File Upload #}
+            <div id="verify-input-section">
+                <div class="verify-tabs">
+                    <button type="button" class="verify-tab verify-tab--active" data-tab="ipfs">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                        </svg>
+                        IPFS Hash
+                    </button>
+                    <button type="button" class="verify-tab" data-tab="file">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Upload File
+                    </button>
+                </div>
+
+                {# IPFS Hash Input #}
+                <div id="verify-tab-ipfs" class="verify-tab-content verify-tab-content--active">
+                    <div class="form-field">
+                        <label for="ipfs-hash-input" class="form-label">IPFS Content Hash (CID)</label>
+                        <div class="form-input-wrap">
+                            <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                            </svg>
+                            <input type="text" id="ipfs-hash-input" class="form-input form-input--icon"
+                                placeholder="Qm... or bafy..."
+                                pattern="^(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[a-z0-9]{55})$"
+                            >
+                        </div>
+                        <p class="form-hint">Enter the CID from a vendor's reputation export</p>
+                    </div>
+                </div>
+
+                {# File Upload #}
+                <div id="verify-tab-file" class="verify-tab-content">
+                    <div class="file-drop-zone" id="file-drop-zone">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-muted)" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <p class="file-drop-zone__text">
+                            Drop JSON file here or <label for="file-input" class="file-drop-zone__link">browse</label>
+                        </p>
+                        <input type="file" id="file-input" accept=".json,application/json" style="display: none;">
+                        <p id="file-name" class="file-drop-zone__filename"></p>
+                    </div>
+                </div>
+            </div>
+
+            {# Loading State #}
+            <div id="verify-loading" class="verify-section" style="display: none;">
+                <div class="verify-loading">
+                    <svg class="animate-spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                    <p>Fetching and verifying reputation data...</p>
+                </div>
+            </div>
+
+            {# Results Section #}
+            <div id="verify-results" class="verify-section" style="display: none;">
+                {# Verification Badge #}
+                <div id="verify-badge-container" class="verify-badge-section">
+                    {# Dynamically filled by JS #}
+                </div>
+
+                {# Stats Grid #}
+                <div class="verify-stats-grid">
+                    <div class="verify-stat">
+                        <span class="verify-stat__value" id="verify-total-reviews">0</span>
+                        <span class="verify-stat__label">Total Reviews</span>
+                    </div>
+                    <div class="verify-stat">
+                        <span class="verify-stat__value" id="verify-avg-rating">0.0</span>
+                        <span class="verify-stat__label">Avg Rating</span>
+                    </div>
+                    <div class="verify-stat">
+                        <span class="verify-stat__value" id="verify-valid-sigs">0</span>
+                        <span class="verify-stat__label">Valid Sigs</span>
+                    </div>
+                    <div class="verify-stat">
+                        <span class="verify-stat__value" id="verify-invalid-sigs">0</span>
+                        <span class="verify-stat__label">Invalid Sigs</span>
+                    </div>
+                </div>
+
+                {# Detailed Results Toggle #}
+                <details class="verify-details">
+                    <summary class="verify-details__summary">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                        View All Reviews
+                    </summary>
+                    <div id="verify-reviews-list" class="verify-reviews-list">
+                        {# Dynamically filled by JS #}
+                    </div>
+                </details>
+            </div>
+
+            {# Error State #}
+            <div id="verify-error" class="verify-section" style="display: none;">
+                <div class="verify-error">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-destructive)" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <h4 class="verify-error__title">Verification Failed</h4>
+                    <p id="verify-error-message" class="verify-error__text">Unable to verify reputation data.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            {# Input Footer #}
+            <div id="verify-footer-input" class="verify-footer-step">
+                <button type="button" class="btn-secondary" data-action="close-verify-modal">
+                    Cancel
+                </button>
+                <button type="button" id="verify-start-btn" class="btn-gold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>
+                    Verify
+                </button>
+            </div>
+
+            {# Loading Footer #}
+            <div id="verify-footer-loading" class="verify-footer-step" style="display: none;">
+                <p class="text-muted text-sm">Verifying signatures...</p>
+            </div>
+
+            {# Results Footer #}
+            <div id="verify-footer-results" class="verify-footer-step" style="display: none;">
+                <button type="button" id="verify-another-btn" class="btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 2v6h-6"/>
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                    </svg>
+                    Verify Another
+                </button>
+                <button type="button" class="btn-gold" data-action="close-verify-modal">
+                    Done
+                </button>
+            </div>
+
+            {# Error Footer #}
+            <div id="verify-footer-error" class="verify-footer-step" style="display: none;">
+                <button type="button" class="btn-secondary" data-action="close-verify-modal">
+                    Cancel
+                </button>
+                <button type="button" id="verify-retry-btn" class="btn-gold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 2v6h-6"/>
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                    </svg>
+                    Retry
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

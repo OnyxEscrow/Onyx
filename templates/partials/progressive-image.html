@@ -1,0 +1,57 @@
+{#
+  Progressive Image Component (Blur-Up Loading)
+
+  Usage:
+    {% include "partials/progressive-image.html" %}
+
+  Required context:
+    - image_src: Full-size image URL
+    - image_alt: Alt text for accessibility
+
+  Optional context:
+    - placeholder_src: Low-res placeholder image (defaults to data:image placeholder)
+    - image_class: Additional CSS classes
+    - aspect_ratio: "1-1", "4-3", "16-9", "3-4" (defaults to none)
+    - lazy: true/false (defaults to true)
+
+  Example:
+    {% set image_src = listing.image_url %}
+    {% set image_alt = listing.title %}
+    {% set aspect_ratio = "4-3" %}
+    {% include "partials/progressive-image.html" %}
+#}
+
+{% set src = image_src | default(value="") %}
+{% set alt = image_alt | default(value="Image") %}
+{% set placeholder = placeholder_src | default(value="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'%3E%3Crect fill='%23121214' width='400' height='300'/%3E%3C/svg%3E") %}
+{% set extra_class = image_class | default(value="") %}
+{% set ratio = aspect_ratio | default(value="") %}
+{% set is_lazy = lazy | default(value=true) %}
+
+<div class="progressive-image {% if ratio %}aspect-{{ ratio }}{% endif %} {{ extra_class }}">
+    {# Low-res placeholder with blur #}
+    <div class="progressive-image__placeholder" style="background-image: url('{{ placeholder }}');"></div>
+
+    {# Loading spinner #}
+    <div class="progressive-image__spinner"></div>
+
+    {# Full resolution image #}
+    {% if is_lazy %}
+    <img
+        class="progressive-image__full"
+        data-src="{{ src }}"
+        data-lazy
+        alt="{{ alt }}"
+        loading="lazy"
+        decoding="async"
+    >
+    {% else %}
+    <img
+        class="progressive-image__full"
+        src="{{ src }}"
+        alt="{{ alt }}"
+        loading="eager"
+        decoding="async"
+    >
+    {% endif %}
+</div>

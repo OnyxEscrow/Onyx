@@ -1,0 +1,194 @@
+{#
+  NEXUS TOOLTIP COMPONENT
+
+  Usage:
+    {% include "partials/nexus/molecules/tooltip.html" %}
+
+  Parameters:
+    - text (required): Tooltip text
+    - content (required): Content that triggers the tooltip
+    - position (optional): top|bottom|left|right (default: top)
+    - delay (optional): Delay in ms before showing (default: 200)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set tooltip_position = position | default(value="top") %}
+{% set tooltip_delay = delay | default(value=200) %}
+{% set tooltip_id = id | default(value="tooltip-" ~ range(end=10000) | random) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-tooltip-wrapper" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ tooltip_id }}">
+  {# Content (trigger) #}
+  <div
+    class="nexus-tooltip-trigger"
+    onmouseenter="showTooltip('{{ tooltip_id }}', {{ tooltip_delay }})"
+    onmouseleave="hideTooltip('{{ tooltip_id }}')"
+    onfocus="showTooltip('{{ tooltip_id }}', {{ tooltip_delay }})"
+    onblur="hideTooltip('{{ tooltip_id }}')"
+  >
+    {{ content | safe }}
+  </div>
+
+  {# Tooltip #}
+  <div class="nexus-tooltip nexus-tooltip-{{ tooltip_position }}" role="tooltip" aria-hidden="true">
+    {{ text }}
+  </div>
+</div>
+
+<script>
+var tooltipTimeouts = {};
+
+function showTooltip(id, delay) {
+  var wrapper = document.getElementById(id);
+  var tooltip = wrapper.querySelector('.nexus-tooltip');
+
+  tooltipTimeouts[id] = setTimeout(function() {
+    tooltip.setAttribute('aria-hidden', 'false');
+  }, delay);
+}
+
+function hideTooltip(id) {
+  if (tooltipTimeouts[id]) {
+    clearTimeout(tooltipTimeouts[id]);
+    delete tooltipTimeouts[id];
+  }
+
+  var wrapper = document.getElementById(id);
+  var tooltip = wrapper.querySelector('.nexus-tooltip');
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+</script>
+
+<style>
+/* Tooltip Wrapper */
+.nexus-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Tooltip Trigger */
+.nexus-tooltip-trigger {
+  display: inline-block;
+}
+
+/* Base Tooltip */
+.nexus-tooltip {
+  position: absolute;
+  z-index: 9999;
+  padding: var(--nexus-space-2) var(--nexus-space-3);
+  background-color: var(--nexus-fg);
+  color: var(--nexus-bg);
+  font-size: var(--nexus-text-xs);
+  font-weight: var(--nexus-weight-medium);
+  line-height: var(--nexus-leading-tight);
+  border-radius: var(--nexus-radius-sm);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+  pointer-events: none;
+  box-shadow: var(--nexus-shadow-lg);
+}
+
+.nexus-tooltip[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+}
+
+/* Tooltip Arrow (using ::after pseudo-element) */
+.nexus-tooltip::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+}
+
+/* Position: Top */
+.nexus-tooltip-top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.nexus-tooltip-top[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.nexus-tooltip-top::after {
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-top-color: var(--nexus-fg);
+}
+
+/* Position: Bottom */
+.nexus-tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.nexus-tooltip-bottom[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.nexus-tooltip-bottom::after {
+  bottom: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-bottom-color: var(--nexus-fg);
+}
+
+/* Position: Left */
+.nexus-tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.nexus-tooltip-left[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.nexus-tooltip-left::after {
+  left: 100%;
+  top: 50%;
+  margin-top: -5px;
+  border-left-color: var(--nexus-fg);
+}
+
+/* Position: Right */
+.nexus-tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.nexus-tooltip-right[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.nexus-tooltip-right::after {
+  right: 100%;
+  top: 50%;
+  margin-top: -5px;
+  border-right-color: var(--nexus-fg);
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .nexus-tooltip {
+    transition: opacity 0.1s ease-out;
+    transform: scale(1) !important;
+  }
+}
+</style>

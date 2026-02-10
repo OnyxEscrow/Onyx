@@ -1,0 +1,177 @@
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+log/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Security - NEVER commit these
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+tokens/
+api_keys/
+
+# Monero specific
+*.wallet
+*.keys
+*.address.txt
+*.seed
+monero_data/
+testnet_data/
+mainnet_data/
+
+# Tor specific
+tor_data/
+hidden_service/
+*.onion
+torrc
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Node.js (for MCP servers)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Security theatre detection
+.security-theatre-ignore.local
+
+# Metrics and monitoring
+metrics/local/
+monitoring/local/
+
+# Documentation build
+docs/_build/
+docs/.doctrees/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Gemini CLI Checkpoints
+.checkpoints/
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Profiling
+*.prof
+perf.data*
+
+# Local configuration overrides
+config.local.*
+settings.local.*
+# Phase 4.5 - Secrets (DO NOT COMMIT)
+4.5/security/age.key
+4.5/security/backup-gpg-key.asc
+4.5/docker/.env
+*.key
+*.asc
+
+# Ignore testnet data, logs, and databases
+/testnet-data/
+/testnet-wallets/
+
+# Monero wallet RPC logs and data
+monero-wallet-rpc.log*
+.monero-wallets/
+stagenet-wallets/
+stagenet-data/
+mainnet-wallets/
+mainnet-data/
+monitor-wallets/
+
+# Environment files - NEVER commit real secrets
+.env.mainnet
+.env.production
+.env.*.production
+*.mainnet.env
+
+# PID files
+.*.pid
+*.pid
+
+# SQLite WAL files
+*.db-wal
+*.db-shm
+
+# Large binaries
+frontend-build/tailwindcss
+
+# Claude Code / AI tooling (exclude from public repo)
+.claude/
+CLAUDE.md
+.github/workflows/claude-*.yml
+
+# Internal docs (not for public release)
+DOX/DANGERZONE/
+DOX/protocols/
+scripts/ai/
+backups/
+.env.bak
+
+# Infrastructure (contains real server details)
+infrastructure/ansible/inventory/production/
+
+# Coverage data
+.coverage

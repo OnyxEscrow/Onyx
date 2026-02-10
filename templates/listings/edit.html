@@ -1,0 +1,145 @@
+{% extends "base-aura.html" %}
+
+{% block title %}Edit Listing - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="min-h-screen flex justify-center p-4 md:p-8 relative pt-32 pb-20">
+
+    <div class="w-full max-w-3xl">
+        <!-- Header -->
+        <div class="mb-8 flex flex-col md:flex-row justify-between items-end gap-4">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-light text-white mb-2">Edit <span
+                        class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Listing</span>
+                </h1>
+                <p class="text-gray-400">Update your product information.</p>
+            </div>
+
+            <nav class="flex items-center gap-2 text-sm text-gray-500">
+                <a href="/" class="hover:text-white transition-colors">Home</a>
+                <span>/</span>
+                <a href="/listings" class="hover:text-white transition-colors">Listings</a>
+                <span>/</span>
+                <a href="/listings/{{ listing.id }}" class="hover:text-white transition-colors">{{ listing.title |
+                    truncate(length=20) }}</a>
+                <span>/</span>
+                <span class="text-cyan-400">Edit</span>
+            </nav>
+        </div>
+
+        <div
+            class="bg-[#0F1115]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+            <!-- Ambient Glow -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-[80px] pointer-events-none">
+            </div>
+
+            <form id="edit-listing-form" class="space-y-6 relative z-10">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- Title -->
+                <div class="space-y-2">
+                    <label for="title"
+                        class="text-xs text-gray-400 uppercase tracking-wider font-bold ml-1">Title</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors">
+                            <i data-lucide="type" class="w-4 h-4"></i>
+                        </div>
+                        <input type="text" id="title" name="title" required minlength="3" maxlength="200"
+                            value="{{ listing.title }}"
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all">
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="space-y-2">
+                    <label for="description"
+                        class="text-xs text-gray-400 uppercase tracking-wider font-bold ml-1">Description</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-4 text-gray-500 group-focus-within:text-cyan-400 transition-colors">
+                            <i data-lucide="file-text" class="w-4 h-4"></i>
+                        </div>
+                        <textarea id="description" name="description" required minlength="10" maxlength="5000" rows="6"
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all resize-y">{{ listing.description }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Price & Stock -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="price_xmr"
+                            class="text-xs text-gray-400 uppercase tracking-wider font-bold ml-1">Price (Atomic
+                            Units)</label>
+                        <div class="relative group">
+                            <div class="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500 font-bold">
+                                A
+                            </div>
+                            <input type="number" id="price_xmr" name="price_xmr" required min="1"
+                                value="{{ listing.price_xmr }}"
+                                class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 focus:bg-black/40 transition-all font-mono">
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">1 XMR = 1,000,000,000,000 atomic units</p>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="stock"
+                            class="text-xs text-gray-400 uppercase tracking-wider font-bold ml-1">Stock</label>
+                        <div class="relative group">
+                            <div
+                                class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-cyan-400 transition-colors">
+                                <i data-lucide="package" class="w-4 h-4"></i>
+                            </div>
+                            <input type="number" id="stock" name="stock" required min="0" value="{{ listing.stock }}"
+                                class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/50 focus:bg-black/40 transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Images -->
+                <div class="space-y-2">
+                    <label class="text-xs text-gray-400 uppercase tracking-wider font-bold ml-1">Images</label>
+                    <div id="image-upload-container" data-listing-id="{{ listing.id }}"
+                        class="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:border-cyan-500/30 hover:bg-white/5 transition-all cursor-pointer relative group">
+
+                        <div
+                            class="flex flex-col items-center gap-3 text-gray-400 group-hover:text-cyan-400 transition-colors">
+                            <div
+                                class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                <i data-lucide="image-plus" class="w-6 h-6"></i>
+                            </div>
+                            <div class="text-sm font-medium">Click to upload new images</div>
+                            <div class="text-xs text-gray-500">Existing images will be preserved unless deleted</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-4 pt-4">
+                    <a href="/listings/{{ listing.id }}"
+                        class="px-6 py-3 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 transition-colors font-medium">Cancel</a>
+                    <button type="submit"
+                        class="flex-1 group relative rounded-xl p-[1px] overflow-hidden shadow-lg shadow-cyan-900/20">
+                        <div
+                            class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#06b6d4_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        </div>
+                        <div
+                            class="relative w-full py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                            <i data-lucide="save" class="w-5 h-5"></i>
+                            Update Listing
+                        </div>
+                    </button>
+                </div>
+            </form>
+            <div id="listing-result" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<script src="/static/js/edit-listing.js" defer></script>
+<script src="/static/js/upload-images.js" defer></script>
+{% endblock %}

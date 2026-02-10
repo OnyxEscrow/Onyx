@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FROST MARKET - Secure and private marketplace using Monero and 2-of-3 multisig escrow">
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>{% block title %}FROST MARKET{% endblock %}</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+    {% block extra_css %}{% endblock %}
+
+    <!-- HTMX -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="/static/js/lucide.min.js"></script>
+</head>
+
+<body class="apple-theme">
+    {% include "header.html" %}
+
+    <!-- Main Content -->
+    <main class="apple-page">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

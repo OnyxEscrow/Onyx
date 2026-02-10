@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Non-Custodial Multisig Coordination - Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-number {
+            background: #667eea;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group textarea {
+            min-height: 100px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .output {
+            background: #1e293b;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin-top: 15px;
+        }
+
+        .output .error {
+            color: #ef4444;
+        }
+
+        .output .success {
+            color: #10b981;
+        }
+
+        .output .info {
+            color: #3b82f6;
+        }
+
+        .output .warn {
+            color: #f59e0b;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-complete {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-ready {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .info-box {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #1e40af;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Non-Custodial Multisig Coordination Test</h1>
+            <p>Test the new DbMultisigCoordinator with browser-based WASM client</p>
+        </div>
+
+        <div class="content">
+            <!-- Section 1: Initialize Session -->
+            <div class="section">
+                <h2>
+                    <span class="section-number">1</span>
+                    Initialize Multisig Session
+                </h2>
+                <div class="input-group">
+                    <label>Escrow ID (UUID):</label>
+                    <input type="text" id="escrow-id" placeholder="e.g., 550e8400-e29b-41d4-a716-446655440000" value="">
+                </div>
+                <button class="btn btn-primary" onclick="generateEscrowId()">Generate New UUID</button>
+                <button class="btn btn-success" onclick="initSession()">Initialize Session</button>
+                <div class="output" id="init-output"></div>
+            </div>
+
+            <!-- Section 2: Submit Multisig Info (Round 1) -->
+            <div class="section">
+                <h2>
+                    <span class="section-number">2</span>
+                    Submit Round 1 (prepare_multisig)
+                </h2>
+                <div class="input-group">
+                    <label>User ID (Participant):</label>
+                    <select id="user-role">
+                        <option value="buyer_user_123">Buyer (buyer_user_123)</option>
+                        <option value="vendor_user_456">Vendor (vendor_user_456)</option>
+                        <option value="arbiter_user_789">Arbiter (arbiter_user_789)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Multisig Info Blob (from prepare_multisig):</label>
+                    <textarea id="round1-blob" placeholder="Paste prepare_multisig() output here..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="generateMockBlob(1)">Generate Mock Blob</button>
+                <button class="btn btn-success" onclick="submitRound1()">Submit Round 1</button>
+                <div class="output" id="submit1-output"></div>
+            </div>
+
+            <!-- Section 3: Get Peer Info -->
+            <div class="section">
+                <h2>
+                    <span class="section-number">3</span>
+                    Get Peer Multisig Info
+                </h2>
+                <button class="btn btn-primary" onclick="getPeerInfo()">Fetch Peer Blobs</button>
+                <button class="btn btn-warning" onclick="waitForPeers()">Wait for All Peers</button>
+                <div class="output" id="peer-output"></div>
+            </div>
+
+            <!-- Section 4: Submit Round 2 -->
+            <div class="section">
+                <h2>
+                    <span class="section-number">4</span>
+                    Submit Round 2 (export_multisig_info)
+                </h2>
+                <div class="input-group">
+                    <label>Export Multisig Info Blob:</label>
+                    <textarea id="round2-blob" placeholder="Paste export_multisig_info() output here..."></textarea>
+                </div>
+                <button class="btn btn-primary" onclick="generateMockBlob(2)">Generate Mock Export</button>
+                <button class="btn btn-success" onclick="submitRound2()">Submit Round 2</button>
+                <div class="output" id="submit2-output"></div>
+            </div>
+
+            <!-- Section 5: Check Status -->
+            <div class="section">
+                <h2>
+                    <span class="section-number">5</span>
+                    Check Session Status
+                </h2>
+                <button class="btn btn-primary" onclick="checkStatus()">Get Status</button>
+                <button class="btn btn-warning" onclick="pollStatus()">Auto-Poll (10s)</button>
+                <button class="btn" onclick="stopPolling()" style="background: #ef4444; color: white;">Stop Polling</button>
+                <div class="output" id="status-output"></div>
+            </div>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <strong>ℹ️ Instructions:</strong><br>
+                1. Click "Generate New UUID" to create an escrow ID<br>
+                2. Click "Initialize Session" to create multisig coordination<br>
+                3. Submit Round 1 info for all 3 participants (buyer, vendor, arbiter)<br>
+                4. Wait for peers to submit their Round 1 info<br>
+                5. Submit Round 2 exports for synchronization<br>
+                6. Check final status - should show "Ready" with multisig address
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, {
+            init_multisig_session,
+            submit_multisig_info,
+            get_peer_multisig_info,
+            get_multisig_status
+        } from '/static/wasm/wallet/wallet_wasm.js';
+
+        // Initialize WASM module
+        let wasmReady = false;
+        init().then(() => {
+            wasmReady = true;
+            log('init-output', '✅ WASM module initialized successfully', 'success');
+        }).catch(err => {
+            log('init-output', '❌ WASM initialization failed: ' + err, 'error');
+        });
+
+        // Make functions global
+        window.init_multisig_session = init_multisig_session;
+        window.submit_multisig_info = submit_multisig_info;
+        window.get_peer_multisig_info = get_peer_multisig_info;
+        window.get_multisig_status = get_multisig_status;
+        window.wasmReady = () => wasmReady;
+
+        // Utility: Log to output
+        function log(elementId, message, type = 'info') {
+            const output = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        window.log = log;
+
+        // Utility: Clear output
+        function clearOutput(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        window.clearOutput = clearOutput;
+    </script>
+
+    <script>
+        let pollInterval = null;
+
+        // Generate UUID
+        function generateEscrowId() {
+            const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+            document.getElementById('escrow-id').value = uuid;
+            log('init-output', `Generated UUID: ${uuid}`, 'info');
+        }
+
+        // Generate mock multisig blob
+        function generateMockBlob(round) {
+            const userId = document.getElementById('user-role').value;
+            const mockBlob = btoa(`MOCK_MULTISIG_ROUND${round}_${userId}_${Date.now()}`);
+
+            if (round === 1) {
+                document.getElementById('round1-blob').value = mockBlob;
+                log('submit1-output', `Generated mock Round 1 blob for ${userId}`, 'info');
+            } else {
+                document.getElementById('round2-blob').value = mockBlob;
+                log('submit2-output', `Generated mock Round 2 export for ${userId}`, 'info');
+            }
+        }
+
+        // 1. Initialize Session
+        async function initSession() {
+            if (!window.wasmReady()) {
+                log('init-output', '❌ WASM not ready yet', 'error');
+                return;
+            }
+
+            clearOutput('init-output');
+            const escrowId = document.getElementById('escrow-id').value.trim();
+
+            if (!escrowId) {
+                log('init-output', '❌ Please enter an escrow ID', 'error');
+                return;
+            }
+
+            const participants = [
+                {role: "buyer", participantType: "remote", userId: "buyer_user_123"},
+                {role: "vendor", participantType: "remote", userId: "vendor_user_456"},
+                {role: "arbiter", participantType: "remote", userId: "arbiter_user_789"}
+            ];
+
+            log('init-output', `📤 Initializing session for escrow: ${escrowId}...`, 'info');
+
+            try {
+                const result = await window.init_multisig_session(escrowId, JSON.stringify(participants));
+                log('init-output', `✅ Session initialized successfully!`, 'success');
+                log('init-output', JSON.stringify(result, null, 2), 'success');
+            } catch (err) {
+                log('init-output', `❌ Error: ${err}`, 'error');
+            }
+        }
+
+        // 2. Submit Round 1
+        async function submitRound1() {
+            if (!window.wasmReady()) {
+                log('submit1-output', '❌ WASM not ready yet', 'error');
+                return;
+            }
+
+            clearOutput('submit1-output');
+            const escrowId = document.getElementById('escrow-id').value.trim();
+            const userId = document.getElementById('user-role').value;
+            const blob = document.getElementById('round1-blob').value.trim();
+
+            if (!escrowId || !blob) {
+                log('submit1-output', '❌ Missing escrow ID or blob', 'error');
+                return;
+            }
+
+            log('submit1-output', `📤 Submitting Round 1 for ${userId}...`, 'info');
+
+            try {
+                const result = await window.submit_multisig_info(escrowId, userId, blob, "initialization");
+                log('submit1-output', `✅ Round 1 submitted!`, 'success');
+                log('submit1-output', JSON.stringify(result, null, 2), 'success');
+            } catch (err) {
+                log('submit1-output', `❌ Error: ${err}`, 'error');
+            }
+        }
+
+        // 3. Get Peer Info
+        async function getPeerInfo() {
+            if (!window.wasmReady()) {
+                log('peer-output', '❌ WASM not ready yet', 'error');
+                return;
+            }
+
+            clearOutput('peer-output');
+            const escrowId = document.getElementById('escrow-id').value.trim();
+            const userId = document.getElementById('user-role').value;
+
+            if (!escrowId) {
+                log('peer-output', '❌ Missing escrow ID', 'error');
+                return;
+            }
+
+            log('peer-output', `📥 Fetching peer info for ${userId}...`, 'info');
+
+            try {
+                const result = await window.get_peer_multisig_info(escrowId, userId);
+                log('peer-output', `✅ Received ${result.count} peer blobs:`, 'success');
+                log('peer-output', JSON.stringify(result, null, 2), 'success');
+            } catch (err) {
+                log('peer-output', `❌ Error: ${err}`, 'error');
+            }
+        }
+
+        // Wait for peers (polling)
+        async function waitForPeers() {
+            const escrowId = document.getElementById('escrow-id').value.trim();
+            const userId = document.getElementById('user-role').value;
+
+            log('peer-output', `⏳ Waiting for 2 peers to submit...`, 'warn');
+
+            for (let i = 0; i < 20; i++) {
+                try {
+                    const result = await window.get_peer_multisig_info(escrowId, userId);
+                    log('peer-output', `Attempt ${i + 1}: ${result.count}/2 peers`, 'info');
+
+                    if (result.count >= 2) {
+                        log('peer-output', `✅ All peers submitted!`, 'success');
+                        log('peer-output', JSON.stringify(result, null, 2), 'success');
+                        return;
+                    }
+                } catch (err) {
+                    log('peer-output', `❌ Error: ${err}`, 'error');
+                    return;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+
+            log('peer-output', `⏱️ Timeout: Not all peers submitted`, 'warn');
+        }
+
+        // 4. Submit Round 2
+        async function submitRound2() {
+            if (!window.wasmReady()) {
+                log('submit2-output', '❌ WASM not ready yet', 'error');
+                return;
+            }
+
+            clearOutput('submit2-output');
+            const escrowId = document.getElementById('escrow-id').value.trim();
+            const userId = document.getElementById('user-role').value;
+            const blob = document.getElementById('round2-blob').value.trim();
+
+            if (!escrowId || !blob) {
+                log('submit2-output', '❌ Missing escrow ID or export blob', 'error');
+                return;
+            }
+
+            log('submit2-output', `📤 Submitting Round 2 export for ${userId}...`, 'info');
+
+            try {
+                const result = await window.submit_multisig_info(escrowId, userId, blob, "key_exchange");
+                log('submit2-output', `✅ Round 2 submitted!`, 'success');
+                log('submit2-output', JSON.stringify(result, null, 2), 'success');
+            } catch (err) {
+                log('submit2-output', `❌ Error: ${err}`, 'error');
+            }
+        }
+
+        // 5. Check Status
+        async function checkStatus() {
+            if (!window.wasmReady()) {
+                log('status-output', '❌ WASM not ready yet', 'error');
+                return;
+            }
+
+            clearOutput('status-output');
+            const escrowId = document.getElementById('escrow-id').value.trim();
+
+            if (!escrowId) {
+                log('status-output', '❌ Missing escrow ID', 'error');
+                return;
+            }
+
+            log('status-output', `📊 Checking status...`, 'info');
+
+            try {
+                const result = await window.get_multisig_status(escrowId);
+                log('status-output', `✅ Status retrieved:`, 'success');
+                log('status-output', JSON.stringify(result, null, 2), 'success');
+            } catch (err) {
+                log('status-output', `❌ Error: ${err}`, 'error');
+            }
+        }
+
+        // Poll status every 10s
+        function pollStatus() {
+            if (pollInterval) {
+                log('status-output', '⚠️ Already polling!', 'warn');
+                return;
+            }
+
+            log('status-output', '🔄 Starting auto-poll (every 10s)...', 'info');
+            checkStatus(); // Initial call
+
+            pollInterval = setInterval(checkStatus, 10000);
+        }
+
+        // Stop polling
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                log('status-output', '⏹️ Polling stopped', 'warn');
+            }
+        }
+
+        // Auto-generate UUID on load
+        window.addEventListener('load', () => {
+            generateEscrowId();
+        });
+    </script>
+</body>
+</html>

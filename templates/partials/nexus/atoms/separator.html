@@ -1,0 +1,74 @@
+{#
+  NEXUS SEPARATOR COMPONENT (Horizontal Rule)
+
+  Usage:
+    {% include "partials/nexus/atoms/separator.html" %}
+
+  Or with custom text:
+    {% include "partials/nexus/atoms/separator.html" %}
+
+  Parameters:
+    - text (optional): Text to display in center of separator
+    - orientation (optional): horizontal|vertical (default: horizontal)
+    - class (optional): Additional CSS classes
+#}
+
+{% set separator_orientation = orientation | default(value="horizontal") %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-separator nexus-separator-" ~ separator_orientation %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+{% if text %}
+  {# Separator with text #}
+  <div class="{{ css_classes }} nexus-separator-with-text" role="separator">
+    <span class="nexus-separator-line"></span>
+    <span class="nexus-separator-text">{{ text }}</span>
+    <span class="nexus-separator-line"></span>
+  </div>
+{% else %}
+  {# Simple separator #}
+  <hr class="{{ css_classes }}" role="separator">
+{% endif %}
+
+<style>
+/* Horizontal separator */
+.nexus-separator-horizontal {
+  border: none;
+  border-top: 1px solid var(--nexus-border);
+  margin: var(--nexus-space-6) 0;
+}
+
+/* Vertical separator */
+.nexus-separator-vertical {
+  width: 1px;
+  height: 100%;
+  background-color: var(--nexus-border);
+  margin: 0 var(--nexus-space-4);
+}
+
+/* Separator with text */
+.nexus-separator-with-text {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-4);
+  margin: var(--nexus-space-6) 0;
+}
+
+.nexus-separator-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--nexus-border);
+}
+
+.nexus-separator-text {
+  font-size: var(--nexus-text-xs);
+  font-weight: var(--nexus-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-wider);
+  color: var(--nexus-muted-fg);
+  white-space: nowrap;
+}
+</style>

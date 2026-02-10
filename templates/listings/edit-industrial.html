@@ -1,0 +1,150 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Edit Listing — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="create-listing-interface">
+    <div class="container-industrial" style="max-width: 800px;">
+
+        {# ===== HEADER ===== #}
+        <div class="create-listing-header">
+            <div class="create-listing-header__left">
+                <h1 class="h1-massive">
+                    Edit <span class="text-gold">Listing</span>
+                </h1>
+                <p class="create-listing-header__subtitle">
+                    Update your product information.
+                </p>
+            </div>
+            <nav class="breadcrumb">
+                <a href="/" class="breadcrumb__link">Home</a>
+                <span class="breadcrumb__sep">/</span>
+                <a href="/listings" class="breadcrumb__link">Listings</a>
+                <span class="breadcrumb__sep">/</span>
+                <a href="/listings/{{ listing.id }}" class="breadcrumb__link">{{ listing.title | truncate(length=20, end="...") }}</a>
+                <span class="breadcrumb__sep">/</span>
+                <span class="breadcrumb__current">Edit</span>
+            </nav>
+        </div>
+
+        {# ===== FORM ===== #}
+        <div class="form-card">
+            <form id="edit-listing-form" class="listing-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                {# Title #}
+                <div class="form-field">
+                    <label for="title" class="form-label">
+                        Title <span class="text-gold">*</span>
+                    </label>
+                    <div class="form-input-wrap">
+                        <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/>
+                            <line x1="12" x2="12" y1="4" y2="20"/>
+                        </svg>
+                        <input type="text" id="title" name="title" required
+                            minlength="3" maxlength="200"
+                            value="{{ listing.title }}"
+                            class="form-input form-input--icon">
+                    </div>
+                </div>
+
+                {# Description #}
+                <div class="form-field">
+                    <label for="description" class="form-label">
+                        Description <span class="text-gold">*</span>
+                    </label>
+                    <div class="form-input-wrap">
+                        <svg class="form-input-icon form-input-icon--top" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <textarea id="description" name="description" required
+                            minlength="10" maxlength="5000" rows="6"
+                            class="form-textarea form-textarea--icon">{{ listing.description }}</textarea>
+                    </div>
+                </div>
+
+                {# Price & Stock #}
+                <div class="form-row form-row--2col">
+                    <div class="form-field">
+                        <label for="price_xmr" class="form-label">
+                            Price (Atomic Units) <span class="text-gold">*</span>
+                        </label>
+                        <div class="form-input-wrap">
+                            <span class="form-input-icon" style="color: var(--nexus-gold); font-weight: 600;">A</span>
+                            <input type="number" id="price_xmr" name="price_xmr" required min="1"
+                                value="{{ listing.price_xmr }}"
+                                class="form-input form-input--icon form-input--mono">
+                        </div>
+                        <div class="form-hint">1 XMR = 1,000,000,000,000 atomic units</div>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="stock" class="form-label">
+                            Stock <span class="text-gold">*</span>
+                        </label>
+                        <div class="form-input-wrap">
+                            <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m7.5 4.27 9 5.15"/>
+                                <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                            </svg>
+                            <input type="number" id="stock" name="stock" required min="0"
+                                value="{{ listing.stock }}"
+                                class="form-input form-input--icon">
+                        </div>
+                    </div>
+                </div>
+
+                {# Shipping Cost #}
+                <div class="form-field">
+                    <label for="shipping_cost_xmr" class="form-label">
+                        Shipping Cost (Atomic Units)
+                    </label>
+                    <div class="form-input-wrap">
+                        <span class="form-input-icon" style="color: var(--nexus-gold); font-weight: 600;">A</span>
+                        <input type="number" id="shipping_cost_xmr" name="shipping_cost_xmr" min="0"
+                            value="{{ listing.shipping_cost_xmr | default(value=0) }}"
+                            class="form-input form-input--icon form-input--mono">
+                    </div>
+                    <div class="form-hint">Enter 0 for digital goods or free shipping. Added once per order.</div>
+                </div>
+
+                {# Image Upload #}
+                <div class="form-field">
+                    <label class="form-label">Images</label>
+                    <div id="image-upload-container" data-listing-id="{{ listing.id }}" class="image-upload-zone">
+                        <div class="image-upload-content">
+                            <div class="image-upload-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                    <circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                </svg>
+                            </div>
+                            <p class="image-upload-text">Click to upload new images</p>
+                            <p class="image-upload-hint">Existing images will be preserved unless deleted</p>
+                        </div>
+                    </div>
+                </div>
+
+                {# Actions #}
+                <div class="form-actions">
+                    <a href="/listings/{{ listing.id }}" class="btn-outline">Cancel</a>
+                    <button type="submit" class="btn-gold btn-shimmer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Update Listing
+                    </button>
+                </div>
+            </form>
+
+            <div id="listing-result" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/edit-listing.js" defer></script>
+<script src="/static/js/upload-images.js" defer></script>
+{% endblock %}

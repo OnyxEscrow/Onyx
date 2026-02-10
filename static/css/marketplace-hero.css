@@ -1,0 +1,117 @@
+
+/**
+ * MARKETPLACE - Animated Hero Background
+ *
+ * A subtle, on-brand animation suggesting a secure, decentralized network.
+ */
+
+.hero-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: hsl(var(--primary));
+    overflow: hidden;
+    z-index: -1; /* Behind the content */
+}
+
+/* Grid pattern */
+.hero-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        linear-gradient(to right, hsl(var(--border) / 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, hsl(var(--border) / 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: pan-grid 60s linear infinite;
+}
+
+@keyframes pan-grid {
+    0% { background-position: 0 0; }
+    100% { background-position: 1200px 1200px; }
+}
+
+/* Glowing particles */
+.hero-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.particle {
+    position: absolute;
+    background-color: hsl(var(--accent));
+    border-radius: 50%;
+    opacity: 0;
+    animation: float 25s infinite;
+    box-shadow: 0 0 8px hsl(var(--accent)), 0 0 16px hsl(var(--accent));
+}
+
+.particle:nth-child(1) {
+    width: 4px;
+    height: 4px;
+    left: 10%;
+    animation-duration: 15s;
+    animation-delay: -2s;
+}
+
+.particle:nth-child(2) {
+    width: 2px;
+    height: 2px;
+    left: 25%;
+    animation-duration: 20s;
+    animation-delay: -5s;
+}
+
+.particle:nth-child(3) {
+    width: 5px;
+    height: 5px;
+    left: 40%;
+    animation-duration: 18s;
+    animation-delay: -8s;
+}
+
+.particle:nth-child(4) {
+    width: 3px;
+    height: 3px;
+    left: 60%;
+    animation-duration: 22s;
+    animation-delay: -3s;
+}
+
+.particle:nth-child(5) {
+    width: 2px;
+    height: 2px;
+    left: 75%;
+    animation-duration: 17s;
+    animation-delay: -10s;
+}
+
+.particle:nth-child(6) {
+    width: 4px;
+    height: 4px;
+    left: 90%;
+    animation-duration: 19s;
+    animation-delay: -6s;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+    10%, 90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 0;
+    }
+}

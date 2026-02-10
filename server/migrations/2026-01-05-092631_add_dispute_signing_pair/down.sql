@@ -1,0 +1,3 @@
+-- Rollback dispute_signing_pair column
+-- Note: SQLite doesn't support DROP COLUMN directly
+-- Column will remain but can be ignored if rolled back

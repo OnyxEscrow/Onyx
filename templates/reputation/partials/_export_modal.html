@@ -1,0 +1,195 @@
+{# Export Reputation Modal #}
+{# Include this partial at the end of vendor_profile-industrial.html #}
+
+<div id="export-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export Reputation to IPFS
+            </h3>
+            <button type="button" class="modal-close" data-action="close-export-modal">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            {# Step 1: Confirmation #}
+            <div id="export-step-confirm" class="export-step">
+                <div class="export-preview">
+                    <div class="export-preview__icon">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="1.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                            <polyline points="9 12 11 14 15 10"/>
+                        </svg>
+                    </div>
+                    <h4 class="export-preview__title">Export Your Reputation</h4>
+                    <p class="export-preview__text">
+                        Your reputation file will be permanently stored on IPFS, a decentralized storage network.
+                        This creates a verifiable, tamper-proof record of your vendor history.
+                    </p>
+                </div>
+
+                <div class="export-stats-preview">
+                    <div class="export-stat">
+                        <span class="export-stat__value" id="export-review-count">{% if reputation and reputation.stats %}{{ reputation.stats.total_reviews }}{% else %}0{% endif %}</span>
+                        <span class="export-stat__label">Reviews</span>
+                    </div>
+                    <div class="export-stat">
+                        <span class="export-stat__value">{% if reputation and reputation.stats %}{{ reputation.stats.average_rating | round(precision=1) }}{% else %}0.0{% endif %}</span>
+                        <span class="export-stat__label">Avg Rating</span>
+                    </div>
+                    <div class="export-stat">
+                        <span class="export-stat__value">100%</span>
+                        <span class="export-stat__label">Verified</span>
+                    </div>
+                </div>
+
+                <div class="export-warning">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <span>Once exported, this record is permanent and publicly accessible.</span>
+                </div>
+            </div>
+
+            {# Step 2: Loading #}
+            <div id="export-step-loading" class="export-step" style="display: none;">
+                <div class="export-loading">
+                    <div class="export-loading__spinner">
+                        <svg class="animate-spin" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                        </svg>
+                    </div>
+                    <h4 class="export-loading__title">Uploading to IPFS...</h4>
+                    <p class="export-loading__text">
+                        Creating immutable record. This may take a few moments.
+                    </p>
+                </div>
+            </div>
+
+            {# Step 3: Success #}
+            <div id="export-step-success" class="export-step" style="display: none;">
+                <div class="export-success">
+                    <div class="export-success__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-success)" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <h4 class="export-success__title">Export Complete!</h4>
+                    <p class="export-success__text">
+                        Your reputation is now permanently stored on IPFS.
+                    </p>
+                </div>
+
+                {# IPFS Hash Display #}
+                <div class="export-hash-section">
+                    <label class="export-hash__label">IPFS Content Hash (CID)</label>
+                    <div class="export-hash-row">
+                        <code id="export-ipfs-hash" class="export-hash__value">Qm...</code>
+                        <button type="button" id="copy-hash-btn" class="btn-icon" title="Copy to clipboard">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                {# QR Code #}
+                <div class="export-qr-section">
+                    <div id="export-qr-code" class="export-qr-container"></div>
+                    <p class="export-qr__hint">Scan to verify on any device</p>
+                </div>
+
+                {# Gateway Link #}
+                <div class="export-gateway">
+                    <a id="export-gateway-link" href="#" target="_blank" rel="noopener" class="btn-link">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                        </svg>
+                        View on IPFS Gateway
+                    </a>
+                </div>
+            </div>
+
+            {# Step 4: Error #}
+            <div id="export-step-error" class="export-step" style="display: none;">
+                <div class="export-error">
+                    <div class="export-error__icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-destructive)" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <h4 class="export-error__title">Export Failed</h4>
+                    <p id="export-error-message" class="export-error__text">
+                        An error occurred while uploading to IPFS.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            {# Confirm Step Footer #}
+            <div id="export-footer-confirm" class="export-footer-step">
+                <button type="button" class="btn-secondary" data-action="close-export-modal">
+                    Cancel
+                </button>
+                <button type="button" id="export-confirm-btn" class="btn-gold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export to IPFS
+                </button>
+            </div>
+
+            {# Loading Step Footer #}
+            <div id="export-footer-loading" class="export-footer-step" style="display: none;">
+                <p class="text-muted text-sm">Please wait...</p>
+            </div>
+
+            {# Success Step Footer #}
+            <div id="export-footer-success" class="export-footer-step" style="display: none;">
+                <button type="button" id="download-json-btn" class="btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Download JSON
+                </button>
+                <button type="button" class="btn-gold" data-action="close-export-modal">
+                    Done
+                </button>
+            </div>
+
+            {# Error Step Footer #}
+            <div id="export-footer-error" class="export-footer-step" style="display: none;">
+                <button type="button" class="btn-secondary" data-action="close-export-modal">
+                    Cancel
+                </button>
+                <button type="button" id="export-retry-btn" class="btn-gold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 2v6h-6"/>
+                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+                    </svg>
+                    Retry
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

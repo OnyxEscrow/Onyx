@@ -1,0 +1,82 @@
+{# Template pour une carte de produit style "Aura" #}
+{# Attend un objet 'listing' dans le contexte #}
+
+<div class="group relative break-inside-avoid mb-6 rounded-2xl cursor-pointer transform transition-transform duration-500 hover:z-10 animate-reveal" data-category="{{ listing.category | default(value='Digital') }}">
+    
+    <!-- Glow/Border Container -->
+    <div class="absolute -inset-[1px] rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 group-hover:animate-pulse-glow pointer-events-none border border-white/0 group-hover:border-white/10"></div>
+
+    <!-- Main Content Container -->
+    <div class="relative overflow-hidden rounded-2xl isolate bg-charcoal">
+        
+        <!-- Background/Glass Effect -->
+        <div class="absolute inset-0 bg-glass-bg backdrop-blur-sm border border-glass-border opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none"></div>
+
+        <!-- Wishlist Button (HTMX trigger) -->
+        <button 
+            class="absolute top-4 right-4 z-30 p-2 rounded-full border border-white/10 bg-black/20 backdrop-blur-md opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 hover:bg-white/20 hover:scale-110 transition-all duration-300"
+            title="Add to Wishlist"
+            hx-post="/api/wishlist/{{ listing.id }}"
+            hx-swap="outerHTML">
+            <i data-lucide="heart" class="w-5 h-5 text-white transition-colors duration-300"></i>
+        </button>
+
+        <!-- Image Container -->
+        <div class="relative overflow-hidden aspect-[4/5]">
+           <!-- Gradient Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10"></div>
+          
+          {% if listing.image_cid %}
+            <img src="/api/listings/{{ listing.id }}/images/{{ listing.image_cid }}"
+                 alt="{{ listing.title }}"
+                 loading="lazy"
+                 onerror="this.src='https://picsum.photos/seed/{{ listing.id }}/600/800'"
+                 class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out will-change-transform">
+          {% else %}
+            <!-- Placeholder génératif CSS si pas d'image -->
+            <div class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <i data-lucide="image" class="w-12 h-12 text-gray-700"></i>
+            </div>
+          {% endif %}
+
+          <!-- View Details Button -->
+          <a href="/listings/{{ listing.id }}" class="absolute inset-0 flex items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-75">
+            <div class="px-6 py-2.5 bg-white/10 backdrop-blur-xl border border-white/30 rounded-full text-white text-xs font-bold uppercase tracking-widest transform translate-y-4 group-hover:translate-y-0 transition-all duration-500 shadow-[0_0_30px_rgba(0,0,0,0.3)] hover:bg-white hover:text-charcoal pointer-events-auto">
+              View Details
+            </div>
+          </a>
+
+          <!-- Content Overlay -->
+          <div class="absolute bottom-0 left-0 right-0 p-5 z-20 translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-out delay-75">
+            <div class="flex justify-between items-end mb-2">
+              <div class="flex-1 pr-4">
+                <h3 class="text-white text-lg font-light tracking-wide drop-shadow-lg leading-tight line-clamp-1">{{ listing.title }}</h3>
+                <div class="flex items-center gap-2 mt-1.5">
+                   <p class="text-gray-300 text-xs uppercase tracking-widest font-medium opacity-80">{{ listing.vendor | default(value="Unknown") }}</p>
+                   <div class="flex items-center gap-0.5 opacity-60">
+                       <i data-lucide="star" class="w-3 h-3 text-yellow-400 fill-yellow-400"></i>
+                       <span class="text-[10px] text-white">{{ listing.rating | default(value="5.0") }}</span>
+                   </div>
+                </div>
+              </div>
+              <div class="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-xs text-white font-semibold shadow-lg whitespace-nowrap">
+                <span data-xmr-price="{{ listing.price_xmr }}">{{ listing.price_xmr | round(precision=4) }}</span>
+                <span class="crypto-symbol">XMR</span>
+              </div>
+            </div>
+
+            <!-- Description Snippet -->
+            <p class="text-gray-400 text-xs font-light leading-relaxed line-clamp-2 mb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-100">
+              {{ listing.description }}
+            </p>
+            
+            <!-- Tags -->
+            <div class="flex flex-wrap gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-500 delay-150">
+              <span class="text-[10px] text-gray-200 border border-white/10 px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm">
+                  {{ listing.category }}
+              </span>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>

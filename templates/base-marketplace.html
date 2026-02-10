@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FROST MARKET - Secure, Private Marketplace powered by Monero and 2/3 Multisig Escrow">
+    <meta name="robots" content="noindex, nofollow">
+
+    <title>{% block title %}FROST MARKET{% endblock %}</title>
+
+    <!-- Design System CSS -->
+    <link rel="stylesheet" href="/static/css/marketplace-variables.css">
+    <link rel="stylesheet" href="/static/css/marketplace-base.css">
+    <link rel="stylesheet" href="/static/css/marketplace-components.css">
+    <link rel="stylesheet" href="/static/css/dispute-system.css">
+
+    <!-- HTMX (locally served, Tor-safe) -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation Header -->
+    <header class="header">
+        <div class="container header-container">
+            <!-- Logo -->
+            <div class="header-logo">
+                <a href="/" style="color: inherit; text-decoration: none;">FROST MARKET</a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="header-nav">
+                <a href="/">Home</a>
+                <a href="/listings">Listings</a>
+                {% if logged_in and role == "vendor" %}
+                <a href="/listings/create">Sell</a>
+                {% endif %}
+                {% if logged_in %}
+                <a href="/orders">Orders</a>
+                {% endif %}
+            </nav>
+
+            <!-- Actions -->
+            <div class="header-actions">
+                <!-- Shopping Cart -->
+                <a href="/cart" class="btn btn-ghost btn-icon relative" aria-label="Shopping cart">
+                    <svg class="lucide" viewBox="0 0 24 24">
+                        <circle cx="9" cy="21" r="1"/>
+                        <circle cx="20" cy="21" r="1"/>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span class="cart-badge" style="display: none; position: absolute; top: -4px; right: -4px; background: hsl(var(--primary)); color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 0.75rem; font-weight: 600; display: flex; align-items: center; justify-content: center;">0</span>
+                </a>
+
+                {% if logged_in %}
+                    <!-- User menu -->
+                    <div class="relative user-menu-container">
+                        <button class="btn btn-ghost btn-icon" id="user-menu-btn" aria-label="User menu">
+                            <svg class="lucide" viewBox="0 0 24 24">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="user-menu-dropdown" class="user-menu-dropdown" style="display: none;">
+                            <div class="user-menu-header">
+                                <div class="user-menu-avatar">
+                                    <svg viewBox="0 0 24 24" style="width: 20px; height: 20px;">
+                                        <circle cx="12" cy="7" r="4"/>
+                                        <path d="M5.5 21a7.5 7.5 0 0 1 13 0"/>
+                                    </svg>
+                                </div>
+                                <div class="user-menu-info">
+                                    <div class="user-menu-name">{{ username }}</div>
+                                    <div class="user-menu-role">{{ user_role }}</div>
+                                </div>
+                            </div>
+
+                            <div class="user-menu-divider"></div>
+
+                            <div class="user-menu-links">
+                                <a href="/profile" class="user-menu-link">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                        <circle cx="12" cy="7" r="4"/>
+                                    </svg>
+                                    <span>Profile</span>
+                                </a>
+
+                                <a href="/orders" class="user-menu-link">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    </svg>
+                                    <span>My Orders</span>
+                                </a>
+
+                                {% if is_vendor %}
+                                <a href="/vendor/listings" class="user-menu-link">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                                        <path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                        <path d="M3 9V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4"/>
+                                    </svg>
+                                    <span>My Listings</span>
+                                </a>
+                                {% endif %}
+
+                                <a href="/settings" class="user-menu-link">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3"/>
+                                    </svg>
+                                    <span>Settings</span>
+                                </a>
+                            </div>
+
+                            <div class="user-menu-divider"></div>
+
+                            <form method="POST" action="/api/auth/logout" class="user-menu-logout-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="user-menu-link user-menu-logout">
+                                    <svg viewBox="0 0 24 24" style="width: 16px; height: 16px;">
+                                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                                        <polyline points="16 17 21 12 16 7"/>
+                                        <line x1="21" y1="12" x2="9" y2="12"/>
+                                    </svg>
+                                    <span>Logout</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Login button -->
+                    <a href="/login" class="btn btn-primary btn-sm">
+                        <svg class="lucide lucide-sm" viewBox="0 0 24 24">
+                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <span class="hidden md:inline">Login</span>
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-logo">FROST MARKET</div>
+            <p class="footer-tagline">Your Market. Your Keys. Your Privacy.</p>
+            <p class="footer-copyright">© 2025 FROST MARKET. Built for financial sovereignty.</p>
+        </div>
+    </footer>
+
+    <!-- Base JavaScript -->
+    <script src="/static/js/base.js"></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

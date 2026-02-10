@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Profile - FROST MARKET</title>
+    <meta name="description" content="View vendor reputation and reviews on FROST MARKET.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+</head>
+
+<body class="apple-theme">
+    {% include "header.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 100px; max-width: 900px;">
+            <!-- Vendor Header Card -->
+            <div class="apple-vendor-profile-header">
+                <div class="apple-vendor-profile-gradient"></div>
+
+                <div class="apple-vendor-profile-info">
+                    <div class="apple-vendor-avatar">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+
+                    <div class="apple-vendor-profile-details">
+                        <div class="apple-vendor-name-row">
+                            <h1 class="apple-vendor-profile-name">
+                                Vendor #{{ vendor_id | truncate(length=8, end="") }}
+                            </h1>
+                            {% if is_vendor %}
+                            <span class="apple-vendor-you-badge">This is you</span>
+                            {% endif %}
+                        </div>
+
+                        <div class="apple-vendor-meta">
+                            <!-- Rating -->
+                            <div class="apple-vendor-rating">
+                                <div class="apple-vendor-stars">
+                                    {% for i in range(end=5) %}
+                                    {% if i < reputation.stats.average_rating | round %}
+                                    <svg class="apple-star filled" width="18" height="18" viewBox="0 0 24 24">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    {% else %}
+                                    <svg class="apple-star" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="apple-vendor-rating-value">{{ reputation.stats.average_rating |
+                                    round(precision=1) }}</span>
+                                <span class="apple-vendor-rating-count">({{ reputation.stats.total_reviews }}
+                                    reviews)</span>
+                            </div>
+
+                            <!-- Member Since -->
+                            <div class="apple-vendor-member-since">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                                </svg>
+                                <span>Member since {{ reputation.generated_at | date(format="%Y") }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="apple-vendor-actions">
+                        {% if is_vendor %}
+                        <form action="/api/reputation/export" method="POST" style="margin: 0;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button type="submit" class="apple-btn apple-btn-outline">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export to IPFS
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <div id="verification-status" class="apple-verification-status">
+                            <div class="apple-verification-dot" id="status-dot"></div>
+                            <span id="status-text">Verifying signatures...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviews Section -->
+            <div class="apple-reviews-section">
+                <h2 class="apple-section-title">Customer Reviews</h2>
+
+                {% if reputation.reviews | length > 0 %}
+                <div class="apple-reviews-list">
+                    {% for review in reputation.reviews %}
+                    <div class="apple-review-card" data-review-signature="{{ review.signature }}"
+                        data-review-json='{{ review | json_encode | safe }}'>
+                        <div class="apple-review-header">
+                            <div class="apple-review-rating-row">
+                                <div class="apple-review-stars">
+                                    {% for i in range(end=5) %}
+                                    {% if i < review.rating %}
+                                    <svg class="apple-star filled" width="14" height="14" viewBox="0 0 24 24">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    {% else %}
+                                    <svg class="apple-star" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <span class="apple-review-date">{{ review.timestamp | date(format="%b %d, %Y") }}</span>
+                            </div>
+
+                            <div class="apple-review-badge" id="badge-{{ loop.index }}">
+                                <svg class="apple-spin" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                                </svg>
+                                Verifying...
+                            </div>
+                        </div>
+
+                        {% if review.comment %}
+                        <p class="apple-review-comment">{{ review.comment }}</p>
+                        {% endif %}
+
+                        <div class="apple-review-footer">
+                            <div class="apple-review-meta">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M21 12a9 9 0 0 1-9 9m9-9a9 9 0 0 0-9-9m9 9H3m9 9a9 9 0 0 1-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 0 1 9-9" />
+                                </svg>
+                                <span>TXID: {{ review.txid | truncate(length=16, end="...") }}</span>
+                            </div>
+                            <div class="apple-review-meta" title="Ed25519 Signature">
+                                <span>SIG: {{ review.signature | truncate(length=12, end="...") }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty State -->
+                <div class="apple-empty-state">
+                    <div class="apple-empty-icon-wrapper">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                    </div>
+                    <h3 class="apple-empty-title">No Reviews Yet</h3>
+                    <p class="apple-empty-text">This vendor hasn't received any reviews yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </main>
+
+    <!-- Hidden data for WASM verification -->
+    <script id="reputation-data" type="application/json">
+        {{ reputation_json | safe }}
+    </script>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script type="module" src="/static/js/reputation-verify.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,566 @@
+{# Trust Meter Widget - Phase 1.1 #}
+{# Renders cryptographic protection status in a visually intuitive way #}
+{# "Trust Through Math, Not Permission" #}
+
+{% macro trust_meter(escrow, timeout_config) %}
+<div class="trust-meter" id="trust-meter-widget">
+  <style>
+    .trust-meter {
+      background: linear-gradient(135deg, rgba(13, 13, 13, 0.98), rgba(20, 20, 20, 0.95));
+      border: 1px solid hsl(0, 0%, 18%);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .trust-meter::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg,
+        hsl(0, 85%, 50%) 0%,
+        hsl(45, 100%, 50%) 33%,
+        hsl(145, 65%, 45%) 66%,
+        hsl(190, 100%, 50%) 100%);
+      opacity: 0.8;
+    }
+
+    .trust-meter-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .trust-meter-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .trust-meter-title h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      color: hsl(0, 0%, 90%);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .trust-meter-title .shield-icon {
+      width: 20px;
+      height: 20px;
+      color: hsl(145, 65%, 55%);
+    }
+
+    .protection-score {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid hsl(145, 65%, 40%);
+      border-radius: 20px;
+    }
+
+    .protection-score-value {
+      font-size: 18px;
+      font-weight: 800;
+      color: hsl(145, 65%, 55%);
+    }
+
+    .protection-score-label {
+      font-size: 10px;
+      color: hsl(145, 65%, 65%);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Trust Indicators Grid */
+    .trust-indicators {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .trust-indicators {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .trust-indicator {
+      background: rgba(10, 10, 10, 0.7);
+      border: 1px solid hsl(0, 0%, 15%);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .trust-indicator:hover {
+      border-color: hsl(0, 0%, 25%);
+      transform: translateY(-2px);
+    }
+
+    .trust-indicator.verified {
+      border-color: hsl(145, 65%, 35%);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(10, 10, 10, 0.7));
+    }
+
+    .trust-indicator.pending {
+      border-color: hsl(45, 100%, 40%);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(10, 10, 10, 0.7));
+    }
+
+    .trust-indicator.warning {
+      border-color: hsl(0, 85%, 45%);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(10, 10, 10, 0.7));
+    }
+
+    .indicator-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .indicator-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .indicator-icon.verified {
+      background: rgba(34, 197, 94, 0.2);
+      color: hsl(145, 65%, 55%);
+    }
+
+    .indicator-icon.pending {
+      background: rgba(251, 191, 36, 0.2);
+      color: hsl(45, 100%, 55%);
+    }
+
+    .indicator-icon.warning {
+      background: rgba(239, 68, 68, 0.2);
+      color: hsl(0, 85%, 60%);
+    }
+
+    .indicator-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .indicator-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: hsl(0, 0%, 60%);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .indicator-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: hsl(0, 0%, 95%);
+      margin-bottom: 4px;
+    }
+
+    .indicator-detail {
+      font-size: 11px;
+      color: hsl(0, 0%, 50%);
+      font-family: monospace;
+    }
+
+    /* Signature Progress */
+    .signature-progress {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .signature-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: hsl(0, 0%, 25%);
+      border: 2px solid hsl(0, 0%, 30%);
+      transition: all 0.3s ease;
+    }
+
+    .signature-dot.filled {
+      background: hsl(145, 65%, 50%);
+      border-color: hsl(145, 65%, 60%);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+
+    .signature-dot.target {
+      border-color: hsl(45, 100%, 50%);
+      animation: pulse-target 1.5s infinite;
+    }
+
+    @keyframes pulse-target {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+      50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
+    }
+
+    /* Countdown Timer */
+    .countdown-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .countdown-value {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: hsl(0, 0%, 95%);
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+    }
+
+    .countdown-value.urgent {
+      color: hsl(0, 85%, 60%);
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    /* Blockchain Verification Button */
+    .verify-blockchain-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: linear-gradient(135deg, hsl(190, 100%, 35%), hsl(200, 100%, 30%));
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      min-height: 44px; /* Mobile touch target */
+    }
+
+    .verify-blockchain-btn:hover {
+      background: linear-gradient(135deg, hsl(190, 100%, 40%), hsl(200, 100%, 35%));
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.3);
+    }
+
+    .verify-blockchain-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Amount Verification */
+    .amount-verification {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: rgba(10, 10, 10, 0.6);
+      border: 1px solid hsl(0, 0%, 15%);
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+
+    .amount-sent, .amount-confirmed {
+      text-align: center;
+    }
+
+    .amount-label {
+      display: block;
+      font-size: 10px;
+      color: hsl(0, 0%, 50%);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .amount-value {
+      font-size: 18px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .amount-sent .amount-value {
+      color: hsl(0, 0%, 80%);
+    }
+
+    .amount-confirmed .amount-value {
+      color: hsl(145, 65%, 55%);
+    }
+
+    .amount-match-icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .amount-match-icon svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .amount-match-icon.match svg {
+      color: hsl(145, 65%, 55%);
+    }
+
+    .amount-match-icon.mismatch svg {
+      color: hsl(0, 85%, 60%);
+    }
+
+    .amount-match-text {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .amount-match-text.match {
+      color: hsl(145, 65%, 55%);
+    }
+
+    .amount-match-text.mismatch {
+      color: hsl(0, 85%, 60%);
+    }
+  </style>
+
+  <div class="trust-meter-header">
+    <div class="trust-meter-title">
+      <svg class="shield-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+      </svg>
+      <h3>Protection Status</h3>
+    </div>
+
+    {# Calculate protection score based on escrow state #}
+    {% set protection_score = 0 %}
+    {% if escrow.multisig_address %}{% set protection_score = protection_score + 30 %}{% endif %}
+    {% if escrow.status == "funded" or escrow.status == "releasing" or escrow.status == "completed" %}{% set protection_score = protection_score + 40 %}{% endif %}
+    {% if escrow.transaction_hash %}{% set protection_score = protection_score + 20 %}{% endif %}
+    {% if escrow.frost_dkg_complete or escrow.signing_round >= 1 %}{% set protection_score = protection_score + 10 %}{% endif %}
+
+    <div class="protection-score">
+      <span class="protection-score-value">{{ protection_score }}%</span>
+      <span class="protection-score-label">Protected</span>
+    </div>
+  </div>
+
+  <div class="trust-indicators">
+    {# Indicator 1: Escrow Funding #}
+    <div class="trust-indicator {% if escrow.status == 'funded' or escrow.status == 'releasing' or escrow.status == 'completed' %}verified{% elif escrow.multisig_address %}pending{% else %}warning{% endif %}">
+      <div class="indicator-header">
+        <div class="indicator-icon {% if escrow.status == 'funded' or escrow.status == 'releasing' or escrow.status == 'completed' %}verified{% elif escrow.multisig_address %}pending{% else %}warning{% endif %}">
+          {% if escrow.status == 'funded' or escrow.status == 'releasing' or escrow.status == 'completed' %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          {% elif escrow.multisig_address %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {% else %}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          {% endif %}
+        </div>
+        <span class="indicator-label">Escrow Funding</span>
+      </div>
+      <div class="indicator-value">
+        {% if escrow.status == 'funded' or escrow.status == 'releasing' or escrow.status == 'completed' %}
+        Blockchain Verified
+        {% elif escrow.multisig_address %}
+        Awaiting Deposit
+        {% else %}
+        Setting Up Wallet
+        {% endif %}
+      </div>
+      {% if escrow.funding_tx_hash %}
+      <div class="indicator-detail">TX: {{ escrow.funding_tx_hash | truncate(length=16, end="...") }}</div>
+      {% elif escrow.transaction_hash %}
+      <div class="indicator-detail">TX: {{ escrow.transaction_hash | truncate(length=16, end="...") }}</div>
+      {% endif %}
+    </div>
+
+    {# Indicator 2: Signature Status #}
+    <div class="trust-indicator {% if escrow.signing_round >= 2 or escrow.status == 'completed' %}verified{% elif escrow.signing_round >= 1 %}pending{% else %}pending{% endif %}">
+      <div class="indicator-header">
+        <div class="indicator-icon {% if escrow.signing_round >= 2 or escrow.status == 'completed' %}verified{% else %}pending{% endif %}">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+        </div>
+        <span class="indicator-label">Signatures (2-of-3)</span>
+      </div>
+      <div class="indicator-value">
+        {% if escrow.signing_round >= 2 or escrow.status == 'completed' %}
+        Complete (2/2)
+        {% elif escrow.signing_round >= 1 %}
+        In Progress (1/2)
+        {% else %}
+        Awaiting (0/2)
+        {% endif %}
+      </div>
+      <div class="signature-progress">
+        <span class="signature-dot {% if escrow.signing_round >= 1 or escrow.status == 'completed' %}filled{% elif escrow.status == 'funded' %}target{% endif %}"></span>
+        <span class="signature-dot {% if escrow.signing_round >= 2 or escrow.status == 'completed' %}filled{% elif escrow.signing_round >= 1 %}target{% endif %}"></span>
+        <span style="font-size: 10px; color: hsl(0, 0%, 50%); margin-left: 4px;">of 3 required</span>
+      </div>
+    </div>
+
+    {# Indicator 3: Time Remaining #}
+    <div class="trust-indicator {% if escrow.status == 'completed' or escrow.status == 'refunded' %}verified{% else %}pending{% endif %}" id="time-indicator">
+      <div class="indicator-header">
+        <div class="indicator-icon pending">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <span class="indicator-label">Time Protection</span>
+      </div>
+      <div class="indicator-value">
+        {% if escrow.status == 'completed' or escrow.status == 'refunded' %}
+        Transaction Complete
+        {% elif escrow.status == 'disputed' %}
+        Dispute Resolution
+        {% else %}
+        Auto-Protection Active
+        {% endif %}
+      </div>
+      <div class="countdown-container" id="countdown-display">
+        {% if escrow.status != 'completed' and escrow.status != 'refunded' %}
+        <span class="countdown-value" id="countdown-timer">--:--:--</span>
+        <span style="font-size: 10px; color: hsl(0, 0%, 50%);">
+          {% if escrow.status == 'created' %}until auto-cancel{% elif escrow.status == 'disputed' %}until escalation{% else %}remaining{% endif %}
+        </span>
+        {% else %}
+        <span style="font-size: 12px; color: hsl(145, 65%, 55%);">Funds released securely</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# Amount Verification Section #}
+  {% if escrow.status == 'funded' or escrow.status == 'releasing' or escrow.status == 'completed' %}
+  <div class="amount-verification">
+    <div class="amount-sent">
+      <span class="amount-label">Amount Sent</span>
+      <span class="amount-value">{{ escrow.amount / 1000000000000 | round(precision=4) }} XMR</span>
+    </div>
+
+    <div class="amount-match-icon match">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+      <span class="amount-match-text match">Verified</span>
+    </div>
+
+    <div class="amount-confirmed">
+      <span class="amount-label">Escrow Confirms</span>
+      <span class="amount-value">{{ escrow.amount / 1000000000000 | round(precision=4) }} XMR</span>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Blockchain Verification Button #}
+  {% if escrow.transaction_hash or escrow.funding_tx_hash %}
+  <div style="margin-top: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+    {% set tx_hash = escrow.funding_tx_hash | default(value=escrow.transaction_hash) %}
+    <a href="https://testnet.xmrchain.net/tx/{{ tx_hash }}"
+       target="_blank"
+       rel="noopener noreferrer"
+       class="verify-blockchain-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+      Verify on Blockchain
+    </a>
+
+    <button onclick="navigator.clipboard.writeText('{{ tx_hash }}').then(() => alert('TX Hash copied!'))"
+            class="verify-blockchain-btn"
+            style="background: linear-gradient(135deg, hsl(0, 0%, 25%), hsl(0, 0%, 20%));">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      Copy TX Hash
+    </button>
+  </div>
+  {% endif %}
+</div>
+
+{# Countdown Timer Script #}
+<script>
+(function() {
+  const escrowStatus = '{{ escrow.status }}';
+  const createdAt = new Date('{{ escrow.created_at }}').getTime();
+  const updatedAt = new Date('{{ escrow.updated_at }}').getTime();
+
+  // Timeout values in seconds
+  const timeouts = {
+    created: {{ timeout_config.multisig_setup_timeout_secs | default(value=3600) }},
+    funded: {{ timeout_config.funding_timeout_secs | default(value=86400) }},
+    disputed: {{ timeout_config.dispute_resolution_timeout_secs | default(value=604800) }},
+    releasing: {{ timeout_config.transaction_confirmation_timeout_secs | default(value=21600) }},
+    refunding: {{ timeout_config.transaction_confirmation_timeout_secs | default(value=21600) }}
+  };
+
+  function updateCountdown() {
+    const countdownEl = document.getElementById('countdown-timer');
+    if (!countdownEl) return;
+
+    if (escrowStatus === 'completed' || escrowStatus === 'refunded' || escrowStatus === 'cancelled') {
+      return; // No countdown for terminal states
+    }
+
+    const timeout = timeouts[escrowStatus] || 86400;
+    const referenceTime = (escrowStatus === 'created') ? createdAt : updatedAt;
+    const deadline = referenceTime + (timeout * 1000);
+    const now = Date.now();
+    const remaining = deadline - now;
+
+    if (remaining <= 0) {
+      countdownEl.textContent = 'EXPIRED';
+      countdownEl.classList.add('urgent');
+      return;
+    }
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+    countdownEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    // Add urgent class if less than 1 hour remaining
+    if (remaining < 3600000) {
+      countdownEl.classList.add('urgent');
+    } else {
+      countdownEl.classList.remove('urgent');
+    }
+  }
+
+  // Update immediately and every second
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+})();
+</script>
+{% endmacro %}

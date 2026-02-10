@@ -1,0 +1,390 @@
+<!-- FROST MARKET Industrial Header Partial -->
+<!-- Unified header for all pages - extracted from base-industrial.html -->
+
+<!-- TX Feed Marquee Bar -->
+<div class="marquee-bar" id="marquee-container">
+    {% include "partials/industrial/marquee.html" %}
+</div>
+
+<!-- Header (Fixed Position - Gravity 4) -->
+<header class="header-industrial">
+    {# Logo - Left Side #}
+    <a href="/" class="logo-industrial" aria-label="Go to Home">
+        <div class="logo-industrial__icon">
+            <span class="logo-industrial__dot"></span>
+        </div>
+        <div class="logo-industrial__brand">
+            <span class="logo-industrial__text">FROST MARKET</span>
+            <span class="logo-industrial__subtitle">Protocol v3</span>
+        </div>
+    </a>
+
+    {# Connection Status Indicator #}
+    <div class="connection-status connection-status--online" id="connection-status" title="Connected to Tor network">
+        <span class="connection-status__dot"></span>
+        <span class="connection-status__text">TOR</span>
+    </div>
+
+    {# Navigation - Right Side (Desktop) #}
+    <nav class="nav-industrial__links flex items-center" style="gap: 8px;">
+        {% if logged_in %}
+        {# Unified Header Action Buttons - v0.66.4 #}
+        <style>
+            .header-action-btn {
+                position: relative;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255, 255, 255, 0.03);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 10px;
+                color: rgba(255, 255, 255, 0.6);
+                cursor: pointer;
+                transition: all 0.2s ease;
+                text-decoration: none;
+            }
+            .header-action-btn:hover {
+                background: rgba(255, 255, 255, 0.06);
+                border-color: rgba(255, 255, 255, 0.15);
+                color: rgba(255, 255, 255, 0.9);
+                transform: translateY(-1px);
+            }
+            .header-action-btn svg {
+                width: 18px;
+                height: 18px;
+            }
+            .header-action-btn--avatar {
+                background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+                border-color: rgba(212, 175, 55, 0.2);
+            }
+            .header-action-btn--avatar:hover {
+                background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
+                border-color: rgba(212, 175, 55, 0.4);
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+            }
+            .header-action-btn--avatar .avatar-letter {
+                font-size: 14px;
+                font-weight: 600;
+                color: var(--nexus-gold, #d4af37);
+            }
+            .header-action-btn--danger:hover {
+                border-color: rgba(239, 68, 68, 0.4);
+                color: #ef4444;
+                background: rgba(239, 68, 68, 0.08);
+            }
+            .header-action-badge {
+                position: absolute;
+                top: -4px;
+                right: -4px;
+                min-width: 16px;
+                height: 16px;
+                padding: 0 4px;
+                background: var(--nexus-gold, #d4af37);
+                color: #000;
+                font-size: 10px;
+                font-weight: 700;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px;
+                border: 2px solid rgba(0, 0, 0, 0.8);
+            }
+            .header-action-btn--sell {
+                width: auto;
+                padding: 0 14px;
+                gap: 6px;
+                background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+                border-color: rgba(34, 197, 94, 0.25);
+                color: #22c55e;
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.02em;
+            }
+            .header-action-btn--sell:hover {
+                background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(34, 197, 94, 0.1));
+                border-color: rgba(34, 197, 94, 0.5);
+                color: #4ade80;
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
+            }
+            .header-action-btn--sell svg {
+                width: 14px;
+                height: 14px;
+            }
+        </style>
+
+        {# Sell / Add Listing Button (Vendors Only) #}
+        {% if role is defined and role == "vendor" %}
+        <a href="/listings/new" class="header-action-btn header-action-btn--sell" title="Add new listing">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Sell</span>
+        </a>
+        {% endif %}
+
+        {# Arbiter Dashboard Button (Arbiters Only) #}
+        {% if role is defined and role == "arbiter" %}
+        <a href="/arbiter/dashboard" class="header-action-btn" title="Arbiter Dashboard - Resolve Disputes">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+            </svg>
+        </a>
+        {% endif %}
+
+        {# Notification Bell #}
+        <div class="notification-bell" id="notification-bell" style="position: relative;">
+            <button class="header-action-btn" title="Notifications" aria-label="View notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                </svg>
+                <span class="header-action-badge" id="notification-badge" style="display:none;">0</span>
+            </button>
+            <div class="notification-panel" id="notification-panel" hidden>
+                <div class="notification-panel__header">
+                    <h3 class="notification-panel__title">Notifications</h3>
+                    <button class="notification-panel__mark-read" id="notification-mark-all-read">Mark all read</button>
+                </div>
+                <div class="notification-panel__list notification-list" id="notification-list">
+                    <div class="notification-panel__empty">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                        </svg>
+                        <p>No notifications</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Secure Messages #}
+        <a href="/messages" class="header-action-btn" title="Secure Messages" id="messages-header-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="header-action-badge" id="message-notification-count" style="display:none;">0</span>
+        </a>
+
+        {# Search #}
+        <a href="/search" class="header-action-btn" title="Search Products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+            </svg>
+        </a>
+
+        {# Cart #}
+        <a href="/cart" class="header-action-btn" title="Cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+            {% if cart_count is defined and cart_count > 0 %}
+            <span class="header-action-badge">{{ cart_count }}</span>
+            {% endif %}
+        </a>
+
+        {# Profile Avatar #}
+        <a href="/profile" class="header-action-btn header-action-btn--avatar" title="Profile">
+            <span class="avatar-letter">{{ username | default(value="U") | truncate(length=1, end="") | upper }}</span>
+        </a>
+
+        {# Logout #}
+        <a href="/logout" class="header-action-btn header-action-btn--danger" title="Disconnect">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+            </svg>
+        </a>
+        {% else %}
+        <a href="/login" class="btn-gold-outline btn-shimmer">
+            Connect Identity
+        </a>
+        {% endif %}
+    </nav>
+
+    {# Mobile Nav Toggle #}
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="mobile-nav-drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+    </button>
+</header>
+
+{# Mobile Navigation Drawer #}
+<div class="mobile-nav-drawer" id="mobile-nav-drawer" aria-hidden="true">
+    <div class="mobile-nav-drawer__overlay" onclick="closeMobileNav()"></div>
+    <div class="mobile-nav-drawer__content">
+        <div class="mobile-nav-drawer__header">
+            <span style="font-family:var(--font-oswald);font-size:1.25rem;letter-spacing:0.1em;color:var(--nexus-gold);">FROST MARKET</span>
+            <button class="mobile-nav-drawer__close" onclick="closeMobileNav()" aria-label="Close navigation menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="mobile-nav-drawer__links">
+            <a href="/" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Home
+            </a>
+            <a href="/listings" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+                Browse
+            </a>
+            <a href="/search" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                Search
+            </a>
+            {% if logged_in %}
+            <a href="/cart" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+                Cart {% if cart_count is defined and cart_count > 0 %}({{ cart_count }}){% endif %}
+            </a>
+            <a href="/orders" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect width="8" height="4" x="8" y="2" rx="1" ry="1"/>
+                </svg>
+                Orders
+            </a>
+            {% if role is defined and role == "vendor" %}
+            <a href="/vendor/dashboard" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="7" height="7" x="3" y="3" rx="1"/>
+                    <rect width="7" height="7" x="14" y="3" rx="1"/>
+                    <rect width="7" height="7" x="14" y="14" rx="1"/>
+                    <rect width="7" height="7" x="3" y="14" rx="1"/>
+                </svg>
+                Vendor Dashboard
+            </a>
+            {% endif %}
+            {% if role is defined and role == "arbiter" %}
+            <a href="/arbiter/dashboard" class="mobile-nav-drawer__link" style="color: #a78bfa;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+                Arbiter Dashboard
+            </a>
+            {% endif %}
+            <a href="/profile" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="5"/>
+                    <path d="M20 21a8 8 0 1 0-16 0"/>
+                </svg>
+                Profile
+            </a>
+            <a href="/wallet" class="mobile-nav-drawer__link">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                </svg>
+                Wallet
+            </a>
+            {% endif %}
+        </div>
+        <div class="mobile-nav-drawer__footer">
+            {% if logged_in %}
+            <a href="/logout" class="mobile-nav-drawer__link" style="color: #ef4444;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" x2="9" y1="12" y2="12"/>
+                </svg>
+                Disconnect
+            </a>
+            {% else %}
+            <a href="/login" class="mobile-nav-drawer__link" style="color: var(--nexus-gold);">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" x2="3" y1="12" y2="12"/>
+                </svg>
+                Connect Identity
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Navigation JS -->
+<script nonce="{{ csp_nonce }}">
+    function openMobileNav() {
+        const drawer = document.getElementById('mobile-nav-drawer');
+        const toggle = document.getElementById('mobile-nav-toggle');
+        if (drawer) {
+            drawer.classList.add('is-open');
+            drawer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', 'true');
+        }
+    }
+
+    function closeMobileNav() {
+        const drawer = document.getElementById('mobile-nav-drawer');
+        const toggle = document.getElementById('mobile-nav-toggle');
+        if (drawer) {
+            drawer.classList.remove('is-open');
+            drawer.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', 'false');
+        }
+    }
+
+    // Mobile nav toggle click handler
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('mobile-nav-toggle');
+        if (toggle) {
+            toggle.addEventListener('click', function() {
+                const drawer = document.getElementById('mobile-nav-drawer');
+                if (drawer && drawer.classList.contains('is-open')) {
+                    closeMobileNav();
+                } else {
+                    openMobileNav();
+                }
+            });
+        }
+
+        // Close mobile nav on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMobileNav();
+            }
+        });
+
+        // Close on resize if screen becomes large
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeMobileNav();
+            }
+        });
+    });
+</script>

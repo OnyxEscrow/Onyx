@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
+  <title>{% block title %}Aura Marketplace{% endblock %}</title>
+
+  <!-- Tailwind CSS Local -->
+  <link rel="stylesheet" href="/static/css/aura.css">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Production console override -->
+  <script nonce="{{ csp_nonce }}">
+  (function(){var d=location.hostname;if(d!=='localhost'&&d!=='127.0.0.1'&&!d.endsWith('.onion')&&!window._nxC){window._nxC=1;var o=console.log;console.log=console.debug=console.info=function(){};o('%c NEXUS NON-CUSTODIAL ','background:#00ff41;color:black;font-weight:bold;padding:4px 8px;border-radius:4px','Keys never leave your browser.');}})();
+  </script>
+
+  <!-- HTMX -->
+  <script src="/static/js/htmx.min.js"></script>
+
+  <!-- Styles Globaux Aura -->
+  <style>
+    body {
+      background-color: #0F1115 !important;
+      color: white;
+      overflow-x: hidden;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0F1115;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Noise texture */
+    .bg-noise {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 50;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Aurora Background Component -->
+  <div id="aurora-container" className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+      <!-- Deep Charcoal Base -->
+      <div class="absolute inset-0 bg-charcoal"></div>
+
+      <!-- Flashlight / Spotlight Effect (JS controlled) -->
+      <div id="spotlight" class="absolute inset-0 opacity-100 transition-opacity duration-500 ease-in-out"
+        style="background: radial-gradient(800px circle at 50% 50%, rgba(255, 255, 255, 0.03), transparent 40%)">
+      </div>
+
+      <!-- Animated Blobs -->
+      <div
+        class="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full mix-blend-screen filter blur-[100px] animate-blob">
+      </div>
+      <div
+        class="absolute top-0 right-1/4 w-[400px] h-[400px] bg-cyan-600/20 rounded-full mix-blend-screen filter blur-[80px] animate-blob animation-delay-2000">
+      </div>
+      <div
+        class="absolute -bottom-32 left-1/3 w-[600px] h-[600px] bg-indigo-600/10 rounded-full mix-blend-screen filter blur-[120px] animate-blob animation-delay-4000">
+      </div>
+
+      <!-- Gradient Overlay -->
+      <div class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-charcoal/80"></div>
+    </div>
+  </div>
+
+  <div class="bg-noise"></div>
+
+  <!-- Main Content Injection -->
+  <div class="relative z-10">
+    {% block content %}{% endblock %}
+  </div>
+
+  <!-- Script pour l'effet Spotlight (traduction du useRef React) -->
+  <script nonce="{{ csp_nonce }}">
+    document.addEventListener('mousemove', (e) => {
+      const spotlight = document.getElementById('spotlight');
+      if (spotlight) {
+        const x = e.clientX;
+        const y = e.clientY;
+        spotlight.style.background = `radial-gradient(800px circle at ${x}px ${y}px, rgba(255, 255, 255, 0.03), transparent 40%)`;
+      }
+    });
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="/static/js/lucide.min.js"></script>
+  <script nonce="{{ csp_nonce }}">
+    lucide.createIcons();
+  </script>
+
+  <!-- Unified Wallet Wizard (v0.9.0 - single entry point) -->
+  {% include "components/wallet-wizard.html" %}
+  {% include "modals/seed-backup.html" %}
+  <script type="module" src="/static/js/wasm-loader.js?v=20251228_v580_rebuild2"></script>
+  <script src="/static/js/wallet-wizard.js"></script>
+
+  {% block scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,80 @@
+[workspace]
+members = [
+    "common",
+    "nexus-types",
+    "nexus-crypto-core",
+    "nexus-crypto-core/wasm",
+    "wallet",
+    "wallet/wasm",
+    "search/wasm",
+    "cli",
+    "server",
+    # "custodial",  # Documentation only - not implemented
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Monero Marketplace Team"]
+license = "MIT"
+repository = "https://github.com/monero-marketplace/tor-v2"
+description = "Monero Marketplace Tor v2.0 - Secure Escrow Platform"
+
+[workspace.dependencies]
+# Core dependencies
+tokio = { version = "1.35", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "1.0"
+futures = "0.3"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Crypto
+sha2 = "0.10"
+hex = "0.4"
+hmac = "0.12"
+
+# Shared types
+nexus-types = { path = "nexus-types" }
+nexus-crypto-core = { path = "nexus-crypto-core" }
+
+# CLI
+clap = { version = "4.4", features = ["derive"] }
+
+# Testing
+tokio-test = "0.4"
+
+[profile.dev]
+# PAS de LTO en dev - compilation rapide
+opt-level = 0
+debug = true
+split-debuginfo = "unpacked"
+incremental = true
+
+[profile.release]
+# Optimisation maximale
+lto = "fat"
+codegen-units = 1
+opt-level = 3
+
+# Sécurité & Robustesse
+overflow-checks = true   # Protection critique contre les bugs arithmétiques
+panic = "abort"          # Binaire plus léger et prévisible
+strip = true             # Symboles supprimés sans UPX
+
+# Performance
+debug = false
+incremental = false      # Build propre pour la prod
+
+[profile.dev-release]
+# Dev quotidien — ~5min build, 90% des perfs de release
+inherits = "release"
+lto = false              # Pas de LTO = link 10x plus rapide
+codegen-units = 8        # Parallélise la compilation
+incremental = true       # Réutilise le cache entre builds

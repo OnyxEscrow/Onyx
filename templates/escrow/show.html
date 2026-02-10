@@ -1,0 +1,2478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order #{{ escrow.id | truncate(length=8, end="") }} - FROST MARKET</title>
+    <meta name="description" content="View details of your protected payment on FROST MARKET.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css">
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css">
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* Industrial Theme Variables */
+        :root {
+            --nexus-bg: #0d0d0d;
+            --nexus-bg-card: rgba(18, 18, 18, 0.95);
+            --nexus-gold: #D4AF37;
+            --nexus-gold-hover: #E5C158;
+            --nexus-border: rgba(255, 255, 255, 0.08);
+            --nexus-text: #ffffff;
+            --nexus-text-muted: rgba(255, 255, 255, 0.5);
+            --font-oswald: 'Oswald', sans-serif;
+            --font-mono: 'Roboto Mono', monospace;
+        }
+
+        /* Body Background Override */
+        body.industrial-stealth {
+            background: var(--nexus-bg) !important;
+            min-height: 100vh;
+        }
+
+        /* Page Container Override */
+        .apple-page {
+            background: transparent !important;
+        }
+
+        .apple-container {
+            max-width: 1400px;
+        }
+
+        /* Page Title Override */
+        .apple-page-title {
+            font-family: var(--font-oswald) !important;
+            font-weight: 600 !important;
+            text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+            color: var(--nexus-text) !important;
+        }
+
+        .text-gold {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Card Overrides */
+        .apple-card {
+            background: var(--nexus-bg-card) !important;
+            border: 1px solid var(--nexus-border) !important;
+            backdrop-filter: blur(20px) !important;
+            border-radius: 8px !important;
+        }
+
+        .apple-card-header {
+            border-bottom: 1px solid var(--nexus-border) !important;
+            background: transparent !important;
+        }
+
+        .apple-card-title {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-gold) !important;
+            font-weight: 500 !important;
+        }
+
+        .apple-card-body {
+            color: var(--nexus-text) !important;
+        }
+
+        /* Badge Overrides */
+        .apple-badge {
+            font-family: var(--font-mono) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+            border-radius: 4px !important;
+        }
+
+        .apple-badge-pending, .apple-badge-created {
+            background: rgba(255, 165, 0, 0.15) !important;
+            color: #FFA500 !important;
+            border: 1px solid rgba(255, 165, 0, 0.3) !important;
+        }
+
+        .apple-badge-awaiting_funding {
+            background: rgba(0, 150, 255, 0.15) !important;
+            color: #0096FF !important;
+            border: 1px solid rgba(0, 150, 255, 0.3) !important;
+        }
+
+        .apple-badge-funded, .apple-badge-active {
+            background: rgba(212, 175, 55, 0.15) !important;
+            color: var(--nexus-gold) !important;
+            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        }
+
+        .apple-badge-released, .apple-badge-success {
+            background: rgba(40, 167, 69, 0.15) !important;
+            color: #28a745 !important;
+            border: 1px solid rgba(40, 167, 69, 0.3) !important;
+        }
+
+        .apple-badge-refunded {
+            background: rgba(0, 123, 255, 0.15) !important;
+            color: #007bff !important;
+            border: 1px solid rgba(0, 123, 255, 0.3) !important;
+        }
+
+        .apple-badge-disputed {
+            background: rgba(220, 53, 69, 0.15) !important;
+            color: #dc3545 !important;
+            border: 1px solid rgba(220, 53, 69, 0.3) !important;
+        }
+
+        /* Banner Override */
+        .apple-escrow-banner {
+            background: var(--nexus-bg-card) !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-left: 4px solid var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-banner-icon svg {
+            stroke: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-banner-label {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-banner-message {
+            color: var(--nexus-text) !important;
+        }
+
+        /* Amount Card Override */
+        .apple-escrow-amount-icon svg {
+            stroke: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-amount-label {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-text-muted) !important;
+        }
+
+        .apple-escrow-amount-value {
+            font-family: var(--font-oswald) !important;
+            font-size: 28px !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-amount-atomic {
+            font-family: var(--font-mono) !important;
+            color: var(--nexus-text-muted) !important;
+        }
+
+        /* Timeline Override */
+        .apple-escrow-step.completed .apple-escrow-step-marker {
+            background: var(--nexus-gold) !important;
+            border-color: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-step.active .apple-escrow-step-marker {
+            border-color: var(--nexus-gold) !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-escrow-step-title {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-text) !important;
+        }
+
+        .apple-escrow-step-desc {
+            color: var(--nexus-text-muted) !important;
+        }
+
+        .apple-escrow-step-time {
+            font-family: var(--font-mono) !important;
+            color: var(--nexus-text-muted) !important;
+        }
+
+        /* Address Box Override */
+        .apple-address-box {
+            background: rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid var(--nexus-border) !important;
+            border-radius: 6px !important;
+        }
+
+        .apple-address-label {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-gold) !important;
+            font-size: 11px !important;
+        }
+
+        .apple-address-value {
+            font-family: var(--font-mono) !important;
+            color: var(--nexus-text) !important;
+            font-size: 12px !important;
+        }
+
+        /* Button Overrides */
+        .apple-btn {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .apple-btn-primary {
+            background: linear-gradient(135deg, var(--nexus-gold), #B8962E) !important;
+            color: #0d0d0d !important;
+            border: none !important;
+        }
+
+        .apple-btn-primary:hover {
+            background: linear-gradient(135deg, var(--nexus-gold-hover), var(--nexus-gold)) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3) !important;
+        }
+
+        .apple-btn-ghost {
+            background: transparent !important;
+            border: 1px solid var(--nexus-border) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        .apple-btn-ghost:hover {
+            border-color: var(--nexus-gold) !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-btn-action {
+            background: var(--nexus-bg-card) !important;
+            border: 1px solid var(--nexus-border) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        .apple-btn-action:hover {
+            border-color: var(--nexus-gold) !important;
+            background: rgba(212, 175, 55, 0.1) !important;
+        }
+
+        .apple-btn-action-release:hover,
+        .apple-btn-action-ship:hover {
+            border-color: #28a745 !important;
+            background: rgba(40, 167, 69, 0.1) !important;
+        }
+
+        .apple-btn-action-dispute:hover {
+            border-color: #dc3545 !important;
+            background: rgba(220, 53, 69, 0.1) !important;
+        }
+
+        /* Participants Override */
+        .apple-participant-card {
+            background: var(--nexus-bg-card) !important;
+            border: 1px solid var(--nexus-border) !important;
+        }
+
+        .apple-participant-role {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-participant-name {
+            font-family: var(--font-mono) !important;
+            color: var(--nexus-text) !important;
+        }
+
+        /* Security List Override */
+        .apple-security-list li {
+            color: var(--nexus-text) !important;
+        }
+
+        .apple-security-list svg {
+            stroke: var(--nexus-gold) !important;
+        }
+
+        /* Scenario Override */
+        .apple-scenario {
+            color: var(--nexus-text) !important;
+        }
+
+        .apple-scenario-icon svg {
+            stroke: var(--nexus-gold) !important;
+        }
+
+        /* Footer Override */
+        .apple-footer {
+            background: var(--nexus-bg) !important;
+            border-top: 1px solid var(--nexus-border) !important;
+        }
+
+        .apple-footer-logo {
+            font-family: var(--font-oswald) !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-footer-link {
+            color: var(--nexus-text-muted) !important;
+        }
+
+        .apple-footer-link:hover {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Back Link Override */
+        .apple-back-link {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-text-muted) !important;
+        }
+
+        .apple-back-link:hover {
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Collapsible Override */
+        .apple-collapsible-toggle {
+            background: transparent !important;
+            color: var(--nexus-text) !important;
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+        }
+
+        .apple-collapsible-toggle:hover {
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-collapsible-toggle svg {
+            stroke: var(--nexus-gold) !important;
+        }
+
+        /* Tech Section Override */
+        .apple-tech-title {
+            font-family: var(--font-oswald) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        .apple-tech-role-badge {
+            font-family: var(--font-mono) !important;
+            text-transform: uppercase !important;
+        }
+
+        /* Copy Button Override */
+        .apple-copy-btn {
+            background: transparent !important;
+            border: 1px solid var(--nexus-border) !important;
+            color: var(--nexus-text-muted) !important;
+        }
+
+        .apple-copy-btn:hover {
+            border-color: var(--nexus-gold) !important;
+            color: var(--nexus-gold) !important;
+        }
+
+        /* Text Muted Override */
+        .apple-text-muted {
+            color: var(--nexus-text-muted) !important;
+        }
+
+        /* FROST Status Override */
+        #frost-dkg-status .frost-status {
+            font-family: var(--font-mono) !important;
+        }
+
+        /* ====== CONFIRMATION PROGRESS BAR ====== */
+        .confirmation-progress {
+            background: var(--nexus-bg-card);
+            border: 1px solid var(--nexus-border);
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-top: 16px;
+        }
+        .confirmation-progress__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .confirmation-progress__label {
+            font-family: var(--font-oswald);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--nexus-text-muted);
+        }
+        .confirmation-progress__count {
+            font-family: var(--font-mono);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--nexus-gold);
+        }
+        .confirmation-progress__bar {
+            height: 8px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .confirmation-progress__fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--nexus-gold) 0%, #28a745 100%);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+        .confirmation-progress__fill.confirmed {
+            background: #28a745;
+        }
+        .confirmation-progress__status {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--nexus-text-muted);
+            margin: 10px 0 0 0;
+            text-align: center;
+        }
+
+        /* ====== DISPUTE TIMELINE ====== */
+        .dispute-timeline {
+            padding-left: 4px;
+        }
+        .dispute-timeline__item {
+            position: relative;
+            padding: 0 0 20px 28px;
+            border-left: 2px solid var(--nexus-border);
+        }
+        .dispute-timeline__item:last-child {
+            border-left-color: transparent;
+            padding-bottom: 0;
+        }
+        .dispute-timeline__dot {
+            position: absolute;
+            left: -7px;
+            top: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--nexus-border);
+            border: 2px solid var(--nexus-bg-card);
+        }
+        .dispute-timeline__dot--opened {
+            background: #dc3545;
+            box-shadow: 0 0 8px rgba(220, 53, 69, 0.4);
+        }
+        .dispute-timeline__dot--evidence {
+            background: var(--nexus-gold);
+            box-shadow: 0 0 8px rgba(212, 175, 55, 0.4);
+        }
+        .dispute-timeline__dot--escalated {
+            background: #ffc107;
+            box-shadow: 0 0 8px rgba(255, 193, 7, 0.4);
+        }
+        .dispute-timeline__dot--resolved {
+            background: #28a745;
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
+        }
+        .dispute-timeline__content {
+            padding-top: 0;
+        }
+        .dispute-timeline__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .dispute-timeline__actor {
+            font-family: var(--font-oswald);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--nexus-text);
+        }
+        .dispute-timeline__time {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--nexus-text-muted);
+        }
+        .dispute-timeline__desc {
+            font-size: 13px;
+            color: var(--nexus-text-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Grid Overlay */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Content z-index */
+        main.apple-page {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Mobile Sticky Action Bar */
+        @media (max-width: 768px) {
+            .apple-card-action .apple-actions-grid {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 16px;
+                margin: 0;
+                background: rgba(18, 18, 18, 0.98);
+                backdrop-filter: blur(20px);
+                border-top: 1px solid var(--nexus-border);
+                z-index: 1000;
+                display: flex;
+                gap: 12px;
+            }
+
+            .apple-card-action .apple-actions-grid .apple-btn {
+                flex: 1;
+                padding: 14px 12px;
+                font-size: 12px;
+            }
+
+            /* Hide the card wrapper on mobile, just show sticky buttons */
+            .apple-card-action .apple-card-header,
+            .apple-card-action .apple-card-body > p {
+                display: none;
+            }
+
+            .apple-card-action {
+                background: transparent !important;
+                border: none !important;
+                margin-bottom: 0 !important;
+            }
+
+            /* Add bottom padding to main content to prevent overlap */
+            .apple-escrow-main {
+                padding-bottom: 100px;
+            }
+        }
+    </style>
+
+    <!-- HTMX -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="/static/js/lucide.min.js"></script>
+</head>
+
+<body class="apple-theme industrial-stealth"
+      data-frost-enabled="{{ escrow.frost_enabled | default(value=false) }}"
+      data-escrow-id="{{ escrow.id }}"
+      data-user-role="{{ user_role | default(value='') | lower }}"
+      data-escrow-status="{{ escrow.status | default(value='setup') | lower }}"
+      data-dkg-complete="{{ escrow.frost_dkg_complete | default(value=false) }}"
+>
+    <!-- Grid Overlay -->
+    <div class="grid-overlay"></div>
+
+    {% include "partials/header-industrial.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 80px; padding-bottom: 80px;">
+            <!-- Back Link -->
+            <a href="/orders/{{ escrow.order_id }}" class="apple-back-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <path d="m15 18-6-6 6-6" />
+                </svg>
+                Back to Order
+            </a>
+
+            <!-- Header -->
+            <div style="margin-bottom: 32px; margin-top: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                    <div>
+                        <h1 class="apple-page-title" style="text-align: left; margin-bottom: 8px;">
+                            Order <span class="text-gold">#{{ escrow.id | truncate(length=8, end="") }}</span>
+                        </h1>
+                        <p class="apple-text-muted" style="font-size: 14px;">Dual-Approval Payment Protection</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <!-- Shield Status Indicator -->
+                        {% set escrow_id = escrow.id %}
+                        {% include "components/shield-status-indicator.html" %}
+                        <span class="apple-badge apple-badge-{{ escrow.status }}">{{ escrow.status }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Column Layout -->
+            <div class="apple-escrow-detail-grid">
+                <!-- Main Content -->
+                <div class="apple-escrow-main">
+                    <!-- Next Action Banner -->
+                    {% if user_role %}
+                    <div class="apple-escrow-banner">
+                        <div class="apple-escrow-banner-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 16v-4" />
+                                <path d="M12 8h.01" />
+                            </svg>
+                        </div>
+                        <div class="apple-escrow-banner-content">
+                            <span class="apple-escrow-banner-label">Current Status</span>
+                            {% if escrow.status == "pending" %}
+                            <span class="apple-escrow-banner-message">Waiting for security setup to complete</span>
+                            {% elif escrow.status == "awaiting_funding" %}
+                            {% if user_role == "Buyer" %}
+                            <span class="apple-escrow-banner-message">Waiting for <strong>You (Buyer)</strong> to send payment</span>
+                            {% else %}
+                            <span class="apple-escrow-banner-message">Waiting for Buyer to send payment</span>
+                            {% endif %}
+                            {% elif escrow.status == "funded" %}
+                            {% if user_role == "Vendor" %}
+                            <span class="apple-escrow-banner-message">Waiting for <strong>You (Vendor)</strong> to mark
+                                as shipped</span>
+                            {% else %}
+                            <span class="apple-escrow-banner-message">Waiting for Vendor to ship</span>
+                            {% endif %}
+                            {% elif escrow.status == "releasing" %}
+                            <span class="apple-escrow-banner-message">Transaction broadcasting to network...</span>
+                            {% elif escrow.status == "released" or escrow.status == "completed" %}
+                            <span class="apple-escrow-banner-message">Payment released to vendor successfully</span>
+                            {% if user_role == "buyer" %}
+                            {# Use broadcast_tx_hash, funding_tx_hash, or escrow.id as txid fallback #}
+                            {% set review_txid = escrow.broadcast_tx_hash | default(value=escrow.funding_tx_hash) | default(value=escrow.id) %}
+                            <a href="/review/submit?vendor_id={{ escrow.vendor_id }}&escrow_id={{ escrow.id }}&txid={{ review_txid }}"
+                               style="margin-left: 12px; background: var(--nexus-gold); color: #000; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                </svg>
+                                Rate Vendor
+                            </a>
+                            {% endif %}
+                            {% elif escrow.status == "refunded" %}
+                            <span class="apple-escrow-banner-message">Payment refunded to buyer successfully</span>
+                            {% elif escrow.status == "underfunded" %}
+                            <span class="apple-escrow-banner-message">Partial payment received. Complete payment or request refund.</span>
+                            {% elif escrow.status == "cancelled_recoverable" %}
+                            <span class="apple-escrow-banner-message">Order cancelled. You can request refund of your partial payment.</span>
+                            {% elif escrow.status == "pending_counterparty" %}
+                            <span class="apple-escrow-banner-message">Waiting for counterparty to join the escrow</span>
+                            {% elif escrow.status == "pending_dkg" %}
+                            <span class="apple-escrow-banner-message">All parties joined. Ready to start multisig setup.</span>
+                            {% else %}
+                            <span class="apple-escrow-banner-message">Status: {{ escrow.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ====== LOBBY SECTION: DKG Coordination ====== -->
+                    {% if escrow.status == "pending_counterparty" or escrow.status == "pending_dkg" or escrow.status == "pending" %}
+                    <div class="apple-card lobby-card" style="margin-bottom: 24px; border: 1px solid var(--nexus-gold); position: relative; overflow: hidden;">
+                        <!-- Animated border glow -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--nexus-gold), transparent); animation: lobby-glow 2s linear infinite;"></div>
+
+                        <div class="apple-card-header" style="border-bottom: 1px solid var(--nexus-border);">
+                            <h3 class="apple-card-title" style="display: flex; align-items: center; gap: 10px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                </svg>
+                                Escrow Lobby
+                                <span class="lobby-pulse" style="width: 8px; height: 8px; background: #28a745; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                            </h3>
+                        </div>
+
+                        <div class="apple-card-body" id="lobby-content">
+
+                            <!-- Participant Cards Grid -->
+                            <div class="lobby-participants" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+
+                                <!-- Buyer Card -->
+                                <div class="lobby-participant {% if escrow.buyer_id != 'pending' %}joined{% else %}waiting{% endif %}"
+                                     style="background: rgba(0,0,0,0.3); border: 1px solid {% if escrow.buyer_id != 'pending' %}#28a745{% else %}var(--nexus-border){% endif %}; border-radius: 8px; padding: 20px; text-align: center; transition: all 0.3s ease;">
+                                    <div class="lobby-participant-avatar" style="width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: {% if escrow.buyer_id != 'pending' %}linear-gradient(135deg, #28a745, #20c997){% else %}var(--nexus-border){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{% if escrow.buyer_id != 'pending' %}#fff{% else %}var(--nexus-text-muted){% endif %}" stroke-width="1.5">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                            <circle cx="12" cy="7" r="4"/>
+                                        </svg>
+                                    </div>
+                                    <div class="lobby-participant-role" style="font-family: var(--font-oswald); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-gold); margin-bottom: 4px;">Buyer</div>
+                                    <div class="lobby-participant-status" style="font-family: var(--font-mono); font-size: 12px; color: {% if escrow.buyer_id != 'pending' %}#28a745{% else %}var(--nexus-text-muted){% endif %};">
+                                        {% if escrow.buyer_id != 'pending' %}
+                                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                            <span style="width: 6px; height: 6px; background: #28a745; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                                            Joined
+                                        </span>
+                                        {% else %}
+                                        Waiting...
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Vendor Card -->
+                                <div class="lobby-participant {% if escrow.vendor_id != 'pending' %}joined{% else %}waiting{% endif %}"
+                                     style="background: rgba(0,0,0,0.3); border: 1px solid {% if escrow.vendor_id != 'pending' %}#28a745{% else %}var(--nexus-border){% endif %}; border-radius: 8px; padding: 20px; text-align: center; transition: all 0.3s ease;">
+                                    <div class="lobby-participant-avatar" style="width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: {% if escrow.vendor_id != 'pending' %}linear-gradient(135deg, #28a745, #20c997){% else %}var(--nexus-border){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{% if escrow.vendor_id != 'pending' %}#fff{% else %}var(--nexus-text-muted){% endif %}" stroke-width="1.5">
+                                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                            <polyline points="9 22 9 12 15 12 15 22"/>
+                                        </svg>
+                                    </div>
+                                    <div class="lobby-participant-role" style="font-family: var(--font-oswald); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-gold); margin-bottom: 4px;">Vendor</div>
+                                    <div class="lobby-participant-status" style="font-family: var(--font-mono); font-size: 12px; color: {% if escrow.vendor_id != 'pending' %}#28a745{% else %}var(--nexus-text-muted){% endif %};">
+                                        {% if escrow.vendor_id != 'pending' %}
+                                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                            <span style="width: 6px; height: 6px; background: #28a745; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                                            Joined
+                                        </span>
+                                        {% else %}
+                                        Waiting...
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Arbiter Card -->
+                                <div class="lobby-participant {% if escrow.arbiter_id != 'pending' %}joined{% else %}waiting{% endif %}"
+                                     style="background: rgba(0,0,0,0.3); border: 1px solid {% if escrow.arbiter_id != 'pending' %}#28a745{% else %}var(--nexus-border){% endif %}; border-radius: 8px; padding: 20px; text-align: center; transition: all 0.3s ease;">
+                                    <div class="lobby-participant-avatar" style="width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 50%; background: {% if escrow.arbiter_id != 'pending' %}linear-gradient(135deg, #28a745, #20c997){% else %}var(--nexus-border){% endif %}; display: flex; align-items: center; justify-content: center;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="{% if escrow.arbiter_id != 'pending' %}#fff{% else %}var(--nexus-text-muted){% endif %}" stroke-width="1.5">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 16v-4"/>
+                                            <path d="M12 8h.01"/>
+                                        </svg>
+                                    </div>
+                                    <div class="lobby-participant-role" style="font-family: var(--font-oswald); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-gold); margin-bottom: 4px;">Arbiter</div>
+                                    <div class="lobby-participant-status" style="font-family: var(--font-mono); font-size: 12px; color: {% if escrow.arbiter_id != 'pending' %}#28a745{% else %}var(--nexus-text-muted){% endif %};">
+                                        {% if escrow.arbiter_id != 'pending' %}
+                                        <span style="display: inline-flex; align-items: center; gap: 4px;">
+                                            <span style="width: 6px; height: 6px; background: #28a745; border-radius: 50%; animation: pulse 1.5s infinite;"></span>
+                                            Assigned
+                                        </span>
+                                        {% else %}
+                                        Pending...
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- DKG Progress -->
+                            <div class="lobby-dkg-progress" style="margin-bottom: 24px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <span style="font-family: var(--font-oswald); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-text-muted);">
+                                        Multisig Setup Progress
+                                    </span>
+                                    <span style="font-family: var(--font-mono); font-size: 12px; color: var(--nexus-gold);">
+                                        {% set joined_count = 0 %}
+                                        {% if escrow.buyer_id != 'pending' %}{% set joined_count = joined_count + 1 %}{% endif %}
+                                        {% if escrow.vendor_id != 'pending' %}{% set joined_count = joined_count + 1 %}{% endif %}
+                                        {% if escrow.arbiter_id != 'pending' %}{% set joined_count = joined_count + 1 %}{% endif %}
+                                        {{ joined_count }}/3 Participants
+                                    </span>
+                                </div>
+
+                                <!-- Progress Steps -->
+                                <div class="lobby-steps" style="display: flex; justify-content: space-between; position: relative;">
+                                    <!-- Progress Line -->
+                                    <div style="position: absolute; top: 16px; left: 40px; right: 40px; height: 2px; background: var(--nexus-border);"></div>
+                                    <div style="position: absolute; top: 16px; left: 40px; height: 2px; background: var(--nexus-gold); width: {% if escrow.multisig_address %}100{% elif escrow.arbiter_id != 'pending' %}66{% elif escrow.vendor_id != 'pending' or escrow.buyer_id != 'pending' %}33{% else %}0{% endif %}%; transition: width 0.5s ease;"></div>
+
+                                    <!-- Step 1: Join -->
+                                    <div style="text-align: center; position: relative; z-index: 1;">
+                                        <div style="width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; background: {% if escrow.buyer_id != 'pending' or escrow.vendor_id != 'pending' %}var(--nexus-gold){% else %}var(--nexus-border){% endif %}; display: flex; align-items: center; justify-content: center; border: 2px solid {% if escrow.buyer_id != 'pending' or escrow.vendor_id != 'pending' %}var(--nexus-gold){% else %}var(--nexus-border){% endif %};">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{% if escrow.buyer_id != 'pending' or escrow.vendor_id != 'pending' %}#0d0d0d{% else %}var(--nexus-text-muted){% endif %}" stroke-width="2">
+                                                <polyline points="20 6 9 17 4 12"/>
+                                            </svg>
+                                        </div>
+                                        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--nexus-text-muted);">JOIN</span>
+                                    </div>
+
+                                    <!-- Step 2: DKG Round 1 -->
+                                    <div style="text-align: center; position: relative; z-index: 1;">
+                                        <div style="width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; background: {% if escrow.arbiter_id != 'pending' %}var(--nexus-gold){% else %}var(--nexus-bg-card){% endif %}; display: flex; align-items: center; justify-content: center; border: 2px solid {% if escrow.arbiter_id != 'pending' %}var(--nexus-gold){% else %}var(--nexus-border){% endif %};">
+                                            <span style="font-family: var(--font-mono); font-size: 11px; color: {% if escrow.arbiter_id != 'pending' %}#0d0d0d{% else %}var(--nexus-text-muted){% endif %};">1</span>
+                                        </div>
+                                        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--nexus-text-muted);">DKG R1</span>
+                                    </div>
+
+                                    <!-- Step 3: DKG Round 2 -->
+                                    <div style="text-align: center; position: relative; z-index: 1;">
+                                        <div style="width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; background: {% if escrow.multisig_phase == 'round2' or escrow.multisig_address %}var(--nexus-gold){% else %}var(--nexus-bg-card){% endif %}; display: flex; align-items: center; justify-content: center; border: 2px solid {% if escrow.multisig_phase == 'round2' or escrow.multisig_address %}var(--nexus-gold){% else %}var(--nexus-border){% endif %};">
+                                            <span style="font-family: var(--font-mono); font-size: 11px; color: {% if escrow.multisig_phase == 'round2' or escrow.multisig_address %}#0d0d0d{% else %}var(--nexus-text-muted){% endif %};">2</span>
+                                        </div>
+                                        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--nexus-text-muted);">DKG R2</span>
+                                    </div>
+
+                                    <!-- Step 4: Ready -->
+                                    <div style="text-align: center; position: relative; z-index: 1;">
+                                        <div style="width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; background: {% if escrow.multisig_address %}#28a745{% else %}var(--nexus-bg-card){% endif %}; display: flex; align-items: center; justify-content: center; border: 2px solid {% if escrow.multisig_address %}#28a745{% else %}var(--nexus-border){% endif %};">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{% if escrow.multisig_address %}#fff{% else %}var(--nexus-text-muted){% endif %}" stroke-width="2">
+                                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                            </svg>
+                                        </div>
+                                        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--nexus-text-muted);">READY</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <div class="lobby-action" style="text-align: center;">
+                                {% if escrow.buyer_id != 'pending' and escrow.vendor_id != 'pending' and escrow.arbiter_id != 'pending' %}
+                                    {% if not escrow.multisig_address %}
+                                    <button class="apple-btn apple-btn-primary"
+                                            style="padding: 14px 32px; font-size: 14px;"
+                                            hx-post="/api/escrows/{{ escrow.id }}/start-dkg"
+                                            hx-swap="none"
+                                            hx-indicator=".lobby-card">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                        </svg>
+                                        Start Multisig Setup
+                                    </button>
+                                    <p style="font-family: var(--font-mono); font-size: 11px; color: var(--nexus-text-muted); margin-top: 12px;">
+                                        All participants are ready. Click to generate secure multisig wallet.
+                                    </p>
+                                    {% else %}
+                                    <div style="display: inline-flex; align-items: center; gap: 8px; padding: 14px 24px; background: rgba(40, 167, 69, 0.15); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 8px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                        <span style="font-family: var(--font-oswald); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #28a745;">Multisig Ready</span>
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <div style="padding: 14px 24px; background: rgba(255,255,255,0.05); border: 1px solid var(--nexus-border); border-radius: 8px;">
+                                        <p style="font-family: var(--font-mono); font-size: 12px; color: var(--nexus-text-muted); margin: 0;">
+                                            Waiting for all participants to join...
+                                        </p>
+                                        {% if escrow.status == "pending_counterparty" %}
+                                        <p style="font-family: var(--font-mono); font-size: 11px; color: var(--nexus-gold); margin: 8px 0 0 0;">
+                                            Share this link: <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">{{ request_url | default(value='/join/' ~ escrow.id) }}</code>
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <style>
+                        @keyframes lobby-glow {
+                            0% { transform: translateX(-100%); }
+                            100% { transform: translateX(100%); }
+                        }
+                        @keyframes pulse {
+                            0%, 100% { opacity: 1; }
+                            50% { opacity: 0.5; }
+                        }
+                        .lobby-participant.joined {
+                            transform: scale(1.02);
+                        }
+                        .lobby-participant:hover {
+                            border-color: var(--nexus-gold) !important;
+                        }
+                    </style>
+
+                    <script>
+                    (function() {
+                        const escrowId = '{{ escrow.id }}';
+                        const lobbyCard = document.querySelector('.lobby-card');
+                        if (!lobbyCard) return;
+
+                        function updateLobbyStatus() {
+                            fetch('/api/escrows/' + escrowId + '/lobby-status', {
+                                credentials: 'same-origin'
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                // Update participant cards
+                                const participants = document.querySelectorAll('.lobby-participant');
+                                if (participants.length >= 3) {
+                                    updateParticipant(participants[0], data.buyer_joined, 'Joined');
+                                    updateParticipant(participants[1], data.vendor_joined, 'Joined');
+                                    updateParticipant(participants[2], data.arbiter_assigned, 'Assigned');
+                                }
+
+                                // Update participant count
+                                const countEl = document.querySelector('.lobby-dkg-progress span[style*="nexus-gold"]');
+                                if (countEl) {
+                                    const count = (data.buyer_joined ? 1 : 0) + (data.vendor_joined ? 1 : 0) + (data.arbiter_assigned ? 1 : 0);
+                                    countEl.textContent = count + '/3 Participants';
+                                }
+
+                                // If all ready and DKG not complete, show button active
+                                if (data.all_ready && data.dkg_status !== 'complete') {
+                                    const actionDiv = document.querySelector('.lobby-action');
+                                    if (actionDiv && !actionDiv.querySelector('.apple-btn-primary')) {
+                                        // Reload page to show updated UI with start button
+                                        window.location.reload();
+                                    }
+                                }
+
+                                // If DKG complete, redirect or hide lobby
+                                if (data.dkg_status === 'complete' || data.status === 'awaiting_funding') {
+                                    window.location.reload();
+                                }
+                            })
+                            .catch(err => console.error('Lobby status error:', err));
+                        }
+
+                        function updateParticipant(el, isJoined, label) {
+                            if (isJoined) {
+                                el.classList.add('joined');
+                                el.classList.remove('waiting');
+                                el.style.borderColor = '#28a745';
+                                const avatar = el.querySelector('.lobby-participant-avatar');
+                                if (avatar) avatar.style.background = 'linear-gradient(135deg, #28a745, #20c997)';
+                                const status = el.querySelector('.lobby-participant-status');
+                                if (status) {
+                                    status.style.color = '#28a745';
+                                    status.innerHTML = '<span style="display: inline-flex; align-items: center; gap: 4px;"><span style="width: 6px; height: 6px; background: #28a745; border-radius: 50%; animation: pulse 1.5s infinite;"></span>' + label + '</span>';
+                                }
+                            }
+                        }
+
+                        // Poll every 3 seconds
+                        setInterval(updateLobbyStatus, 3000);
+                        // Initial update
+                        setTimeout(updateLobbyStatus, 1000);
+                    })();
+                    </script>
+                    {% endif %}
+                    <!-- END LOBBY SECTION -->
+
+                    <!-- v0.68.0: UNDERFUNDED ESCROW SECTION -->
+                    {% if escrow.status == "underfunded" or escrow.status == "funded" %}
+                    {% if escrow.balance_received > 0 and escrow.balance_received < escrow.amount %}
+                    <div class="apple-card" style="margin-bottom: 24px; border-left: 4px solid #ffc107;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title" style="color: #ffc107;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                                Partial Payment Detected
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <!-- Funding Progress Bar -->
+                            <div class="funding-progress" style="margin-bottom: 20px;">
+                                <div class="funding-progress__header" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                                    <span style="font-family: var(--font-oswald); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-text-muted);">
+                                        Funding Progress
+                                    </span>
+                                    <span style="font-family: var(--font-mono); font-size: 13px; color: #ffc107;">
+                                        {% set progress = (escrow.balance_received / escrow.amount * 100) | round %}
+                                        {{ progress }}%
+                                    </span>
+                                </div>
+                                <div class="funding-progress__bar" style="height: 12px; background: rgba(255,255,255,0.08); border-radius: 6px; overflow: hidden;">
+                                    <div class="funding-progress__fill" style="height: 100%; width: {{ progress }}%; background: linear-gradient(90deg, #ffc107 0%, #ffca28 100%); border-radius: 6px; transition: width 0.6s ease;"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 12px; font-family: var(--font-mono); font-size: 13px;">
+                                    <span style="color: #28a745;">
+                                        {% set received_xmr = escrow.balance_received / 1000000000000 %}
+                                        Received: {{ "%.6f" | format(value=received_xmr) }} XMR
+                                    </span>
+                                    <span style="color: var(--nexus-text-muted);">
+                                        {% set required_xmr = escrow.amount / 1000000000000 %}
+                                        Required: {{ "%.6f" | format(value=required_xmr) }} XMR
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Shortfall Alert -->
+                            <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="#ffc107" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="12" y1="8" x2="12" y2="12"/>
+                                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                    </svg>
+                                    <div>
+                                        <strong style="color: #ffc107;">
+                                            {% set shortfall = escrow.amount - escrow.balance_received %}
+                                            {% set shortfall_xmr = shortfall / 1000000000000 %}
+                                            {{ "%.6f" | format(value=shortfall_xmr) }} XMR still needed
+                                        </strong>
+                                        <p style="margin: 8px 0 0; color: var(--nexus-text-muted); font-size: 14px;">
+                                            Send the remaining amount to the escrow address to complete funding, or request a refund of your partial payment.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Multisig Address (for sending remaining funds) -->
+                            {% if escrow.multisig_address %}
+                            <div style="background: rgba(255,255,255,0.04); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <label style="font-family: var(--font-oswald); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-text-muted); display: block; margin-bottom: 8px;">
+                                    Send Remaining Funds To:
+                                </label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="escrow-address-partial"
+                                        value="{{ escrow.multisig_address }}"
+                                        readonly
+                                        style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--nexus-border); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: var(--nexus-text);">
+                                    <button onclick="copyToClipboard('escrow-address-partial')"
+                                        class="apple-btn"
+                                        style="background: var(--nexus-gold); color: #000; padding: 12px 16px;">
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- v0.68.0: REFUND REQUEST SECTION (for cancelled_recoverable escrows) -->
+                    {% if escrow.status == "cancelled_recoverable" or (escrow.status == "underfunded" and user_role | lower == "buyer") %}
+                    {% if escrow.balance_received > 0 and user_role | lower == "buyer" %}
+                    <div class="apple-card" style="margin-bottom: 24px; border-left: 4px solid #007bff;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title" style="color: #007bff;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="1 4 1 10 7 10" />
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                </svg>
+                                Request Refund
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            {% if escrow.refund_requested_at %}
+                            <!-- Refund Already Requested -->
+                            <div style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.3); border-radius: 8px; padding: 16px;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                        fill="none" stroke="#007bff" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    <div>
+                                        <strong style="color: #007bff;">Refund Request Pending</strong>
+                                        <p style="margin: 4px 0 0; color: var(--nexus-text-muted); font-size: 14px;">
+                                            Your refund request is being processed. The arbiter will sign within 48-72 hours.
+                                        </p>
+                                        {% if escrow.buyer_refund_address %}
+                                        <p style="margin: 8px 0 0; font-family: var(--font-mono); font-size: 11px; color: var(--nexus-text-muted);">
+                                            Refund address: {{ escrow.buyer_refund_address | truncate(length=20) }}...{{ escrow.buyer_refund_address | slice(start=-8) }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <!-- Refund Form -->
+                            <p style="color: var(--nexus-text-muted); margin-bottom: 16px;">
+                                {% set recoverable_xmr = escrow.balance_received / 1000000000000 %}
+                                You can recover <strong style="color: #28a745;">{{ "%.6f" | format(value=recoverable_xmr) }} XMR</strong> from this escrow.
+                                Enter your Monero address to request a refund.
+                            </p>
+
+                            <form id="refund-request-form" onsubmit="submitRefundRequest(event, '{{ escrow.id }}')">
+                                <div style="margin-bottom: 16px;">
+                                    <label style="font-family: var(--font-oswald); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--nexus-text-muted); display: block; margin-bottom: 8px;">
+                                        Your Monero Address
+                                    </label>
+                                    <input type="text" id="refund-address" name="refund_address"
+                                        placeholder="4ABC... or 5DEF... (95-106 characters)"
+                                        required
+                                        minlength="95"
+                                        maxlength="106"
+                                        style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--nexus-border); border-radius: 4px; padding: 14px; font-family: var(--font-mono); font-size: 12px; color: var(--nexus-text);">
+                                </div>
+
+                                <div style="background: rgba(255, 193, 7, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                                    <p style="font-size: 13px; color: var(--nexus-text-muted); margin: 0;">
+                                        <strong style="color: #ffc107;">Note:</strong> The refund requires arbiter signature (2-of-3 multisig).
+                                        Processing time: 48-72 hours.
+                                    </p>
+                                </div>
+
+                                <button type="submit" id="refund-submit-btn"
+                                    class="apple-btn"
+                                    style="width: 100%; background: #007bff; color: white; padding: 14px; font-size: 14px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;">
+                                        <polyline points="1 4 1 10 7 10" />
+                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                    </svg>
+                                    Request Refund of {{ "%.6f" | format(value=recoverable_xmr) }} XMR
+                                </button>
+                            </form>
+
+                            <div id="refund-result" style="margin-top: 16px; display: none;"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- MOVED: Action Required Section - User sees next action immediately -->
+                    {% if escrow.status == 'funded' or escrow.status == 'active' %}
+                    <div class="apple-card apple-card-action" style="margin-bottom: 24px; border-left: 4px solid var(--nexus-gold);">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Action Required
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <p class="apple-text-muted" style="margin-bottom: 20px;">
+                                This escrow is funded. Choose an action based on your role:
+                            </p>
+
+                            <div class="apple-actions-grid">
+                                <!-- Vendor Actions -->
+                                {% if user_role | lower == "vendor" or user_role | lower == "seller" %}
+                                <button class="apple-btn apple-btn-action apple-btn-action-ship"
+                                    onclick="showSignActionModal('{{ escrow.id }}', 'ship', '{{ escrow.amount_xmr }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="1" y="3" width="15" height="13" />
+                                        <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                                        <circle cx="5.5" cy="18.5" r="2.5" />
+                                        <circle cx="18.5" cy="18.5" r="2.5" />
+                                    </svg>
+                                    Mark as Shipped
+                                </button>
+
+                                <button class="apple-btn apple-btn-action apple-btn-action-dispute"
+                                    hx-get="/escrow/{{ escrow.id }}/modals/dispute" hx-target="body"
+                                    hx-swap="beforeend">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path
+                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    Raise Dispute
+                                </button>
+                                {% endif %}
+
+                                <!-- Buyer Actions -->
+                                {% if user_role | lower == "buyer" %}
+                                <button class="apple-btn apple-btn-action apple-btn-action-release"
+                                    onclick="showSignActionModal('{{ escrow.id }}', 'receive', '{{ escrow.amount_xmr }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Confirm Receipt & Release Funds
+                                </button>
+
+                                <button class="apple-btn apple-btn-action apple-btn-action-dispute"
+                                    hx-get="/escrow/{{ escrow.id }}/modals/dispute" hx-target="body"
+                                    hx-swap="beforeend">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path
+                                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                        <line x1="12" y1="9" x2="12" y2="13" />
+                                        <line x1="12" y1="17" x2="12.01" y2="17" />
+                                    </svg>
+                                    Raise Dispute
+                                </button>
+                                {% endif %}
+
+                                <!-- Arbiter Actions -->
+                                {% if user_role | lower == "arbiter" %}
+                                <button class="apple-btn apple-btn-action apple-btn-action-release"
+                                    onclick="showSignActionModal('{{ escrow.id }}', 'receive', '{{ escrow.amount_xmr }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Release to Vendor
+                                </button>
+
+                                <button class="apple-btn apple-btn-action apple-btn-action-refund"
+                                    onclick="showSignActionModal('{{ escrow.id }}', 'refund', '{{ escrow.amount_xmr }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="1 4 1 10 7 10" />
+                                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                    </svg>
+                                    Refund to Buyer
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- MOVED: DISPUTE RESOLUTION SECTION - Prominent when disputed -->
+                    {% if escrow.status == 'disputed' or (escrow.dispute_signing_pair and escrow.status == 'round_robin_signing') %}
+                    <div class="apple-card apple-card-dispute" style="margin-bottom: 24px; border: 2px solid #dc3545;">
+                        <div class="apple-card-header" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                            <h3 class="apple-card-title" style="color: white;">⚠️ Dispute Resolution - Action Required</h3>
+                        </div>
+                        <div class="apple-card-body">
+                            {% if escrow.dispute_reason %}
+                            <div style="background: rgba(220, 53, 69, 0.1); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                                <strong>Dispute Reason:</strong> {{ escrow.dispute_reason }}
+                            </div>
+                            {% endif %}
+
+                            <!-- Arbiter Decision Panel -->
+                            {% if escrow_user_role == "arbiter" and not escrow.dispute_signing_pair %}
+                            <p style="margin-bottom: 16px;">As arbiter, decide who receives the funds:</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                                <button class="apple-btn" onclick="setDisputeSigningPair('{{ escrow.id }}', 'arbiter_buyer')"
+                                    style="background: #28a745; color: white; padding: 16px;">
+                                    🔙 Refund to Buyer
+                                </button>
+                                <button class="apple-btn" onclick="setDisputeSigningPair('{{ escrow.id }}', 'arbiter_vendor')"
+                                    style="background: #007bff; color: white; padding: 16px;">
+                                    ✅ Release to Vendor
+                                </button>
+                            </div>
+                            {% endif %}
+
+                            <!-- Decision Made - Show Status -->
+                            {% if escrow.dispute_signing_pair %}
+                            <div style="background: rgba(40, 167, 69, 0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <strong>Decision:</strong>
+                                {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                    🔙 Funds will be refunded to BUYER
+                                {% else %}
+                                    ✅ Funds will be released to VENDOR
+                                {% endif %}
+                            </div>
+
+                            <!-- Broadcast Button for Arbiter or Winner -->
+                            {% set is_winner = (escrow.dispute_signing_pair == "arbiter_buyer" and escrow_user_role == "buyer") or (escrow.dispute_signing_pair == "arbiter_vendor" and escrow_user_role == "vendor") %}
+                            {% if escrow_user_role == "arbiter" or is_winner %}
+
+                            <!-- Buyer Refund Address (required for arbiter_buyer) -->
+                            {% if escrow.dispute_signing_pair == "arbiter_buyer" and escrow_user_role == "buyer" %}
+                            <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid #28a745; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <h4 style="margin: 0 0 8px 0; color: #28a745;">📥 Your Refund Address</h4>
+                                <p style="margin: 0 0 12px 0; font-size: 13px; color: #6c757d;">
+                                    Enter your Monero wallet address where you want to receive the refund.
+                                </p>
+                                {% if escrow.buyer_refund_address %}
+                                <div style="background: rgba(40, 167, 69, 0.2); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                                    <span style="color: #28a745; font-size: 12px;">✓ Address set:</span>
+                                    <p style="margin: 4px 0 0 0; font-family: monospace; font-size: 11px; word-break: break-all;">
+                                        {{ escrow.buyer_refund_address }}
+                                    </p>
+                                </div>
+                                {% endif %}
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="buyer-refund-address-input"
+                                           placeholder="Your Monero address (95 or 106 characters)"
+                                           value="{{ escrow.buyer_refund_address | default(value='') }}"
+                                           style="flex: 1; padding: 10px; border: 1px solid #444; border-radius: 6px; background: #1a1a1a; color: white; font-family: monospace; font-size: 12px;">
+                                    <button onclick="setRefundAddressDispute('{{ escrow.id }}')"
+                                            style="padding: 10px 16px; background: #28a745; border: none; border-radius: 6px; color: white; cursor: pointer; white-space: nowrap;">
+                                        {% if escrow.buyer_refund_address %}Update{% else %}Save{% endif %}
+                                    </button>
+                                </div>
+                                <div id="refund-address-status" style="margin-top: 8px;"></div>
+                                {% if not escrow.buyer_refund_address %}
+                                <p style="margin: 12px 0 0 0; color: #dc3545; font-size: 12px;">
+                                    ⚠️ You must set your refund address before broadcasting!
+                                </p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <p style="margin-bottom: 12px;">Submit your FROST share to finalize the dispute:</p>
+                            <button class="apple-btn apple-btn-primary" id="dispute-broadcast-btn" onclick="broadcastDispute('{{ escrow.id }}')"
+                                style="width: 100%; padding: 16px; font-size: 16px;"
+                                {% if escrow.dispute_signing_pair == "arbiter_buyer" and escrow_user_role == "buyer" and not escrow.buyer_refund_address %}disabled{% endif %}>
+                                🔐 Submit Share & Broadcast
+                            </button>
+                            <div id="dispute-broadcast-status" style="margin-top: 12px;"></div>
+                            {% else %}
+                            <p style="color: #6c757d;">Waiting for arbiter and {{ escrow.dispute_signing_pair | replace(from="arbiter_", to="") }} to sign.</p>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Dispute Timeline (Who/When/What) -->
+                    {% if escrow.dispute_created_at or dispute_timeline %}
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Dispute Timeline
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <div class="dispute-timeline">
+                                <!-- Dispute Opened -->
+                                {% if escrow.dispute_created_at %}
+                                <div class="dispute-timeline__item">
+                                    <div class="dispute-timeline__dot dispute-timeline__dot--opened"></div>
+                                    <div class="dispute-timeline__content">
+                                        <div class="dispute-timeline__header">
+                                            <span class="dispute-timeline__actor">Dispute Opened</span>
+                                            <span class="dispute-timeline__time">{{ escrow.dispute_created_at | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        </div>
+                                        {% if escrow.dispute_reason %}
+                                        <p class="dispute-timeline__desc">{{ escrow.dispute_reason }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Evidence Items -->
+                                {% if dispute_timeline %}
+                                {% for event in dispute_timeline %}
+                                <div class="dispute-timeline__item">
+                                    <div class="dispute-timeline__dot dispute-timeline__dot--{{ event.event }}"></div>
+                                    <div class="dispute-timeline__content">
+                                        <div class="dispute-timeline__header">
+                                            <span class="dispute-timeline__actor">{{ event.actor | capitalize }}</span>
+                                            <span class="dispute-timeline__time">{{ event.timestamp | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        </div>
+                                        <p class="dispute-timeline__desc">{{ event.description }}</p>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                {% endif %}
+
+                                <!-- Auto-Escalated -->
+                                {% if escrow.auto_escalated_at %}
+                                <div class="dispute-timeline__item">
+                                    <div class="dispute-timeline__dot dispute-timeline__dot--escalated"></div>
+                                    <div class="dispute-timeline__content">
+                                        <div class="dispute-timeline__header">
+                                            <span class="dispute-timeline__actor">System</span>
+                                            <span class="dispute-timeline__time">{{ escrow.auto_escalated_at | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        </div>
+                                        <p class="dispute-timeline__desc">{{ escrow.escalation_reason | default(value="Auto-escalated due to timeout") }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Dispute Resolved -->
+                                {% if escrow.dispute_resolved_at %}
+                                <div class="dispute-timeline__item">
+                                    <div class="dispute-timeline__dot dispute-timeline__dot--resolved"></div>
+                                    <div class="dispute-timeline__content">
+                                        <div class="dispute-timeline__header">
+                                            <span class="dispute-timeline__actor">Arbiter</span>
+                                            <span class="dispute-timeline__time">{{ escrow.dispute_resolved_at | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        </div>
+                                        <p class="dispute-timeline__desc">{{ escrow.resolution_decision | default(value="Resolved") }}</p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Escrow Amount Card -->
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-body">
+                            <div class="apple-escrow-amount">
+                                <div class="apple-escrow-amount-icon">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <span class="apple-escrow-amount-label">Escrow Amount</span>
+                                    <span class="apple-escrow-amount-value">{{ escrow.amount_xmr }} XMR</span>
+                                    <span class="apple-escrow-amount-atomic">{{ escrow.amount_atomic }} piconeros</span>
+                                </div>
+                            </div>
+                            <!-- Fee Transparency Notice -->
+                            <div style="background: rgba(255,165,0,0.1); border: 1px solid rgba(255,165,0,0.3); border-radius: 8px; padding: 10px 12px; margin-top: 12px; font-size: 12px;">
+                                <span style="color: var(--apple-orange);">Network Fee:</span>
+                                <span style="color: var(--apple-gray);"> ~0.0001 XMR deducted at release</span>
+                                {% if role == "vendor" %}
+                                <br><span style="color: var(--apple-green);">You will receive: ~{{ escrow.amount_xmr }} - 0.0001 XMR</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- v0.45.0 FROST DKG Status (only shown for FROST-enabled escrows) -->
+                    {% if escrow.frost_enabled %}
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">🔐 FROST Threshold Key Setup</h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <div id="frost-dkg-status">
+                                <!-- Status will be populated by frost-escrow.js -->
+                                <div class="frost-status pending">
+                                    <p style="color: var(--apple-gray);">Initializing FROST DKG...</p>
+                                </div>
+                            </div>
+                            {% if escrow.frost_dkg_complete %}
+                            <div style="background: rgba(0,255,0,0.1); border: 1px solid rgba(0,255,0,0.3); border-radius: 8px; padding: 10px 12px; margin-top: 12px;">
+                                <span style="color: var(--apple-green);">✅ Threshold wallet ready!</span>
+                                <br><span style="color: var(--apple-gray); font-size: 12px;">2-of-3 FROST CLSAG signing enabled</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Escrow Timeline -->
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">Escrow Process</h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <div class="apple-escrow-timeline">
+                                <!-- Step 1: Initiated -->
+                                <div
+                                    class="apple-escrow-step {% if escrow.status != 'pending' %}completed{% else %}active{% endif %}">
+                                    <div class="apple-escrow-step-marker">
+                                        {% if escrow.status != 'pending' %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        {% else %}
+                                        <span>1</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="apple-escrow-step-content">
+                                        <h4 class="apple-escrow-step-title">Escrow Initiated</h4>
+                                        <p class="apple-escrow-step-desc">3 multisig wallets created (Buyer, Vendor,
+                                            Arbiter)</p>
+                                        <span class="apple-escrow-step-time">{{ escrow.created_at |
+                                            date(format="%Y-%m-%d %H:%M") }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Step 2: Multisig Setup -->
+                                <div
+                                    class="apple-escrow-step {% if escrow.status == 'funded' or escrow.status == 'released' or escrow.status == 'completed' or escrow.status == 'refunded' %}completed{% elif escrow.status == 'awaiting_funding' %}active{% endif %}">
+                                    <div class="apple-escrow-step-marker">
+                                        {% if escrow.status == 'funded' or escrow.status == 'released' or escrow.status == 'completed' or escrow.status
+                                        == 'refunded' %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        {% else %}
+                                        <span>2</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="apple-escrow-step-content">
+                                        <h4 class="apple-escrow-step-title">Multisig Setup Complete</h4>
+                                        <p class="apple-escrow-step-desc">All parties exchanged multisig info</p>
+                                        {% if escrow.multisig_address %}
+                                        <div class="apple-address-box">
+                                            <span class="apple-address-label">Multisig Address</span>
+                                            <code class="apple-address-value">{{ escrow.multisig_address }}</code>
+                                        </div>
+                                        <!-- QR Code for funding (shown when not yet funded) -->
+                                        {% if escrow.status != 'funded' and escrow.status != 'released' and escrow.status != 'refunded' %}
+                                        <div style="display: flex; flex-direction: column; align-items: center; margin-top: 16px;">
+                                            <div id="funding-qr-code" style="border-radius: 8px; background: white; padding: 12px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);"></div>
+                                            <p class="apple-text-muted" style="text-align: center; margin-top: 8px; font-size: 12px;">
+                                                Scan to fund escrow
+                                            </p>
+                                        </div>
+                                        {% endif %}
+                                        {% endif %}
+
+                                        <!-- Payment Invoice -->
+                                        {% if invoice %}
+                                        <div class="payment-invoice" style="margin-top: 24px; padding: 16px; background: rgba(0, 0, 0, 0.3); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                                            <h4 style="color: var(--apple-text); margin: 0 0 16px 0; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+                                                </svg>
+                                                PAYMENT INVOICE
+                                            </h4>
+
+                                            <!-- Product Line -->
+                                            <div class="invoice-line" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                <span style="color: var(--apple-text-secondary);">{{ invoice.product_title }} x {{ invoice.quantity }}</span>
+                                                <span style="color: var(--apple-text); font-family: 'SF Mono', monospace;">{{ invoice.unit_price_xmr }} XMR</span>
+                                            </div>
+
+                                            <!-- Subtotal -->
+                                            <div class="invoice-line" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                <span style="color: var(--apple-text-secondary);">Subtotal</span>
+                                                <span style="color: var(--apple-text); font-family: 'SF Mono', monospace;">{{ invoice.subtotal_xmr }} XMR</span>
+                                            </div>
+
+                                            <!-- Shipping (if > 0) -->
+                                            {% if invoice.shipping_atomic > 0 %}
+                                            <div class="invoice-line" style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                                                <span style="color: var(--apple-text-secondary);">Shipping</span>
+                                                <span style="color: var(--apple-text); font-family: 'SF Mono', monospace;">{{ invoice.shipping_xmr }} XMR</span>
+                                            </div>
+                                            {% endif %}
+
+                                            <!-- Total -->
+                                            <div class="invoice-total" style="display: flex; justify-content: space-between; padding: 12px 0; margin-top: 8px; border-top: 2px solid var(--apple-accent);">
+                                                <span style="color: var(--apple-text); font-weight: 600; font-size: 14px;">TOTAL TO SEND</span>
+                                                <span style="color: var(--apple-green); font-weight: 600; font-size: 16px; font-family: 'SF Mono', monospace;">{{ invoice.total_xmr }} XMR</span>
+                                            </div>
+
+                                            <!-- Warning -->
+                                            <div class="invoice-warning" style="margin-top: 12px; padding: 12px; background: rgba(255, 179, 0, 0.1); border-radius: 8px; border: 1px solid rgba(255, 179, 0, 0.2);">
+                                                <p style="color: var(--apple-yellow); font-size: 12px; margin: 0; display: flex; align-items: center; gap: 6px;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                                                    </svg>
+                                                    Send EXACTLY this amount. Sending less will delay your order.
+                                                </p>
+                                            </div>
+
+                                            <!-- Platform Fee Note -->
+                                            <p class="invoice-note" style="color: var(--apple-text-muted); font-size: 11px; margin: 12px 0 0 0; text-align: center;">
+                                                Platform fee (5%) will be deducted when funds are released to vendor.
+                                            </p>
+                                        </div>
+                                        {% endif %}
+
+                                    </div>
+                                </div>
+
+                                <!-- Step 3: Funded -->
+                                <div
+                                    class="apple-escrow-step {% if escrow.status == 'funded' or escrow.status == 'released' or escrow.status == 'completed' or escrow.status == 'refunded' %}completed{% elif escrow.status == 'awaiting_funding' %}active{% endif %}">
+                                    <div class="apple-escrow-step-marker">
+                                        {% if escrow.status == 'funded' or escrow.status == 'released' or escrow.status == 'completed' or escrow.status
+                                        == 'refunded' %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        {% else %}
+                                        <span>3</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="apple-escrow-step-content">
+                                        <h4 class="apple-escrow-step-title">Escrow Funded</h4>
+                                        <p class="apple-escrow-step-desc">Buyer sent {{ escrow.amount_xmr }} XMR to
+                                            multisig address</p>
+                                        {% if escrow.funded_at %}
+                                        <span class="apple-escrow-step-time">{{ escrow.funded_at |
+                                            date(format="%Y-%m-%d %H:%M") }}</span>
+                                        {% endif %}
+                                        {% if escrow.funding_txid or escrow.funding_tx_hash %}
+                                        <div class="apple-address-box">
+                                            <span class="apple-address-label">Transaction ID</span>
+                                            <code class="apple-address-value">{{ escrow.funding_txid | default(value=escrow.funding_tx_hash) }}</code>
+                                        </div>
+                                        <!-- Blockchain Confirmations Progress -->
+                                        <div class="confirmation-progress" id="confirmation-progress">
+                                            <div class="confirmation-progress__header">
+                                                <span class="confirmation-progress__label">Blockchain Confirmations</span>
+                                                <span class="confirmation-progress__count" id="conf-count">{{ funding_confirmations | default(value=0) }}/10</span>
+                                            </div>
+                                            <div class="confirmation-progress__bar">
+                                                {% set conf_percent = funding_confirmations | default(value=0) * 10 %}
+                                                {% if conf_percent > 100 %}{% set conf_percent = 100 %}{% endif %}
+                                                <div class="confirmation-progress__fill" id="conf-fill" style="width: {{ conf_percent }}%;"></div>
+                                            </div>
+                                            <p class="confirmation-progress__status" id="conf-status">
+                                                {% if funding_confirmations >= 10 %}
+                                                ✓ Fully confirmed - Escrow active
+                                                {% elif funding_confirmations > 0 %}
+                                                {{ 10 - funding_confirmations }} more confirmation(s) needed
+                                                {% else %}
+                                                Transaction detected, waiting for first confirmation...
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                        {% elif not escrow.funded_at %}
+                                        <div class="apple-waiting-box">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <polyline points="12 6 12 12 16 14" />
+                                            </svg>
+                                            <span>Awaiting buyer to fund escrow</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Step 4: Released or Refunded -->
+                                <div
+                                    class="apple-escrow-step {% if escrow.status == 'released' or escrow.status == 'completed' or escrow.status == 'refunded' %}completed{% elif escrow.status == 'funded' %}active{% endif %}">
+                                    <div class="apple-escrow-step-marker">
+                                        {% if escrow.status == 'released' or escrow.status == 'completed' or escrow.status == 'refunded' %}
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                        {% else %}
+                                        <span>4</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="apple-escrow-step-content">
+                                        {% if escrow.status == 'released' or escrow.status == 'completed' %}
+                                        <h4 class="apple-escrow-step-title">Funds Released to Vendor</h4>
+                                        <p class="apple-escrow-step-desc">2-of-3 signatures: Buyer + Arbiter confirmed
+                                        </p>
+                                        {% if escrow.released_at %}
+                                        <span class="apple-escrow-step-time">{{ escrow.released_at | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        {% endif %}
+                                        {% if escrow.release_txid %}
+                                        <div class="apple-address-box">
+                                            <span class="apple-address-label">Release Transaction</span>
+                                            <code class="apple-address-value">{{ escrow.release_txid }}</code>
+                                        </div>
+                                        {% endif %}
+
+                                        {# Rate Vendor Button - Only for Buyer after Release/Completed #}
+                                        {% if user_role == "buyer" %}
+                                        {# Use broadcast_tx_hash, funding_tx_hash, or escrow.id as txid fallback #}
+                                        {% set review_txid = escrow.broadcast_tx_hash | default(value=escrow.funding_tx_hash) | default(value=escrow.id) %}
+                                        <div style="margin-top: 16px;">
+                                            <a href="/review/submit?vendor_id={{ escrow.vendor_id }}&escrow_id={{ escrow.id }}&txid={{ review_txid }}"
+                                               class="apple-btn apple-btn-action"
+                                               style="background: linear-gradient(135deg, var(--nexus-gold), #b8860b); color: #000; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 8px; text-decoration: none;">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                                                </svg>
+                                                Rate This Transaction
+                                            </a>
+                                            <p style="margin-top: 8px; font-size: 12px; color: var(--nexus-text-muted);">
+                                                Help other buyers by sharing your experience with this vendor.
+                                            </p>
+                                        </div>
+                                        {% endif %}
+
+                                        {% elif escrow.status == 'refunded' %}
+                                        <h4 class="apple-escrow-step-title">Funds Refunded to Buyer</h4>
+                                        <p class="apple-escrow-step-desc">2-of-3 signatures: Vendor + Arbiter confirmed
+                                        </p>
+                                        {% if escrow.refunded_at %}
+                                        <span class="apple-escrow-step-time">{{ escrow.refunded_at | date(format="%Y-%m-%d %H:%M") }}</span>
+                                        {% endif %}
+                                        {% if escrow.refund_txid %}
+                                        <div class="apple-address-box">
+                                            <span class="apple-address-label">Refund Transaction</span>
+                                            <code class="apple-address-value">{{ escrow.refund_txid }}</code>
+                                        </div>
+                                        {% endif %}
+                                        {% else %}
+                                        <h4 class="apple-escrow-step-title">Awaiting Resolution</h4>
+                                        <p class="apple-escrow-step-desc">Pending buyer confirmation or dispute
+                                            resolution</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Participants -->
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">Participants</h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <div class="apple-participants-grid">
+                                <div class="apple-participant-card apple-participant-buyer">
+                                    <div class="apple-participant-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+                                            <line x1="3" y1="6" x2="21" y2="6" />
+                                            <path d="M16 10a4 4 0 0 1-8 0" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <span class="apple-participant-role">Buyer</span>
+                                        <span class="apple-participant-name">{{ escrow.buyer_username }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="apple-participant-card apple-participant-vendor">
+                                    <div class="apple-participant-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path
+                                                d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                            <polyline points="9 22 9 12 15 12 15 22" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <span class="apple-participant-role">Vendor</span>
+                                        <span class="apple-participant-name">{{ escrow.vendor_username }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="apple-participant-card apple-participant-arbiter">
+                                    <div class="apple-participant-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <span class="apple-participant-role">Arbiter</span>
+                                        <span class="apple-participant-name">{{ escrow.arbiter_username }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payout Destination (Vendor only) -->
+                    {% if user_role == "Vendor" and vendor_wallet_address %}
+                    <div class="apple-card apple-card-success" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                                    <line x1="1" y1="10" x2="23" y2="10" />
+                                </svg>
+                                Payout Destination
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <p class="apple-text-muted" style="margin-bottom: 12px;">Funds will be released to your
+                                wallet:</p>
+                            <div class="apple-address-box apple-address-success">
+                                <code class="apple-address-value">{{ vendor_wallet_address_masked }}</code>
+                                <button class="apple-copy-btn"
+                                    onclick="copyToClipboard('{{ vendor_wallet_address }}', this)" title="Copy address">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Actions Section -->
+                    {% if escrow.status == 'ready_to_broadcast' %}
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                Ready to Broadcast
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <div style="background: rgba(76,175,80,0.1); border: 1px solid rgba(76,175,80,0.3); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+                                <p style="color: var(--apple-green); margin: 0; font-weight: 500;">
+                                    ✅ 2-of-3 signatures collected! Transaction is ready to broadcast.
+                                </p>
+                            </div>
+                            <p class="apple-text-muted" style="margin-bottom: 20px;">
+                                Click the button below to broadcast the transaction to the Monero network.
+                                Once broadcast, funds will be sent to the vendor's payout address.
+                            </p>
+                            <button class="apple-btn apple-btn-primary" id="broadcast-btn"
+                                onclick="broadcastTransaction('{{ escrow.id }}')"
+                                style="width: 100%; padding: 16px; font-size: 16px;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                                    <polygon points="5 3 19 12 5 21 5 3" />
+                                </svg>
+                                Broadcast Transaction
+                            </button>
+                            <div id="broadcast-status" style="margin-top: 16px; display: none;"></div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Technical Details (Collapsible) -->
+                    <div class="apple-card">
+                        <button class="apple-collapsible-toggle" onclick="toggleTechnicalDetails()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="1.5">
+                                <circle cx="12" cy="12" r="3" />
+                                <path
+                                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                            </svg>
+                            <span>Technical Details</span>
+                            <svg class="apple-collapsible-chevron" xmlns="http://www.w3.org/2000/svg" width="18"
+                                height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                        </button>
+
+                        <div class="apple-collapsible-content" id="tech-details-content" style="display: none;">
+                            <!-- Multisig Address -->
+                            <div class="apple-tech-section">
+                                <h4 class="apple-tech-title">Multisig Wallet Address</h4>
+                                {% if escrow.multisig_address %}
+                                <div class="apple-address-box">
+                                    <code class="apple-address-value">{{ escrow.multisig_address }}</code>
+                                    <button class="apple-copy-btn"
+                                        onclick="copyToClipboard('{{ escrow.multisig_address }}', this)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <p class="apple-text-muted">Multisig address pending finalization</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Participants Multisig Info -->
+                            <div class="apple-tech-section">
+                                <h4 class="apple-tech-title">Participants Multisig Info</h4>
+                                <div class="apple-tech-participants">
+                                    <!-- Buyer -->
+                                    <div class="apple-tech-participant">
+                                        <div class="apple-tech-participant-header">
+                                            <span class="apple-tech-role-badge apple-badge-buyer">Buyer</span>
+                                            <span class="apple-tech-username">{{ escrow.buyer_username }}</span>
+                                        </div>
+                                        {% if escrow.buyer_wallet_info %}
+                                        <span class="apple-badge apple-badge-success">Multisig Info Submitted</span>
+                                        {% else %}
+                                        <span class="apple-badge apple-badge-pending">Pending</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Vendor -->
+                                    <div class="apple-tech-participant">
+                                        <div class="apple-tech-participant-header">
+                                            <span class="apple-tech-role-badge apple-badge-vendor">Vendor</span>
+                                            <span class="apple-tech-username">{{ escrow.vendor_username }}</span>
+                                        </div>
+                                        {% if escrow.vendor_wallet_info %}
+                                        <span class="apple-badge apple-badge-success">Multisig Info Submitted</span>
+                                        {% else %}
+                                        <span class="apple-badge apple-badge-pending">Pending</span>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Arbiter -->
+                                    <div class="apple-tech-participant">
+                                        <div class="apple-tech-participant-header">
+                                            <span class="apple-tech-role-badge apple-badge-arbiter">Arbiter</span>
+                                            <span class="apple-tech-username">{{ escrow.arbiter_username }}</span>
+                                        </div>
+                                        {% if escrow.arbiter_wallet_info %}
+                                        <span class="apple-badge apple-badge-success">Multisig Info Submitted</span>
+                                        {% else %}
+                                        <span class="apple-badge apple-badge-pending">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Export -->
+                            <div class="apple-tech-section">
+                                <h4 class="apple-tech-title">Export Data</h4>
+                                <p class="apple-text-muted" style="margin-bottom: 12px;">Download cryptographic proof
+                                    and escrow details</p>
+                                <button class="apple-btn apple-btn-ghost"
+                                    onclick="exportTechnicalData('{{ escrow.id }}')">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    Download JSON
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <aside class="apple-escrow-sidebar">
+                    <!-- Security Features -->
+                    <div class="apple-card" style="margin-bottom: 24px;">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                                Security Features
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <ul class="apple-security-list">
+                                <li>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    2-of-3 Multisig Protection
+                                </li>
+                                <li>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Monero Privacy Features
+                                </li>
+                                <li>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Neutral Arbiter Resolution
+                                </li>
+                                <li>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                    Stagenet Mode (Testing)
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- How It Works -->
+                    <div class="apple-card">
+                        <div class="apple-card-header">
+                            <h3 class="apple-card-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                                How 2-of-3 Works
+                            </h3>
+                        </div>
+                        <div class="apple-card-body">
+                            <p class="apple-text-muted" style="margin-bottom: 16px; font-size: 13px; line-height: 1.6;">
+                                Any 2 out of 3 parties (Buyer, Vendor, Arbiter) must sign to move funds.
+                            </p>
+                            <div class="apple-scenarios">
+                                <div class="apple-scenario">
+                                    <span class="apple-scenario-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    </span>
+                                    <span><strong>Happy Path:</strong> Buyer + Vendor sign</span>
+                                </div>
+                                <div class="apple-scenario">
+                                    <span class="apple-scenario-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="1 4 1 10 7 10" />
+                                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                                        </svg>
+                                    </span>
+                                    <span><strong>Refund:</strong> Buyer + Arbiter sign</span>
+                                </div>
+                                <div class="apple-scenario">
+                                    <span class="apple-scenario-icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="12" y1="8" x2="12" y2="12" />
+                                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                                        </svg>
+                                    </span>
+                                    <span><strong>Dispute:</strong> Arbiter decides</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+
+        <!-- WebSocket data -->
+        <div id="order-data" data-order-id="{{ escrow.id }}" style="display: none;"></div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    {% include "modals/seed-backup.html" %}
+    {% include "modals/sign-action.html" %}
+
+    <!-- Auto-redirect to setup wizard if wallet not configured -->
+    <script>
+        // CRITICAL: Redirect to setup wizard if wallet not configured
+        // All participants (Buyer, Vendor, Arbiter) MUST generate their wallet address
+        // before multisig coordination can begin
+        (function() {
+            const userWalletConfigured = {{ user_wallet_configured | default(value="false") }};
+            const escrowStatus = "{{ escrow.status }}";
+            const escrowId = "{{ escrow.id }}";
+            const userRole = "{{ user_role | default(value='') }}";
+
+            console.log('[Escrow Setup Check]', {
+                userWalletConfigured,
+                escrowStatus,
+                userRole,
+                escrowId: escrowId.substring(0, 8) + '...'
+            });
+
+            // Redirect if:
+            // 1. User hasn't configured wallet yet
+            // 2. Escrow is in setup phase (created or pending status)
+            // 3. User has a valid role (Buyer/Vendor/Arbiter)
+            const needsSetup = escrowStatus === "created" || escrowStatus === "pending";
+            if (!userWalletConfigured && needsSetup && userRole) {
+                console.log('[Escrow] Wallet not configured for ' + userRole + ', redirecting to setup wizard...');
+                window.location.href = `/escrow/setup?escrow_id=${escrowId}`;
+            }
+        })();
+
+        // Dispute Resolution Functions
+        async function setDisputeSigningPair(escrowId, signingPair) {
+            try {
+                const response = await fetch(`/api/escrow/${escrowId}/dispute/signing-pair`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ signing_pair: signingPair })
+                });
+
+                if (response.ok) {
+                    alert('Decision recorded: ' + (signingPair === 'arbiter_buyer' ? 'Refund to Buyer' : 'Release to Vendor'));
+                    location.reload();
+                } else {
+                    const err = await response.json();
+                    alert('Error: ' + (err.error || 'Failed to set signing pair'));
+                }
+            } catch (e) {
+                console.error('setDisputeSigningPair error:', e);
+                alert('Network error: ' + e.message);
+            }
+        }
+
+        // Set buyer refund address for dispute resolution
+        async function setRefundAddressDispute(escrowId) {
+            const input = document.getElementById('buyer-refund-address-input');
+            const statusDiv = document.getElementById('refund-address-status');
+            const address = input.value.trim();
+
+            if (!address) {
+                statusDiv.innerHTML = '<span style="color: #dc3545;">Please enter your Monero address</span>';
+                return;
+            }
+
+            // Basic validation (95 for standard, 106 for integrated)
+            if (address.length !== 95 && address.length !== 106) {
+                statusDiv.innerHTML = '<span style="color: #dc3545;">Invalid address length. Must be 95 or 106 characters.</span>';
+                return;
+            }
+
+            statusDiv.innerHTML = '<span style="color: #6c757d;">⏳ Saving...</span>';
+
+            try {
+                const response = await fetch(`/api/v2/escrow/${escrowId}/set-refund-address`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ refund_address: address })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    statusDiv.innerHTML = '<span style="color: #28a745;">✓ Address saved successfully!</span>';
+                    // Enable the broadcast button and reload page to update state
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    statusDiv.innerHTML = `<span style="color: #dc3545;">Error: ${result.error || 'Failed to save'}</span>`;
+                }
+            } catch (e) {
+                console.error('setRefundAddressDispute error:', e);
+                statusDiv.innerHTML = `<span style="color: #dc3545;">Network error: ${e.message}</span>`;
+            }
+        }
+
+        async function broadcastDispute(escrowId) {
+            const btn = document.getElementById('dispute-broadcast-btn');
+            const statusDiv = document.getElementById('dispute-broadcast-status');
+            const userRole = "{{ escrow_user_role | default(value='') | lower }}";
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Submitting...';
+            statusDiv.innerHTML = '';
+
+            try {
+                // Get FROST share from localStorage - try role-specific first, then legacy
+                let myFrostShare = localStorage.getItem(`frost_secret_share_${escrowId}_${userRole}`);
+                if (!myFrostShare) {
+                    myFrostShare = localStorage.getItem(`frost_secret_share_${escrowId}`);
+                }
+
+                // Also try parsing as JSON if stored as object
+                if (!myFrostShare) {
+                    const frostData = localStorage.getItem(`frost_escrow_${escrowId}`);
+                    if (frostData) {
+                        try {
+                            const parsed = JSON.parse(frostData);
+                            myFrostShare = parsed.secret_share;
+                        } catch (e) {
+                            console.error('Error parsing FROST data:', e);
+                        }
+                    }
+                }
+
+                console.log('[DISPUTE] Looking for FROST share, role:', userRole, 'found:', !!myFrostShare);
+
+                if (!myFrostShare) {
+                    throw new Error('FROST share not found. Complete DKG first.');
+                }
+
+                const response = await fetch(`/api/debug/escrow/${escrowId}/broadcast_dispute_cli`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        frost_share: myFrostShare,
+                        user_role: userRole
+                    })
+                });
+
+                // Get response text first, then try to parse as JSON
+                const responseText = await response.text();
+                console.log('[DISPUTE] Raw response:', response.status, responseText.substring(0, 200));
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (parseErr) {
+                    throw new Error(`Server error (${response.status}): ${responseText.substring(0, 100)}`);
+                }
+                console.log('[DISPUTE] Broadcast result:', result);
+
+                if (response.status === 202 || result.status === 'waiting') {
+                    // Waiting for other party
+                    const hasArbiter = result.has_arbiter_share ? '✅' : '⏳';
+                    const hasWinner = result.has_winner_share ? '✅' : '⏳';
+                    statusDiv.innerHTML = `<div style="background: #fff3cd; padding: 12px; border-radius: 8px;">
+                        Your share submitted! Waiting for other party...<br>
+                        <small>Arbiter: ${hasArbiter} | Winner: ${hasWinner}</small>
+                    </div>`;
+                    btn.disabled = false;
+                    btn.textContent = '🔄 Check Status';
+                    setTimeout(() => location.reload(), 5000);
+                } else if (response.ok && result.tx_hash) {
+                    // Success!
+                    statusDiv.innerHTML = `<div style="background: #d4edda; padding: 12px; border-radius: 8px;">
+                        ✅ Transaction broadcast! TX: ${result.tx_hash.substring(0, 16)}...
+                    </div>`;
+                    setTimeout(() => location.reload(), 3000);
+                } else {
+                    throw new Error(result.error || 'Broadcast failed');
+                }
+            } catch (e) {
+                console.error('[DISPUTE] Error:', e);
+                btn.disabled = false;
+                btn.textContent = '🔐 Submit Share & Broadcast';
+                statusDiv.innerHTML = `<div style="background: #f8d7da; padding: 12px; border-radius: 8px;">
+                    ❌ Error: ${e.message}
+                </div>`;
+            }
+        }
+    </script>
+
+    <!-- Scripts -->
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script type="module" src="/static/js/wasm-loader.js?v=20251228_v580_rebuild2"></script>
+    <script src="/static/js/sign-action.js"></script>
+    <script src="/static/js/escrow-websocket.js"></script>
+    <script src="/static/js/qrcode.min.js"></script>
+    <script src="/static/js/escrow-show.js"></script>
+    <!-- v0.45.0 FROST: Async DKG for 2-of-3 threshold CLSAG -->
+    <script type="module" src="/static/js/frost-escrow.js"></script>
+
+    <!-- Confirmation Progress WebSocket Handler -->
+    <script>
+    (function() {
+        const required = 10;
+
+        // Update confirmation display
+        window.updateConfirmations = function(confirmations) {
+            const countEl = document.getElementById('conf-count');
+            const fillEl = document.getElementById('conf-fill');
+            const statusEl = document.getElementById('conf-status');
+
+            if (!countEl || !fillEl || !statusEl) return;
+
+            const percent = Math.min((confirmations / required) * 100, 100);
+
+            countEl.textContent = `${confirmations}/${required}`;
+            fillEl.style.width = `${percent}%`;
+
+            if (confirmations >= required) {
+                statusEl.textContent = '✓ Fully confirmed';
+                fillEl.classList.add('confirmed');
+            } else {
+                statusEl.textContent = `${required - confirmations} more confirmation(s) needed`;
+            }
+        };
+
+        // Listen for TransactionConfirmed WebSocket events
+        if (typeof window.NexusNotificationManager !== 'undefined') {
+            const originalHandler = window.NexusNotificationManager.prototype.handleMessage;
+            window.NexusNotificationManager.prototype.handleMessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.TransactionConfirmed && data.TransactionConfirmed.escrow_id === '{{ escrow.id }}') {
+                        window.updateConfirmations(data.TransactionConfirmed.confirmations);
+                    }
+                } catch (e) {}
+                if (originalHandler) originalHandler.call(this, event);
+            };
+        }
+    })();
+    </script>
+
+    <!-- Generate QR code for funding address (when not yet funded) -->
+    {% if escrow.multisig_address and escrow.status != 'funded' and escrow.status != 'released' and escrow.status != 'refunded' %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const qrContainer = document.getElementById('funding-qr-code');
+        const multisigAddress = '{{ escrow.multisig_address }}';
+
+        if (qrContainer && typeof QRCode !== 'undefined' && multisigAddress) {
+            try {
+                new QRCode(qrContainer, {
+                    text: multisigAddress,
+                    width: 180,
+                    height: 180,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                console.log('[EscrowShow] Funding QR code generated');
+            } catch (error) {
+                console.error('[EscrowShow] QR generation error:', error);
+                qrContainer.style.display = 'none';
+            }
+        }
+    });
+    </script>
+    {% endif %}
+
+    <!-- Recovery Shield Export Modal -->
+    {% include "escrow/modals/recovery-shield-export.html" %}
+
+    <!-- v0.68.0: Refund Request JavaScript -->
+    <script>
+    async function submitRefundRequest(event, escrowId) {
+        event.preventDefault();
+
+        const form = event.target;
+        const submitBtn = document.getElementById('refund-submit-btn');
+        const resultDiv = document.getElementById('refund-result');
+        const addressInput = document.getElementById('refund-address');
+
+        const refundAddress = addressInput.value.trim();
+
+        // Basic validation
+        if (refundAddress.length < 95 || refundAddress.length > 106) {
+            showRefundError('Invalid Monero address length. Must be 95-106 characters.');
+            return;
+        }
+
+        // Check first character (network prefix)
+        const firstChar = refundAddress[0];
+        if (!['4', '5', '7', '8', '9', 'A'].includes(firstChar)) {
+            showRefundError('Invalid Monero address format. Must start with 4, 5, 7, 8, 9, or A.');
+            return;
+        }
+
+        // Disable button and show loading
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; animation: spin 1s linear infinite;">
+                <circle cx="12" cy="12" r="10" stroke-dasharray="31.416" stroke-dashoffset="10"/>
+            </svg>
+            Processing...
+        `;
+
+        try {
+            const response = await fetch(`/api/escrow/${escrowId}/request-refund`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    refund_address: refundAddress
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                showRefundSuccess(data);
+                // Reload page to show updated state
+                setTimeout(() => window.location.reload(), 2000);
+            } else {
+                showRefundError(data.error || 'Failed to submit refund request');
+            }
+        } catch (error) {
+            console.error('[RefundRequest] Error:', error);
+            showRefundError('Network error. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; vertical-align: middle;">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+                </svg>
+                Request Refund
+            `;
+        }
+    }
+
+    function showRefundSuccess(data) {
+        const resultDiv = document.getElementById('refund-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div style="background: rgba(40, 167, 69, 0.1); border: 1px solid rgba(40, 167, 69, 0.3); border-radius: 8px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="#28a745" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="16 10 10 16 8 14"/>
+                    </svg>
+                    <div>
+                        <strong style="color: #28a745;">Refund Request Submitted</strong>
+                        <p style="margin: 4px 0 0; color: var(--nexus-text-muted); font-size: 14px;">
+                            ${data.message}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+        // Hide the form
+        document.getElementById('refund-request-form').style.display = 'none';
+    }
+
+    function showRefundError(message) {
+        const resultDiv = document.getElementById('refund-result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+            <div style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.3); border-radius: 8px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                        fill="none" stroke="#dc3545" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    <div>
+                        <strong style="color: #dc3545;">Error</strong>
+                        <p style="margin: 4px 0 0; color: var(--nexus-text-muted); font-size: 14px;">
+                            ${message}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Clipboard copy function (if not already defined)
+    function copyToClipboard(elementId) {
+        const input = document.getElementById(elementId);
+        if (input) {
+            navigator.clipboard.writeText(input.value).then(() => {
+                // Show brief feedback
+                const btn = input.nextElementSibling;
+                if (btn) {
+                    const originalText = btn.textContent;
+                    btn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        btn.textContent = originalText;
+                    }, 1500);
+                }
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                // Fallback
+                input.select();
+                document.execCommand('copy');
+            });
+        }
+    }
+    </script>
+
+    <style>
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    </style>
+
+</body>
+
+</html>

@@ -1,0 +1,216 @@
+{#
+  NEXUS ACCORDION COMPONENT
+
+  Usage:
+    {% include "partials/nexus/molecules/accordion.html" with
+       id="faq-accordion"
+       items=[
+         {"title": "What is Monero?", "content": "<p>Monero is a privacy coin...</p>", "open": true},
+         {"title": "How does escrow work?", "content": "<p>Our escrow uses 2-of-3 multisig...</p>"}
+       ]
+    %}
+
+  Parameters:
+    - id (required): Unique accordion ID
+    - items (required): Array of accordion items with:
+        - title: Item title
+        - content: Item content HTML
+        - open: true|false (initially open)
+        - icon: Optional icon
+    - allow_multiple (optional): true|false - Allow multiple items open (default: false)
+    - class (optional): Additional CSS classes
+#}
+
+{% set accordion_allow_multiple = allow_multiple | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-accordion" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}" data-allow-multiple="{{ accordion_allow_multiple }}">
+  {% for item in items %}
+    {% set item_open = item.open | default(value=false) %}
+    {% set item_id = id ~ "-item-" ~ loop.index0 %}
+
+    <div class="nexus-accordion-item {% if item_open %}nexus-accordion-item-open{% endif %}">
+      {# Trigger #}
+      <button
+        class="nexus-accordion-trigger"
+        aria-expanded="{% if item_open %}true{% else %}false{% endif %}"
+        aria-controls="{{ item_id }}-content"
+        onclick="toggleAccordionItem('{{ id }}', {{ loop.index0 }})"
+      >
+        {% if item.icon %}
+          <span class="nexus-accordion-icon">{{ item.icon | safe }}</span>
+        {% endif %}
+        <span class="nexus-accordion-title">{{ item.title }}</span>
+        <span class="nexus-accordion-chevron">▼</span>
+      </button>
+
+      {# Content #}
+      <div
+        id="{{ item_id }}-content"
+        class="nexus-accordion-content"
+        {% if not item_open %}hidden{% endif %}
+      >
+        <div class="nexus-accordion-content-inner">
+          {{ item.content | safe }}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<script>
+function toggleAccordionItem(accordionId, itemIndex) {
+  var accordion = document.getElementById(accordionId);
+  var allowMultiple = accordion.dataset.allowMultiple === 'true';
+  var items = accordion.querySelectorAll('.nexus-accordion-item');
+  var currentItem = items[itemIndex];
+  var currentTrigger = currentItem.querySelector('.nexus-accordion-trigger');
+  var currentContent = currentItem.querySelector('.nexus-accordion-content');
+  var isOpen = currentItem.classList.contains('nexus-accordion-item-open');
+
+  // Close other items if multiple not allowed
+  if (!allowMultiple && !isOpen) {
+    items.forEach(function(item, index) {
+      if (index !== itemIndex) {
+        item.classList.remove('nexus-accordion-item-open');
+        var trigger = item.querySelector('.nexus-accordion-trigger');
+        var content = item.querySelector('.nexus-accordion-content');
+        trigger.setAttribute('aria-expanded', 'false');
+        content.setAttribute('hidden', '');
+      }
+    });
+  }
+
+  // Toggle current item
+  if (isOpen) {
+    currentItem.classList.remove('nexus-accordion-item-open');
+    currentTrigger.setAttribute('aria-expanded', 'false');
+    currentContent.setAttribute('hidden', '');
+  } else {
+    currentItem.classList.add('nexus-accordion-item-open');
+    currentTrigger.setAttribute('aria-expanded', 'true');
+    currentContent.removeAttribute('hidden');
+  }
+}
+</script>
+
+<style>
+/* Base Accordion */
+.nexus-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+}
+
+/* Accordion Item */
+.nexus-accordion-item {
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-md);
+  overflow: hidden;
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-accordion-item:hover {
+  border-color: var(--nexus-primary);
+}
+
+/* Accordion Trigger */
+.nexus-accordion-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-3);
+  width: 100%;
+  padding: var(--nexus-space-4);
+  font-size: var(--nexus-text-base);
+  font-weight: var(--nexus-weight-medium);
+  color: var(--nexus-fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-accordion-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nexus-accordion-trigger:focus {
+  outline: 2px solid var(--nexus-ring);
+  outline-offset: -2px;
+}
+
+/* Accordion Icon */
+.nexus-accordion-icon {
+  font-size: var(--nexus-text-xl);
+  flex-shrink: 0;
+}
+
+/* Accordion Title */
+.nexus-accordion-title {
+  flex: 1;
+}
+
+/* Accordion Chevron */
+.nexus-accordion-chevron {
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+  transition: transform var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-accordion-item-open .nexus-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+/* Accordion Content */
+.nexus-accordion-content {
+  overflow: hidden;
+  animation: nexus-accordion-slide-down 0.2s var(--nexus-ease-out);
+}
+
+.nexus-accordion-content[hidden] {
+  display: none;
+}
+
+@keyframes nexus-accordion-slide-down {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 1000px;
+    opacity: 1;
+  }
+}
+
+/* Accordion Content Inner */
+.nexus-accordion-content-inner {
+  padding: 0 var(--nexus-space-4) var(--nexus-space-4) var(--nexus-space-4);
+  color: var(--nexus-muted-fg);
+  font-size: var(--nexus-text-sm);
+  line-height: var(--nexus-leading-relaxed);
+}
+
+/* Open State */
+.nexus-accordion-item-open {
+  border-color: var(--nexus-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-accordion-trigger {
+    padding: var(--nexus-space-3);
+    font-size: var(--nexus-text-sm);
+  }
+
+  .nexus-accordion-content-inner {
+    padding: 0 var(--nexus-space-3) var(--nexus-space-3) var(--nexus-space-3);
+  }
+}
+</style>

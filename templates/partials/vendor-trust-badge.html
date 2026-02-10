@@ -1,0 +1,54 @@
+{#
+  Vendor Trust Badge Component
+
+  Usage:
+    {% include "partials/vendor-trust-badge.html" %}
+
+  Required context:
+    - vendor_sales: number of completed sales
+    - vendor_rating: rating percentage (0-100)
+
+  Badge Tiers:
+    - NEW VENDOR: 0-4 sales (no visual badge)
+    - RISING: 5-19 sales, 90%+ rating (Bronze star)
+    - ESTABLISHED: 20-99 sales, 95%+ rating (Silver star)
+    - TOP VENDOR: 100+ sales, 98%+ rating (Gold star)
+#}
+
+{% set sales = vendor_sales | default(value=0) %}
+{% set rating = vendor_rating | default(value=0) %}
+
+{% if sales >= 100 and rating >= 98 %}
+{# TOP VENDOR - Gold #}
+<span class="vendor-trust-badge vendor-trust-badge--top" title="Top Vendor: {{ sales }} sales, {{ rating }}% positive">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    <span>Top Vendor</span>
+</span>
+
+{% elif sales >= 20 and rating >= 95 %}
+{# ESTABLISHED - Silver #}
+<span class="vendor-trust-badge vendor-trust-badge--established" title="Established Vendor: {{ sales }} sales, {{ rating }}% positive">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    <span>Established</span>
+</span>
+
+{% elif sales >= 5 and rating >= 90 %}
+{# RISING - Bronze #}
+<span class="vendor-trust-badge vendor-trust-badge--rising" title="Rising Vendor: {{ sales }} sales, {{ rating }}% positive">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    <span>Rising</span>
+</span>
+
+{% elif sales > 0 %}
+{# NEW VENDOR - Minimal badge #}
+<span class="vendor-trust-badge vendor-trust-badge--new" title="New Vendor: {{ sales }} sales">
+    <span>New Vendor</span>
+</span>
+
+{% endif %}

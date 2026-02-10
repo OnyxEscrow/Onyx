@@ -1,0 +1,408 @@
+{# Multisig Wizard - FROST DKG & Signing Progress Component #}
+{# Inspired by Gnosis Safe, Casa, Unchained Capital UI patterns #}
+
+{# Expected context variables:
+   - escrow: Escrow object with status, signing_phase, etc.
+   - role: "buyer" | "vendor" | "arbiter"
+   - dkg_state: Optional DKG state object
+   - user_id: Current user's UUID
+#}
+
+{% set escrow_id = escrow.id %}
+{% set current_status = escrow.status | default(value="created") %}
+{% set signing_phase = escrow.signing_phase | default(value="awaiting_initiation") %}
+
+{# Determine DKG step based on status/signing_phase #}
+{% if current_status == "created" or current_status == "pending" %}
+    {% set dkg_step = 0 %}
+    {% set dkg_label = "Awaiting Funding" %}
+{% elif current_status == "funded" and signing_phase == "dkg_round1" %}
+    {% set dkg_step = 1 %}
+    {% set dkg_label = "DKG Round 1" %}
+{% elif current_status == "funded" and signing_phase == "dkg_round2" %}
+    {% set dkg_step = 2 %}
+    {% set dkg_label = "DKG Round 2" %}
+{% elif current_status == "funded" and signing_phase == "dkg_round3" %}
+    {% set dkg_step = 3 %}
+    {% set dkg_label = "DKG Finalization" %}
+{% elif current_status == "funded" and (signing_phase == "ready_for_initiation" or signing_phase == "awaiting_initiation") %}
+    {% set dkg_step = 4 %}
+    {% set dkg_label = "Ready to Sign" %}
+{% elif current_status == "signing_initiated" %}
+    {% set dkg_step = 5 %}
+    {% set dkg_label = "Signing in Progress" %}
+{% elif current_status == "ready_to_broadcast" %}
+    {% set dkg_step = 6 %}
+    {% set dkg_label = "Ready to Broadcast" %}
+{% elif current_status == "completing" or current_status == "completed" %}
+    {% set dkg_step = 7 %}
+    {% set dkg_label = "Complete" %}
+{% else %}
+    {% set dkg_step = 0 %}
+    {% set dkg_label = "Unknown" %}
+{% endif %}
+
+{# Calculate progress percentage (0-100) #}
+{% set progress_percent = (dkg_step * 100) / 7 %}
+
+{# Determine signer states #}
+{% set vendor_signed = escrow.partial_tx or escrow.vendor_partial_key_image %}
+{% set buyer_signed = escrow.buyer_partial_key_image or escrow.completed_clsag %}
+{% set signatures_collected = 0 %}
+{% if vendor_signed %}{% set signatures_collected = signatures_collected + 1 %}{% endif %}
+{% if buyer_signed %}{% set signatures_collected = signatures_collected + 1 %}{% endif %}
+
+<div class="nx-wizard"
+     id="multisig-wizard"
+     data-escrow-id="{{ escrow_id }}"
+     data-current-step="{{ dkg_step }}"
+     data-user-role="{{ role }}"
+     data-signing-phase="{{ signing_phase }}"
+     data-vendor-signed="{{ vendor_signed | default(value=false) }}"
+     data-buyer-signed="{{ buyer_signed | default(value=false) }}"
+     data-signatures="{{ signatures_collected }}">
+
+    <!-- Header -->
+    <div class="nx-wizard__header">
+        <h3 class="nx-wizard__title">
+            <svg class="nx-wizard__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            2-of-3 Multisig Escrow
+        </h3>
+        <button class="nx-wizard__help" onclick="showMultisigHelp()" title="How does multisig work?">
+            <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <path d="M12 17h.01"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="nx-wizard__progress">
+        <div class="nx-wizard__progress-bar" style="width: {{ progress_percent | round }}%"></div>
+        <span class="nx-wizard__progress-label">{{ progress_percent | round }}% - {{ dkg_label }}</span>
+    </div>
+
+    <!-- Steps Timeline -->
+    <div class="nx-wizard__steps">
+        <!-- Step 1: Fund Escrow -->
+        <div class="nx-wizard__step nx-wizard__step--{% if dkg_step > 0 %}complete{% elif dkg_step == 0 %}active{% else %}pending{% endif %}">
+            <div class="nx-wizard__step-indicator">
+                {% if dkg_step > 0 %}
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {% elif dkg_step == 0 %}
+                <span class="nx-wizard__step-dot nx-wizard__step-dot--pulse"></span>
+                {% else %}
+                <span class="nx-wizard__step-number">1</span>
+                {% endif %}
+            </div>
+            <div class="nx-wizard__step-content">
+                <span class="nx-wizard__step-title">Fund Escrow</span>
+                <span class="nx-wizard__step-subtitle">Buyer deposits XMR</span>
+            </div>
+        </div>
+
+        <!-- Step 2: DKG Setup (simplified - represents all 3 rounds) -->
+        <div class="nx-wizard__step nx-wizard__step--{% if dkg_step >= 4 %}complete{% elif dkg_step >= 1 and dkg_step < 4 %}active{% else %}pending{% endif %}">
+            <div class="nx-wizard__step-indicator">
+                {% if dkg_step >= 4 %}
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {% elif dkg_step >= 1 and dkg_step < 4 %}
+                <span class="nx-wizard__step-dot nx-wizard__step-dot--pulse"></span>
+                {% else %}
+                <span class="nx-wizard__step-number">2</span>
+                {% endif %}
+            </div>
+            <div class="nx-wizard__step-content">
+                <span class="nx-wizard__step-title">Key Setup</span>
+                <span class="nx-wizard__step-subtitle">
+                    {% if dkg_step == 1 %}Round 1/3 - Commitments
+                    {% elif dkg_step == 2 %}Round 2/3 - Secret Shares
+                    {% elif dkg_step == 3 %}Round 3/3 - Finalization
+                    {% elif dkg_step >= 4 %}Keys ready
+                    {% else %}Awaiting DKG{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Step 3: Vendor Ships -->
+        <div class="nx-wizard__step nx-wizard__step--{% if vendor_signed %}complete{% elif dkg_step == 4 %}active{% else %}pending{% endif %}">
+            <div class="nx-wizard__step-indicator">
+                {% if vendor_signed %}
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {% elif dkg_step == 4 %}
+                <span class="nx-wizard__step-dot nx-wizard__step-dot--pulse"></span>
+                {% else %}
+                <span class="nx-wizard__step-number">3</span>
+                {% endif %}
+            </div>
+            <div class="nx-wizard__step-content">
+                <span class="nx-wizard__step-title">Vendor Ships</span>
+                <span class="nx-wizard__step-subtitle">Signature 1 of 2</span>
+            </div>
+        </div>
+
+        <!-- Step 4: Buyer Confirms -->
+        <div class="nx-wizard__step nx-wizard__step--{% if buyer_signed %}complete{% elif vendor_signed and not buyer_signed %}active{% else %}pending{% endif %}">
+            <div class="nx-wizard__step-indicator">
+                {% if buyer_signed %}
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {% elif vendor_signed and not buyer_signed %}
+                <span class="nx-wizard__step-dot nx-wizard__step-dot--pulse"></span>
+                {% else %}
+                <span class="nx-wizard__step-number">4</span>
+                {% endif %}
+            </div>
+            <div class="nx-wizard__step-content">
+                <span class="nx-wizard__step-title">Buyer Confirms</span>
+                <span class="nx-wizard__step-subtitle">Signature 2 of 2</span>
+            </div>
+        </div>
+
+        <!-- Step 5: Broadcast -->
+        <div class="nx-wizard__step nx-wizard__step--{% if dkg_step == 7 %}complete{% elif dkg_step == 6 %}active{% else %}pending{% endif %}">
+            <div class="nx-wizard__step-indicator">
+                {% if dkg_step == 7 %}
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                {% elif dkg_step == 6 %}
+                <span class="nx-wizard__step-dot nx-wizard__step-dot--pulse"></span>
+                {% else %}
+                <span class="nx-wizard__step-number">5</span>
+                {% endif %}
+            </div>
+            <div class="nx-wizard__step-content">
+                <span class="nx-wizard__step-title">Broadcast TX</span>
+                <span class="nx-wizard__step-subtitle">Funds released</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signer Status Panel -->
+    <div class="nx-wizard__signers">
+        <h4 class="nx-wizard__signers-title">Participants</h4>
+
+        <!-- Buyer -->
+        <div class="nx-wizard__signer nx-wizard__signer--{% if buyer_signed %}submitted{% elif role == 'buyer' and vendor_signed %}pending{% else %}waiting{% endif %}">
+            <div class="nx-wizard__signer-avatar">B</div>
+            <div class="nx-wizard__signer-info">
+                <span class="nx-wizard__signer-role">Buyer {% if role == 'buyer' %}(You){% endif %}</span>
+                <span class="nx-wizard__signer-status">
+                    {% if buyer_signed %}Signed{% elif role == 'buyer' and vendor_signed %}Your turn{% else %}Waiting{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Vendor -->
+        <div class="nx-wizard__signer nx-wizard__signer--{% if vendor_signed %}submitted{% elif role == 'vendor' and dkg_step >= 4 %}pending{% else %}waiting{% endif %}">
+            <div class="nx-wizard__signer-avatar">V</div>
+            <div class="nx-wizard__signer-info">
+                <span class="nx-wizard__signer-role">Vendor {% if role == 'vendor' %}(You){% endif %}</span>
+                <span class="nx-wizard__signer-status">
+                    {% if vendor_signed %}Signed{% elif role == 'vendor' and dkg_step >= 4 and not vendor_signed %}Your turn{% else %}Waiting{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Arbiter -->
+        <div class="nx-wizard__signer nx-wizard__signer--{% if current_status == 'disputed' %}pending{% else %}waiting{% endif %}">
+            <div class="nx-wizard__signer-avatar">A</div>
+            <div class="nx-wizard__signer-info">
+                <span class="nx-wizard__signer-role">Arbiter {% if role == 'arbiter' %}(You){% endif %}</span>
+                <span class="nx-wizard__signer-status">
+                    {% if current_status == 'disputed' %}Active{% else %}Standby{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Panel - Role-Specific -->
+    <div class="nx-wizard__action">
+        {# Buyer Actions #}
+        {% if role == "buyer" %}
+            {% if dkg_step == 0 %}
+                {# Need to fund #}
+                <button class="nx-btn nx-btn--primary nx-btn--lg nx-btn--full nx-btn--pulse"
+                        id="wizard-action-btn"
+                        onclick="document.getElementById('fund-escrow-btn')?.click()">
+                    <svg class="nx-btn__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                        <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                        <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                    </svg>
+                    Fund Escrow
+                    <span class="nx-btn__badge nx-btn__badge--urgent">Action Required</span>
+                </button>
+            {% elif vendor_signed and not buyer_signed %}
+                {# Vendor shipped, buyer needs to sign #}
+                <button class="nx-btn nx-btn--primary nx-btn--lg nx-btn--full nx-btn--pulse"
+                        id="wizard-action-btn"
+                        onclick="showSignActionModal('{{ escrow_id }}', 'release', '{{ escrow.amount_xmr }}')">
+                    <svg class="nx-btn__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                    Confirm Receipt & Release
+                    <span class="nx-btn__badge nx-btn__badge--urgent">Your Turn!</span>
+                </button>
+            {% elif dkg_step == 6 %}
+                {# Ready to broadcast #}
+                <button class="nx-btn nx-btn--primary nx-btn--lg nx-btn--full nx-btn--pulse"
+                        id="wizard-action-btn"
+                        onclick="showConfirmBroadcastModal('{{ escrow_id }}', '{{ escrow.amount_xmr }}', '')">
+                    <svg class="nx-btn__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m22 2-7 20-4-9-9-4Z"/>
+                        <path d="M22 2 11 13"/>
+                    </svg>
+                    Broadcast Transaction
+                    <span class="nx-btn__badge nx-btn__badge--urgent">Final Step!</span>
+                </button>
+            {% else %}
+                {# Waiting for vendor #}
+                <div class="nx-wizard__waiting">
+                    <div class="nx-wizard__waiting-spinner"></div>
+                    <span>Waiting for vendor to ship...</span>
+                </div>
+            {% endif %}
+
+        {# Vendor Actions #}
+        {% elif role == "vendor" %}
+            {% if dkg_step >= 4 and not vendor_signed %}
+                {# DKG complete, vendor can ship #}
+                <button class="nx-btn nx-btn--primary nx-btn--lg nx-btn--full nx-btn--pulse"
+                        id="wizard-action-btn"
+                        onclick="showSignActionModal('{{ escrow_id }}', 'ship', '{{ escrow.amount_xmr }}')">
+                    <svg class="nx-btn__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 16h6"/>
+                        <path d="M16 10h6"/>
+                        <path d="M6.17 14.83 2 19"/>
+                        <path d="m12.67 6.5 3.66 3.66"/>
+                        <path d="m14 8-4 4"/>
+                        <path d="M12 2a10 10 0 0 0 0 20 10 10 0 0 0 0-20"/>
+                    </svg>
+                    Mark as Shipped
+                    <span class="nx-btn__badge nx-btn__badge--urgent">Your Turn!</span>
+                </button>
+            {% elif vendor_signed %}
+                {# Already signed, waiting for buyer #}
+                <div class="nx-wizard__waiting">
+                    <div class="nx-wizard__waiting-spinner"></div>
+                    <span>Waiting for buyer to confirm...</span>
+                </div>
+            {% else %}
+                {# Waiting for funding or DKG #}
+                <div class="nx-wizard__waiting">
+                    <div class="nx-wizard__waiting-spinner"></div>
+                    <span>{% if dkg_step == 0 %}Waiting for buyer to fund...{% else %}Key setup in progress...{% endif %}</span>
+                </div>
+            {% endif %}
+
+        {# Arbiter Actions #}
+        {% elif role == "arbiter" %}
+            {% if current_status == "disputed" %}
+                <button class="nx-btn nx-btn--primary nx-btn--lg nx-btn--full nx-btn--pulse"
+                        id="wizard-action-btn"
+                        onclick="window.location.href='/escrow/{{ escrow_id }}/dispute'">
+                    <svg class="nx-btn__icon w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                        <path d="M12 9v4"/>
+                        <path d="M12 17h.01"/>
+                    </svg>
+                    Resolve Dispute
+                    <span class="nx-btn__badge nx-btn__badge--urgent">Action Required</span>
+                </button>
+            {% else %}
+                <div class="nx-wizard__waiting">
+                    <div class="nx-wizard__waiting-spinner" style="opacity: 0.3"></div>
+                    <span>Monitoring transaction...</span>
+                </div>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    <!-- Signature Count (when in signing phase) -->
+    {% if dkg_step >= 4 and dkg_step < 7 %}
+    <div class="nx-wizard__signature-count">
+        <div class="nx-wizard__signature-bar">
+            <div class="nx-wizard__signature-fill" style="width: {{ (signatures_collected * 100) / 2 }}%"></div>
+        </div>
+        <span class="nx-wizard__signature-label">{{ signatures_collected }}/2 signatures</span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Multisig Help Modal Script -->
+<script>
+function showMultisigHelp() {
+    const helpContent = `
+        <div class="p-6 space-y-4">
+            <h3 class="text-xl font-semibold text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-cyan-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                How 2-of-3 Multisig Works
+            </h3>
+            <div class="space-y-3 text-sm text-gray-300">
+                <p><strong class="text-white">Security:</strong> Funds are locked in a wallet that requires 2 of 3 parties to sign any transaction.</p>
+                <p><strong class="text-white">Parties:</strong> Buyer, Vendor, and Arbiter each hold one key.</p>
+                <p><strong class="text-white">Normal Flow:</strong> Vendor signs when shipping, Buyer signs to release funds.</p>
+                <p><strong class="text-white">Disputes:</strong> If there's a problem, Arbiter can sign with either party to resolve.</p>
+            </div>
+            <div class="pt-4 border-t border-white/10">
+                <p class="text-xs text-gray-500">Based on FROST (RFC 9591) threshold signatures for Monero.</p>
+            </div>
+        </div>
+    `;
+
+    // Use existing modal system or create simple overlay
+    if (window.NexusModal) {
+        window.NexusModal.show(helpContent);
+    } else {
+        alert('2-of-3 Multisig requires Buyer + Vendor signatures for normal transactions, or Arbiter + either party for disputes.');
+    }
+}
+</script>
+
+<style>
+/* Signature count specific styles */
+.nx-wizard__signature-count {
+    margin-top: var(--nx-space-4, 1rem);
+    padding-top: var(--nx-space-4, 1rem);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nx-wizard__signature-bar {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: var(--nx-space-2, 0.5rem);
+}
+
+.nx-wizard__signature-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--nx-gold, #f0b90b), #10b981);
+    border-radius: 3px;
+    transition: width 500ms ease;
+}
+
+.nx-wizard__signature-label {
+    font-size: var(--nx-text-xs, 0.75rem);
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    display: block;
+}
+</style>

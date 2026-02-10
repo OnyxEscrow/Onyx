@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CLSAG WASM Injection Test v0.51.0</title>
+    <script type="module">
+        // Import WASM module
+        import init, * as wasm from '/static/js/wasm/wallet_wasm.js';
+
+        // Reference values from stagenet TX and audit
+        const REFERENCE = {
+            // From audit verification
+            Hp_P_agg: "6f89b3312247e92386ef288dbc422051ec96899fe8df8ebfc4e7f15ba49a1e7b",
+            key_image: "16316dab2228419abdcbb037fe6ae0b8d75ce860c3b76f6f1a4190e273cf2adf",
+            mu_P: "e4d3761e447ee77c646f3e34fc867e6e3a9bfc2eab51a1987b9d281236481d03",
+            mu_C: "1387850e916729153da9fcba821abdef2a3fd1e766cdd9920a4d0a4c34d00d08",
+            s_aggregated: "87e21a94b2b21df8a027eed8f06e469b077fc9be88891a12c168794bd24fd00a",
+
+            // From clsag_test_vector.json (real stagenet TX)
+            c1: "9befd25f674e7a3207c80a90ba8805bf127020d0b68460258bb72ac85f75d404",
+            D: "ee877f2032f7e6dc83a62c93830dd90a916dd687cd2f1a170f07b47c31ad744f",
+            pseudo_out: "fbd69d820616ac0b220209885aa720a63c50402ba95f6ba2c710157ef06d8604",
+            real_output_pubkey: "8bd836ba891eb996b835a06227fb38bc8f996c4f3f00fe27ef9af6fd1fd210d2",
+            real_commitment: "98b9d5c4a24a282fb971d039dcf93afd9b20ae56e742b4f884bc4c1d3fc2a3b5",
+
+            // Lagrange coefficients for buyer(1) + vendor(2)
+            lambda_buyer: "0200000000000000000000000000000000000000000000000000000000000000",  // 2
+            lambda_vendor: "ecd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010",  // -1 mod L
+        };
+
+        function log(msg, isError = false) {
+            const pre = document.getElementById('output');
+            const line = document.createElement('div');
+            line.textContent = msg;
+            if (isError) line.style.color = 'red';
+            pre.appendChild(line);
+            console.log(msg);
+        }
+
+        function checkMatch(name, actual, expected) {
+            const match = actual.toLowerCase() === expected.toLowerCase();
+            if (match) {
+                log(`✅ ${name} MATCHES: ${actual.slice(0,16)}...`);
+            } else {
+                log(`❌ ${name} MISMATCH:`, true);
+                log(`   Expected: ${expected}`, true);
+                log(`   Got:      ${actual}`, true);
+            }
+            return match;
+        }
+
+        async function runTests() {
+            log("=".repeat(60));
+            log("CLSAG WASM INJECTION TEST - Identifying Divergence Point");
+            log("=".repeat(60));
+
+            try {
+                await init();
+                log("✅ WASM module initialized");
+            } catch (e) {
+                log(`❌ WASM init failed: ${e}`, true);
+                return;
+            }
+
+            // Test 1: Verify hash_to_point produces same Hp(P) as reference
+            log("\n--- TEST 1: hash_to_point(P) ---");
+            try {
+                if (typeof wasm.hash_to_point_hex === 'function') {
+                    const hp = wasm.hash_to_point_hex(REFERENCE.real_output_pubkey);
+                    checkMatch("Hp(P)", hp, REFERENCE.Hp_P_agg);
+                } else {
+                    log("⚠️ hash_to_point_hex not exported, trying compute_partial_key_image...");
+                    // Use a dummy scalar to extract Hp
+                    const one = "0100000000000000000000000000000000000000000000000000000000000000";
+                    const pki = wasm.compute_partial_key_image(one, REFERENCE.real_output_pubkey);
+                    log(`   PKI with x=1: ${pki.slice(0,32)}...`);
+                }
+            } catch (e) {
+                log(`❌ hash_to_point test failed: ${e}`, true);
+            }
+
+            // Test 2: Verify mu_P/mu_C computation
+            log("\n--- TEST 2: mu_P/mu_C computation ---");
+            try {
+                if (typeof wasm.compute_clsag_mu === 'function') {
+                    // This would need the full ring data
+                    log("⚠️ compute_clsag_mu needs full ring - skipping direct test");
+                } else {
+                    log("⚠️ compute_clsag_mu not exported");
+                }
+                log(`   Reference mu_P: ${REFERENCE.mu_P.slice(0,32)}...`);
+                log(`   Reference mu_C: ${REFERENCE.mu_C.slice(0,32)}...`);
+            } catch (e) {
+                log(`❌ mu computation test failed: ${e}`, true);
+            }
+
+            // Test 3: Check if WASM has the required signing functions
+            log("\n--- TEST 3: WASM exports check ---");
+            const requiredFunctions = [
+                'sign_clsag_partial_wasm',
+                'compute_partial_key_image',
+                'frost_compute_lagrange_coefficient',
+                'aggregate_partial_key_images',
+            ];
+            for (const fn of requiredFunctions) {
+                if (typeof wasm[fn] === 'function') {
+                    log(`✅ ${fn} is exported`);
+                } else {
+                    log(`❌ ${fn} NOT exported`, true);
+                }
+            }
+
+            // Test 4: Lagrange coefficient computation
+            log("\n--- TEST 4: Lagrange coefficient ---");
+            try {
+                if (typeof wasm.frost_compute_lagrange_coefficient === 'function') {
+                    // frost_compute_lagrange_coefficient(signer_index, signer1_index, signer2_index)
+                    // buyer(1) signing with vendor(2) pair
+                    const lambda_buyer = wasm.frost_compute_lagrange_coefficient(1, 1, 2);  // buyer's coeff
+                    const lambda_vendor = wasm.frost_compute_lagrange_coefficient(2, 1, 2);  // vendor's coeff
+                    log(`   λ_buyer(1 in {1,2}):  ${lambda_buyer}`);
+                    log(`   λ_vendor(2 in {1,2}): ${lambda_vendor}`);
+
+                    // Verify: λ_buyer = 2, λ_vendor = -1 mod L
+                    const expected_buyer = "0200000000000000000000000000000000000000000000000000000000000000";
+                    const expected_vendor = "ecd3f55c1a631258d69cf7a2def9de1400000000000000000000000000000010";
+
+                    checkMatch("λ_buyer", lambda_buyer, expected_buyer);
+                    checkMatch("λ_vendor", lambda_vendor, expected_vendor);
+                } else {
+                    log("❌ frost_compute_lagrange_coefficient not exported", true);
+                }
+            } catch (e) {
+                log(`❌ Lagrange test failed: ${e}`, true);
+            }
+
+            // Test 5: Verify compute_partial_key_image function
+            log("\n--- TEST 5: compute_partial_key_image ---");
+            try {
+                if (typeof wasm.compute_partial_key_image === 'function') {
+                    // Use a known scalar to test
+                    const testScalar = "0100000000000000000000000000000000000000000000000000000000000000";  // x = 1
+                    const result = wasm.compute_partial_key_image(testScalar, REFERENCE.real_output_pubkey);
+                    log(`   PKI(x=1, P) = ${JSON.stringify(result)}`);
+
+                    // PKI(x=1) should equal Hp(P) since PKI = x * Hp(P)
+                    if (result.partialKeyImage) {
+                        checkMatch("Hp(P) via PKI", result.partialKeyImage, REFERENCE.Hp_P_agg);
+                    }
+                } else {
+                    log("❌ compute_partial_key_image not exported", true);
+                }
+            } catch (e) {
+                log(`❌ PKI test failed: ${e}`, true);
+            }
+
+            // Test 6: List all WASM exports
+            log("\n--- TEST 6: All WASM exports ---");
+            const exports = Object.keys(wasm).filter(k => typeof wasm[k] === 'function');
+            log(`   Total functions: ${exports.length}`);
+            for (const fn of exports.slice(0, 20)) {
+                log(`   - ${fn}`);
+            }
+            if (exports.length > 20) {
+                log(`   ... and ${exports.length - 20} more`);
+            }
+
+            log("\n" + "=".repeat(60));
+            log("TEST COMPLETE - Check console for detailed errors");
+            log("=".repeat(60));
+
+            // Export results for analysis
+            window.testResults = {
+                reference: REFERENCE,
+                wasmExports: Object.keys(wasm).filter(k => typeof wasm[k] === 'function')
+            };
+            log("\nResults saved to window.testResults");
+        }
+
+        window.addEventListener('load', runTests);
+    </script>
+    <style>
+        body {
+            font-family: monospace;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+        #output {
+            white-space: pre-wrap;
+            background: #16213e;
+            padding: 15px;
+            border-radius: 5px;
+            line-height: 1.5;
+        }
+        h1 { color: #e94560; }
+    </style>
+</head>
+<body>
+    <h1>🔬 CLSAG WASM Injection Test</h1>
+    <p>Testing WASM functions against known-good reference values from stagenet TX.</p>
+    <div id="output">Loading WASM...</div>
+</body>
+</html>

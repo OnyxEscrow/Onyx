@@ -1,0 +1,197 @@
+{% extends "base-nexus.html" %}
+
+{% block title %}FROST MARKET — Marketplace{% endblock %}
+
+{% block content %}
+
+<!-- BRUTALIST HOMEPAGE -->
+<div class="brutalist-listings-page">
+
+  <!-- PAGE HEADER -->
+  <div class="brutalist-listings-header">
+    <h1 class="brutalist-listings-title">FROST MARKET</h1>
+    <p class="brutalist-listings-subtitle">Anonymous • Secure • Monero Only</p>
+  </div>
+
+  <!-- CATEGORIES SECTION -->
+  <section id="categories" style="max-width: 1400px; margin: 0 auto var(--brutalist-space-12); padding: 0 var(--brutalist-space-6);">
+    <div style="margin-bottom: var(--brutalist-space-8); padding-bottom: var(--brutalist-space-4); border-bottom: var(--brutalist-border-width-normal) solid var(--brutalist-border);">
+      <h2 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-3xl); font-weight: var(--brutalist-weight-black); text-transform: uppercase; margin: 0; margin-bottom: var(--brutalist-space-2);">Browse Categories</h2>
+      <p style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">Secure • Anonymous • Untraceable</p>
+    </div>
+
+    <!-- Categories Grid (3 columns) -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--brutalist-space-6);">
+
+      <!-- Digital Goods -->
+      <a href="/categories/digital" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">💾</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Digital Goods</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">342 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Electronics -->
+      <a href="/categories/electronics" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">🔌</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Electronics</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">156 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Pharmaceuticals -->
+      <a href="/categories/pharmaceuticals" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">💊</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Pharmaceuticals</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">203 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Documents -->
+      <a href="/categories/documents" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">📄</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Documents</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">89 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Financial -->
+      <a href="/categories/financial" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">💳</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Financial</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">127 ITEMS</div>
+        </div>
+      </a>
+
+      <!-- Security -->
+      <a href="/categories/security" hx-boost="true" style="display: block; text-decoration: none; color: inherit;">
+        <div class="brutalist-card" style="padding: var(--brutalist-space-8); text-align: center; min-height: 180px; display: flex; flex-direction: column; justify-content: center;">
+          <div style="font-size: 3rem; margin-bottom: var(--brutalist-space-4);">🔐</div>
+          <h3 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-xl); font-weight: var(--brutalist-weight-bold); text-transform: uppercase; margin-bottom: var(--brutalist-space-2);">Security</h3>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6;">94 ITEMS</div>
+        </div>
+      </a>
+
+    </div>
+  </section>
+
+  <!-- FEATURED LISTINGS SECTION -->
+  <section id="listings" class="brutalist-listings-container">
+    <div style="margin-bottom: var(--brutalist-space-8); padding-bottom: var(--brutalist-space-4); border-bottom: var(--brutalist-border-width-normal) solid var(--brutalist-border); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="font-family: var(--brutalist-font-display); font-size: var(--brutalist-text-3xl); font-weight: var(--brutalist-weight-black); text-transform: uppercase; margin: 0; margin-bottom: var(--brutalist-space-2);">Featured Listings</h2>
+        <p style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">Verified Vendors • Escrow Protected</p>
+      </div>
+      <a href="/listings" class="brutalist-btn brutalist-btn-primary" hx-boost="true">VIEW ALL</a>
+    </div>
+
+    <!-- Products Grid -->
+    <div id="listings-results" class="brutalist-listings-grid">
+      {% if listings and listings | length > 0 %}
+        {% for listing in listings %}
+        <a href="/listings/{{ listing.id }}" style="text-decoration: none; color: inherit;" hx-boost="true">
+          <div class="brutalist-product-card brutalist-card-frame">
+
+            <!-- Product Image -->
+            <div class="brutalist-product-image-wrapper">
+              {% if listing.first_image_cid %}
+                <img src="http://127.0.0.1:8081/ipfs/{{ listing.first_image_cid }}"
+                     alt="{{ listing.title }}"
+                     class="brutalist-product-image"
+                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div style="display: none; width: 100%; height: 100%; background: linear-gradient(135deg, #E0E0E0, #BDBDBD); align-items: center; justify-content: center; font-size: 4rem; color: #757575;">?</div>
+              {% else %}
+                <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #E0E0E0, #BDBDBD); display: flex; align-items: center; justify-content: center; font-size: 4rem; color: #757575;">?</div>
+              {% endif %}
+
+              <!-- Vendor Badge -->
+              <div class="brutalist-product-vendor-badge">
+                <span class="brutalist-badge brutalist-badge-vendor">{{ listing.vendor_username | upper }}</span>
+              </div>
+            </div>
+
+            <!-- Product Content -->
+            <div class="brutalist-product-content">
+              <h3 class="brutalist-product-title">{{ listing.title }}</h3>
+
+              <p class="brutalist-product-description">
+                {% if listing.description %}
+                  {{ listing.description | truncate(length=120) }}
+                {% else %}
+                  No description available.
+                {% endif %}
+              </p>
+
+              <!-- Price Section -->
+              <div class="brutalist-product-price-section">
+                <span class="brutalist-product-price">
+                  {{ listing.price_xmr }}<span class="brutalist-product-price-currency">XMR</span>
+                </span>
+              </div>
+
+              <!-- Actions -->
+              <div class="brutalist-product-actions">
+                <button class="brutalist-product-view-btn">VIEW DETAILS</button>
+              </div>
+            </div>
+
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <!-- Empty State -->
+        <div class="brutalist-empty-state">
+          <h3 class="brutalist-empty-title">No Listings Yet</h3>
+          <p class="brutalist-empty-text">Be the first to create a listing on the marketplace!</p>
+
+          {% if logged_in and role == "vendor" %}
+          <a href="/listings/create" class="brutalist-btn brutalist-btn-cta brutalist-btn-red" style="margin-top: var(--brutalist-space-6);">
+            CREATE YOUR FIRST LISTING
+          </a>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- STATS BANNER -->
+  <section style="max-width: 1400px; margin: var(--brutalist-space-16) auto 0; padding: 0 var(--brutalist-space-6);">
+    <div style="border: var(--brutalist-border-width-normal) solid var(--brutalist-border); padding: var(--brutalist-space-8); background: var(--brutalist-bg-secondary);">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--brutalist-space-8); text-align: center;">
+
+        <div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-4xl); font-weight: var(--brutalist-weight-black); margin-bottom: var(--brutalist-space-2);">24/7</div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">UPTIME</div>
+        </div>
+
+        <div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-4xl); font-weight: var(--brutalist-weight-black); margin-bottom: var(--brutalist-space-2);">0</div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">LOGS KEPT</div>
+        </div>
+
+        <div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-4xl); font-weight: var(--brutalist-weight-black); margin-bottom: var(--brutalist-space-2);">256</div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">BIT ENCRYPTION</div>
+        </div>
+
+        <div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-4xl); font-weight: var(--brutalist-weight-black); margin-bottom: var(--brutalist-space-2);">∞</div>
+          <div style="font-family: var(--brutalist-font-mono); font-size: var(--brutalist-text-sm); opacity: 0.6; text-transform: uppercase; letter-spacing: var(--brutalist-tracking-wider);">ANONYMITY</div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{# Pas de scripts spécifiques - Tout est géré par base-nexus.html #}
+{% endblock %}

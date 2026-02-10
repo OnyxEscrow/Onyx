@@ -1,0 +1,422 @@
+/**
+ * Listing Preview Component
+ *
+ * Real-time preview of product listing during creation.
+ * Respects design system: #C9A445 accent, glassmorphism.
+ *
+ * Features:
+ * - Live preview card matching actual listing card design
+ * - Placeholder states for empty fields
+ * - Responsive layout (side-by-side on desktop, stacked on mobile)
+ * - Smooth transitions between states
+ */
+
+/* ========== LAYOUT CONTAINER ========== */
+
+.create-listing-layout {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 2rem;
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .create-listing-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========== PREVIEW CONTAINER ========== */
+
+.listing-preview-container {
+    position: sticky;
+    top: 6rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 1.5rem;
+    height: fit-content;
+}
+
+.listing-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.listing-preview-header i {
+    width: 20px;
+    height: 20px;
+    color: var(--color-accent, #C9A445);
+}
+
+.listing-preview-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin: 0;
+}
+
+.listing-preview-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 0.25rem;
+}
+
+/* ========== PREVIEW CARD ========== */
+
+.listing-preview-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.listing-preview-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* Card Image */
+.listing-preview-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.05) 0%,
+        rgba(255, 255, 255, 0.02) 100%
+    );
+    overflow: hidden;
+}
+
+.listing-preview-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.listing-preview-card:hover .listing-preview-image img {
+    transform: scale(1.05);
+}
+
+/* Placeholder Image */
+.listing-preview-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.listing-preview-image-placeholder i {
+    width: 48px;
+    height: 48px;
+}
+
+.listing-preview-image-placeholder-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Image Overlay */
+.listing-preview-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.3) 0%,
+        transparent 30%,
+        transparent 70%,
+        rgba(0, 0, 0, 0.4) 100%
+    );
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem;
+}
+
+/* Category Badge */
+.listing-preview-category-badge {
+    background: rgba(201, 164, 69, 0.9);
+    color: #1A1A1A;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    width: fit-content;
+    backdrop-filter: blur(8px);
+}
+
+.listing-preview-category-badge.placeholder {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Rating Badge */
+.listing-preview-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: white;
+    width: fit-content;
+    backdrop-filter: blur(8px);
+}
+
+.listing-preview-rating i {
+    width: 12px;
+    height: 12px;
+    color: #FFD700;
+}
+
+/* Card Content */
+.listing-preview-content {
+    padding: 1rem;
+}
+
+.listing-preview-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.listing-preview-card-title.placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+.listing-preview-card-description {
+    font-size: 0.8125rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.6;
+    margin: 0 0 1rem 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.listing-preview-card-description.placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+/* Card Info Grid */
+.listing-preview-card-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.listing-preview-info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.listing-preview-info-label {
+    font-size: 0.6875rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.listing-preview-info-value {
+    font-size: 0.8125rem;
+    color: var(--color-foreground);
+    font-weight: 500;
+}
+
+.listing-preview-info-value.placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+}
+
+/* Card Footer */
+.listing-preview-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.listing-preview-price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-accent, #C9A445);
+    font-family: monospace;
+}
+
+.listing-preview-price.placeholder {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+    font-family: var(--font-inter);
+}
+
+.listing-preview-btn {
+    padding: 0.5rem 1rem;
+    background: var(--color-accent, #C9A445);
+    color: var(--color-background);
+    border: none;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.listing-preview-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.listing-preview-btn:hover {
+    background: #b89439;
+    transform: translateY(-1px);
+}
+
+.listing-preview-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== PREVIEW NOTICE ========== */
+
+.listing-preview-notice {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(14, 165, 233, 0.1);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.listing-preview-notice i {
+    width: 16px;
+    height: 16px;
+    color: #0ea5e9;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.listing-preview-notice-text {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.5;
+}
+
+/* ========== STOCK INDICATOR ========== */
+
+.listing-preview-stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.25rem;
+}
+
+.listing-preview-stock i {
+    width: 12px;
+    height: 12px;
+}
+
+.listing-preview-stock.low-stock {
+    color: #eab308;
+}
+
+.listing-preview-stock.out-of-stock {
+    color: #ef4444;
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 1024px) {
+    .listing-preview-container {
+        position: static;
+        margin-top: 2rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .listing-preview-card-info {
+        grid-template-columns: 1fr;
+    }
+
+    .listing-preview-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .listing-preview-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ========== ANIMATIONS ========== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.listing-preview-card {
+    animation: fadeIn 0.3s ease;
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .listing-preview-card,
+    .listing-preview-image img,
+    .listing-preview-btn {
+        animation: none;
+        transition: none;
+    }
+
+    .listing-preview-card:hover {
+        transform: none;
+    }
+
+    .listing-preview-card:hover .listing-preview-image img {
+        transform: none;
+    }
+}

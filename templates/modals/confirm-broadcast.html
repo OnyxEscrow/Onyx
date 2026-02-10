@@ -1,0 +1,227 @@
+<!-- Aura Modal: Broadcast Confirmation -->
+<div id="confirm-broadcast-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+    style="display: none;">
+    <div
+        class="relative w-full max-w-md bg-[#161b22] border border-white/10 rounded-2xl shadow-2xl transform transition-all duration-300 scale-100">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-white/5">
+            <h3 class="text-xl text-white font-light flex items-center gap-3">
+                <div class="p-2 rounded-full bg-green-500/10 text-green-400">
+                    <i data-lucide="radio" class="w-5 h-5"></i>
+                </div>
+                Broadcast Transaction
+            </h3>
+            <button class="text-gray-400 hover:text-white transition-colors" aria-label="Close"
+                onclick="closeConfirmBroadcastModal()">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-5">
+            <!-- Success Icon -->
+            <div class="text-center py-4">
+                <div class="w-20 h-20 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center mx-auto mb-4 border border-green-500/30">
+                    <i data-lucide="send" class="w-10 h-10 text-green-400"></i>
+                </div>
+                <h4 class="text-lg text-white font-medium mb-2">Ready to Broadcast</h4>
+                <p class="text-gray-400 text-sm">All 2 signatures have been collected. The transaction is ready to be sent to the Monero network.</p>
+            </div>
+
+            <!-- Transaction Preview -->
+            <div class="bg-white/5 rounded-xl p-4 border border-white/5 space-y-3">
+                <h5 class="text-xs text-gray-500 uppercase tracking-wider mb-3">Transaction Preview</h5>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Amount:</span>
+                    <span class="text-white font-mono font-medium" id="broadcast-amount">0.5 XMR</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Est. Network Fee:</span>
+                    <span class="text-gray-400 font-mono text-sm">~0.0001 XMR</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 text-sm">Signatures:</span>
+                    <span class="text-green-400 font-medium text-sm flex items-center gap-1">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        2/2 Complete
+                    </span>
+                </div>
+                <div class="pt-3 border-t border-white/5">
+                    <div class="flex justify-between items-start">
+                        <span class="text-gray-500 text-sm">Destination:</span>
+                        <span class="text-green-400 font-mono text-xs break-all text-right max-w-[200px]" id="broadcast-destination">Vendor wallet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Info -->
+            <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3">
+                <i data-lucide="info" class="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5"></i>
+                <div class="text-xs text-blue-400/80 leading-relaxed">
+                    <strong class="text-blue-400">Network:</strong> Stagenet (Testing)<br>
+                    <strong class="text-blue-400">Confirmations:</strong> ~2 minutes per block
+                </div>
+            </div>
+
+            <!-- Final Warning -->
+            <div class="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20">
+                <div class="flex items-start gap-3">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+                    <p class="text-orange-400/80 text-xs leading-relaxed">
+                        <strong class="text-orange-400">Final step:</strong> Once broadcast, the transaction cannot be cancelled or reversed. Funds will be sent to the destination address.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-white/5 flex gap-3">
+            <button type="button"
+                class="flex-1 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 transition-colors"
+                onclick="closeConfirmBroadcastModal()">
+                Cancel
+            </button>
+            <button type="button"
+                class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:opacity-90 text-white font-medium transition-opacity shadow-lg shadow-green-500/20 flex items-center justify-center gap-2"
+                id="broadcast-now-btn"
+                onclick="executeBroadcast()">
+                <i data-lucide="send" class="w-4 h-4"></i>
+                Broadcast Now
+            </button>
+        </div>
+
+        <!-- Broadcasting State -->
+        <div id="broadcast-progress-overlay" class="hidden absolute inset-0 bg-[#161b22]/95 rounded-2xl flex flex-col items-center justify-center">
+            <i data-lucide="loader-2" class="w-12 h-12 text-green-400 animate-spin mb-4"></i>
+            <p id="broadcast-status-text" class="text-white font-medium mb-2">Broadcasting to network...</p>
+            <p class="text-gray-400 text-sm">Please wait, do not close this window</p>
+        </div>
+
+        <!-- Success State -->
+        <div id="broadcast-success-overlay" class="hidden absolute inset-0 bg-[#161b22]/95 rounded-2xl flex flex-col items-center justify-center p-6">
+            <div class="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
+                <i data-lucide="check-circle-2" class="w-8 h-8 text-green-400"></i>
+            </div>
+            <h4 class="text-xl text-white font-medium mb-2">Transaction Broadcast!</h4>
+            <p class="text-gray-400 text-sm text-center mb-4">Your transaction has been successfully sent to the Monero network.</p>
+            <div class="bg-black/30 rounded-xl p-3 w-full mb-4">
+                <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">TX Hash</p>
+                <code id="broadcast-tx-hash" class="text-green-400 font-mono text-xs break-all">...</code>
+            </div>
+            <button onclick="closeBroadcastSuccess()"
+                class="w-full py-2.5 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 font-medium transition-colors">
+                Close & Monitor
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+let broadcastEscrowId = null;
+
+/**
+ * Show broadcast confirmation modal
+ */
+function showConfirmBroadcastModal(escrowId, amount, destination) {
+    broadcastEscrowId = escrowId;
+
+    document.getElementById('broadcast-amount').textContent = amount + ' XMR';
+
+    if (destination) {
+        const masked = destination.length > 12
+            ? destination.substring(0, 8) + '...' + destination.slice(-4)
+            : destination;
+        document.getElementById('broadcast-destination').textContent = masked;
+    }
+
+    // Reset states
+    document.getElementById('broadcast-progress-overlay').classList.add('hidden');
+    document.getElementById('broadcast-success-overlay').classList.add('hidden');
+
+    const modal = document.getElementById('confirm-broadcast-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+/**
+ * Close broadcast modal
+ */
+function closeConfirmBroadcastModal() {
+    const modal = document.getElementById('confirm-broadcast-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    broadcastEscrowId = null;
+}
+
+/**
+ * Execute the actual broadcast
+ */
+async function executeBroadcast() {
+    if (!broadcastEscrowId) return;
+
+    const progressOverlay = document.getElementById('broadcast-progress-overlay');
+    const successOverlay = document.getElementById('broadcast-success-overlay');
+    const statusText = document.getElementById('broadcast-status-text');
+
+    progressOverlay.classList.remove('hidden');
+
+    try {
+        statusText.textContent = 'Broadcasting to network...';
+
+        const response = await fetch(`/api/v2/escrow/${broadcastEscrowId}/broadcast-tx`, {
+            method: 'POST',
+            credentials: 'include',
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || 'Broadcast failed');
+        }
+
+        const result = await response.json();
+
+        // Show success
+        progressOverlay.classList.add('hidden');
+        successOverlay.classList.remove('hidden');
+
+        if (result.tx_hash) {
+            document.getElementById('broadcast-tx-hash').textContent = result.tx_hash;
+        }
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
+    } catch (error) {
+        progressOverlay.classList.add('hidden');
+        alert('Broadcast failed: ' + error.message);
+        console.error('[Broadcast] Error:', error);
+    }
+}
+
+/**
+ * Close success and reload page
+ */
+function closeBroadcastSuccess() {
+    closeConfirmBroadcastModal();
+    window.location.reload();
+}
+
+// Close on Escape
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = document.getElementById('confirm-broadcast-modal');
+        if (modal && modal.style.display === 'flex') {
+            closeConfirmBroadcastModal();
+        }
+    }
+});
+</script>

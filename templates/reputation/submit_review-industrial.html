@@ -1,0 +1,255 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Submit Review — FROST MARKET{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Identity Badge Styles */
+    .identity-badge {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        font-size: var(--text-sm);
+        margin-bottom: var(--space-4);
+    }
+
+    .identity-badge--ready {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: var(--nexus-success);
+    }
+
+    .identity-badge--missing {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: var(--nexus-warning);
+    }
+
+    .identity-pubkey {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        background: rgba(0, 0, 0, 0.3);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: var(--nexus-gold);
+    }
+
+    .btn-sm {
+        padding: 4px 12px;
+        font-size: var(--text-xs);
+        margin-left: auto;
+    }
+
+    /* Alert Styles */
+    .alert {
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-4);
+        font-size: var(--text-sm);
+    }
+
+    .alert-error {
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: var(--nexus-destructive);
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        color: var(--nexus-success);
+    }
+
+    /* Rating Selector Enhanced */
+    .rating-option--selected .rating-star {
+        fill: var(--nexus-gold);
+        stroke: var(--nexus-gold);
+    }
+
+    /* Backup Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-overlay--active {
+        display: flex;
+    }
+
+    .modal-content {
+        background: var(--nexus-bg);
+        border: 1px solid var(--nexus-border);
+        border-radius: var(--radius-lg);
+        max-width: 500px;
+        width: 90%;
+        box-shadow: var(--shadow-xl);
+    }
+
+    .modal-content--sm {
+        max-width: 450px;
+    }
+
+    .modal-header {
+        padding: var(--space-4);
+        border-bottom: 1px solid var(--nexus-border);
+    }
+
+    .modal-title {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-size: var(--text-lg);
+        font-weight: var(--weight-semibold);
+        color: var(--nexus-fg);
+    }
+
+    .modal-body {
+        padding: var(--space-4);
+    }
+
+    .modal-footer {
+        padding: var(--space-4);
+        border-top: 1px solid var(--nexus-border);
+        display: flex;
+        gap: var(--space-2);
+        justify-content: flex-end;
+    }
+
+    .backup-textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: var(--space-3);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        background: var(--nexus-bg-deep);
+        border: 1px solid var(--nexus-border);
+        border-radius: var(--radius-md);
+        color: var(--nexus-fg);
+        resize: vertical;
+    }
+
+    /* Spin animation */
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="submit-review-interface">
+    <div class="container-industrial" style="max-width: 640px;">
+
+        {# Identity Status #}
+        <div id="identity-status">
+            <div class="identity-badge identity-badge--missing">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                <span>Loading cryptographic module...</span>
+            </div>
+        </div>
+
+        {# Error/Success Messages #}
+        <div id="review-error" class="alert alert-error" style="display: none;"></div>
+        <div id="review-success" class="alert alert-success" style="display: none;"></div>
+
+        {# ===== FORM CARD ===== #}
+        <div class="form-card">
+            <div class="form-card__header">
+                <h1 class="h1-massive" style="font-size: 32px;">
+                    Rate Your <span class="text-gold">Transaction</span>
+                </h1>
+                <p class="form-card__subtitle">
+                    Your review is cryptographically signed and permanently stored in the vendor's reputation.
+                </p>
+            </div>
+
+            <form id="review-form" class="review-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="vendor_id" value="{{ vendor_id | default(value='') }}">
+                <input type="hidden" name="txid" value="{{ txid | default(value='') }}">
+                <input type="hidden" name="escrow_id" value="{{ escrow_id | default(value='') }}">
+
+                {# Rating #}
+                <div class="form-field">
+                    <label class="form-label">Overall Rating <span class="text-gold">*</span></label>
+                    <div class="rating-selector">
+                        {% for i in range(start=1, end=6) %}
+                        <label class="rating-option">
+                            <input type="radio" name="rating" value="{{ i }}" required>
+                            <svg class="rating-star" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                            </svg>
+                            <span class="rating-label">{{ i }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {# Comment #}
+                <div class="form-field">
+                    <label for="comment" class="form-label">Comment (Optional)</label>
+                    <div class="form-input-wrap">
+                        <svg class="form-input-icon form-input-icon--top" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <textarea id="comment" name="comment" class="form-textarea form-textarea--icon" rows="4"
+                            placeholder="Share your experience with this vendor..." maxlength="500"></textarea>
+                    </div>
+                    <div class="form-hint" style="text-align: right;">
+                        <span id="char-count">0</span>/500 characters
+                    </div>
+                </div>
+
+                {# Crypto Info #}
+                <div class="review-crypto-notice">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                    </svg>
+                    <div>
+                        <strong>Cryptographic Signature</strong>
+                        <p>
+                            By submitting this review, you digitally sign its content with your Ed25519 private key.
+                            This ensures the review is authentic and cannot be forged.
+                        </p>
+                    </div>
+                </div>
+
+                {# Submit #}
+                <button type="submit" class="btn-gold btn-shimmer" style="width: 100%; padding: 14px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                    </svg>
+                    Sign and Publish Review
+                </button>
+            </form>
+        </div>
+
+        {# Transaction Info (if available) #}
+        {% if txid %}
+        <div class="form-card mt-4" style="background: var(--nexus-bg-deep);">
+            <div class="form-card__header" style="padding-bottom: 0;">
+                <h3 class="text-sm text-muted uppercase tracking-wide">Transaction Reference</h3>
+            </div>
+            <div style="padding: var(--space-4);">
+                <code class="text-gold text-xs" style="word-break: break-all;">{{ txid }}</code>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# Load Review Submit Module #}
+<script src="/static/js/review-submit.js"></script>
+{% endblock %}

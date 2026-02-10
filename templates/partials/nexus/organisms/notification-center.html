@@ -1,0 +1,385 @@
+{#
+  NEXUS NOTIFICATION CENTER COMPONENT
+
+  Usage:
+    {% include "partials/nexus/organisms/notification-center.html" with
+       notifications=[
+         {"type": "order", "title": "Order Shipped", "message": "Your order has been shipped", "timestamp": "2025-01-15T10:00:00Z", "read": false},
+         {"type": "message", "title": "New Message", "message": "You have a new message from vendor", "timestamp": "2025-01-14T15:30:00Z", "read": true}
+       ]
+    %}
+
+  Parameters:
+    - notifications (required): Array of notification objects with:
+        - type: order|message|system|security|payment
+        - title: Notification title
+        - message: Notification message
+        - timestamp: ISO timestamp
+        - read: true|false
+        - url: Optional action URL
+    - max_height (optional): Maximum height before scrolling (default: "500px")
+    - show_mark_all_read (optional): true|false - Show mark all read button (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set notif_max_height = max_height | default(value="500px") %}
+{% set notif_show_mark_all = show_mark_all_read | default(value=true) %}
+
+{# Count unread notifications #}
+{% set unread_count = 0 %}
+{% for notif in notifications %}
+  {% if not notif.read %}
+    {% set unread_count = unread_count + 1 %}
+  {% endif %}
+{% endfor %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-notification-center" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {# Header #}
+  <div class="nexus-notification-header">
+    <div class="nexus-notification-title-group">
+      <h3 class="nexus-notification-title">Notifications</h3>
+      {% if unread_count > 0 %}
+        <span class="nexus-notification-badge">{{ unread_count }}</span>
+      {% endif %}
+    </div>
+
+    {% if notif_show_mark_all and unread_count > 0 %}
+      <button
+        class="nexus-notification-mark-all"
+        hx-post="/api/notifications/mark-all-read"
+        hx-swap="outerHTML"
+      >
+        Mark all read
+      </button>
+    {% endif %}
+  </div>
+
+  {# Notifications List #}
+  <div class="nexus-notification-list" style="max-height: {{ notif_max_height }};">
+    {% if notifications | length > 0 %}
+      {% for notif in notifications %}
+        {% set notif_read = notif.read | default(value=false) %}
+
+        <div class="nexus-notification-item {% if not notif_read %}nexus-notification-item-unread{% endif %}">
+          {# Icon based on type #}
+          <div class="nexus-notification-icon nexus-notification-icon-{{ notif.type }}">
+            {% if notif.type == "order" %}📦
+            {% elif notif.type == "message" %}💬
+            {% elif notif.type == "system" %}ℹ️
+            {% elif notif.type == "security" %}🔒
+            {% elif notif.type == "payment" %}💰
+            {% else %}🔔
+            {% endif %}
+          </div>
+
+          {# Content #}
+          <div class="nexus-notification-content">
+            <div class="nexus-notification-content-header">
+              <span class="nexus-notification-content-title">{{ notif.title }}</span>
+              <span class="nexus-notification-timestamp">
+                {{ notif.timestamp | date(format="%Y-%m-%d %H:%M") }}
+              </span>
+            </div>
+
+            <p class="nexus-notification-message">{{ notif.message }}</p>
+
+            {% if notif.url %}
+              <a href="{{ notif.url }}" class="nexus-notification-action" hx-boost="true">
+                View Details →
+              </a>
+            {% endif %}
+          </div>
+
+          {# Mark as read button #}
+          {% if not notif_read %}
+            <button
+              class="nexus-notification-mark-read"
+              aria-label="Mark as read"
+              hx-post="/api/notifications/{{ notif.id }}/mark-read"
+              hx-swap="outerHTML"
+            >
+              ✓
+            </button>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      {# Empty State #}
+      <div class="nexus-notification-empty">
+        <span class="nexus-notification-empty-icon">🔔</span>
+        <p class="nexus-notification-empty-text">No notifications</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+/* Base Notification Center */
+.nexus-notification-center {
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-lg);
+  overflow: hidden;
+  min-width: 400px;
+}
+
+/* Header */
+.nexus-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nexus-space-4);
+  border-bottom: 1px solid var(--nexus-border);
+  background-color: var(--nexus-muted);
+}
+
+.nexus-notification-title-group {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-2);
+}
+
+.nexus-notification-title {
+  font-size: var(--nexus-text-lg);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-fg);
+  margin: 0;
+}
+
+.nexus-notification-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 var(--nexus-space-1);
+  font-size: var(--nexus-text-xs);
+  font-weight: var(--nexus-weight-bold);
+  background-color: var(--nexus-destructive);
+  color: var(--nexus-fg);
+  border-radius: var(--nexus-radius-full);
+}
+
+.nexus-notification-mark-all {
+  font-size: var(--nexus-text-xs);
+  font-weight: var(--nexus-weight-medium);
+  color: var(--nexus-primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--nexus-space-2);
+  border-radius: var(--nexus-radius-sm);
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-notification-mark-all:hover {
+  background-color: rgba(255, 26, 92, 0.1);
+}
+
+/* Notifications List */
+.nexus-notification-list {
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.nexus-notification-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.nexus-notification-list::-webkit-scrollbar-track {
+  background: var(--nexus-muted);
+}
+
+.nexus-notification-list::-webkit-scrollbar-thumb {
+  background: var(--nexus-border);
+  border-radius: var(--nexus-radius-sm);
+}
+
+.nexus-notification-list::-webkit-scrollbar-thumb:hover {
+  background: var(--nexus-muted-fg);
+}
+
+/* Notification Item */
+.nexus-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nexus-space-3);
+  padding: var(--nexus-space-4);
+  border-bottom: 1px solid var(--nexus-border);
+  transition: background-color var(--nexus-transition-base) var(--nexus-ease-out);
+  position: relative;
+}
+
+.nexus-notification-item:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.nexus-notification-item-unread {
+  background-color: rgba(255, 26, 92, 0.05);
+}
+
+.nexus-notification-item-unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--nexus-primary);
+}
+
+/* Icon */
+.nexus-notification-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: var(--nexus-text-xl);
+  background-color: var(--nexus-muted);
+  border-radius: var(--nexus-radius-md);
+  flex-shrink: 0;
+}
+
+.nexus-notification-icon-order {
+  background-color: rgba(168, 85, 247, 0.1);
+}
+
+.nexus-notification-icon-message {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.nexus-notification-icon-system {
+  background-color: rgba(251, 191, 36, 0.1);
+}
+
+.nexus-notification-icon-security {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+.nexus-notification-icon-payment {
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* Content */
+.nexus-notification-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+}
+
+.nexus-notification-content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--nexus-space-2);
+}
+
+.nexus-notification-content-title {
+  font-size: var(--nexus-text-sm);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-fg);
+  line-height: var(--nexus-leading-tight);
+}
+
+.nexus-notification-timestamp {
+  font-size: var(--nexus-text-xs);
+  color: var(--nexus-muted-fg);
+  font-family: var(--nexus-font-mono);
+  white-space: nowrap;
+}
+
+.nexus-notification-message {
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+  line-height: var(--nexus-leading-relaxed);
+  margin: 0;
+}
+
+.nexus-notification-action {
+  font-size: var(--nexus-text-xs);
+  font-weight: var(--nexus-weight-medium);
+  color: var(--nexus-primary);
+  text-decoration: none;
+  transition: color var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-notification-action:hover {
+  color: var(--nexus-primary-hover);
+  text-decoration: underline;
+}
+
+/* Mark as read button */
+.nexus-notification-mark-read {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+  background: none;
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-full);
+  cursor: pointer;
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+  flex-shrink: 0;
+}
+
+.nexus-notification-mark-read:hover {
+  color: var(--nexus-success);
+  border-color: var(--nexus-success);
+  background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* Empty State */
+.nexus-notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nexus-space-3);
+  padding: var(--nexus-space-12);
+}
+
+.nexus-notification-empty-icon {
+  font-size: 4rem;
+  opacity: 0.3;
+}
+
+.nexus-notification-empty-text {
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-notification-center {
+    min-width: auto;
+    max-width: 100%;
+  }
+
+  .nexus-notification-item {
+    padding: var(--nexus-space-3);
+  }
+
+  .nexus-notification-content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nexus-notification-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: var(--nexus-text-lg);
+  }
+}
+</style>

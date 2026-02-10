@@ -1,0 +1,201 @@
+<!-- Apple Modal: Open Dispute -->
+<div class="apple-modal active" id="dispute-modal">
+    <div class="apple-modal-content" onclick="event.stopPropagation()">
+        <div class="apple-modal-header">
+            <h3 class="apple-modal-title">
+                <span class="apple-modal-title-icon apple-modal-title-icon-error">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </span>
+                Open Dispute
+            </h3>
+            <button class="apple-modal-close" onclick="document.getElementById('dispute-modal').remove()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="apple-modal-body">
+            <!-- Warning Notice -->
+            <div class="apple-alert apple-alert-danger" style="margin-bottom: 24px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+                <div>
+                    <strong>Dispute Process</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 13px;">Opening a dispute will notify the neutral arbiter to review evidence and make a decision. Provide as much detail as possible.</p>
+                </div>
+            </div>
+
+            <!-- Dispute Form -->
+            <form id="dispute-form">
+                <!-- Dispute Reason -->
+                <div class="apple-form-group">
+                    <label for="reason" class="apple-form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                        Reason for Dispute
+                    </label>
+                    <textarea name="reason"
+                              id="dispute-reason"
+                              class="apple-textarea"
+                              rows="6"
+                              placeholder="Describe the issue in detail (10-2000 characters)"
+                              required
+                              minlength="10"
+                              maxlength="2000"></textarea>
+                    <span class="apple-form-hint">
+                        Include all relevant information: delivery status, quality issues, communication problems, etc. This will be reviewed by the arbiter.
+                    </span>
+                    <div class="apple-char-counter">
+                        <span id="char-count">0</span> / 2000 characters
+                    </div>
+                </div>
+
+                <!-- Info Box -->
+                <div class="apple-alert apple-alert-info" style="flex-direction: column; align-items: stretch;">
+                    <h4 class="apple-info-title">What Happens Next?</h4>
+                    <ol class="apple-steps-list">
+                        <li>Arbiter is notified and reviews your dispute</li>
+                        <li>Both parties may be contacted for additional information</li>
+                        <li>Arbiter makes a decision (typically within 7 days)</li>
+                        <li>Funds are released according to arbiter's decision</li>
+                    </ol>
+                </div>
+
+                <!-- Result Container -->
+                <div id="dispute-result"></div>
+
+                <!-- Actions -->
+                <div class="apple-modal-footer" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--apple-separator);">
+                    <button type="button"
+                            class="apple-btn apple-btn-ghost"
+                            onclick="document.getElementById('dispute-modal').remove()">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            id="dispute-submit-btn"
+                            class="apple-btn apple-btn-danger">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Open Dispute
+                    </button>
+                    <div id="dispute-spinner" class="apple-spinner-inline" style="display: none;">
+                        <div class="apple-spinner-sm"></div>
+                        <span>Submitting dispute...</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const ESCROW_ID = '{{ escrow_id }}';
+    const form = document.getElementById('dispute-form');
+    const textarea = document.getElementById('dispute-reason');
+    const charCount = document.getElementById('char-count');
+    const submitBtn = document.getElementById('dispute-submit-btn');
+    const spinner = document.getElementById('dispute-spinner');
+    const resultDiv = document.getElementById('dispute-result');
+
+    // Close modal on overlay click
+    document.getElementById('dispute-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+
+    // Character counter
+    if (textarea && charCount) {
+        textarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+            if (this.value.length > 1900) {
+                charCount.style.color = '#ef4444';
+            } else {
+                charCount.style.color = 'var(--apple-text-tertiary)';
+            }
+        });
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('dispute-modal');
+            if (modal) modal.remove();
+        }
+    }, { once: true });
+
+    // Handle form submission with fetch
+    form?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const reason = textarea?.value?.trim();
+        if (!reason || reason.length < 10) {
+            resultDiv.innerHTML = '<div class="apple-alert apple-alert-danger">Reason must be at least 10 characters.</div>';
+            return;
+        }
+
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.style.display = 'flex';
+        resultDiv.innerHTML = '';
+
+        try {
+            const response = await fetch(`/api/escrow/${ESCROW_ID}/dispute`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: reason }),
+                credentials: 'include'
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Success
+                resultDiv.innerHTML = '<div class="apple-alert apple-alert-success">Dispute opened successfully. Arbiter has been notified.</div>';
+
+                if (window.notificationManager) {
+                    window.notificationManager.showToast(
+                        'Dispute Opened',
+                        'Arbiter has been notified. You will be contacted if additional information is needed.',
+                        'warning',
+                        8000
+                    );
+                }
+
+                setTimeout(() => {
+                    document.getElementById('dispute-modal')?.remove();
+                    window.location.reload();
+                }, 2000);
+            } else {
+                // Error
+                const errorMsg = data.error || 'Failed to open dispute';
+                resultDiv.innerHTML = `<div class="apple-alert apple-alert-danger">${errorMsg}</div>`;
+
+                if (window.notificationManager) {
+                    window.notificationManager.showToast('Dispute Failed', errorMsg, 'error', 8000);
+                }
+            }
+        } catch (err) {
+            console.error('[Dispute] Error:', err);
+            resultDiv.innerHTML = '<div class="apple-alert apple-alert-danger">Network error. Please try again.</div>';
+        } finally {
+            submitBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+})();
+</script>

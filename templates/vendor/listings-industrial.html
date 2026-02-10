@@ -1,0 +1,202 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}My Listings — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="vendor-listings-interface">
+    <div class="container-industrial">
+
+        {# ===== HEADER ===== #}
+        <div class="vendor-listings-header">
+            <div>
+                <h1 class="h1-massive">
+                    My <span class="text-gold">Listings</span>
+                </h1>
+                <p class="vendor-listings-header__subtitle">
+                    Manage your product catalog and inventory.
+                </p>
+            </div>
+            <a href="/listings/create" class="btn-gold btn-shimmer">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/>
+                </svg>
+                Create New Listing
+            </a>
+        </div>
+
+        {# ===== STATS GRID ===== #}
+        <div class="vendor-stats" style="margin-bottom: 48px;">
+            <div class="stat-card" style="animation-delay: 0ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Total Listings</span>
+                    <div class="stat-card__icon stat-card__icon--blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m7.5 4.27 9 5.15"/>
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ total_listings }}</div>
+            </div>
+
+            <div class="stat-card" style="animation-delay: 50ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Active</span>
+                    <div class="stat-card__icon stat-card__icon--green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value stat-card__value--green">{{ active_listings }}</div>
+            </div>
+
+            <div class="stat-card" style="animation-delay: 100ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Inactive</span>
+                    <div class="stat-card__icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m21 8-2 2-1.5-3.7A2 2 0 0 0 15.646 5H8.4a2 2 0 0 0-1.903 1.257L5 10 3 8"/>
+                            <path d="M7 14h.01"/><path d="M17 14h.01"/>
+                            <rect width="18" height="8" x="3" y="10" rx="2"/>
+                            <path d="M5 18v2"/><path d="M19 18v2"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ inactive_listings }}</div>
+            </div>
+
+            <div class="stat-card" style="animation-delay: 150ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Total Stock</span>
+                    <div class="stat-card__icon stat-card__icon--gold">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/>
+                            <path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/>
+                            <path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ total_stock }}</div>
+            </div>
+        </div>
+
+        {# ===== LISTINGS TABLE ===== #}
+        <div class="listings-table-card">
+            <div class="listings-table-card__header">
+                <h2 class="listings-table-card__title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/>
+                        <line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/>
+                        <line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>
+                    </svg>
+                    Your Products
+                </h2>
+            </div>
+
+            {% if listings and listings | length > 0 %}
+            <div class="listings-table-wrap">
+                <table class="listings-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th class="text-right">Price</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for listing in listings %}
+                        <tr>
+                            <td>
+                                <div class="product-cell">
+                                    <div class="product-cell__image">
+                                        {% if listing.image_ipfs_cid %}
+                                        <img src="/api/listings/{{ listing.id }}/images/{{ listing.image_ipfs_cid }}" alt="{{ listing.title }}">
+                                        {% else %}
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                            <circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="product-cell__info">
+                                        <a href="/listings/{{ listing.id }}" class="product-cell__title">{{ listing.title }}</a>
+                                        <span class="product-cell__id">ID: {{ listing.id | truncate(length=8, end="") }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="category-badge">{{ listing.category | title }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="price-value">{{ listing.price_xmr }} XMR</span>
+                            </td>
+                            <td class="text-center">
+                                {% if listing.stock > 0 %}
+                                <span class="stock-badge {% if listing.stock < 5 %}stock-badge--low{% else %}stock-badge--ok{% endif %}">
+                                    {{ listing.stock }}
+                                </span>
+                                {% else %}
+                                <span class="stock-badge stock-badge--out">Out</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if listing.status == "active" %}
+                                <span class="status-indicator status-indicator--active">
+                                    <span class="status-indicator__dot"></span>
+                                    Active
+                                </span>
+                                {% else %}
+                                <span class="status-indicator status-indicator--inactive">
+                                    <span class="status-indicator__dot"></span>
+                                    {{ listing.status | title }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">
+                                <div class="row-actions">
+                                    <a href="/listings/{{ listing.id }}/edit" class="row-action" title="Edit">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                        </svg>
+                                    </a>
+                                    <a href="/listings/{{ listing.id }}" class="row-action row-action--view" title="View">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                            <polyline points="15 3 21 3 21 9"/><line x1="10" x2="21" y1="14" y2="3"/>
+                                        </svg>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            {# Empty State #}
+            <div class="listings-empty">
+                <div class="listings-empty__icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="m7.5 4.27 9 5.15"/>
+                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                        <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+                    </svg>
+                </div>
+                <h3 class="listings-empty__title">No listings yet</h3>
+                <p class="listings-empty__text">Create your first listing to start selling on FROST MARKET.</p>
+                <a href="/listings/create" class="btn-gold-outline btn-shimmer" style="margin-top: 20px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/>
+                    </svg>
+                    Create Your First Listing
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

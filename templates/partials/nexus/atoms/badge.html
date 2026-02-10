@@ -1,0 +1,38 @@
+{#
+  NEXUS BADGE COMPONENT (MACRO)
+
+  Usage:
+    {% import "partials/nexus/atoms/badge.html" as badge_component %}
+    {{ badge_component::badge(text="NEW", variant="primary") }}
+
+  Parameters:
+    - text (required): Badge text content
+    - variant (optional): default|primary|secondary|success|warning|destructive|outline (default: default)
+    - status (optional): pending|funded|shipped|completed|cancelled|disputed|refunded (for order statuses)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+
+  Examples:
+    Status badge:
+      {{ badge_component::badge(text="Active", variant="success") }}
+
+    Order status:
+      {{ badge_component::badge(text="Shipped", status="shipped") }}
+
+    Outlined badge:
+      {{ badge_component::badge(text="Beta", variant="outline") }}
+#}
+
+{% macro badge(text, variant="default", status="", class="", id="") %}
+  {%- if status -%}
+    {%- set css_classes = "nexus-badge nexus-badge-" ~ status -%}
+  {%- else -%}
+    {%- set css_classes = "nexus-badge nexus-badge-" ~ variant -%}
+  {%- endif -%}
+
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <span class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>{{ text }}</span>
+{%- endmacro badge %}

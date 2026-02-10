@@ -1,0 +1,137 @@
+{#
+  NEXUS INPUT COMPONENT
+
+  Usage:
+    {% include "partials/nexus/atoms/input.html" %}
+
+  Parameters:
+    - name (required): Input name attribute
+    - type (optional): text|email|password|number|search|tel|url|date (default: text)
+    - placeholder (optional): Placeholder text
+    - value (optional): Input value (for pre-filling)
+    - label (optional): Label text (if provided, renders with label)
+    - required (optional): true|false (default: false)
+    - disabled (optional): true|false (default: false)
+    - readonly (optional): true|false (default: false)
+    - error (optional): Error message to display
+    - autocomplete (optional): Autocomplete attribute value
+    - pattern (optional): Validation pattern (regex)
+    - min (optional): Min value (for number/date)
+    - max (optional): Max value (for number/date)
+    - step (optional): Step value (for number)
+    - maxlength (optional): Maximum character length
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID (defaults to name if not provided)
+    - hx_get (optional): HTMX GET endpoint
+    - hx_post (optional): HTMX POST endpoint
+    - hx_target (optional): HTMX target selector
+    - hx_trigger (optional): HTMX trigger event
+
+  Examples:
+    Simple text input:
+      {% include "partials/nexus/atoms/input.html" %}
+
+    Input with label:
+      {% include "partials/nexus/atoms/input.html" %}
+
+    Input with error:
+      {% include "partials/nexus/atoms/input.html" %}
+
+    HTMX search input:
+      {% include "partials/nexus/atoms/input.html" %}
+#}
+
+{% set input_type = type | default(value="text") %}
+{% set input_id = id | default(value=name) %}
+{% set input_required = required | default(value=false) %}
+{% set input_disabled = disabled | default(value=false) %}
+{% set input_readonly = readonly | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-input" %}
+{% if error %}
+  {% set css_classes = css_classes ~ " nexus-input-error" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+{# Wrapper for label + input + error #}
+<div class="nexus-input-wrapper">
+  {# Label (if provided) #}
+  {% if label %}
+    <label for="{{ input_id }}" class="nexus-label">
+      {{ label }}
+      {% if input_required %}<span class="nexus-label-required" aria-label="required">*</span>{% endif %}
+    </label>
+  {% endif %}
+
+  {# Input field #}
+  <input
+    type="{{ input_type }}"
+    id="{{ input_id }}"
+    name="{{ name }}"
+    class="{{ css_classes }}"
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if value %}value="{{ value }}"{% endif %}
+    {% if input_required %}required{% endif %}
+    {% if input_disabled %}disabled{% endif %}
+    {% if input_readonly %}readonly{% endif %}
+    {% if autocomplete %}autocomplete="{{ autocomplete }}"{% endif %}
+    {% if pattern %}pattern="{{ pattern }}"{% endif %}
+    {% if min %}min="{{ min }}"{% endif %}
+    {% if max %}max="{{ max }}"{% endif %}
+    {% if step %}step="{{ step }}"{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if error %}aria-invalid="true" aria-describedby="{{ input_id }}-error"{% endif %}
+    {# HTMX attributes #}
+    {% if hx_get %}hx-get="{{ hx_get }}"{% endif %}
+    {% if hx_post %}hx-post="{{ hx_post }}"{% endif %}
+    {% if hx_target %}hx-target="{{ hx_target }}"{% endif %}
+    {% if hx_trigger %}hx-trigger="{{ hx_trigger }}"{% endif %}
+  >
+
+  {# Error message (if provided) #}
+  {% if error %}
+    <span id="{{ input_id }}-error" class="nexus-input-error-message" role="alert">
+      {{ error }}
+    </span>
+  {% endif %}
+</div>
+
+<style>
+/* Input wrapper styles */
+.nexus-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+  width: 100%;
+}
+
+/* Label styles */
+.nexus-label {
+  font-size: var(--nexus-text-sm);
+  font-weight: var(--nexus-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-wide);
+  color: var(--nexus-fg);
+}
+
+.nexus-label-required {
+  color: var(--nexus-destructive);
+  margin-left: var(--nexus-space-1);
+}
+
+/* Error message styles */
+.nexus-input-error-message {
+  font-size: var(--nexus-text-xs);
+  color: var(--nexus-destructive);
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-1);
+}
+
+.nexus-input-error-message::before {
+  content: "⚠";
+}
+</style>

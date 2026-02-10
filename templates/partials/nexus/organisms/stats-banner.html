@@ -1,0 +1,236 @@
+{#
+  NEXUS STATS BANNER COMPONENT
+
+  Usage:
+    {% include "partials/nexus/organisms/stats-banner.html" with
+       stats=[
+         {"label": "Active Listings", "value": "1,234", "icon": "📦"},
+         {"label": "Total Sales", "value": "45.6 XMR", "icon": "💰"},
+         {"label": "Happy Buyers", "value": "892", "icon": "😊"}
+       ]
+    %}
+
+  Parameters:
+    - stats (required): Array of stat objects with:
+        - label: Stat label
+        - value: Stat value
+        - icon: Optional icon
+        - suffix: Optional suffix (e.g., "+", "%")
+        - trend: Optional trend indicator (up|down)
+    - variant (optional): horizontal|vertical (default: horizontal)
+    - glassmorphism (optional): true|false - Apply glass effect (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set stats_variant = variant | default(value="horizontal") %}
+{% set stats_glassmorphism = glassmorphism | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-stats-banner nexus-stats-banner-" ~ stats_variant %}
+{% if stats_glassmorphism %}
+  {% set css_classes = css_classes ~ " nexus-stats-banner-glass" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {% for stat in stats %}
+    <div class="nexus-stat-item">
+      {# Icon #}
+      {% if stat.icon %}
+        <div class="nexus-stat-icon">{{ stat.icon | safe }}</div>
+      {% endif %}
+
+      {# Content #}
+      <div class="nexus-stat-content">
+        <div class="nexus-stat-value-wrapper">
+          <span class="nexus-stat-value">{{ stat.value }}</span>
+          {% if stat.suffix %}
+            <span class="nexus-stat-suffix">{{ stat.suffix }}</span>
+          {% endif %}
+          {% if stat.trend %}
+            <span class="nexus-stat-trend nexus-stat-trend-{{ stat.trend }}">
+              {% if stat.trend == "up" %}↑{% else %}↓{% endif %}
+            </span>
+          {% endif %}
+        </div>
+        <span class="nexus-stat-label">{{ stat.label }}</span>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<style>
+/* Base Stats Banner */
+.nexus-stats-banner {
+  display: flex;
+  gap: var(--nexus-space-6);
+  padding: var(--nexus-space-6);
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-lg);
+}
+
+/* Glassmorphism */
+.nexus-stats-banner-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px 0 rgba(0, 0, 0, 0.37),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Variant: Horizontal */
+.nexus-stats-banner-horizontal {
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Variant: Vertical */
+.nexus-stats-banner-vertical {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.nexus-stats-banner-vertical .nexus-stat-item {
+  border-bottom: 1px solid var(--nexus-border);
+  padding-bottom: var(--nexus-space-4);
+}
+
+.nexus-stats-banner-vertical .nexus-stat-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Stat Item */
+.nexus-stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-3);
+  min-width: 150px;
+}
+
+/* Stat Icon */
+.nexus-stat-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(255, 26, 92, 0.3));
+}
+
+/* Stat Content */
+.nexus-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-1);
+}
+
+/* Stat Value Wrapper */
+.nexus-stat-value-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: var(--nexus-space-1);
+}
+
+/* Stat Value */
+.nexus-stat-value {
+  font-size: var(--nexus-text-3xl);
+  font-weight: var(--nexus-weight-black);
+  color: var(--nexus-fg);
+  line-height: var(--nexus-leading-tight);
+  background: linear-gradient(
+    135deg,
+    var(--nexus-primary) 0%,
+    var(--nexus-accent) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Stat Suffix */
+.nexus-stat-suffix {
+  font-size: var(--nexus-text-lg);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-muted-fg);
+}
+
+/* Stat Trend */
+.nexus-stat-trend {
+  font-size: var(--nexus-text-xl);
+  font-weight: var(--nexus-weight-bold);
+}
+
+.nexus-stat-trend-up {
+  color: var(--nexus-success);
+}
+
+.nexus-stat-trend-down {
+  color: var(--nexus-destructive);
+}
+
+/* Stat Label */
+.nexus-stat-label {
+  font-size: var(--nexus-text-sm);
+  font-weight: var(--nexus-weight-medium);
+  color: var(--nexus-muted-fg);
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-wider);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .nexus-stats-banner {
+    gap: var(--nexus-space-4);
+    padding: var(--nexus-space-5);
+  }
+
+  .nexus-stat-icon {
+    font-size: 2rem;
+  }
+
+  .nexus-stat-value {
+    font-size: var(--nexus-text-2xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .nexus-stats-banner-horizontal {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .nexus-stats-banner {
+    gap: var(--nexus-space-3);
+    padding: var(--nexus-space-4);
+  }
+
+  .nexus-stat-item {
+    min-width: auto;
+    padding-bottom: var(--nexus-space-3);
+    border-bottom: 1px solid var(--nexus-border);
+  }
+
+  .nexus-stat-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .nexus-stat-icon {
+    font-size: 1.75rem;
+  }
+
+  .nexus-stat-value {
+    font-size: var(--nexus-text-xl);
+  }
+
+  .nexus-stat-label {
+    font-size: var(--nexus-text-xs);
+  }
+}
+</style>

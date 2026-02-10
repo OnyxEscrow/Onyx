@@ -1,0 +1,121 @@
+{#
+  NEXUS SWITCH COMPONENT (Toggle)
+
+  Usage:
+    {% include "partials/nexus/atoms/switch.html" %}
+
+  Parameters:
+    - name (required): Switch name attribute
+    - label (optional): Label text
+    - checked (optional): true|false (default: false)
+    - disabled (optional): true|false (default: false)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set switch_id = id | default(value=name) %}
+{% set switch_checked = checked | default(value=false) %}
+{% set switch_disabled = disabled | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-switch" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="nexus-switch-wrapper">
+  <label class="nexus-switch-container">
+    <input
+      type="checkbox"
+      id="{{ switch_id }}"
+      name="{{ name }}"
+      class="{{ css_classes }}"
+      {% if switch_checked %}checked{% endif %}
+      {% if switch_disabled %}disabled{% endif %}
+      role="switch"
+      aria-checked="{% if switch_checked %}true{% else %}false{% endif %}"
+    >
+    <span class="nexus-switch-slider"></span>
+  </label>
+
+  {% if label %}
+    <span class="nexus-switch-label">{{ label }}</span>
+  {% endif %}
+</div>
+
+<style>
+.nexus-switch-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-3);
+}
+
+.nexus-switch-container {
+  position: relative;
+  display: inline-block;
+  width: 2.75rem;
+  height: 1.5rem;
+  cursor: pointer;
+}
+
+.nexus-switch {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.nexus-switch-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--nexus-muted);
+  border: 1px solid var(--nexus-border);
+  border-radius: 1.5rem;
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-switch-slider::before {
+  content: '';
+  position: absolute;
+  height: 1.125rem;
+  width: 1.125rem;
+  left: 0.125rem;
+  bottom: 0.125rem;
+  background-color: var(--nexus-fg);
+  border-radius: 50%;
+  transition: transform var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-switch:checked + .nexus-switch-slider {
+  background-color: var(--nexus-primary);
+  border-color: var(--nexus-primary);
+}
+
+.nexus-switch:checked + .nexus-switch-slider::before {
+  transform: translateX(1.25rem);
+  background-color: var(--nexus-primary-fg);
+}
+
+.nexus-switch:focus + .nexus-switch-slider {
+  box-shadow: 0 0 0 3px rgba(255, 26, 92, 0.1);
+}
+
+.nexus-switch:disabled + .nexus-switch-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nexus-switch-label {
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-fg);
+  cursor: pointer;
+  user-select: none;
+}
+
+.nexus-switch:disabled ~ .nexus-switch-label {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>

@@ -1,0 +1,111 @@
+{# TX Feed Marquee - Industrial Stealth Design #}
+{# Data passed: tx_feed (array of {hash, amount, verified}) #}
+
+<div class="marquee-content">
+    {# First set of items #}
+    {% if tx_feed %}
+        {% for tx in tx_feed %}
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_{{ tx.hash | upper | truncate(length=6, end="") }}</span>
+            <span class="text-muted">//</span>
+            {% if tx.verified %}
+            <span class="text-gold">VERIFIED</span>
+            {% else %}
+            <span class="text-muted">PENDING</span>
+            {% endif %}
+            <span class="marquee-item__amount">+{{ tx.amount }} XMR</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        {# Default demo data when no TX feed available #}
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_MT6ZDQ</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+12.5755 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_7A9NRF</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+29.0573 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_MM47CJ</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+22.5455 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_DSM717</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+47.9326 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_TDGBUF</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+8.2341 XMR</span>
+        </div>
+    {% endif %}
+
+    {# Duplicate for seamless loop #}
+    {% if tx_feed %}
+        {% for tx in tx_feed %}
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_{{ tx.hash | upper | truncate(length=6, end="") }}</span>
+            <span class="text-muted">//</span>
+            {% if tx.verified %}
+            <span class="text-gold">VERIFIED</span>
+            {% else %}
+            <span class="text-muted">PENDING</span>
+            {% endif %}
+            <span class="marquee-item__amount">+{{ tx.amount }} XMR</span>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_MT6ZDQ</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+12.5755 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_7A9NRF</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+29.0573 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_MM47CJ</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+22.5455 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_DSM717</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+47.9326 XMR</span>
+        </div>
+        <div class="marquee-item">
+            <span class="marquee-item__dot"></span>
+            <span class="marquee-item__hash">TX_HASH_TDGBUF</span>
+            <span class="text-muted">//</span>
+            <span class="text-gold">VERIFIED</span>
+            <span class="marquee-item__amount">+8.2341 XMR</span>
+        </div>
+    {% endif %}
+</div>

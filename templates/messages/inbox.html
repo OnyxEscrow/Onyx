@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages - FROST MARKET</title>
+    <meta name="description" content="Secure E2E encrypted messaging">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
+
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+
+<body class="industrial-stealth">
+    <!-- Grid Overlay (Vertical Lines) -->
+    <div class="grid-overlay"></div>
+
+    {% include "partials/header-industrial.html" %}
+
+    <main class="inbox-page">
+        <div class="inbox-container">
+            <!-- Page Header -->
+            <div class="inbox-header">
+                <h1 class="inbox-title">
+                    SECURE <span class="text-gold">MESSAGES</span>
+                </h1>
+                <p class="inbox-subtitle">
+                    End-to-end encrypted messaging. Your conversations are private.
+                </p>
+            </div>
+
+            <!-- Setup Banner (if no keypair) -->
+            <div id="setup-banner" class="setup-banner" style="display: none;">
+                <div class="setup-banner-content">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <div class="setup-banner-text">
+                        <strong>Set up secure messaging</strong>
+                        <p>Generate your encryption keys to start receiving secure messages.</p>
+                    </div>
+                    <button id="setup-btn" class="btn-industrial btn-gold">
+                        Set Up Now
+                    </button>
+                </div>
+            </div>
+
+            <!-- Conversations List -->
+            <div class="conversations-card">
+                <div class="conversations-header">
+                    <h2>CONVERSATIONS</h2>
+                    <button id="new-message-btn" class="btn-industrial btn-outline">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            <line x1="12" y1="8" x2="12" y2="14"></line>
+                            <line x1="9" y1="11" x2="15" y2="11"></line>
+                        </svg>
+                        New Message
+                    </button>
+                </div>
+
+                <div id="conversations-list">
+                    <!-- Loading state -->
+                    <div id="loading-conversations" class="loading-state">
+                        <div class="industrial-spinner"></div>
+                        <p>Loading conversations...</p>
+                    </div>
+
+                    <!-- Empty state (hidden by default) -->
+                    <div id="empty-conversations" class="empty-state" style="display: none;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)"
+                            stroke-width="1.5">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <h3>NO MESSAGES YET</h3>
+                        <p>Start a conversation with a vendor or buyer.</p>
+                    </div>
+
+                    <!-- Conversation items container -->
+                    <div id="conversations-container"></div>
+                </div>
+            </div>
+
+            <!-- E2E Encryption Notice -->
+            <div class="encryption-notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <polyline points="9 12 11 14 15 10"></polyline>
+                </svg>
+                <span>X25519 + CHACHA20POLY1305</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Message Modal -->
+    <div id="new-message-modal" class="modal-industrial" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>NEW SECURE MESSAGE</h3>
+                <button class="modal-close" onclick="closeNewMessageModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">RECIPIENT USERNAME</label>
+                    <input type="text" id="recipient-username" class="form-input" placeholder="Enter username...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">MESSAGE</label>
+                    <textarea id="message-content" class="form-textarea" rows="4"
+                        placeholder="Type your secure message..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-industrial btn-ghost" onclick="closeNewMessageModal()">Cancel</button>
+                <button id="send-message-btn" class="btn-industrial btn-gold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send Encrypted
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Keypair Modal -->
+    <div id="setup-modal" class="modal-industrial" style="display: none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content modal-content--sm">
+            <div class="modal-header">
+                <h3>SET UP SECURE MESSAGING</h3>
+            </div>
+            <div class="modal-body">
+                <div class="setup-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)"
+                        stroke-width="1.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <p>Enter your password to generate encryption keys. These keys will be used to encrypt and decrypt your messages.</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">YOUR PASSWORD</label>
+                    <input type="password" id="setup-password" class="form-input"
+                        placeholder="Enter your account password">
+                    <small class="form-hint">
+                        Your password is used locally to encrypt your private key. It is never sent to the server.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-industrial btn-ghost" onclick="closeSetupModal()">Cancel</button>
+                <button id="confirm-setup-btn" class="btn-industrial btn-gold">Generate Keys</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/secure-messages.js"></script>
+
+    <script>
+        // State
+        let conversations = [];
+        let hasKeypair = false;
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await checkKeypairStatus();
+            await loadConversations();
+        });
+
+        // Check if user has keypair
+        async function checkKeypairStatus() {
+            try {
+                const keypair = await SecureMessages.getOwnKeypair();
+                hasKeypair = !!keypair;
+
+                const setupBanner = document.getElementById('setup-banner');
+                if (!hasKeypair) {
+                    setupBanner.style.display = 'block';
+                } else {
+                    setupBanner.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Failed to check keypair status:', e);
+            }
+        }
+
+        // Load conversations
+        async function loadConversations() {
+            const loadingEl = document.getElementById('loading-conversations');
+            const emptyEl = document.getElementById('empty-conversations');
+            const containerEl = document.getElementById('conversations-container');
+
+            try {
+                const result = await SecureMessages.listConversations();
+                conversations = result.data || [];
+
+                loadingEl.style.display = 'none';
+
+                if (conversations.length === 0) {
+                    emptyEl.style.display = 'block';
+                    return;
+                }
+
+                emptyEl.style.display = 'none';
+                containerEl.innerHTML = conversations.map(conv => `
+                    <a href="/messages/${conv.other_user_id}" class="conversation-item"
+                       style="display: flex; align-items: center; padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,0.05); text-decoration: none; color: inherit; transition: background 0.2s;">
+                        <div class="conversation-avatar" style="width: 48px; height: 48px; border-radius: 50%; background: rgba(201, 164, 69, 0.2); display: flex; align-items: center; justify-content: center; margin-right: 16px;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="1.5">
+                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                        </div>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                                <span style="font-weight: 600; font-size: 15px;">${escapeHtml(conv.other_username)}</span>
+                                ${conv.unread_count > 0 ? `<span class="unread-badge" style="background: var(--nexus-gold); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600;">${conv.unread_count}</span>` : ''}
+                            </div>
+                            <div style="font-size: 13px; color: rgba(255,255,255,0.5);">
+                                ${conv.has_keypair ? 'E2E encrypted' : 'Waiting for setup...'}
+                            </div>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" style="margin-left: 12px;">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </a>
+                `).join('');
+
+                // Add hover effects
+                containerEl.querySelectorAll('.conversation-item').forEach(item => {
+                    item.addEventListener('mouseenter', () => {
+                        item.style.background = 'rgba(255,255,255,0.03)';
+                    });
+                    item.addEventListener('mouseleave', () => {
+                        item.style.background = 'transparent';
+                    });
+                });
+            } catch (e) {
+                console.error('Failed to load conversations:', e);
+                loadingEl.innerHTML = '<p style="color: #ef4444;">Failed to load conversations</p>';
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // New Message Modal
+        document.getElementById('new-message-btn').addEventListener('click', () => {
+            if (!hasKeypair) {
+                document.getElementById('setup-modal').style.display = 'flex';
+                return;
+            }
+            document.getElementById('new-message-modal').style.display = 'flex';
+        });
+
+        function closeNewMessageModal() {
+            document.getElementById('new-message-modal').style.display = 'none';
+            document.getElementById('recipient-username').value = '';
+            document.getElementById('message-content').value = '';
+        }
+
+        // Setup Modal
+        document.getElementById('setup-btn')?.addEventListener('click', () => {
+            document.getElementById('setup-modal').style.display = 'flex';
+        });
+
+        function closeSetupModal() {
+            document.getElementById('setup-modal').style.display = 'none';
+            document.getElementById('setup-password').value = '';
+        }
+
+        // Confirm setup
+        document.getElementById('confirm-setup-btn').addEventListener('click', async () => {
+            const password = document.getElementById('setup-password').value;
+            if (!password) {
+                alert('Please enter your password');
+                return;
+            }
+
+            const btn = document.getElementById('confirm-setup-btn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const result = await SecureMessages.initialize(password);
+                if (result.success) {
+                    hasKeypair = true;
+                    document.getElementById('setup-banner').style.display = 'none';
+                    closeSetupModal();
+                    alert('Secure messaging is now enabled!');
+                } else {
+                    alert('Setup failed: ' + result.error);
+                }
+            } catch (e) {
+                alert('Setup failed: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate Keys';
+            }
+        });
+
+        // Send message
+        document.getElementById('send-message-btn').addEventListener('click', async () => {
+            const username = document.getElementById('recipient-username').value.trim();
+            const content = document.getElementById('message-content').value.trim();
+
+            if (!username || !content) {
+                alert('Please enter recipient and message');
+                return;
+            }
+
+            const btn = document.getElementById('send-message-btn');
+            btn.disabled = true;
+
+            try {
+                // TODO: Look up user ID by username
+                // For now, assume username is user ID
+                const result = await SecureMessages.sendMessage(username, content);
+                if (result.success) {
+                    closeNewMessageModal();
+                    window.location.href = `/messages/${username}`;
+                } else {
+                    alert('Failed to send: ' + result.error);
+                }
+            } catch (e) {
+                alert('Failed to send: ' + e.message);
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Close modals on backdrop click
+        document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+            backdrop.addEventListener('click', () => {
+                backdrop.parentElement.style.display = 'none';
+            });
+        });
+    </script>
+
+    <style>
+        /* ==========================================================================
+           INBOX PAGE - Industrial Stealth Theme
+           ========================================================================== */
+
+        .inbox-page {
+            min-height: 100vh;
+            padding-top: 100px;
+            padding-bottom: 64px;
+            background: var(--nexus-bg, #252627);
+        }
+
+        .inbox-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        .inbox-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .inbox-title {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 36px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin: 0 0 12px;
+            color: var(--nexus-text, #fff);
+        }
+
+        .inbox-title .text-gold {
+            color: var(--nexus-gold, #D4AF37);
+        }
+
+        .inbox-subtitle {
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+            margin: 0;
+        }
+
+        /* Setup Banner */
+        .setup-banner {
+            margin-bottom: 24px;
+            padding: 20px 24px;
+            background: rgba(212, 175, 55, 0.08);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 4px;
+        }
+
+        .setup-banner-content {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .setup-banner-text {
+            flex: 1;
+        }
+
+        .setup-banner-text strong {
+            display: block;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--nexus-gold, #D4AF37);
+        }
+
+        .setup-banner-text p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+        }
+
+        /* Conversations Card */
+        .conversations-card {
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .conversations-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        .conversations-header h2 {
+            margin: 0;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--nexus-text, #fff);
+        }
+
+        /* Loading & Empty States */
+        .loading-state, .empty-state {
+            text-align: center;
+            padding: 64px 24px;
+        }
+
+        .loading-state p, .empty-state p {
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+            font-size: 13px;
+        }
+
+        .empty-state svg {
+            margin-bottom: 16px;
+        }
+
+        .empty-state h3 {
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 18px;
+            letter-spacing: 0.05em;
+            margin: 0 0 8px;
+        }
+
+        /* Industrial Spinner */
+        .industrial-spinner {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto 16px;
+            border: 2px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-top-color: var(--nexus-gold, #D4AF37);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Encryption Notice */
+        .encryption-notice {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+            padding: 16px;
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--nexus-green, #22c55e);
+        }
+
+        /* Buttons */
+        .btn-industrial {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 150ms ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, var(--nexus-gold, #D4AF37), #B8962E);
+            color: #000;
+        }
+
+        .btn-gold:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            color: var(--nexus-text, #fff);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--nexus-gold, #D4AF37);
+            color: var(--nexus-gold, #D4AF37);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+        }
+
+        .btn-ghost:hover {
+            color: var(--nexus-text, #fff);
+        }
+
+        /* Modal */
+        .modal-industrial {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            position: relative;
+            background: var(--nexus-bg-dark, #1a1b1c);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow: hidden;
+        }
+
+        .modal-content--sm {
+            max-width: 450px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-family: var(--font-oswald, 'Oswald', sans-serif);
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+            cursor: pointer;
+            padding: 4px;
+            transition: color 150ms ease;
+        }
+
+        .modal-close:hover {
+            color: var(--nexus-text, #fff);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+        }
+
+        /* Setup Icon */
+        .setup-icon {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .setup-icon svg {
+            margin-bottom: 16px;
+        }
+
+        .setup-icon p {
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-family: var(--font-mono, 'Roboto Mono', monospace);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-text-secondary, rgba(255, 255, 255, 0.7));
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--nexus-bg, #252627);
+            border: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.12));
+            border-radius: 4px;
+            color: var(--nexus-text, #fff);
+            font-family: var(--font-inter, 'Inter', sans-serif);
+            font-size: 14px;
+            transition: border-color 150ms ease;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--nexus-gold, #D4AF37);
+        }
+
+        .form-input::placeholder, .form-textarea::placeholder {
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-hint {
+            display: block;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--color-text-muted, rgba(255, 255, 255, 0.5));
+        }
+
+        /* Conversation Item (rendered via JS) */
+        .conversation-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--nexus-grid, rgba(255, 255, 255, 0.08));
+            text-decoration: none;
+            color: inherit;
+            transition: background 150ms ease;
+        }
+
+        .conversation-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .conversation-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .inbox-page {
+                padding-top: 80px;
+            }
+
+            .inbox-title {
+                font-size: 28px;
+            }
+
+            .setup-banner-content {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .conversations-header {
+                flex-direction: column;
+                gap: 12px;
+                align-items: stretch;
+            }
+
+            .conversations-header h2 {
+                text-align: center;
+            }
+        }
+    </style>
+
+    <!-- WebSocket Notifications & Toast System -->
+    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+    <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
+    <script src="/static/js/notification-routes.js"></script>
+    <script src="/static/js/notification-center.js"></script>
+</body>
+
+</html>

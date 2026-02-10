@@ -1,0 +1,398 @@
+/* ==========================================
+   NEXUS GRID HEADER - Wodniack Structure
+   Layout: Carré | Rectangle | Rectangle | Carré | Rectangle
+   ========================================== */
+
+/* ========== HEADER CONTAINER ========== */
+.nexus-grid-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--nexus-primary); /* NEXUS CORAIL #FF8559 */
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 80px 1fr;
+  height: 80px;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.3);
+}
+
+/* ========== BOX GÉNÉRIQUE ========== */
+.nexus-grid-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 3px solid rgba(0, 0, 0, 0.3);
+  padding: 0 1rem;
+}
+
+.nexus-grid-box:last-child {
+  border-right: none;
+}
+
+/* ========== CARRÉ 1: LOGO ========== */
+.nexus-grid-logo {
+  padding: 0;
+}
+
+.nexus-grid-logo a {
+  font-family: 'PP Monument Extended', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--nexus-bg);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+  transition: transform 0.2s ease;
+}
+
+.nexus-grid-logo a:hover {
+  transform: scale(1.05);
+}
+
+/* ========== RECTANGLE 2: TYPEWRITER ========== */
+.nexus-grid-typewriter {
+  justify-content: flex-start;
+  padding-left: 2rem;
+}
+
+.nexus-typewriter-content {
+  display: flex;
+  align-items: center;
+  font-family: 'PP Fraktion Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--nexus-bg);
+  opacity: 0.7;
+}
+
+#nexus-typewriter-text {
+  white-space: nowrap;
+}
+
+.nexus-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink-cursor 1s step-end infinite;
+}
+
+@keyframes blink-cursor {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ========== RECTANGLE 3: NAVIGATION ========== */
+.nexus-grid-nav {
+  justify-content: center; /* Centré dans son propre rectangle */
+  padding: 0;
+}
+
+.nexus-grid-nav nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.nexus-grid-nav a {
+  font-family: 'PP Fraktion Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--nexus-bg);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: opacity 0.2s ease;
+}
+
+.nexus-grid-nav a:hover {
+  opacity: 0.7;
+}
+
+.nexus-grid-nav .sep {
+  color: var(--nexus-bg);
+  opacity: 0.3;
+  font-size: 0.75rem;
+}
+
+/* ========== CARRÉ 4: AUTH (divisé en 2) ========== */
+.nexus-grid-auth {
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  position: relative;
+}
+
+/* Ligne de séparation verticale au milieu */
+.nexus-grid-auth::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+.nexus-auth-half {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  height: 80px; /* FORCER hauteur complète du header */
+}
+
+/* Fond noir qui slide de gauche à droite - REMPLIT TOUT */
+.nexus-auth-half::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--nexus-bg);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+  z-index: 0;
+}
+
+.nexus-auth-half:hover::before {
+  transform: scaleX(1);
+}
+
+.nexus-auth-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  color: var(--nexus-bg);
+  cursor: pointer;
+  font-family: 'PP Monument Extended', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 900;
+  transition: color 0.3s ease;
+  text-decoration: none;
+  position: relative;
+  z-index: 1;
+}
+
+.nexus-auth-half:hover .nexus-auth-icon {
+  color: white;
+}
+
+.nexus-auth-icon svg {
+  position: relative;
+  z-index: 1;
+  stroke: currentColor;
+  transition: stroke 0.3s ease;
+}
+
+/* ========== USER MENU DROPDOWN ========== */
+.nexus-user-menu-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.nexus-user-menu-trigger {
+  /* Override button defaults to match nexus-auth-icon */
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.nexus-user-dropdown {
+  position: fixed; /* Fixed pour sortir du flux et être au-dessus de tout */
+  top: 80px; /* Juste en dessous du header (80px de hauteur) */
+  left: auto;
+  right: auto;
+  transform: translateX(-50%);
+  background: var(--nexus-primary); /* NEXUS CORAIL #FF8559 */
+  border: 3px solid rgba(0, 0, 0, 0.3);
+  border-top: none;
+  min-width: 200px;
+  z-index: 10000; /* Au-dessus du header (1000) */
+  opacity: 0;
+  visibility: hidden; /* Pour empêcher l'interaction même invisible */
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.nexus-user-dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.nexus-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  color: var(--nexus-bg);
+  text-decoration: none;
+  font-family: 'PP Fraktion Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nexus-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.1);
+  padding-left: 1.5rem;
+}
+
+.nexus-dropdown-item svg {
+  flex-shrink: 0;
+  stroke: var(--nexus-bg);
+}
+
+.nexus-dropdown-divider {
+  height: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  margin: 0;
+}
+
+.nexus-dropdown-username {
+  display: block;
+  padding: 0.75rem 1.25rem;
+  color: var(--nexus-bg);
+  font-family: 'PP Fraktion Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.5;
+  text-align: center;
+}
+
+/* Light mode dropdown */
+body.light-mode .nexus-user-dropdown {
+  background: hsl(30, 30%, 92%);
+  border-color: rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .nexus-dropdown-item {
+  color: var(--nexus-bg);
+  border-bottom-color: rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .nexus-dropdown-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .nexus-dropdown-username {
+  color: var(--nexus-bg);
+}
+
+/* ========== RECTANGLE 5: TOGGLE DARK/LIGHT ========== */
+.nexus-grid-toggle {
+  padding: 0;
+}
+
+.nexus-toggle-dot {
+  width: 100%;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.nexus-dot {
+  width: 40px;
+  height: 40px;
+  /* Divisé verticalement: gauche transparent, droite noir */
+  background: linear-gradient(90deg, transparent 50%, var(--nexus-bg) 50%);
+  border: 2px solid var(--nexus-bg); /* Bordure pour marquer le cercle */
+  border-radius: 50%;
+  transition: background 0.3s ease, transform 0.2s ease, border 0.3s ease;
+}
+
+.nexus-toggle-dot:hover .nexus-dot {
+  transform: scale(1.1);
+}
+
+/* Light mode: point devient inversé (gauche blanc, droite transparent) */
+.nexus-toggle-dot.light .nexus-dot {
+  background: linear-gradient(90deg, white 50%, transparent 50%);
+  border: 2px solid var(--nexus-bg);
+  box-shadow: none;
+}
+
+/* ========== LIGHT MODE ========== */
+body.light-mode .nexus-grid-logo a,
+body.light-mode .nexus-typewriter-content,
+body.light-mode .nexus-grid-nav a,
+body.light-mode .nexus-grid-nav .sep,
+body.light-mode .nexus-auth-icon {
+  color: var(--nexus-bg);
+}
+
+body.light-mode .nexus-grid-header {
+  background: hsl(30, 30%, 92%); /* Fond beige clair en light mode */
+  border-bottom-color: rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .nexus-grid-box {
+  border-right-color: rgba(0, 0, 0, 0.35);
+}
+
+body.light-mode .nexus-auth-half {
+  border-right-color: rgba(0, 0, 0, 0.35);
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 1200px) {
+  .nexus-grid-header {
+    grid-template-columns: 80px 1fr 1fr 80px 1fr;
+    height: 70px;
+  }
+
+  .nexus-grid-logo a {
+    font-size: 1.75rem;
+  }
+
+  .nexus-typewriter-content,
+  .nexus-grid-nav a {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .nexus-grid-header {
+    grid-template-columns: 60px 1fr 60px;
+    height: 60px;
+  }
+
+  /* Hide typewriter, nav, and empty on mobile */
+  .nexus-grid-typewriter,
+  .nexus-grid-nav,
+  .nexus-grid-empty {
+    display: none;
+  }
+
+  .nexus-grid-logo a {
+    font-size: 1.5rem;
+  }
+
+  .nexus-dot {
+    width: 18px;
+    height: 18px;
+  }
+}

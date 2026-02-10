@@ -1,0 +1,315 @@
+<!-- Aura Modal: BIP39 Seed Backup -->
+<div id="seed-backup-modal"
+    class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 backdrop-blur-sm bg-black/80 transition-opacity duration-300 opacity-0"
+    style="display: none;">
+    <div class="relative w-full max-w-2xl transform rounded-3xl bg-[#0a0a0a] border border-white/10 shadow-2xl shadow-black/50 transition-all duration-300 scale-95 opacity-0 translate-y-4"
+        id="seed-backup-modal-content">
+        <!-- Background Gradients -->
+        <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+            <div class="absolute -top-24 -right-24 w-64 h-64 bg-yellow-500/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -left-24 w-64 h-64 bg-orange-500/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <!-- Header -->
+        <div class="relative p-6 border-b border-white/5 flex items-center justify-between">
+            <h3 class="text-xl text-white font-light flex items-center gap-3">
+                <div class="p-2 rounded-lg bg-red-500/20 text-red-400">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                </div>
+                Backup Your Recovery Seed
+            </h3>
+            <button onclick="closeSeedBackupModal()"
+                class="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-white/5">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="relative p-6 space-y-6">
+            <!-- Critical Warning -->
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-start gap-4">
+                <i data-lucide="alert-triangle" class="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5"></i>
+                <div>
+                    <strong class="text-red-400 font-medium block mb-1">CRITICAL: Read Carefully</strong>
+                    <p class="text-gray-300 text-sm mb-2">Your wallet has been created. This 12-word recovery phrase is
+                        your <strong>ONLY</strong> way to recover your funds.</p>
+                    <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                        <li>If you lose this phrase, <strong class="text-red-400">you cannot recover your funds</strong>
+                        </li>
+                        <li>Never share this phrase with anyone</li>
+                        <li>Store it in a secure, offline location</li>
+                        <li>Write it down on paper (recommended)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Seed Display -->
+            <div class="space-y-4">
+                <label class="text-sm font-medium text-gray-400 uppercase tracking-wider block">Your Recovery Seed (12
+                    words)</label>
+
+                <div id="bip39-seed-words" class="grid grid-cols-3 sm:grid-cols-4 gap-3 relative">
+                    <!-- Words injected here -->
+                    <div class="absolute inset-0 backdrop-blur-xl bg-black/50 z-10 flex items-center justify-center rounded-xl border border-white/10 transition-all duration-500"
+                        id="seed-blur-overlay">
+                        <div class="text-center">
+                            <i data-lucide="eye-off" class="w-8 h-8 text-gray-400 mx-auto mb-2"></i>
+                            <span class="text-sm text-gray-400">Hidden for security</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="reveal-seed-btn" onclick="revealSeed()"
+                    class="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium transition-all flex items-center justify-center gap-2 group">
+                    <i data-lucide="eye" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    Reveal Seed
+                </button>
+
+                <div class="hidden grid-cols-3 gap-3" id="seed-actions">
+                    <button onclick="copySeedToClipboard()"
+                        class="py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        Copy
+                    </button>
+                    <button onclick="downloadSeedAsFile()"
+                        class="py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Download
+                    </button>
+                    <button onclick="printSeed()"
+                        class="py-2 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white transition-all flex items-center justify-center gap-2 text-sm">
+                        <i data-lucide="printer" class="w-4 h-4"></i>
+                        Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Acknowledgment Checkbox -->
+            <label
+                class="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                <div class="relative flex items-center">
+                    <input type="checkbox" id="backup-ack-checkbox"
+                        class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-white/20 bg-black/20 checked:border-yellow-500 checked:bg-yellow-500 transition-all">
+                    <i data-lucide="check"
+                        class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
+                </div>
+                <span class="text-sm text-gray-300 select-none pt-0.5">I have safely backed up my recovery seed and
+                    understand I cannot recover my funds without it</span>
+            </label>
+        </div>
+
+        <!-- Footer -->
+        <div class="relative p-6 border-t border-white/5 flex justify-end">
+            <button id="continue-btn" onclick="acknowledgeSeedBackup()" disabled
+                class="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none hover:opacity-90 transition-all flex items-center gap-2">
+                Continue to Escrow
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentBip39Seed = '';
+
+    document.getElementById('backup-ack-checkbox')?.addEventListener('change', function () {
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) {
+            continueBtn.disabled = !this.checked;
+        }
+    });
+
+    function showSeedBackupModal(bip39Seed) {
+        currentBip39Seed = bip39Seed;
+        const words = bip39Seed.trim().split(/\s+/);
+        const seedWordsContainer = document.getElementById('bip39-seed-words');
+        const blurOverlay = document.getElementById('seed-blur-overlay');
+
+        if (seedWordsContainer && words.length === 12) {
+            // Keep the blur overlay
+            const overlayHtml = blurOverlay ? blurOverlay.outerHTML : '';
+
+            seedWordsContainer.innerHTML = words.map((word, index) => `
+                <div class="p-2 rounded-lg bg-white/5 border border-white/5 flex items-center gap-2">
+                    <span class="text-xs text-gray-500 font-mono select-none">${index + 1}.</span>
+                    <span class="text-sm text-white font-medium font-mono">${word}</span>
+                </div>
+            `).join('') + overlayHtml;
+        }
+
+        const modal = document.getElementById('seed-backup-modal');
+        const content = document.getElementById('seed-backup-modal-content');
+
+        if (modal && content) {
+            modal.style.display = 'flex';
+            // Force reflow
+            modal.offsetHeight;
+
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95', 'opacity-0', 'translate-y-4');
+            content.classList.add('scale-100', 'opacity-100', 'translate-y-0');
+
+            document.body.style.overflow = 'hidden';
+
+            // Re-initialize Lucide icons
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+    }
+
+    function revealSeed() {
+        const blurOverlay = document.getElementById('seed-blur-overlay');
+        const revealBtn = document.getElementById('reveal-seed-btn');
+        const seedActions = document.getElementById('seed-actions');
+
+        if (blurOverlay) {
+            blurOverlay.classList.add('opacity-0', 'pointer-events-none');
+            setTimeout(() => blurOverlay.remove(), 500);
+        }
+
+        if (revealBtn) revealBtn.style.display = 'none';
+
+        if (seedActions) {
+            seedActions.classList.remove('hidden');
+            seedActions.classList.add('grid');
+            // Re-initialize Lucide icons for new elements
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+    }
+
+    function copySeedToClipboard() {
+        navigator.clipboard.writeText(currentBip39Seed).then(() => {
+            showToast('Seed copied to clipboard', 'success');
+        }).catch(() => {
+            showToast('Failed to copy seed', 'error');
+        });
+    }
+
+    function downloadSeedAsFile() {
+        const blob = new Blob([currentBip39Seed], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `nexus-recovery-seed-${Date.now()}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('Seed downloaded', 'success');
+    }
+
+    function printSeed() {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Nexus Recovery Seed</title>
+                <style>
+                    body { font-family: system-ui, sans-serif; padding: 2rem; background: #fff; color: #000; }
+                    h1 { color: #000; margin-bottom: 1rem; border-bottom: 2px solid #000; padding-bottom: 1rem; }
+                    .warning { background: #fee2e2; border: 2px solid #ef4444; color: #991b1b; padding: 1rem; margin: 1rem 0; border-radius: 8px; }
+                    .seed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2rem 0; }
+                    .seed-word { padding: 1rem; background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 4px; font-family: monospace; font-size: 1.2rem; }
+                    .seed-number { color: #6b7280; margin-right: 0.5rem; font-size: 0.9rem; }
+                    .footer { margin-top: 3rem; font-size: 0.9rem; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
+                </style>
+            </head>
+            <body>
+                <h1>FROST MARKET - Recovery Seed Backup</h1>
+                <div class="warning">
+                    <strong>CRITICAL SECURITY WARNING:</strong><br>
+                    Keep this document in a secure, offline location (like a safe).<br>
+                    Anyone with access to these 12 words can completely control your funds.
+                </div>
+                <div class="seed-grid">
+                    ${currentBip39Seed.split(' ').map((word, i) => `
+                        <div class="seed-word"><span class="seed-number">${i + 1}.</span>${word}</div>
+                    `).join('')}
+                </div>
+                <div class="footer">
+                    <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+                    <p><strong>Note:</strong> This is the only backup of your wallet. Nexus does not store this seed.</p>
+                </div>
+                <script>window.print();<\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    }
+
+    function acknowledgeSeedBackup() {
+        fetch('/api/v2/user/acknowledge-seed-backup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        }).then(response => {
+            if (response.ok) {
+                showToast('Seed backup acknowledged', 'success');
+                closeSeedBackupModal();
+            } else {
+                showToast('Failed to acknowledge backup', 'error');
+            }
+        }).catch(() => {
+            showToast('Network error', 'error');
+        });
+    }
+
+    function closeSeedBackupModal() {
+        const modal = document.getElementById('seed-backup-modal');
+        const content = document.getElementById('seed-backup-modal-content');
+
+        if (modal && content) {
+            content.classList.remove('scale-100', 'opacity-100', 'translate-y-0');
+            content.classList.add('scale-95', 'opacity-0', 'translate-y-4');
+            modal.classList.add('opacity-0');
+
+            setTimeout(() => {
+                modal.style.display = 'none';
+                document.body.style.overflow = '';
+            }, 300);
+        }
+
+        currentBip39Seed = '';
+        const checkbox = document.getElementById('backup-ack-checkbox');
+        if (checkbox) checkbox.checked = false;
+        const continueBtn = document.getElementById('continue-btn');
+        if (continueBtn) continueBtn.disabled = true;
+    }
+
+    document.getElementById('seed-backup-modal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeSeedBackupModal();
+    });
+
+    // Toast helper if not globally available
+    function showToast(message, type = 'info') {
+        if (typeof window.NexusToast !== 'undefined') {
+            window.NexusToast.show(message, type);
+            return;
+        }
+        // Fallback toast
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-8 right-8 px-6 py-3 rounded-xl text-white text-sm font-medium shadow-2xl z-[100] transition-all duration-300 transform translate-y-10 opacity-0 ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+            }`;
+        toast.innerHTML = `
+            <div class="flex items-center gap-2">
+                <span>${message}</span>
+            </div>
+        `;
+        document.body.appendChild(toast);
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.classList.remove('translate-y-10', 'opacity-0');
+        });
+
+        // Remove after delay
+        setTimeout(() => {
+            toast.classList.add('translate-y-10', 'opacity-0');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+</script>

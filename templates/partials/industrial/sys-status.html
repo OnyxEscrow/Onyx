@@ -1,0 +1,23 @@
+{# SYS_STATUS Panel - Fixed Bottom Right (Gravity 4) #}
+{# Data passed: status object with nodes, latency, protocol, or defaults #}
+
+<div class="sys-status" hx-disinherit="*">
+    <div class="sys-status__header">
+        <span class="sys-status__dot"></span>
+        <span>SYS_STATUS</span>
+    </div>
+    <div class="sys-status__content">
+        <div class="sys-status__row">
+            <span class="sys-status__label">NODES:</span>
+            <span class="sys-status__value">{{ status.nodes | default(value="842") }}</span>
+        </div>
+        <div class="sys-status__row">
+            <span class="sys-status__label">LATENCY:</span>
+            <span class="sys-status__value">{{ status.latency | default(value="18") }}ms</span>
+        </div>
+        <div class="sys-status__row">
+            <span class="sys-status__label">SEC_PROTO:</span>
+            <span class="sys-status__value sys-status__value--accent">{{ status.protocol | default(value="AES-256") }}</span>
+        </div>
+    </div>
+</div>

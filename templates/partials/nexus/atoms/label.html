@@ -1,0 +1,30 @@
+{#
+  NEXUS LABEL COMPONENT
+
+  Usage:
+    {% include "partials/nexus/atoms/label.html" %}
+
+  Parameters:
+    - for (required): ID of the input this label is for
+    - text (required): Label text content
+    - required (optional): Show required indicator (default: false)
+    - class (optional): Additional CSS classes
+#}
+
+{% set label_required = required | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-label" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<label
+  for="{{ for }}"
+  class="{{ css_classes }}"
+>
+  {{ text }}
+  {% if label_required %}
+    <span class="nexus-label-required" aria-label="required">*</span>
+  {% endif %}
+</label>

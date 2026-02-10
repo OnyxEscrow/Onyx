@@ -1,0 +1,323 @@
+{#
+    Shield Status Indicator Component
+
+    Displays the current backup status of the user's Recovery Shield.
+    Shows:
+    - Warning (yellow) if not downloaded
+    - Recovery (orange) if keys lost (needs upload)
+    - Success (green) if downloaded
+
+    Usage:
+    set escrow_id = "abc123"
+    include "components/shield-status-indicator.html"
+
+    Or pass custom escrow_id via data attribute and let JS handle it.
+#}
+
+<div class="shield-status-container"
+    id="shield-status-indicator"
+    data-shield-status
+    data-escrow-id="{{ escrow_id | default(value='') }}">
+
+    <!-- Not Downloaded State (Default) -->
+    <div class="shield-status shield-status-warning" id="shield-status-not-downloaded">
+        <div class="shield-status-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                <path d="M12 9v4"/><path d="M12 17h.01"/>
+            </svg>
+        </div>
+        <div class="shield-status-content">
+            <span class="shield-status-label">Shield Not Downloaded</span>
+        </div>
+        <button class="shield-status-action" onclick="showRecoveryShieldModal(getEscrowId(), getEscrowRole())">
+            Download
+        </button>
+    </div>
+
+    <!-- Recovery Needed State (Keys Lost) -->
+    <div class="shield-status shield-status-recovery" id="shield-status-recovery" style="display: none;">
+        <div class="shield-status-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                <path d="M12 8v4"/><path d="M12 16h.01"/>
+            </svg>
+        </div>
+        <div class="shield-status-content">
+            <span class="shield-status-label">Keys Missing</span>
+            <span class="shield-status-hint">Upload your Recovery Shield</span>
+        </div>
+        <a href="/escrow/recover" class="shield-status-action shield-action-recovery">
+            Upload Shield
+        </a>
+    </div>
+
+    <!-- Downloaded State -->
+    <div class="shield-status shield-status-success" id="shield-status-downloaded" style="display: none;">
+        <div class="shield-status-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                <path d="m9 12 2 2 4-4"/>
+            </svg>
+        </div>
+        <div class="shield-status-content">
+            <span class="shield-status-label">Shield Secured</span>
+            <span class="shield-status-date" id="shield-downloaded-date"></span>
+        </div>
+    </div>
+</div>
+
+<style>
+.shield-status-container {
+    display: inline-block;
+}
+
+.shield-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.shield-status-warning {
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    color: #eab308;
+}
+
+.shield-status-warning:hover {
+    background: rgba(234, 179, 8, 0.15);
+}
+
+.shield-status-recovery {
+    background: rgba(249, 115, 22, 0.15);
+    border: 1px solid rgba(249, 115, 22, 0.4);
+    color: #f97316;
+}
+
+.shield-status-recovery:hover {
+    background: rgba(249, 115, 22, 0.2);
+}
+
+.shield-status-success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    color: #22c55e;
+}
+
+.shield-status-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.shield-status-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.shield-status-label {
+    font-family: 'Roboto Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 500;
+}
+
+.shield-status-hint {
+    font-size: 0.65rem;
+    opacity: 0.8;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.shield-status-date {
+    font-size: 0.65rem;
+    opacity: 0.7;
+}
+
+.shield-status-action {
+    margin-left: 8px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: rgba(234, 179, 8, 0.2);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    color: #eab308;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.shield-status-action:hover {
+    background: rgba(234, 179, 8, 0.3);
+    border-color: rgba(234, 179, 8, 0.5);
+}
+
+.shield-action-recovery {
+    background: rgba(249, 115, 22, 0.25);
+    border: 1px solid rgba(249, 115, 22, 0.5);
+    color: #f97316;
+}
+
+.shield-action-recovery:hover {
+    background: rgba(249, 115, 22, 0.4);
+    border-color: rgba(249, 115, 22, 0.7);
+}
+
+/* Compact variant */
+.shield-status.compact {
+    padding: 4px 8px;
+    gap: 6px;
+}
+
+.shield-status.compact .shield-status-label {
+    font-size: 0.65rem;
+}
+
+.shield-status.compact .shield-status-action {
+    padding: 2px 6px;
+    font-size: 0.6rem;
+}
+
+/* Pulse animation for warning/recovery states */
+@keyframes shield-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.shield-status-warning .shield-status-icon,
+.shield-status-recovery .shield-status-icon {
+    animation: shield-pulse 2s ease-in-out infinite;
+}
+
+/* Stronger pulse for recovery (more urgent) */
+@keyframes shield-pulse-urgent {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+.shield-status-recovery .shield-status-icon {
+    animation: shield-pulse-urgent 1.5s ease-in-out infinite;
+}
+</style>
+
+<script>
+(function() {
+    // Check if user has local signing keys for this escrow
+    function hasLocalKeys(escrowId, role) {
+        // Check all possible key storage locations
+        return !!(
+            localStorage.getItem(`frost_secret_share_${escrowId}_${role}`) ||
+            localStorage.getItem(`frost_secret_share_${escrowId}`) ||
+            localStorage.getItem('frost_secret_share') ||
+            localStorage.getItem('spend_key') ||
+            localStorage.getItem(`escrow_${escrowId}_spend_key`)
+        );
+    }
+
+    // Check if DKG was completed (shield was previously downloaded)
+    function wasDkgCompleted(escrowId) {
+        // If shield was downloaded at some point, DKG was done
+        // This is stored even in other sessions if shield was exported
+        return localStorage.getItem(`shield_downloaded_${escrowId}`) !== null;
+    }
+
+    // Initialize shield status on load
+    function initShieldStatus() {
+        const container = document.getElementById('shield-status-indicator');
+        if (!container) return;
+
+        const escrowId = container.dataset.escrowId || document.body.dataset.escrowId || localStorage.getItem('current_escrow_id');
+        const role = document.body.dataset.userRole || localStorage.getItem('escrow_role') || 'buyer';
+
+        if (!escrowId) return;
+
+        const downloadedAt = localStorage.getItem(`shield_downloaded_${escrowId}`);
+        const localKeysExist = hasLocalKeys(escrowId, role);
+
+        const notDownloaded = document.getElementById('shield-status-not-downloaded');
+        const recovery = document.getElementById('shield-status-recovery');
+        const downloaded = document.getElementById('shield-status-downloaded');
+        const dateSpan = document.getElementById('shield-downloaded-date');
+
+        // Hide all first
+        if (notDownloaded) notDownloaded.style.display = 'none';
+        if (recovery) recovery.style.display = 'none';
+        if (downloaded) downloaded.style.display = 'none';
+
+        if (localKeysExist && downloadedAt) {
+            // Best case: has keys AND shield was downloaded
+            if (downloaded) downloaded.style.display = 'flex';
+            if (dateSpan) {
+                const date = new Date(downloadedAt);
+                dateSpan.textContent = date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric'
+                });
+            }
+            console.log('[Shield] ✅ Keys present, shield secured');
+        } else if (!localKeysExist) {
+            // No local keys - check if this is a returning user who needs recovery
+            // We detect this by checking if the escrow exists in server (via body data)
+            const escrowStatus = document.body.dataset.escrowStatus;
+            const dkgComplete = document.body.dataset.dkgComplete === 'true';
+
+            // If escrow is active/funded OR DKG was marked complete, user needs recovery
+            if (escrowStatus && escrowStatus !== 'setup' || dkgComplete) {
+                // Recovery needed - user lost their keys
+                if (recovery) recovery.style.display = 'flex';
+                console.log('[Shield] ⚠️ RECOVERY NEEDED - No local keys, escrow exists');
+            } else {
+                // New escrow setup - show download prompt
+                if (notDownloaded) notDownloaded.style.display = 'flex';
+                console.log('[Shield] 📥 Shield not yet downloaded (new setup)');
+            }
+        } else if (localKeysExist && !downloadedAt) {
+            // Has keys but shield not downloaded yet - show download
+            if (notDownloaded) notDownloaded.style.display = 'flex';
+            console.log('[Shield] 📥 Keys present but shield not downloaded');
+        }
+    }
+
+    // Helper functions for modal
+    window.getEscrowId = function() {
+        const container = document.getElementById('shield-status-indicator');
+        return container?.dataset.escrowId ||
+               document.body.dataset.escrowId ||
+               localStorage.getItem('current_escrow_id') ||
+               '';
+    };
+
+    window.getEscrowRole = function() {
+        return document.body.dataset.userRole ||
+               localStorage.getItem('escrow_role') ||
+               'buyer';
+    };
+
+    // Listen for shield download events
+    window.addEventListener('shieldDownloaded', function(e) {
+        initShieldStatus();
+    });
+
+    // Listen for recovery completion
+    window.addEventListener('shieldRecovered', function(e) {
+        initShieldStatus();
+    });
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initShieldStatus);
+    } else {
+        initShieldStatus();
+    }
+})();
+</script>

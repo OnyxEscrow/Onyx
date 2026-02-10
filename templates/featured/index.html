@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Featured Products - FROST MARKET</title>
+    <meta name="description"
+        content="Discover our most popular and top-rated featured products on FROST MARKET.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+
+<body class="apple-theme">
+    {% include "header.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 100px;">
+            <!-- Hero Section -->
+            <div style="text-align: center; max-width: 700px; margin: 0 auto 64px;">
+                <div class="apple-featured-badge">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span>Premium Selection</span>
+                </div>
+                <h1 class="apple-page-title">
+                    <span class="text-gold">Featured</span> Products
+                </h1>
+                <p class="apple-page-subtitle">
+                    Discover our exclusive selection of the most popular products and services, rigorously vetted and
+                    approved by our community.
+                </p>
+            </div>
+
+            <!-- Featured Products Grid -->
+            {% if listings and listings | length > 0 %}
+            <div class="apple-featured-grid">
+                {% for listing in listings %}
+                <div class="apple-featured-card">
+                    <div class="apple-featured-card-header">
+                        <div class="apple-featured-card-top">
+                            <span class="apple-featured-category">{{ listing.category }}</span>
+                            {% if listing.rating %}
+                            <div class="apple-featured-rating">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                                    stroke="currentColor" stroke-width="0">
+                                    <polygon
+                                        points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                                <span>{{ listing.rating }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <h3 class="apple-featured-title">{{ listing.title }}</h3>
+                        <p class="apple-featured-description">
+                            {{ listing.description | truncate(length=100) }}
+                        </p>
+                    </div>
+
+                    <div class="apple-featured-card-content">
+                        <div class="apple-featured-info">
+                            <div class="apple-featured-info-item">
+                                <span class="apple-featured-info-label">Vendor</span>
+                                <span class="apple-featured-info-value">{{ listing.vendor }}</span>
+                            </div>
+                            <div class="apple-featured-info-item">
+                                <span class="apple-featured-info-label">Price</span>
+                                <span class="apple-featured-price">{{ listing.price_xmr }} XMR</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="apple-featured-card-footer">
+                        <button class="apple-btn apple-btn-gold" style="flex: 1;" hx-post="/api/cart/add"
+                            hx-vals='{"listing_id": "{{ listing.id }}", "quantity": 1}' hx-swap="none">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="9" cy="21" r="1" />
+                                <circle cx="20" cy="21" r="1" />
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                            </svg>
+                            Add to Cart
+                        </button>
+                        <a href="/listings/{{ listing.id }}" class="apple-btn apple-btn-outline">Details</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <!-- Empty State -->
+            <div class="apple-empty-state">
+                <div class="apple-empty-icon-wrapper">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                </div>
+                <h3 class="apple-empty-title">No Featured Products</h3>
+                <p class="apple-empty-text">No featured products available at the moment. Check back soon!</p>
+                <a href="/listings" class="apple-btn apple-btn-outline">Explore All Listings</a>
+            </div>
+            {% endif %}
+
+            <!-- CTA Section -->
+            <div class="apple-cta-section">
+                <div class="apple-cta-card">
+                    <h2 class="apple-cta-title">Can't find what you're looking for?</h2>
+                    <p class="apple-cta-description">
+                        Explore our complete catalog with thousands of verified products and services.
+                    </p>
+                    <a href="/listings" class="apple-btn apple-btn-outline">
+                        View All Listings
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M5 12h14" />
+                            <path d="m12 5 7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+</body>
+
+</html>

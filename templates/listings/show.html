@@ -1,0 +1,213 @@
+{% extends "base-aura.html" %}
+
+{% block title %}{{ listing.title }} - FROST MARKET{% endblock %}
+
+{% block content %}
+<!-- Full screen modal-style product view -->
+<div class="min-h-screen flex items-center justify-center p-4 md:p-8 relative">
+
+    <!-- Modal Card -->
+    <div class="relative w-full max-w-5xl bg-[#0a0a0a] rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl animate-reveal border border-white/5">
+
+        <!-- Close Button (X) -->
+        <a href="/" class="absolute top-4 right-4 z-30 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 hover:text-white transition-all duration-300 backdrop-blur-sm">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </a>
+
+        <!-- Image Section (Left) -->
+        <div class="w-full md:w-[55%] relative overflow-hidden bg-gray-900">
+          {% if images and images | length > 0 %}
+            <img src="https://ipfs.io/ipfs/{{ images[0] }}" alt="{{ listing.title }}" class="w-full h-full object-cover min-h-[400px] md:min-h-[600px]">
+          {% else %}
+            <div class="w-full h-full min-h-[400px] md:min-h-[600px] bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                <i data-lucide="image" class="w-20 h-20 text-gray-700"></i>
+            </div>
+          {% endif %}
+
+          <!-- Floating Tags at bottom -->
+          <div class="absolute bottom-6 left-6 flex flex-wrap gap-2">
+              <span class="px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-xs text-white/90 font-medium uppercase tracking-wider">
+                {{ listing.category | default(value="Digital") }}
+              </span>
+              {% if listing.subcategory %}
+              <span class="px-4 py-1.5 bg-black/60 backdrop-blur-md rounded-full text-xs text-white/90 font-medium uppercase tracking-wider">
+                {{ listing.subcategory }}
+              </span>
+              {% endif %}
+          </div>
+        </div>
+
+        <!-- Details Section (Right) -->
+        <div class="w-full md:w-[45%] p-8 md:p-10 flex flex-col relative bg-[#0a0a0a]">
+
+          <!-- Header -->
+          <div class="mb-6">
+            <!-- Vendor & Rating -->
+            <div class="flex items-center gap-3 mb-3">
+              <a href="/vendor/{{ vendor.id }}" class="text-cyan-400 text-sm font-semibold uppercase tracking-widest hover:text-cyan-300 transition-colors">{{ vendor.username }}</a>
+              <div class="flex items-center gap-1.5 bg-yellow-500/10 px-2.5 py-1 rounded-full">
+                  <i data-lucide="star" class="w-3.5 h-3.5 text-yellow-400 fill-yellow-400"></i>
+                  <span class="text-sm text-white font-medium">4.8</span>
+                  <span class="text-xs text-gray-500">(124)</span>
+              </div>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-3xl md:text-4xl font-light text-white leading-tight mb-4">
+               {{ listing.title }}
+            </h1>
+
+            <!-- Price -->
+            <div class="text-2xl font-light text-white/90">{{ price_display }}</div>
+          </div>
+
+          <!-- Divider -->
+          <div class="w-full h-px bg-white/10 mb-6"></div>
+
+          <!-- Description -->
+          <div class="flex-1 space-y-4">
+            <h4 class="text-xs text-gray-500 uppercase tracking-widest font-medium">Description</h4>
+            <p class="text-gray-300 leading-relaxed text-base">
+              {{ listing.description }}
+            </p>
+            <p class="text-gray-500 text-sm leading-relaxed">
+              Authenticity guaranteed. Ships within 3-5 business days. Includes certificate of origin and care instructions tailored to the materials used.
+            </p>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-3 pt-8 mt-auto">
+
+            {% if listing.stock > 0 %}
+            <!-- Add to Cart Button -->
+            <button type="button" id="add-to-cart-btn"
+                class="flex-1 bg-white hover:bg-gray-100 text-gray-900 font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+              <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+              Add to Cart
+            </button>
+            {% else %}
+            <!-- Out of Stock Badge -->
+            <div class="flex-1 bg-red-500/20 text-red-400 font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2 border border-red-500/30">
+              <i data-lucide="package-x" class="w-5 h-5"></i>
+              Out of Stock
+            </div>
+            {% endif %}
+
+            <!-- Wishlist / Edit Button -->
+            {% if is_owner %}
+            <a href="/listings/{{ listing.id }}/edit" class="w-14 h-14 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 flex items-center justify-center transition-colors">
+              <i data-lucide="edit" class="w-5 h-5"></i>
+            </a>
+            {% else %}
+            <button id="wishlist-btn" class="w-14 h-14 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-pink-400 flex items-center justify-center transition-colors border border-white/10">
+              <i data-lucide="heart" class="w-5 h-5"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<!-- Cart Notification Toast -->
+<div id="cart-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-green-500/90 backdrop-blur-lg text-white rounded-full shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 pointer-events-none">
+    <i data-lucide="check-circle" class="w-5 h-5"></i>
+    <span>Added to cart!</span>
+</div>
+
+<script>
+const LISTING_ID = "{{ listing.id }}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+function showCartNotification() {
+    const toast = document.getElementById('cart-toast');
+    if (toast) {
+        toast.classList.remove('translate-y-20', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-0', 'opacity-100');
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 2000);
+    }
+}
+
+async function updateCartCount() {
+    try {
+        const response = await fetch('/api/cart/count', { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+            const countEl = document.getElementById('cart-count');
+            if (countEl) {
+                countEl.textContent = data.count || 0;
+                if (data.count > 0) {
+                    countEl.classList.remove('hidden');
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Failed to update cart count:', e);
+    }
+}
+
+async function addToCart() {
+    const btn = document.getElementById('add-to-cart-btn');
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/api/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                listing_id: LISTING_ID,
+                quantity: 1,
+                csrf_token: CSRF_TOKEN
+            })
+        });
+
+        if (response.ok) {
+            showCartNotification();
+            updateCartCount();
+        } else {
+            const data = await response.json();
+            alert(data.message || 'Failed to add to cart');
+        }
+    } catch (e) {
+        console.error('Add to cart error:', e);
+        alert('Failed to add to cart');
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('add-to-cart-btn');
+    if (btn) {
+        btn.addEventListener('click', addToCart);
+    }
+
+    // Wishlist toggle
+    const wishlistBtn = document.getElementById('wishlist-btn');
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            const isActive = this.classList.contains('active');
+
+            if (isActive) {
+                // Deactivate
+                this.classList.remove('active', 'bg-pink-500/20', 'text-pink-400', 'border-pink-500/30');
+                this.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
+                icon.classList.remove('fill-pink-400');
+            } else {
+                // Activate
+                this.classList.add('active', 'bg-pink-500/20', 'text-pink-400', 'border-pink-500/30');
+                this.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
+                icon.classList.add('fill-pink-400');
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

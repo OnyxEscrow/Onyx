@@ -1,0 +1,458 @@
+{% extends "base-aura.html" %}
+
+{% block title %}Wallet - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="min-h-screen pt-24 pb-32">
+    <div class="w-full max-w-4xl mx-auto px-4 md:px-8 animate-reveal">
+
+        <!-- Header -->
+        <div class="text-center mb-12">
+            <div class="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 flex items-center justify-center mb-6">
+                <i data-lucide="wallet" class="w-10 h-10 text-yellow-400"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-light text-white tracking-wide mb-4">
+                Your WASM Wallet
+            </h1>
+            <p class="text-gray-400 max-w-lg mx-auto">
+                Non-custodial wallet for escrow transactions. Your keys are generated and stored locally in your browser - FROST MARKET never has access to them.
+            </p>
+        </div>
+
+        <!-- Wallet Status Card -->
+        <div id="wallet-status" class="bg-[#0F1115]/80 backdrop-blur-md border border-white/10 rounded-3xl p-8 mb-8">
+
+            {% if has_wasm_wallet %}
+            <!-- Wallet Exists -->
+            <div class="text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-sm mb-6">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    Wallet Active
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Address Display -->
+                    <div class="bg-black/40 rounded-2xl p-6">
+                        <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Your Address</label>
+                        <div class="flex items-center gap-3">
+                            <code id="wallet-address" class="flex-1 text-sm text-cyan-400 font-mono break-all">{{ wallet_address }}</code>
+                            <button onclick="copyAddress()" class="shrink-0 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors" title="Copy">
+                                <i data-lucide="copy" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="showBackupModal()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-colors">
+                            <i data-lucide="key" class="w-4 h-4"></i>
+                            Backup Seed
+                        </button>
+                        <button onclick="showKeysModal()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-400 hover:bg-purple-500/20 transition-colors">
+                            <i data-lucide="eye" class="w-4 h-4"></i>
+                            View Keys
+                        </button>
+                        <a href="/escrows" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                            <i data-lucide="shield-check" class="w-4 h-4"></i>
+                            Go to Escrows
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- No Wallet - Setup Options -->
+            <div class="text-center">
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 text-sm mb-6">
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    Wallet Not Set Up
+                </div>
+
+                <p class="text-gray-400 mb-8 max-w-md mx-auto">
+                    You need a WASM wallet to participate in escrow transactions. Choose an option below to get started.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Generate New Wallet -->
+                    <button onclick="generateNewWallet()" class="group relative p-6 rounded-2xl border-2 border-dashed border-white/10 hover:border-green-500/50 transition-all text-left">
+                        <div class="absolute top-4 right-4 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="plus" class="w-5 h-5 text-green-400"></i>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center mb-4">
+                            <i data-lucide="sparkles" class="w-7 h-7 text-green-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-2">Generate New Wallet</h3>
+                        <p class="text-sm text-gray-400">Create a fresh wallet with a new seed phrase. Make sure to backup your seed!</p>
+                    </button>
+
+                    <!-- Restore from Seed -->
+                    <button onclick="showRestoreModal()" class="group relative p-6 rounded-2xl border-2 border-dashed border-white/10 hover:border-purple-500/50 transition-all text-left">
+                        <div class="absolute top-4 right-4 w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <i data-lucide="arrow-up" class="w-5 h-5 text-purple-400"></i>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-4">
+                            <i data-lucide="key-round" class="w-7 h-7 text-purple-400"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-white mb-2">Restore from Seed</h3>
+                        <p class="text-sm text-gray-400">Already have a wallet? Enter your 25-word seed phrase to restore it.</p>
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Security Notice -->
+        <div class="bg-[#0F1115]/40 border border-white/5 rounded-2xl p-6">
+            <h3 class="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                <i data-lucide="shield" class="w-5 h-5 text-green-400"></i>
+                Security Information
+            </h3>
+            <div class="grid md:grid-cols-2 gap-6 text-sm">
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">Non-Custodial</p>
+                        <p class="text-gray-400">Your private keys never leave your browser. FROST MARKET cannot access or control your funds.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">Client-Side WASM</p>
+                        <p class="text-gray-400">All cryptographic operations run locally using WebAssembly for maximum security.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-yellow-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">Backup Your Seed</p>
+                        <p class="text-gray-400">If you lose your seed phrase, you lose access to your funds permanently.</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center">
+                        <i data-lucide="lock" class="w-4 h-4 text-blue-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-white font-medium">2-of-3 Multisig</p>
+                        <p class="text-gray-400">Escrows use multisig requiring 2 signatures from buyer, vendor, or arbiter.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Restore Wallet Modal -->
+<div id="restore-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="bg-[#0F1115] border border-white/10 rounded-3xl p-8 max-w-lg w-full animate-reveal">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-medium text-white">Restore Wallet</h3>
+            <button onclick="hideRestoreModal()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <form id="restore-form" onsubmit="restoreWallet(event)">
+            <div class="mb-6">
+                <label class="text-sm text-gray-400 block mb-2">25-Word Seed Phrase</label>
+                <textarea id="seed-input" rows="4" class="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500/50 focus:outline-none resize-none font-mono text-sm"
+                          placeholder="Enter your seed phrase, one word per space..."></textarea>
+            </div>
+
+            <div class="flex gap-3">
+                <button type="button" onclick="hideRestoreModal()" class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 rounded-xl bg-purple-500 text-white font-medium hover:bg-purple-400 transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="key-round" class="w-4 h-4"></i>
+                    Restore
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Backup Seed Modal -->
+<div id="backup-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div class="bg-[#0F1115] border border-white/10 rounded-3xl p-8 max-w-lg w-full animate-reveal">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-medium text-white flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400"></i>
+                Backup Your Seed
+            </h3>
+            <button onclick="hideBackupModal()" class="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+            <p class="text-yellow-400 text-sm">
+                <strong>Warning:</strong> Never share your seed phrase with anyone. Store it securely offline. Anyone with your seed can steal your funds.
+            </p>
+        </div>
+
+        <div id="seed-display" class="bg-black/40 rounded-xl p-4 mb-6">
+            <p class="text-gray-400 text-sm text-center">Click "Reveal Seed" to show your seed phrase</p>
+        </div>
+
+        <div class="flex gap-3">
+            <button onclick="hideBackupModal()" class="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                Close
+            </button>
+            <button onclick="revealSeed()" class="flex-1 px-4 py-3 rounded-xl bg-yellow-500 text-black font-medium hover:bg-yellow-400 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="eye" class="w-4 h-4"></i>
+                Reveal Seed
+            </button>
+        </div>
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<script type="module" src="/static/js/wasm-loader.js?v=20251228_v580_rebuild2"></script>
+<script>
+// Modal functions
+function showRestoreModal() {
+    document.getElementById('restore-modal').classList.remove('hidden');
+    document.getElementById('restore-modal').classList.add('flex');
+}
+function hideRestoreModal() {
+    document.getElementById('restore-modal').classList.add('hidden');
+    document.getElementById('restore-modal').classList.remove('flex');
+}
+function showBackupModal() {
+    document.getElementById('backup-modal').classList.remove('hidden');
+    document.getElementById('backup-modal').classList.add('flex');
+}
+function hideBackupModal() {
+    document.getElementById('backup-modal').classList.add('hidden');
+    document.getElementById('backup-modal').classList.remove('flex');
+    document.getElementById('seed-display').innerHTML = '<p class="text-gray-400 text-sm text-center">Click "Reveal Seed" to show your seed phrase</p>';
+}
+function showKeysModal() {
+    alert('View Keys functionality - Coming soon');
+}
+
+// Copy address
+function copyAddress() {
+    const address = document.getElementById('wallet-address').textContent;
+    navigator.clipboard.writeText(address).then(() => {
+        alert('Address copied to clipboard!');
+    });
+}
+
+// Generate new wallet
+async function generateNewWallet() {
+    try {
+        // Wait for WASM to be ready
+        if (!window.wasmReady) {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('WASM load timeout')), 10000);
+                window.addEventListener('wasmLoaded', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                }, { once: true });
+                // Check if already loaded
+                if (window.wasmReady) {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            });
+        }
+
+        // Generate wallet using WASM
+        const result = window.generateMoneroWallet();
+        if (result.error) {
+            alert('Error generating wallet: ' + result.error);
+            return;
+        }
+
+        // Store wallet data in localStorage (compatible with escrow flow)
+        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+            address: result.address,
+            seed: result.seed,
+            view_key: result.view_key,
+            spend_key: result.spend_key,
+            created_at: new Date().toISOString()
+        }));
+
+        // Also store keys for escrow signing (v0.8.0 round-robin)
+        localStorage.setItem('monero_seed_phrase', result.seed);
+        localStorage.setItem('monero_spend_key_priv', result.spend_key);
+        localStorage.setItem('monero_view_key_priv', result.view_key);
+        localStorage.setItem('monero_address', result.address);
+
+        // Show seed backup immediately
+        alert('Wallet generated! IMPORTANT: Please backup your seed phrase immediately.');
+        showBackupModal();
+        revealSeed();
+
+        // Reload page to show wallet
+        setTimeout(() => location.reload(), 100);
+
+    } catch (err) {
+        console.error('Wallet generation error:', err);
+        alert('Failed to generate wallet: ' + err.message);
+    }
+}
+
+// Restore wallet from seed
+async function restoreWallet(event) {
+    event.preventDefault();
+    const seedInput = document.getElementById('seed-input').value.trim();
+
+    if (!seedInput) {
+        alert('Please enter your seed phrase');
+        return;
+    }
+
+    const words = seedInput.split(/\s+/);
+    if (words.length !== 25) {
+        alert('Seed phrase must be exactly 25 words');
+        return;
+    }
+
+    try {
+        // Wait for WASM to be ready
+        if (!window.wasmReady) {
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('WASM load timeout')), 10000);
+                window.addEventListener('wasmLoaded', () => {
+                    clearTimeout(timeout);
+                    resolve();
+                }, { once: true });
+                if (window.wasmReady) {
+                    clearTimeout(timeout);
+                    resolve();
+                }
+            });
+        }
+
+        const result = window.restoreMoneroWallet(seedInput);
+        if (result.error) {
+            alert('Error restoring wallet: ' + result.error);
+            return;
+        }
+
+        localStorage.setItem('nexus_wasm_wallet', JSON.stringify({
+            address: result.address,
+            seed: seedInput,
+            view_key: result.view_key,
+            spend_key: result.spend_key,
+            restored_at: new Date().toISOString()
+        }));
+
+        // Also store keys for escrow signing (v0.8.0 round-robin)
+        localStorage.setItem('monero_seed_phrase', seedInput);
+        localStorage.setItem('monero_spend_key_priv', result.spend_key);
+        localStorage.setItem('monero_view_key_priv', result.view_key);
+        localStorage.setItem('monero_address', result.address);
+
+        alert('Wallet restored successfully!');
+        location.reload();
+
+    } catch (err) {
+        console.error('Wallet restore error:', err);
+        alert('Failed to restore wallet: ' + err.message);
+    }
+}
+
+// Reveal seed phrase
+function revealSeed() {
+    const wallet = JSON.parse(localStorage.getItem('nexus_wasm_wallet') || '{}');
+    if (wallet.seed) {
+        document.getElementById('seed-display').innerHTML = `
+            <div class="grid grid-cols-5 gap-2">
+                ${wallet.seed.split(' ').map((word, i) => `
+                    <div class="bg-white/5 rounded px-2 py-1 text-center">
+                        <span class="text-gray-500 text-xs">${i+1}</span>
+                        <p class="text-white text-sm font-mono">${word}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } else {
+        alert('No seed found in wallet');
+    }
+}
+
+// Check wallet status on page load and update UI accordingly
+document.addEventListener('DOMContentLoaded', () => {
+    lucide.createIcons();
+
+    const walletJson = localStorage.getItem('nexus_wasm_wallet');
+    const walletStatusDiv = document.getElementById('wallet-status');
+
+    if (walletJson) {
+        try {
+            const wallet = JSON.parse(walletJson);
+            if (wallet.address) {
+                // Wallet exists - show active wallet UI
+                walletStatusDiv.innerHTML = `
+                    <div class="text-center">
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/20 border border-green-500/30 text-green-400 text-sm mb-6">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            Wallet Active
+                        </div>
+
+                        <div class="space-y-6">
+                            <div class="bg-black/40 rounded-2xl p-6">
+                                <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Your Address</label>
+                                <div class="flex items-center gap-3">
+                                    <code id="wallet-address" class="flex-1 text-sm text-cyan-400 font-mono break-all">${wallet.address}</code>
+                                    <button onclick="copyAddress()" class="shrink-0 p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors" title="Copy">
+                                        <i data-lucide="copy" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <button onclick="showBackupModal()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-colors">
+                                    <i data-lucide="key" class="w-4 h-4"></i>
+                                    Backup Seed
+                                </button>
+                                <button onclick="deleteWallet()" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-colors">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    Delete Wallet
+                                </button>
+                                <a href="/escrows" class="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 transition-colors">
+                                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                    Go to Escrows
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                // Re-init lucide icons for the new content
+                lucide.createIcons();
+            }
+        } catch (e) {
+            console.error('Failed to parse wallet data:', e);
+        }
+    }
+});
+
+// Delete wallet
+function deleteWallet() {
+    if (confirm('Are you sure you want to delete your wallet? Make sure you have backed up your seed phrase!')) {
+        localStorage.removeItem('nexus_wasm_wallet');
+        localStorage.removeItem('monero_seed_phrase');
+        localStorage.removeItem('monero_spend_key_priv');
+        localStorage.removeItem('monero_view_key_priv');
+        localStorage.removeItem('monero_address');
+        alert('Wallet deleted');
+        location.reload();
+    }
+}
+</script>
+{% endblock %}

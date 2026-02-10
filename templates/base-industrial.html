@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="FROST MARKET — SECURE PRIVACY-FOCUSED MARKETPLACE | 2-OF-3 MULTISIG ESCROW | NON-CUSTODIAL | TOR NETWORK | MONERO ONLY">
+    {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
+    <title>{% block title %}FROST MARKET — TRADE ANONYMOUSLY{% endblock %}</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+
+    <!-- Industrial Stealth Design System (100% Self-Hosted) -->
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=0.66.3">
+
+    <!-- NEXUS Industrial Unified Design System (Phase 1.4) -->
+    <!-- Provides: --nx-* tokens, atoms, molecules, organisms with backward compatibility -->
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+
+    <!-- Notification Center Styles -->
+    <link rel="stylesheet" href="/static/css/notification-center.css?v=1.0.0">
+
+    <!-- Instant Search Overlay Styles -->
+    <link rel="stylesheet" href="/static/css/instant-search.css?v=1.0.0">
+
+    {% block extra_css %}{% endblock %}
+
+    <!-- Production console override -->
+    <script nonce="{{ csp_nonce }}">
+    (function(){var d=location.hostname;if(d!=='localhost'&&d!=='127.0.0.1'&&!d.endsWith('.onion')&&!window._nxC){window._nxC=1;var o=console.log;console.log=console.debug=console.info=function(){};o('%c NEXUS NON-CUSTODIAL ','background:#00ff41;color:black;font-weight:bold;padding:4px 8px;border-radius:4px','Keys never leave your browser.');}})();
+    </script>
+
+    <!-- HTMX (Self-Hosted - Tor Safe) -->
+    <script src="/static/js/htmx.min.js"></script>
+    <script src="/static/js/json-enc.js"></script>
+
+    {% block head_extra %}{% endblock %}
+</head>
+<body class="industrial-stealth">
+    <!-- Skip Link (Accessibility - WCAG 2.1 AA) -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Offline Banner (Hidden by default, shown via JS when connection lost) -->
+    <div class="offline-banner" id="offline-banner" role="alert" aria-live="assertive" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="1" x2="23" y1="1" y2="23"></line>
+            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+            <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" x2="12.01" y1="20" y2="20"></line>
+        </svg>
+        <span>Connection lost. Retrying...</span>
+        <button type="button" class="offline-banner__retry" onclick="window.location.reload()">Retry Now</button>
+    </div>
+
+    <!-- Grid Overlay (Vertical Lines) -->
+    <div class="grid-overlay"></div>
+
+    <!-- Header (includes marquee, header, and mobile nav) -->
+    {% block header %}
+    {% include "partials/header-industrial.html" %}
+    {% endblock %}
+
+    <!-- Main Content (with top padding for fixed header) -->
+    <main id="main-content" role="main" style="padding-top: 0;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer (Gravity 4) -->
+    {% block footer %}
+    <footer style="width:100%;border-top:1px solid var(--nexus-grid);background:#000000;padding:48px 0;margin-top:auto;position:relative;z-index:20;">
+        <div class="container-industrial" style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+                <div style="font-family:var(--font-oswald);font-size:24px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.5);">FROST MARKET</div>
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--nexus-grid);">
+                    ENCRYPTED CONNECTION ESTABLISHED via RUST_ACTIX_CORE // XMR_NODE_ACTIVE
+                </div>
+            </div>
+        </div>
+    </footer>
+    {% endblock %}
+
+    <!-- SYS_STATUS Panel (Fixed Bottom-Right - Gravity 4) -->
+    {% include "partials/industrial/sys-status.html" %}
+
+    <!-- HTMX Configuration & Accessibility -->
+    <script nonce="{{ csp_nonce }}">
+        (function() {
+            'use strict';
+
+            // === TOR PERFORMANCE: HTMX Configuration ===
+            // Optimized for Tor network latency
+            if (typeof htmx !== 'undefined') {
+                htmx.config.timeout = 30000;  // 30s timeout for Tor
+                htmx.config.defaultSwapStyle = 'innerHTML';
+                htmx.config.historyCacheSize = 10;
+                htmx.config.refreshOnHistoryMiss = true;
+            }
+
+            // === CSRF Token Handling ===
+            document.body.addEventListener('htmx:configRequest', function(evt) {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]');
+                if (csrfToken) {
+                    evt.detail.headers['X-CSRF-Token'] = csrfToken.content;
+                }
+            });
+
+            // === TOR PERFORMANCE: Progress Bar ===
+            let progressBar = null;
+
+            function createProgressBar() {
+                if (!progressBar) {
+                    progressBar = document.createElement('div');
+                    progressBar.className = 'tor-progress-bar';
+                    document.body.appendChild(progressBar);
+                }
+                return progressBar;
+            }
+
+            function startProgressBar() {
+                const bar = createProgressBar();
+                bar.classList.remove('tor-progress-bar--complete');
+                bar.classList.add('tor-progress-bar--active');
+            }
+
+            function completeProgressBar() {
+                if (progressBar) {
+                    progressBar.classList.remove('tor-progress-bar--active');
+                    progressBar.classList.add('tor-progress-bar--complete');
+                }
+            }
+
+            // === TOR PERFORMANCE: Retry Logic ===
+            const TOR_RETRY_CONFIG = {
+                maxRetries: 3,
+                retryDelay: 2000,  // 2s between retries
+                timeout: 30000    // 30s timeout
+            };
+
+            let retryCount = 0;
+
+            document.body.addEventListener('htmx:beforeRequest', function(evt) {
+                startProgressBar();
+            });
+
+            // === HTMX Error Handling with Tor Retry Logic ===
+            // Track consecutive send errors (not response errors - those mean server is reachable)
+            let consecutiveSendErrors = 0;
+            const SEND_ERROR_THRESHOLD = 3; // Show banner after 3 consecutive send errors
+
+            document.body.addEventListener('htmx:responseError', function(evt) {
+                // Response error means server responded (we're online, just got an error response)
+                // Don't show offline banner for 404s, 500s, etc.
+                console.debug('HTMX Response Error:', evt.detail.xhr?.status);
+                consecutiveSendErrors = 0; // Reset send error count
+                completeProgressBar();
+            });
+
+            document.body.addEventListener('htmx:sendError', function(evt) {
+                console.error('HTMX Send Error:', evt.detail);
+                consecutiveSendErrors++;
+
+                // Only show offline banner after multiple consecutive send errors
+                if (consecutiveSendErrors >= SEND_ERROR_THRESHOLD) {
+                    updateConnectionStatus('offline');
+                }
+
+                // Retry logic for Tor timeouts
+                if (retryCount < TOR_RETRY_CONFIG.maxRetries) {
+                    retryCount++;
+                    const target = evt.detail.elt;
+                    if (target) {
+                        target.classList.add('htmx-retrying');
+                        setTimeout(function() {
+                            target.classList.remove('htmx-retrying');
+                            htmx.trigger(target, 'htmx:retry');
+                        }, TOR_RETRY_CONFIG.retryDelay);
+                    }
+                } else {
+                    retryCount = 0;
+                    showTorTimeoutWarning();
+                    completeProgressBar();
+                }
+            });
+
+            document.body.addEventListener('htmx:afterRequest', function(evt) {
+                if (evt.detail.successful) {
+                    updateConnectionStatus('online');
+                    retryCount = 0;
+                    consecutiveSendErrors = 0; // Reset on successful request
+                    hideTorTimeoutWarning();
+                }
+                completeProgressBar();
+            });
+
+            function showTorTimeoutWarning() {
+                const warning = document.querySelector('.tor-timeout-warning');
+                if (warning) warning.classList.add('visible');
+            }
+
+            function hideTorTimeoutWarning() {
+                const warning = document.querySelector('.tor-timeout-warning');
+                if (warning) warning.classList.remove('visible');
+            }
+
+            // === Connection Status Management ===
+            const connectionStatus = document.getElementById('connection-status');
+            const offlineBanner = document.getElementById('offline-banner');
+
+            function updateConnectionStatus(status) {
+                if (!connectionStatus) return;
+
+                connectionStatus.classList.remove(
+                    'connection-status--online',
+                    'connection-status--offline',
+                    'connection-status--connecting'
+                );
+
+                switch (status) {
+                    case 'online':
+                        connectionStatus.classList.add('connection-status--online');
+                        connectionStatus.title = 'Connected to Tor network';
+                        if (offlineBanner) offlineBanner.hidden = true;
+                        break;
+                    case 'offline':
+                    case 'error':
+                        connectionStatus.classList.add('connection-status--offline');
+                        connectionStatus.title = 'Connection lost';
+                        if (offlineBanner) offlineBanner.hidden = false;
+                        break;
+                    case 'connecting':
+                        connectionStatus.classList.add('connection-status--connecting');
+                        connectionStatus.title = 'Reconnecting...';
+                        break;
+                }
+            }
+
+            // Browser online/offline events
+            window.addEventListener('online', function() {
+                updateConnectionStatus('online');
+            });
+
+            window.addEventListener('offline', function() {
+                updateConnectionStatus('offline');
+            });
+
+            // Initial check
+            if (!navigator.onLine) {
+                updateConnectionStatus('offline');
+            }
+
+            // === Keyboard Navigation Improvements ===
+            // Escape key closes modals
+            document.addEventListener('keydown', function(evt) {
+                if (evt.key === 'Escape') {
+                    const modals = document.querySelectorAll('.modal-backdrop:not([hidden]), .dkg-recovery-modal:not([hidden]), .resume-checkout-modal:not([hidden])');
+                    modals.forEach(function(modal) {
+                        modal.hidden = true;
+                    });
+                }
+            });
+
+            // Focus trap for modals
+            function trapFocus(element) {
+                const focusableElements = element.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                const firstFocusable = focusableElements[0];
+                const lastFocusable = focusableElements[focusableElements.length - 1];
+
+                element.addEventListener('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        if (e.shiftKey && document.activeElement === firstFocusable) {
+                            e.preventDefault();
+                            lastFocusable.focus();
+                        } else if (!e.shiftKey && document.activeElement === lastFocusable) {
+                            e.preventDefault();
+                            firstFocusable.focus();
+                        }
+                    }
+                });
+            }
+
+            // Apply focus trap to any visible modals
+            document.querySelectorAll('.modal-backdrop, .dkg-recovery-modal, .resume-checkout-modal').forEach(trapFocus);
+        })();
+
+        // === Mobile Navigation ===
+        function openMobileNav() {
+            const drawer = document.getElementById('mobile-nav-drawer');
+            const toggle = document.getElementById('mobile-nav-toggle');
+            if (drawer) {
+                drawer.classList.add('is-open');
+                drawer.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function closeMobileNav() {
+            const drawer = document.getElementById('mobile-nav-drawer');
+            const toggle = document.getElementById('mobile-nav-toggle');
+            if (drawer) {
+                drawer.classList.remove('is-open');
+                drawer.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+            if (toggle) {
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+        }
+
+        // Mobile nav toggle click handler
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggle = document.getElementById('mobile-nav-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', function() {
+                    const drawer = document.getElementById('mobile-nav-drawer');
+                    if (drawer && drawer.classList.contains('is-open')) {
+                        closeMobileNav();
+                    } else {
+                        openMobileNav();
+                    }
+                });
+            }
+
+            // Close mobile nav on escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeMobileNav();
+                }
+            });
+
+            // Close on resize if screen becomes large
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    closeMobileNav();
+                }
+            });
+        });
+
+        // === Notification System ===
+        let notificationPollInterval = null;
+
+        function toggleNotificationPanel() {
+            const panel = document.getElementById('notification-panel');
+            if (!panel) return;
+
+            if (panel.hidden) {
+                panel.hidden = false;
+                fetchNotifications();
+                // Close when clicking outside
+                setTimeout(() => {
+                    document.addEventListener('click', closeNotificationPanelOnClickOutside);
+                }, 100);
+            } else {
+                panel.hidden = true;
+                document.removeEventListener('click', closeNotificationPanelOnClickOutside);
+            }
+        }
+
+        function closeNotificationPanelOnClickOutside(e) {
+            const bell = document.getElementById('notification-bell');
+            if (bell && !bell.contains(e.target)) {
+                const panel = document.getElementById('notification-panel');
+                if (panel) panel.hidden = true;
+                document.removeEventListener('click', closeNotificationPanelOnClickOutside);
+            }
+        }
+
+        async function fetchNotifications() {
+            try {
+                const response = await fetch('/api/notifications');
+                if (!response.ok) return;
+
+                const data = await response.json();
+                updateNotificationBadge(data.unread_count);
+                renderNotifications(data.notifications);
+            } catch (err) {
+                console.warn('Failed to fetch notifications:', err);
+            }
+        }
+
+        function updateNotificationBadge(count) {
+            const badge = document.getElementById('notification-badge');
+            if (!badge) return;
+
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function renderNotifications(notifications) {
+            const list = document.getElementById('notification-list');
+            if (!list) return;
+
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = `
+                    <div class="notification-panel__empty">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                        </svg>
+                        <p>No notifications</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => `
+                <div class="notification-item ${n.read ? '' : 'notification-item--unread'}" onclick="handleNotificationClick('${n.id}', '${n.link || ''}')">
+                    <div class="notification-item__icon notification-item__icon--${n.type || 'order'}">
+                        ${getNotificationIcon(n.type)}
+                    </div>
+                    <div class="notification-item__content">
+                        <div class="notification-item__title">${escapeHtml(n.title)}</div>
+                        <div class="notification-item__text">${escapeHtml(n.message)}</div>
+                        <div class="notification-item__time">${formatTimeAgo(n.created_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getNotificationIcon(type) {
+            const icons = {
+                order: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/></svg>',
+                escrow: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>',
+                message: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+                dispute: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>'
+            };
+            return icons[type] || icons.order;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatTimeAgo(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const seconds = Math.floor((now - date) / 1000);
+
+            if (seconds < 60) return 'Just now';
+            if (seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+            if (seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+            return Math.floor(seconds / 86400) + 'd ago';
+        }
+
+        async function handleNotificationClick(id, link) {
+            // Mark as read
+            try {
+                await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+            } catch (err) {
+                console.warn('Failed to mark notification as read:', err);
+            }
+
+            // Navigate if there's a link
+            if (link) {
+                window.location.href = link;
+            } else {
+                fetchNotifications();
+            }
+        }
+
+        async function markAllNotificationsRead() {
+            try {
+                await fetch('/api/notifications/mark-all-read', { method: 'POST' });
+                fetchNotifications();
+            } catch (err) {
+                console.warn('Failed to mark all notifications as read:', err);
+            }
+        }
+
+        // Poll for new notifications every 30 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('notification-bell')) {
+                // Initial fetch
+                fetchNotifications();
+
+                // Poll every 30 seconds
+                notificationPollInterval = setInterval(fetchNotifications, 30000);
+            }
+        });
+    </script>
+
+    <!-- Tor Performance: Progressive Loading & Lazy Images -->
+    <script nonce="{{ csp_nonce }}">
+        (function() {
+            'use strict';
+
+            // === PROGRESSIVE IMAGE LOADING (Blur-Up) ===
+            function initProgressiveImages() {
+                const images = document.querySelectorAll('.progressive-image');
+
+                images.forEach(function(container) {
+                    const fullImg = container.querySelector('.progressive-image__full');
+                    if (!fullImg) return;
+
+                    // If image is already loaded
+                    if (fullImg.complete && fullImg.naturalHeight !== 0) {
+                        container.classList.add('progressive-image--loaded');
+                        return;
+                    }
+
+                    // Wait for image to load
+                    fullImg.addEventListener('load', function() {
+                        container.classList.add('progressive-image--loaded');
+                    });
+
+                    fullImg.addEventListener('error', function() {
+                        // Show placeholder on error
+                        container.classList.add('progressive-image--error');
+                    });
+                });
+            }
+
+            // === LAZY LOADING WITH INTERSECTION OBSERVER ===
+            function initLazyLoading() {
+                if (!('IntersectionObserver' in window)) {
+                    // Fallback: load all images immediately
+                    document.querySelectorAll('[data-lazy]').forEach(function(el) {
+                        el.classList.add('lazy-loaded');
+                    });
+                    return;
+                }
+
+                const lazyObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            const el = entry.target;
+
+                            // Handle lazy images
+                            if (el.tagName === 'IMG' && el.dataset.src) {
+                                el.src = el.dataset.src;
+                                delete el.dataset.src;
+                            }
+
+                            // Handle lazy backgrounds
+                            if (el.dataset.bg) {
+                                el.style.backgroundImage = 'url(' + el.dataset.bg + ')';
+                                delete el.dataset.bg;
+                            }
+
+                            el.classList.add('lazy-loaded');
+                            observer.unobserve(el);
+                        }
+                    });
+                }, {
+                    rootMargin: '100px 0px',  // Start loading 100px before visible
+                    threshold: 0.01
+                });
+
+                document.querySelectorAll('[data-lazy]').forEach(function(el) {
+                    lazyObserver.observe(el);
+                });
+            }
+
+            // === CONNECTION SPEED DETECTION ===
+            function detectConnectionSpeed() {
+                if (!('connection' in navigator)) return;
+
+                const connection = navigator.connection;
+                const slowTypes = ['slow-2g', '2g', '3g'];
+
+                function updateConnectionClass() {
+                    if (slowTypes.includes(connection.effectiveType) || connection.saveData) {
+                        document.body.classList.add('connection-slow');
+                        showSlowConnectionBanner();
+                    } else {
+                        document.body.classList.remove('connection-slow');
+                        hideSlowConnectionBanner();
+                    }
+                }
+
+                updateConnectionClass();
+                connection.addEventListener('change', updateConnectionClass);
+            }
+
+            function showSlowConnectionBanner() {
+                let banner = document.querySelector('.slow-connection-banner');
+                if (!banner) {
+                    banner = document.createElement('div');
+                    banner.className = 'slow-connection-banner';
+                    banner.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v10l4.5-4.5"/><circle cx="12" cy="12" r="10"/></svg><span>Slow connection detected. Loading optimized content.</span>';
+                    document.body.appendChild(banner);
+                }
+                banner.classList.add('visible');
+
+                // Auto-hide after 5 seconds
+                setTimeout(function() {
+                    banner.classList.remove('visible');
+                }, 5000);
+            }
+
+            function hideSlowConnectionBanner() {
+                const banner = document.querySelector('.slow-connection-banner');
+                if (banner) banner.classList.remove('visible');
+            }
+
+            // === CONTENT VISIBILITY OPTIMIZATION ===
+            function optimizeContentVisibility() {
+                // Apply content-visibility to long lists for better scroll performance
+                const longGrids = document.querySelectorAll('.listings-grid');
+                longGrids.forEach(function(grid) {
+                    const cards = grid.children.length;
+                    if (cards > 12) {
+                        grid.classList.add('listings-grid--long');
+                    }
+                });
+            }
+
+            // === FONT LOADING OPTIMIZATION ===
+            function optimizeFontLoading() {
+                if ('fonts' in document) {
+                    document.fonts.ready.then(function() {
+                        document.body.classList.remove('fonts-loading');
+                        document.body.classList.add('fonts-loaded');
+                    });
+                }
+            }
+
+            // === PREFETCH ON HOVER ===
+            function initPrefetchOnHover() {
+                let prefetchedUrls = new Set();
+
+                document.body.addEventListener('mouseover', function(e) {
+                    const link = e.target.closest('a[href]');
+                    if (!link) return;
+
+                    const href = link.getAttribute('href');
+                    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                    if (prefetchedUrls.has(href)) return;
+
+                    // Don't prefetch external links
+                    if (href.startsWith('http') && !href.includes(window.location.host)) return;
+
+                    // Create prefetch link
+                    const prefetchLink = document.createElement('link');
+                    prefetchLink.rel = 'prefetch';
+                    prefetchLink.href = href;
+                    document.head.appendChild(prefetchLink);
+
+                    prefetchedUrls.add(href);
+                }, { passive: true });
+            }
+
+            // === INIT ALL OPTIMIZATIONS ===
+            document.addEventListener('DOMContentLoaded', function() {
+                initProgressiveImages();
+                initLazyLoading();
+                detectConnectionSpeed();
+                optimizeContentVisibility();
+                optimizeFontLoading();
+                initPrefetchOnHover();
+            });
+
+            // Re-init after HTMX swaps
+            document.body.addEventListener('htmx:afterSwap', function() {
+                initProgressiveImages();
+                initLazyLoading();
+                optimizeContentVisibility();
+            });
+        })();
+    </script>
+
+    <!-- WebSocket Notifications & Toast System -->
+    <script src="/static/js/notifications-nexus.js?v=20260117_fix3"></script>
+
+    <!-- Notification Center (Persistent Header Notifications with Deep Linking) -->
+    <script src="/static/js/notification-routes.js"></script>
+    <script src="/static/js/notification-center.js"></script>
+
+    <!-- Secure E2E Messaging (auto-initializes keypair after login) -->
+    <script src="/static/js/secure-messages.js"></script>
+
+    <!-- Instant Search (Hybrid WASM + HTMX) -->
+    <script src="/static/js/instant-search.js" type="module" defer></script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

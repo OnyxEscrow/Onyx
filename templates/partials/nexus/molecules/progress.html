@@ -1,0 +1,191 @@
+{#
+  NEXUS PROGRESS COMPONENT
+
+  Usage:
+    {% include "partials/nexus/molecules/progress.html" %}
+
+  Parameters:
+    - value (required): Current progress value
+    - max (optional): Maximum value (default: 100)
+    - label (optional): Progress label text
+    - show_percentage (optional): true|false - Show percentage (default: true)
+    - variant (optional): primary|success|warning|error (default: primary)
+    - size (optional): sm|md|lg (default: md)
+    - indeterminate (optional): true|false - Indeterminate/loading state (default: false)
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID
+#}
+
+{% set progress_max = max | default(value=100) %}
+{% set progress_show_percentage = show_percentage | default(value=true) %}
+{% set progress_variant = variant | default(value="primary") %}
+{% set progress_size = size | default(value="md") %}
+{% set progress_indeterminate = indeterminate | default(value=false) %}
+
+{# Calculate percentage #}
+{% set percentage = (value / progress_max * 100) | round(precision=0) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-progress-container nexus-progress-" ~ progress_size %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}"{% if id %} id="{{ id }}"{% endif %}>
+  {# Label and Percentage #}
+  {% if label or progress_show_percentage %}
+    <div class="nexus-progress-header">
+      {% if label %}
+        <span class="nexus-progress-label">{{ label }}</span>
+      {% endif %}
+      {% if progress_show_percentage and not progress_indeterminate %}
+        <span class="nexus-progress-percentage">{{ percentage }}%</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# Progress Bar #}
+  <div class="nexus-progress-track" role="progressbar" aria-valuenow="{{ value }}" aria-valuemin="0" aria-valuemax="{{ progress_max }}">
+    <div
+      class="nexus-progress-bar nexus-progress-bar-{{ progress_variant }} {% if progress_indeterminate %}nexus-progress-bar-indeterminate{% endif %}"
+      {% if not progress_indeterminate %}style="width: {{ percentage }}%;"{% endif %}
+    ></div>
+  </div>
+</div>
+
+<style>
+/* Progress Container */
+.nexus-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+  width: 100%;
+}
+
+/* Progress Header */
+.nexus-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--nexus-space-2);
+}
+
+/* Progress Label */
+.nexus-progress-label {
+  font-size: var(--nexus-text-sm);
+  font-weight: var(--nexus-weight-medium);
+  color: var(--nexus-fg);
+}
+
+/* Progress Percentage */
+.nexus-progress-percentage {
+  font-size: var(--nexus-text-sm);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-muted-fg);
+}
+
+/* Progress Track */
+.nexus-progress-track {
+  position: relative;
+  width: 100%;
+  background-color: var(--nexus-muted);
+  border-radius: var(--nexus-radius-full);
+  overflow: hidden;
+}
+
+/* Size Variants */
+.nexus-progress-sm .nexus-progress-track {
+  height: 0.5rem;
+}
+
+.nexus-progress-md .nexus-progress-track {
+  height: 0.75rem;
+}
+
+.nexus-progress-lg .nexus-progress-track {
+  height: 1rem;
+}
+
+/* Progress Bar */
+.nexus-progress-bar {
+  height: 100%;
+  border-radius: var(--nexus-radius-full);
+  transition: width 0.3s var(--nexus-ease-out);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Variant Colors */
+.nexus-progress-bar-primary {
+  background-color: var(--nexus-primary);
+}
+
+.nexus-progress-bar-success {
+  background-color: var(--nexus-success);
+}
+
+.nexus-progress-bar-warning {
+  background-color: var(--nexus-warning);
+}
+
+.nexus-progress-bar-error {
+  background-color: var(--nexus-destructive);
+}
+
+/* Indeterminate State */
+.nexus-progress-bar-indeterminate {
+  width: 100% !important;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--nexus-primary) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: nexus-progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes nexus-progress-indeterminate {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Shimmer Effect for Progress */
+.nexus-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: nexus-progress-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes nexus-progress-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-progress-label,
+  .nexus-progress-percentage {
+    font-size: var(--nexus-text-xs);
+  }
+}
+</style>

@@ -1,0 +1,283 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  security-check:
+    name: Security Theatre & Code Quality
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+        
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Check Security Theatre
+      run: |
+        if (Test-Path "scripts/check-security-theatre-simple.ps1") {
+          pwsh -ExecutionPolicy Bypass -File "scripts/check-security-theatre-simple.ps1"
+        } else {
+          Write-Host "Security theatre check script not found, skipping..."
+        }
+        
+    - name: Cargo Check
+      run: cargo check --workspace
+      
+    - name: Cargo Format Check
+      run: cargo fmt --all -- --check
+      
+    - name: Cargo Clippy
+      run: cargo clippy --workspace -- -D warnings
+      
+    - name: Cargo Test
+      run: cargo test --workspace --lib
+      
+    - name: Generate Metrics
+      run: |
+        if (Test-Path "scripts/update-metrics.ps1") {
+          pwsh -ExecutionPolicy Bypass -File "scripts/update-metrics.ps1"
+        }
+        
+    - name: Upload Metrics
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-metrics
+        path: docs/metrics/
+        retention-days: 7
+
+  build:
+    name: Build All Targets
+    runs-on: ${{ matrix.os }}
+    needs: security-check
+    
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+          
+    - name: Build
+      run: cargo build --workspace --release
+      
+    - name: Upload Build Artifacts
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-build
+        path: target/release/
+        retention-days: 7
+
+  infrastructure-tests:
+    name: Infrastructure Integration Tests
+    runs-on: ubuntu-latest
+    needs: security-check
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Validate Docker Compose files
+      run: |
+        docker-compose -f 4.5/docker/docker-compose.yml config
+        docker-compose -f 4.5/docker/docker-compose.blue-green.yml config
+
+    - name: Validate Prometheus config
+      run: |
+        docker run --rm -v $(pwd)/4.5/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml \
+          prom/prometheus:v2.48.0 \
+          promtool check config /etc/prometheus/prometheus.yml
+
+    - name: Validate Nginx config
+      run: |
+        docker run --rm -v $(pwd)/4.5/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+          nginx:1.25-alpine \
+          nginx -t
+
+    - name: Validate Grafana dashboards
+      run: |
+        for dashboard in 4.5/monitoring/grafana/dashboards/*-complete.json; do
+          echo "Validating $dashboard"
+          jq empty "$dashboard" || exit 1
+        done
+
+    - name: Test backup scripts syntax
+      run: |
+        bash -n 4.5/scripts/backup-database.sh
+        bash -n 4.5/scripts/backup-wallets.sh
+        bash -n 4.5/scripts/deploy.sh
+        bash -n 4.5/scripts/setup-secrets.sh
+
+    - name: Build monitoring images
+      run: |
+        docker build -t monero-exporter:test 4.5/monitoring/monero-exporter/
+
+    - name: Start minimal infrastructure stack
+      run: |
+        cd 4.5/docker
+        # Create minimal .env for testing
+        echo "GRAFANA_ADMIN_PASSWORD=test123" > .env
+        # Start only core monitoring services
+        docker-compose up -d prometheus grafana node_exporter
+        sleep 10
+
+    - name: Test Prometheus metrics endpoint
+      run: |
+        curl -f http://localhost:9090/-/healthy || exit 1
+        curl -f http://localhost:9090/metrics || exit 1
+
+    - name: Test Grafana API
+      run: |
+        curl -f http://localhost:3000/api/health || exit 1
+
+    - name: Test node_exporter metrics
+      run: |
+        curl -f http://localhost:9100/metrics | grep "node_cpu_seconds_total" || exit 1
+
+    - name: Cleanup
+      if: always()
+      run: |
+        cd 4.5/docker
+        docker-compose down -v
+
+  sdk-javascript:
+    name: JavaScript SDK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/javascript
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: sdks/javascript/package-lock.json
+
+    - name: Check SDK exists
+      id: check-js
+      run: test -f package.json
+      continue-on-error: true
+
+    - name: Install dependencies
+      if: steps.check-js.outcome == 'success'
+      run: npm ci
+
+    - name: Lint
+      if: steps.check-js.outcome == 'success'
+      run: npm run lint --if-present
+
+    - name: Test
+      if: steps.check-js.outcome == 'success'
+      run: npm test
+
+    - name: Build
+      if: steps.check-js.outcome == 'success'
+      run: npm run build
+
+  sdk-python:
+    name: Python SDK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdks/python
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Check SDK exists
+      id: check-py
+      run: test -f pyproject.toml
+      continue-on-error: true
+
+    - name: Install dependencies
+      if: steps.check-py.outcome == 'success'
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Lint
+      if: steps.check-py.outcome == 'success'
+      run: |
+        pip install ruff
+        ruff check nexus_escrow/
+
+    - name: Test
+      if: steps.check-py.outcome == 'success'
+      run: python -m pytest tests/ -v
+
+  documentation:
+    name: Documentation
+    runs-on: ubuntu-latest
+    needs: security-check
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rust-docs
+
+    - name: Generate Documentation
+      run: cargo doc --workspace --no-deps
+
+    - name: Deploy Documentation
+      if: github.ref == 'refs/heads/main'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./target/doc

@@ -1,0 +1,806 @@
+{% extends "base-aura.html" %}
+{% import "partials/nexus/molecules/review-prompt-modal.html" as review %}
+
+{% block title %}Order #{{ order.id | truncate(length=8, end="") }} - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="container mx-auto px-4 py-12 pb-32 max-w-7xl">
+    <!-- Back Button -->
+    <a href="/orders"
+        class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8 group">
+        <i data-lucide="arrow-left" class="w-4 h-4 group-hover:-translate-x-1 transition-transform"></i>
+        Back to Orders
+    </a>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-8">
+            <!-- Order Header -->
+            <div class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md animate-reveal">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h1 class="text-3xl text-white font-light tracking-tight mb-2">
+                            Order <span class="text-cyan-400">#{{ order.id | truncate(length=8, end="") }}</span>
+                        </h1>
+                        <p class="text-gray-400 text-sm">Created {{ order.created_at | date(format="%Y-%m-%d %H:%M UTC")
+                            }}</p>
+                    </div>
+
+                    {% if order.status == "pending" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-medium uppercase tracking-wider">Pending</span>
+                    {% elif order.status == "funded" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm font-medium uppercase tracking-wider">Funded</span>
+                    {% elif order.status == "shipped" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm font-medium uppercase tracking-wider">Shipped</span>
+                    {% elif order.status == "releasing" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium uppercase tracking-wider">Confirming...</span>
+                    {% elif order.status == "completed" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium uppercase tracking-wider">Completed</span>
+                    {% elif order.status == "cancelled" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium uppercase tracking-wider">Cancelled</span>
+                    {% elif order.status == "disputed" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-sm font-medium uppercase tracking-wider">Disputed</span>
+                    {% elif order.status == "refunded" %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-gray-500/10 border border-gray-500/20 text-gray-400 text-sm font-medium uppercase tracking-wider">Refunded</span>
+                    {% else %}
+                    <span
+                        class="px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-sm font-medium uppercase tracking-wider">{{
+                        order.status | upper }}</span>
+                    {% endif %}
+                </div>
+
+                <!-- Order Details Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-white/10">
+                    <div>
+                        <span
+                            class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Listing</span>
+                        <a href="/listings/{{ order.listing_id }}"
+                            class="text-white hover:text-cyan-400 transition-colors">{{ order.listing_title }}</a>
+                    </div>
+                    <div>
+                        <span
+                            class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Quantity</span>
+                        <span class="text-white">{{ order.quantity }} units</span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Unit
+                            Price</span>
+                        <span class="text-white font-mono">{{ order.unit_price_xmr }} XMR</span>
+                    </div>
+                    <div>
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Total
+                            Amount</span>
+                        <span class="text-cyan-400 font-mono text-lg">{{ order.total_price_xmr }} XMR</span>
+                    </div>
+
+                    {% if role == "buyer" %}
+                    <div>
+                        <span
+                            class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Vendor</span>
+                        <span class="text-white flex items-center gap-2">
+                            <i data-lucide="store" class="w-4 h-4 text-purple-400"></i>
+                            {{ order.vendor_username }}
+                        </span>
+                    </div>
+                    {% elif role == "vendor" %}
+                    <div>
+                        <span class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Buyer</span>
+                        <span class="text-white flex items-center gap-2">
+                            <i data-lucide="user" class="w-4 h-4 text-cyan-400"></i>
+                            {{ order.buyer_username }}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if order.escrow_id %}
+                    <div>
+                        <span
+                            class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-1">Escrow</span>
+                        <a href="/escrow/{{ order.escrow_id }}"
+                            class="text-cyan-400 hover:text-cyan-300 transition-colors text-sm flex items-center gap-1">
+                            View Details <i data-lucide="external-link" class="w-3 h-3"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ==================== EMBEDDED SIGNING UI ==================== -->
+            {% if order.escrow_id and escrow %}
+
+            <!-- Multisig Wizard Component (Gnosis Safe inspired) -->
+            <div class="mb-6">
+                {% include "partials/escrow/multisig-wizard.html" %}
+            </div>
+
+            {# Define signing state variables for PKI-based Round-Robin flow #}
+            {% set vendor_has_signed = escrow.partial_tx or escrow.vendor_partial_key_image %}
+            {% set buyer_has_signed = escrow.buyer_partial_key_image %}
+            {% set signer1_done = vendor_has_signed %}
+            {% set signer2_done = escrow.completed_clsag %}
+
+            <!-- Signature Progress Indicator -->
+            {% if escrow.status == "funded" or escrow.status == "signing_initiated" or escrow.status == "ready_to_broadcast" %}
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-purple-900/30 to-indigo-900/30 border border-purple-500/20 backdrop-blur-md animate-reveal mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-purple-400 flex items-center gap-2">
+                        <i data-lucide="pen-tool" class="w-5 h-5"></i>
+                        Round-Robin Signatures
+                    </h3>
+                    <span class="text-sm font-mono text-white bg-white/10 px-3 py-1 rounded-full">
+                        {% if signer2_done %}
+                        2/2
+                        {% elif signer1_done %}
+                        1/2
+                        {% else %}
+                        0/2
+                        {% endif %}
+                    </span>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="h-2 bg-white/10 rounded-full mb-4 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500 {% if signer2_done %}w-full bg-gradient-to-r from-green-500 to-emerald-400{% elif signer1_done %}w-1/2 bg-gradient-to-r from-purple-500 to-cyan-400{% else %}w-0{% endif %}"></div>
+                </div>
+
+                <!-- Signature Status List -->
+                <div class="space-y-3">
+                    <!-- Signer 1 (Vendor) -->
+                    <div class="flex items-center justify-between p-3 rounded-xl {% if signer1_done %}bg-green-500/10 border border-green-500/20{% else %}bg-white/5 border border-white/5{% endif %}">
+                        <div class="flex items-center gap-3">
+                            {% if signer1_done %}
+                            <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            </div>
+                            <div>
+                                <span class="text-white text-sm font-medium">Signer 1</span>
+                                <span class="text-green-400 text-xs ml-2">(Vendor)</span>
+                            </div>
+                            {% else %}
+                            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                <i data-lucide="circle-dashed" class="w-4 h-4 text-gray-500"></i>
+                            </div>
+                            <span class="text-gray-400 text-sm">Signer 1 (Vendor)</span>
+                            {% endif %}
+                        </div>
+                        {% if signer1_done %}
+                        <span class="text-xs text-green-400 flex items-center gap-1">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i>
+                            Signed
+                        </span>
+                        {% else %}
+                        <span class="text-xs text-gray-500">Awaiting</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Signer 2 (Buyer) -->
+                    <div class="flex items-center justify-between p-3 rounded-xl {% if signer2_done %}bg-green-500/10 border border-green-500/20{% elif signer1_done %}bg-yellow-500/10 border border-yellow-500/20 animate-pulse{% else %}bg-white/5 border border-white/5{% endif %}">
+                        <div class="flex items-center gap-3">
+                            {% if signer2_done %}
+                            <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                            </div>
+                            <div>
+                                <span class="text-white text-sm font-medium">Signer 2</span>
+                                <span class="text-green-400 text-xs ml-2">(Buyer)</span>
+                            </div>
+                            {% elif signer1_done %}
+                            <div class="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                <i data-lucide="clock" class="w-4 h-4 text-yellow-400"></i>
+                            </div>
+                            <span class="text-yellow-400 text-sm font-medium">Signer 2 (Buyer) - Your Turn!</span>
+                            {% else %}
+                            <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                                <i data-lucide="circle-dashed" class="w-4 h-4 text-gray-500"></i>
+                            </div>
+                            <span class="text-gray-400 text-sm">Signer 2 (Buyer)</span>
+                            {% endif %}
+                        </div>
+                        {% if signer2_done %}
+                        <span class="text-xs text-green-400 flex items-center gap-1">
+                            <i data-lucide="check-circle" class="w-3 h-3"></i>
+                            Signed
+                        </span>
+                        {% elif signer1_done %}
+                        <span class="text-xs text-yellow-400 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="w-3 h-3"></i>
+                            Awaiting
+                        </span>
+                        {% else %}
+                        <span class="text-xs text-gray-500">Pending</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if escrow.completed_clsag %}
+                <div class="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-center">
+                    <p class="text-green-400 text-sm font-medium flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                        All signatures collected! Ready to broadcast.
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Co-Signer Notification Banner -->
+            {# Uses vendor_has_signed and buyer_has_signed defined at top of escrow block #}
+            {% if vendor_has_signed and not signer2_done and not buyer_has_signed %}
+            {% if role == "buyer" %}
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 backdrop-blur-md animate-reveal mb-6">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 rounded-full bg-cyan-500/20 text-cyan-400 animate-pulse">
+                        <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-cyan-400 mb-1">Vendor Has Signed!</h3>
+                        <p class="text-gray-300 text-sm mb-4">
+                            The vendor has marked the order as shipped. Complete the signature to release funds.
+                        </p>
+                        <button onclick="showSignActionModal('{{ escrow.id }}', 'cosign', '{{ escrow.amount_xmr }}')"
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-medium hover:opacity-90 transition-opacity shadow-lg shadow-cyan-500/20 flex items-center gap-2">
+                            <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                            Complete Signature Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% elif buyer_has_signed and not escrow.completed_clsag and not vendor_has_signed and role == "vendor" %}
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 backdrop-blur-md animate-reveal mb-6">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 rounded-full bg-purple-500/20 text-purple-400 animate-pulse">
+                        <i data-lucide="bell-ring" class="w-6 h-6"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium text-purple-400 mb-1">Buyer Has Signed!</h3>
+                        <p class="text-gray-300 text-sm mb-4">
+                            The buyer has initiated the release. Complete the signature to receive your funds.
+                        </p>
+                        <button onclick="showSignActionModal('{{ escrow.id }}', 'cosign', '{{ escrow.amount_xmr }}')"
+                            class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 flex items-center gap-2">
+                            <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                            Complete Signature Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+
+            <!-- Ready to Broadcast Section -->
+            {% if escrow.status == 'ready_to_broadcast' %}
+            <div class="p-6 rounded-2xl bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/20 backdrop-blur-md animate-reveal mb-6">
+                <h3 class="text-lg font-medium text-green-400 mb-4 flex items-center gap-2">
+                    <i data-lucide="radio" class="w-5 h-5"></i>
+                    Ready to Broadcast
+                </h3>
+                <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20 mb-4">
+                    <p class="text-green-400 font-medium text-sm flex items-center gap-2">
+                        <i data-lucide="check-circle" class="w-4 h-4"></i>
+                        2-of-3 signatures collected! Transaction is ready to broadcast.
+                    </p>
+                </div>
+                <button id="broadcast-btn" onclick="showConfirmBroadcastModal('{{ escrow.id }}', '{{ escrow.amount_xmr }}', '{{ vendor_wallet_address | default(value='') }}')"
+                    class="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                    Broadcast Transaction
+                </button>
+                <div id="broadcast-status" class="mt-4 hidden"></div>
+            </div>
+            {% endif %}
+
+            {% endif %}
+            <!-- ==================== END SIGNING UI ==================== -->
+
+            <!-- Delivery Address (Vendor only) -->
+            {% if role == "vendor" %}
+            <div class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md animate-reveal"
+                style="animation-delay: 100ms;">
+                <h2 class="text-xl text-white font-light mb-6 flex items-center gap-2">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-purple-400"></i>
+                    Delivery Address (Confidential)
+                </h2>
+
+                {% if order.shipping_address %}
+                <div class="bg-black/20 rounded-xl p-6 border border-white/5">
+                    <div class="font-mono text-sm text-gray-300 whitespace-pre-wrap mb-4">{{ order.shipping_address }}
+                    </div>
+
+                    {% if order.shipping_notes %}
+                    <div class="mt-4 pt-4 border-t border-white/10">
+                        <label class="text-xs font-medium text-gray-500 uppercase tracking-wider block mb-2">Delivery
+                            Instructions</label>
+                        <p class="text-sm text-gray-400">{{ order.shipping_notes }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div
+                        class="mt-4 flex items-center gap-2 text-xs text-yellow-500/80 bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/20">
+                        <i data-lucide="lock" class="w-3 h-3"></i>
+                        <span>This address is encrypted and only visible to you and the buyer. Handle with care.</span>
+                    </div>
+                </div>
+                {% else %}
+                <div class="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center gap-3">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-yellow-400"></i>
+                    <span class="text-yellow-400 text-sm">No shipping address provided (digital product or legacy
+                        order)</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Shipping Information -->
+            {% if order.status == "shipped" or order.status == "completed" %}
+            <div class="p-6 rounded-3xl bg-green-500/10 border border-green-500/20 backdrop-blur-md animate-reveal"
+                style="animation-delay: 150ms;">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 rounded-full bg-green-500/20 text-green-400">
+                        <i data-lucide="truck" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium text-green-400 mb-1">Order Shipped</h3>
+                        <p class="text-green-400/80 text-sm">
+                            The vendor marked this order as shipped on {{ order.updated_at | date(format="%Y-%m-%d
+                            %H:%M") }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Order Timeline -->
+            <div class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md animate-reveal"
+                style="animation-delay: 200ms;">
+                <h2 class="text-xl text-white font-light mb-8 flex items-center gap-2">
+                    <i data-lucide="clock" class="w-5 h-5 text-cyan-400"></i>
+                    Order Timeline
+                </h2>
+
+                <div class="relative space-y-8 pl-4 border-l border-white/10 ml-2" id="order-timeline">
+                    <!-- Created -->
+                    <div class="relative">
+                        <div
+                            class="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]">
+                        </div>
+                        <h3 class="text-white font-medium mb-1">Order Created</h3>
+                        <p class="text-xs text-gray-500 mb-1">{{ order.created_at | date(format="%Y-%m-%d %H:%M") }}</p>
+                        <p class="text-sm text-gray-400">Order placed successfully</p>
+                    </div>
+
+                    <!-- Funded -->
+                    <div class="relative">
+                        <div
+                            class="absolute -left-[21px] top-1 w-3 h-3 rounded-full {% if order.status == 'funded' or order.status == 'shipped' or order.status == 'completed' %}bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]{% elif order.status == 'pending' %}bg-yellow-500 animate-pulse{% else %}bg-white/20{% endif %}">
+                        </div>
+                        <h3 class="text-white font-medium mb-1">Escrow Funded</h3>
+                        {% if order.funded_at %}
+                        <p class="text-xs text-gray-500 mb-1">{{ order.funded_at | date(format="%Y-%m-%d %H:%M") }}</p>
+                        <p class="text-sm text-gray-400">Buyer funded the escrow</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Awaiting buyer to fund escrow</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Shipped -->
+                    <div class="relative">
+                        <div
+                            class="absolute -left-[21px] top-1 w-3 h-3 rounded-full {% if order.status == 'shipped' or order.status == 'completed' %}bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]{% elif order.status == 'funded' %}bg-yellow-500 animate-pulse{% else %}bg-white/20{% endif %}">
+                        </div>
+                        <h3 class="text-white font-medium mb-1">Order Shipped</h3>
+                        {% if order.shipped_at %}
+                        <p class="text-xs text-gray-500 mb-1">{{ order.shipped_at | date(format="%Y-%m-%d %H:%M") }}</p>
+                        <p class="text-sm text-gray-400">Vendor shipped the order</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Awaiting vendor to ship</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Completed -->
+                    <div class="relative">
+                        <div
+                            class="absolute -left-[21px] top-1 w-3 h-3 rounded-full {% if order.status == 'completed' %}bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]{% elif order.status == 'shipped' %}bg-yellow-500 animate-pulse{% else %}bg-white/20{% endif %}">
+                        </div>
+                        <h3 class="text-white font-medium mb-1">Order Completed</h3>
+                        {% if order.completed_at %}
+                        <p class="text-xs text-gray-500 mb-1">{{ order.completed_at | date(format="%Y-%m-%d %H:%M") }}
+                        </p>
+                        <p class="text-sm text-gray-400">Buyer confirmed receipt</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Awaiting buyer confirmation</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Chat -->
+            {% if (role == "buyer" or role == "vendor") and order.status != "cancelled" %}
+            <div class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md animate-reveal"
+                style="animation-delay: 250ms;">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl text-white font-light flex items-center gap-2">
+                        <i data-lucide="message-square" class="w-5 h-5 text-purple-400"></i>
+                        Chat with {% if role == "buyer" %}Vendor{% else %}Buyer{% endif %}
+                    </h3>
+                    <div
+                        class="flex items-center gap-2 text-xs text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        Real-time
+                    </div>
+                </div>
+
+                <div class="bg-black/20 rounded-2xl border border-white/5 overflow-hidden" id="order-chat">
+                    <div
+                        class="order-chat-messages h-[400px] overflow-y-auto p-4 space-y-4 scroll-smooth custom-scrollbar">
+                        <!-- Messages will be loaded here -->
+                    </div>
+
+                    <div class="order-chat-typing px-4 py-2 text-xs text-gray-500 italic hidden">
+                        Typing...
+                    </div>
+
+                    <div class="p-4 bg-white/5 border-t border-white/5">
+                        <form class="flex gap-3" onsubmit="return false;">
+                            <div class="relative flex-grow">
+                                <textarea id="chat-message-input"
+                                    class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-purple-500/50 transition-all resize-none"
+                                    placeholder="Type your message..." rows="1" maxlength="2000"></textarea>
+                                <div class="absolute bottom-2 right-3 text-[10px] text-gray-600">0 / 2000</div>
+                            </div>
+                            <button type="button"
+                                class="order-chat-send-btn p-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white transition-colors self-end">
+                                <i data-lucide="send" class="w-5 h-5"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar: Actions -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="sticky top-24">
+                <div class="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl shadow-black/50 animate-reveal"
+                    style="animation-delay: 300ms;">
+                    <h2 class="text-xl text-white font-light mb-6 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5 text-yellow-400"></i>
+                        Actions
+                    </h2>
+
+                    <div id="action-result" class="mb-4"></div>
+
+                    <!-- Auto-PKI Status Indicator (hidden by default) -->
+                    <div id="auto-pki-status" class="mb-4 hidden text-center"></div>
+
+                    <div class="space-y-4">
+                        {# ===== VENDOR ACTIONS ===== #}
+                        {% if role == "vendor" %}
+                            {# Case 1: Funded, no signing started - Vendor initiates with Mark as Shipped (PKI submission) #}
+                            {% if escrow and escrow.status == "funded" and not vendor_has_signed %}
+                            <button onclick="showSignActionModal('{{ escrow.id }}', 'ship', '{{ escrow.amount_xmr }}')"
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2">
+                                <i data-lucide="package-check" class="w-5 h-5"></i>
+                                Mark as Shipped
+                            </button>
+                            <p class="text-xs text-center text-gray-500">Sign with your wallet to ship order</p>
+
+                            {# Case 2: Both PKIs submitted, ready to create partial TX #}
+                            {% elif escrow and escrow.signing_phase == "ready_for_initiation" %}
+                            <button onclick="showSignActionModal('{{ escrow.id }}', 'ship', '{{ escrow.amount_xmr }}')"
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2">
+                                <i data-lucide="package-check" class="w-5 h-5"></i>
+                                Mark as Shipped
+                            </button>
+                            <p class="text-xs text-center text-gray-500">Ready - click to ship and create transaction</p>
+
+                            {# Case 3: Vendor created partial TX, waiting for buyer to complete #}
+                            {% elif escrow and escrow.partial_tx and not escrow.completed_clsag %}
+                            <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                                <div class="flex items-center gap-2 text-green-400 text-sm">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                    Transaction initiated. Waiting for buyer to complete...
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {# ===== BUYER ACTIONS ===== #}
+                        {% if role == "buyer" %}
+                            {# Case 1: Waiting for vendor to ship #}
+                            {% if escrow and escrow.status == "funded" and not vendor_has_signed %}
+                            <div class="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                                <div class="flex items-center gap-2 text-yellow-400 text-sm mb-2">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                    Waiting for Vendor
+                                </div>
+                                <p class="text-xs text-gray-400">Vendor must mark as shipped before you can release funds.</p>
+                            </div>
+
+                            {# Case 2: Vendor created partial_tx - Buyer can now complete and release #}
+                            {% elif escrow and escrow.partial_tx and not escrow.completed_clsag %}
+                            <button onclick="showSignActionModal('{{ escrow.id }}', 'release', '{{ escrow.amount_xmr }}')"
+                                class="w-full py-3 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-green-500/20 flex items-center justify-center gap-2">
+                                <i data-lucide="check-circle" class="w-5 h-5"></i>
+                                Confirm Receipt & Release Funds
+                            </button>
+                            <p class="text-xs text-center text-gray-500">Vendor shipped. Sign to release funds.</p>
+
+                            {# Case 3: Buyer already signed (completed_clsag), waiting for broadcast #}
+                            {% elif escrow and escrow.completed_clsag and not escrow.tx_hash %}
+                            <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                                <div class="flex items-center gap-2 text-green-400 text-sm">
+                                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                                    Signature complete. Broadcasting transaction...
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {# ===== DISPUTE BUTTON ===== #}
+                        {% if (role == "buyer" or role == "vendor") and escrow and (escrow.status == "funded" or order.status == "shipped") and not escrow.completed_clsag %}
+                        <button id="open-dispute-modal-btn"
+                            class="open-dispute-modal-btn w-full py-3 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition-all flex items-center justify-center gap-2"
+                            data-order-id="{{ order.id }}">
+                            <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                            Open Dispute
+                        </button>
+                        {% endif %}
+
+                        {% if order.status == "pending" and role == "buyer" %}
+                        <!-- Fund Escrow Button -->
+                        <button id="fund-escrow-btn"
+                            class="w-full py-3 rounded-xl bg-gradient-to-r from-yellow-600 to-orange-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-orange-500/20 flex items-center justify-center gap-2">
+                            <i data-lucide="wallet" class="w-5 h-5"></i>
+                            Fund Escrow ({{ order.total_price_xmr }} XMR)
+                        </button>
+
+                        <!-- Escrow Funding Instructions -->
+                        <div id="escrow-instructions" class="hidden mt-6 space-y-6 animate-slide-down">
+                            <div class="p-4 rounded-xl bg-white/5 border border-white/10">
+                                <h3 class="text-white font-medium mb-4 flex items-center gap-2">
+                                    <i data-lucide="qr-code" class="w-5 h-5 text-cyan-400"></i>
+                                    Escrow Payment
+                                </h3>
+
+                                <div class="flex flex-col items-center gap-4 mb-6">
+                                    <div class="bg-white p-2 rounded-xl">
+                                        <canvas id="escrow-qr-code"></canvas>
+                                    </div>
+                                    <p class="text-xs text-gray-400">Scan to pay</p>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Escrow Address
+                                        </p>
+                                        <div class="flex gap-2">
+                                            <div id="escrow-address"
+                                                class="flex-grow bg-black/30 rounded-lg p-2 text-xs font-mono text-gray-300 break-all border border-white/5">
+                                                Initializing...</div>
+                                            <button id="copy-address-btn"
+                                                class="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors">
+                                                <i data-lucide="copy" class="w-4 h-4"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Amount to Send
+                                        </p>
+                                        <div class="text-xl text-cyan-400 font-mono">{{ order.total_price_xmr }} XMR
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Fee Breakdown -->
+                                <div class="mt-4 p-3 rounded-lg bg-black/20 border border-white/5 space-y-2">
+                                    <div class="flex justify-between text-xs text-gray-400">
+                                        <span>Product Price</span>
+                                        <span>{{ order.total_price_xmr }} XMR</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-400">
+                                        <span>Network Fee (est.)</span>
+                                        <span>~0.0001 XMR</span>
+                                    </div>
+                                    <div class="pt-2 border-t border-white/10 flex justify-between text-xs">
+                                        <span class="text-orange-400">Vendor Receives</span>
+                                        <span class="text-green-400">~{{ order.total_price_xmr }} - 0.0001 XMR</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 text-xs text-gray-500 space-y-1">
+                                    <p>✓ Send EXACTLY {{ order.total_price_xmr }} XMR</p>
+                                    <p>✓ Funds secured in 2-of-3 multisig</p>
+                                    <p>✓ Released only after confirmation</p>
+                                </div>
+
+                                <div id="payment-status" class="mt-4"></div>
+                            </div>
+                        </div>
+
+                        <button
+                            class="w-full py-3 rounded-xl bg-white/5 hover:bg-red-500/20 text-red-400 border border-red-500/20 hover:border-red-500/40 transition-all flex items-center justify-center gap-2 mt-4"
+                            hx-post="/api/orders/{{ order.id }}/cancel" hx-target="#action-result" hx-swap="innerHTML"
+                            hx-confirm="Are you sure you want to cancel this order?">
+                            <i data-lucide="x-circle" class="w-5 h-5"></i>
+                            Cancel Order
+                        </button>
+                        {% endif %}
+
+                        {% if order.escrow_id %}
+                        <a href="/escrow/{{ order.escrow_id }}"
+                            class="block w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 transition-all text-center flex items-center justify-center gap-2">
+                            <i data-lucide="shield" class="w-5 h-5"></i>
+                            View Escrow Details
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Help Card -->
+                <div class="mt-6 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md animate-reveal"
+                    style="animation-delay: 350ms;">
+                    <h2 class="text-lg text-white font-light mb-4 flex items-center gap-2">
+                        <i data-lucide="help-circle" class="w-5 h-5 text-gray-400"></i>
+                        Need Help?
+                    </h2>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        {% if role == "buyer" %}
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Wait for the vendor to ship
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Open a dispute if there's a problem
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Contact support for assistance
+                        </li>
+                        {% elif role == "vendor" %}
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Mark the order as shipped when ready
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Open a dispute if there's a problem
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-gray-500 mt-1.5"></span>
+                            Contact support for assistance
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Data Attributes -->
+    <div id="order-data" data-order-id="{{ order.id }}"></div>
+    <div id="order-page-data"
+        data-order-id="{{ order.id }}"
+        data-escrow-id="{{ order.escrow_id | default(value='') }}"
+        data-escrow-status="{{ escrow.status | default(value='') }}"
+        data-total-price="{{ order.total_price_xmr }}"
+        data-escrow-amount="{{ escrow.amount_xmr | default(value='0') }}"
+        data-vendor-wallet-address="{{ vendor_wallet_address | default(value='') }}"
+        data-role="{{ role }}"
+        data-user-id="{{ user_id }}"
+        data-username="{{ username }}"
+        data-order-status="{{ order.status }}"
+        style="display: none;"></div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<!-- Modals -->
+{% include "modals/ship-with-payout.html" %}
+{% include "modals/confirm-broadcast.html" %}
+{# wallet-setup.html removed - now using wallet-wizard in base-aura.html #}
+{# seed-backup.html is now included in base-aura.html #}
+
+<!-- Review Prompt Modal (Post-Completion) -->
+{% if role == "buyer" and order.status == "completed" or order.status == "shipped" %}
+{{ review::modal(
+    order_id=order.id,
+    vendor_id=order.vendor_id,
+    vendor_name=order.vendor_username,
+    txid=escrow.broadcast_tx_hash | default(value=""),
+    escrow_id=escrow.id | default(value="")
+) }}
+{% endif %}
+
+<!-- LocalStorage Sync for Escrow Role + Escrow Data Injection for Auto-PKI + Unified Wallet -->
+<script>
+(function syncEscrowRoleAndData() {
+    const role = '{{ role }}';
+    if (role) {
+        localStorage.setItem('escrow_role', role.toLowerCase());
+        // Inject role for wallet-wizard.js
+        window.userRole = role.toLowerCase();
+        console.log('[OrderPage] Synced escrow_role:', role.toLowerCase());
+    }
+
+    // Inject escrow data for auto-pki.js
+    {% if escrow %}
+    window.currentEscrowId = '{{ escrow.id }}';
+    window.currentEscrowStatus = '{{ escrow.status }}';
+    window.escrowData = {
+        id: '{{ escrow.id }}',
+        status: '{{ escrow.status }}',
+        signing_phase: '{{ escrow.signing_phase | default(value="awaiting_initiation") }}',
+        amount_xmr: '{{ escrow.amount_xmr }}',
+        one_time_pubkey: '{{ escrow.funding_output_pubkey | default(value="") }}',
+        // v0.8.2: PKI derivation fields
+        funding_output_pubkey: '{{ escrow.funding_output_pubkey | default(value="") }}',
+        funding_tx_pubkey: '{{ escrow.funding_tx_pubkey | default(value="") }}',
+        multisig_view_key: '{{ escrow.multisig_view_key | default(value="") }}',
+        funding_output_index: {{ escrow.funding_output_index | default(value=0) }},
+        vendor_partial_key_image: {% if escrow.vendor_partial_key_image %}'{{ escrow.vendor_partial_key_image }}'{% else %}null{% endif %},
+        buyer_partial_key_image: {% if escrow.buyer_partial_key_image %}'{{ escrow.buyer_partial_key_image }}'{% else %}null{% endif %},
+        aggregated_key_image: {% if escrow.aggregated_key_image %}'{{ escrow.aggregated_key_image }}'{% else %}null{% endif %},
+        partial_tx: {% if escrow.partial_tx %}'{{ escrow.partial_tx }}'{% else %}null{% endif %},
+        completed_clsag: {% if escrow.completed_clsag %}true{% else %}false{% endif %}
+    };
+    console.log('[OrderPage] Injected escrowData:', window.escrowData);
+    {% else %}
+    window.currentEscrowId = null;
+    window.currentEscrowStatus = null;
+    window.escrowData = null;
+    {% endif %}
+})();
+</script>
+
+<!-- Scripts -->
+<script src="/static/js/qrcode.min.js"></script>
+<script src="/static/js/fund-escrow.js"></script>
+<script src="/static/js/order-actions.js"></script>
+<script src="/static/js/dispute-system.js"></script>
+<script src="/static/js/order-chat.js"></script>
+<script src="/static/js/error-codes.js?v=1"></script>
+<script src="/static/js/recovery-file.js?v=1"></script>
+{# wasm-loader.js and wallet-wizard.js are now included in base-aura.html #}
+<script src="/static/js/auto-pki.js?v=3"></script>
+<script src="/static/js/sign-action.js?v=12"></script>
+<script src="/static/js/ship-payout.js?v=2"></script>
+<script src="/static/js/order-page-init.js?v=2"></script>
+
+<!-- Review Prompt (Post-Completion UX) -->
+{% if role == "buyer" %}
+<script src="/static/js/review-prompt.js?v=1"></script>
+<script>
+(function checkForReviewPrompt() {
+    // Show review prompt if order just completed (check URL param or local state)
+    const urlParams = new URLSearchParams(window.location.search);
+    const justCompleted = urlParams.get('completed') === 'true';
+    const orderStatus = '{{ order.status }}';
+
+    if (justCompleted && orderStatus === 'completed' && window.ReviewPrompt) {
+        // Small delay for page render
+        setTimeout(function() {
+            window.showReviewPromptAfterCompletion(
+                '{{ order.id }}',
+                '{{ order.vendor_id }}',
+                '{{ order.vendor_username }}',
+                '{{ escrow.broadcast_tx_hash | default(value="") }}'
+            );
+        }, 500);
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

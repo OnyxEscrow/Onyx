@@ -1,0 +1,1416 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Create Listing — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="create-listing-interface">
+    <div class="container-industrial">
+
+        {# ===== HEADER ===== #}
+        <div class="create-listing-header">
+            <div class="create-listing-header__left">
+                <h1 class="h1-massive">
+                    Create <span class="text-gold">Listing</span>
+                </h1>
+                <p class="create-listing-header__subtitle">
+                    Add a new product to the marketplace. Secured by 2-of-3 multisig escrow.
+                </p>
+            </div>
+            <div class="create-listing-header__right">
+                <div class="draft-status" id="draft-status" style="display: none;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <span>Draft saved</span>
+                </div>
+            </div>
+        </div>
+
+        {# ===== STEP PROGRESS ===== #}
+        <div class="listing-stepper">
+            <div class="listing-stepper__track">
+                <div class="listing-stepper__progress" id="stepper-progress" style="width: 25%;"></div>
+            </div>
+            <div class="listing-stepper__steps">
+                <button type="button" class="listing-stepper__step listing-stepper__step--active" data-step="1" onclick="goToListingStep(1)">
+                    <div class="listing-stepper__step-number">1</div>
+                    <span class="listing-stepper__step-label">Basic Info</span>
+                </button>
+                <button type="button" class="listing-stepper__step" data-step="2" onclick="goToListingStep(2)">
+                    <div class="listing-stepper__step-number">2</div>
+                    <span class="listing-stepper__step-label">Pricing</span>
+                </button>
+                <button type="button" class="listing-stepper__step" data-step="3" onclick="goToListingStep(3)">
+                    <div class="listing-stepper__step-number">3</div>
+                    <span class="listing-stepper__step-label">Images</span>
+                </button>
+                <button type="button" class="listing-stepper__step" data-step="4" onclick="goToListingStep(4)">
+                    <div class="listing-stepper__step-number">4</div>
+                    <span class="listing-stepper__step-label">Preview</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="create-listing-layout">
+            {# ===== FORM SECTION ===== #}
+            <div class="create-listing-form-wrap">
+                <div class="form-card">
+                    <form id="create-listing-form" enctype="multipart/form-data" class="listing-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                        {# ===== STEP 1: BASIC INFO ===== #}
+                        <div class="listing-form-step listing-form-step--active" id="listing-step-1">
+                            <div class="listing-form-step__header">
+                                <h2>Basic Information</h2>
+                                <p>Tell buyers what you're selling.</p>
+                            </div>
+
+                            {# Title #}
+                            <div class="form-field">
+                                <label for="title" class="form-label">
+                                    Product Title <span class="text-gold">*</span>
+                                </label>
+                                <div class="form-input-wrap">
+                                    <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="4 7 4 4 20 4 20 7"/><line x1="9" x2="15" y1="20" y2="20"/>
+                                        <line x1="12" x2="12" y1="4" y2="20"/>
+                                    </svg>
+                                    <input type="text" id="title" name="title" required
+                                        minlength="3" maxlength="200"
+                                        class="form-input form-input--icon"
+                                        placeholder="e.g. Quantum Noise Headphones">
+                                </div>
+                                <div class="form-hint">
+                                    <span id="title-count">0</span>/200 characters
+                                </div>
+                            </div>
+
+                            {# Category #}
+                            <div class="form-field">
+                                <label for="category" class="form-label">
+                                    Category <span class="text-gold">*</span>
+                                </label>
+                                <div class="form-input-wrap">
+                                    <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/>
+                                        <path d="M7 7h.01"/>
+                                    </svg>
+                                    <select id="category" name="category" required class="form-select form-select--icon">
+                                        <option value="" disabled selected>Select Category</option>
+                                        <option value="digital">Digital Goods</option>
+                                        <option value="physical">Physical Goods</option>
+                                        <option value="services">Services</option>
+                                        <option value="vpn">VPN & Privacy</option>
+                                        <option value="hosting">Web Hosting</option>
+                                        <option value="software">Software & Tools</option>
+                                        <option value="tutorials">Tutorials & Guides</option>
+                                        <option value="accounts">Accounts & Subscriptions</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    <svg class="form-select-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"/>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {# Description #}
+                            <div class="form-field">
+                                <label for="description" class="form-label">
+                                    Description <span class="text-gold">*</span>
+                                </label>
+                                <div class="form-input-wrap">
+                                    <svg class="form-input-icon form-input-icon--top" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/>
+                                        <line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/>
+                                    </svg>
+                                    <textarea id="description" name="description" required
+                                        minlength="10" maxlength="5000" rows="6"
+                                        class="form-textarea form-textarea--icon"
+                                        placeholder="Describe your product details, shipping info, etc..."></textarea>
+                                </div>
+                                <div class="form-hint">
+                                    <span id="description-count">0</span>/5000 characters
+                                </div>
+                            </div>
+
+                            <div class="listing-form-step__actions">
+                                <span></span>
+                                <button type="button" class="btn-gold" onclick="nextListingStep()">
+                                    Continue to Pricing
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {# ===== STEP 2: PRICING ===== #}
+                        <div class="listing-form-step" id="listing-step-2">
+                            <div class="listing-form-step__header">
+                                <h2>Pricing & Stock</h2>
+                                <p>Set your price and inventory.</p>
+                            </div>
+
+                            {# Price #}
+                            <div class="form-field">
+                                <label class="form-label">
+                                    Price (XMR) <span class="text-gold">*</span>
+                                </label>
+                                <div class="form-input-wrap">
+                                    <span class="form-input-icon form-input-icon--xmr">M</span>
+                                    <input type="number" id="price-xmr-human" step="0.000000000001" min="0"
+                                        placeholder="0.5" required
+                                        class="form-input form-input--icon form-input--mono">
+                                </div>
+                                <input type="hidden" id="price_xmr" name="price_xmr">
+                                <div class="form-hint" id="price-usd-hint">
+                                    <!-- USD equivalent shown here via JS -->
+                                </div>
+                                <div class="form-hint form-hint--warning">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/>
+                                        <line x1="12" x2="12.01" y1="16" y2="16"/>
+                                    </svg>
+                                    Network fee ~0.0001 XMR will be deducted. 5% marketplace fee on sale.
+                                </div>
+                            </div>
+
+                            {# Shipping Cost #}
+                            <div class="form-field">
+                                <label class="form-label">
+                                    Shipping Cost (XMR)
+                                </label>
+                                <div class="form-input-wrap">
+                                    <span class="form-input-icon form-input-icon--xmr">M</span>
+                                    <input type="number" id="shipping-cost-xmr-human" step="0.000000000001" min="0"
+                                        placeholder="0" value="0"
+                                        class="form-input form-input--icon form-input--mono">
+                                </div>
+                                <input type="hidden" id="shipping_cost_xmr" name="shipping_cost_xmr" value="0">
+                                <div class="form-hint">
+                                    Enter 0 for digital goods or free shipping. This cost is added once per order.
+                                </div>
+                            </div>
+
+                            {# Stock #}
+                            <div class="form-field">
+                                <label for="stock" class="form-label">
+                                    Stock Quantity <span class="text-gold">*</span>
+                                </label>
+                                <div class="form-input-wrap">
+                                    <svg class="form-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="m7.5 4.27 9 5.15"/>
+                                        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    </svg>
+                                    <input type="number" id="stock" name="stock" required min="1"
+                                        placeholder="10" value="1"
+                                        class="form-input form-input--icon">
+                                </div>
+                                <div class="form-hint">
+                                    How many units are available for sale?
+                                </div>
+                            </div>
+
+                            {# Shipping Options (conditional) #}
+                            <div class="form-field" id="shipping-options" style="display: none;">
+                                <label class="form-label">Shipping</label>
+                                <div class="shipping-options-grid">
+                                    <label class="shipping-option">
+                                        <input type="checkbox" name="ships_worldwide" value="1">
+                                        <span class="shipping-option__mark"></span>
+                                        <span class="shipping-option__text">Ships Worldwide</span>
+                                    </label>
+                                    <label class="shipping-option">
+                                        <input type="checkbox" name="free_shipping" value="1">
+                                        <span class="shipping-option__mark"></span>
+                                        <span class="shipping-option__text">Free Shipping</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="listing-form-step__actions">
+                                <button type="button" class="btn-outline" onclick="prevListingStep()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                    Back
+                                </button>
+                                <button type="button" class="btn-gold" onclick="nextListingStep()">
+                                    Continue to Images
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {# ===== STEP 3: IMAGES ===== #}
+                        <div class="listing-form-step" id="listing-step-3">
+                            <div class="listing-form-step__header">
+                                <h2>Product Images</h2>
+                                <p>Add photos to showcase your product. First image is the cover.</p>
+                            </div>
+
+                            {# Image Upload #}
+                            <div class="form-field">
+                                <div class="image-upload-zone">
+                                    <input type="file" id="images" name="images" multiple accept="image/*" class="image-upload-input">
+                                    <div class="image-upload-content">
+                                        <div class="image-upload-icon">
+                                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                                                <path d="M12 12v9"/><path d="m16 16-4-4-4 4"/>
+                                            </svg>
+                                        </div>
+                                        <p class="image-upload-text">Drop images here or click to upload</p>
+                                        <p class="image-upload-hint">JPEG, PNG, WebP. Max 5MB per image. Up to 5 images.</p>
+                                    </div>
+                                </div>
+                                <div id="image-preview" class="image-preview-grid"></div>
+                            </div>
+
+                            <div class="image-tips">
+                                <h4>Image Tips</h4>
+                                <ul>
+                                    <li>Use high-quality, well-lit photos</li>
+                                    <li>Show multiple angles if possible</li>
+                                    <li>Avoid watermarks or text overlays</li>
+                                    <li>First image appears as the cover photo</li>
+                                </ul>
+                            </div>
+
+                            <div class="listing-form-step__actions">
+                                <button type="button" class="btn-outline" onclick="prevListingStep()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                    Back
+                                </button>
+                                <button type="button" class="btn-gold" onclick="nextListingStep()">
+                                    Preview Listing
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {# ===== STEP 4: PREVIEW ===== #}
+                        <div class="listing-form-step" id="listing-step-4">
+                            <div class="listing-form-step__header">
+                                <h2>Review & Publish</h2>
+                                <p>Check everything looks good before publishing.</p>
+                            </div>
+
+                            <div class="listing-final-preview">
+                                <div id="listing-preview" data-vendor-name="{{ username }}" class="preview-container">
+                                    {# Preview card will be rendered here by JS #}
+                                </div>
+                            </div>
+
+                            <div class="listing-summary">
+                                <h4>Listing Summary</h4>
+                                <div class="listing-summary__grid">
+                                    <div class="listing-summary__item">
+                                        <span class="listing-summary__label">Title</span>
+                                        <span class="listing-summary__value" id="summary-title">-</span>
+                                    </div>
+                                    <div class="listing-summary__item">
+                                        <span class="listing-summary__label">Category</span>
+                                        <span class="listing-summary__value" id="summary-category">-</span>
+                                    </div>
+                                    <div class="listing-summary__item">
+                                        <span class="listing-summary__label">Price</span>
+                                        <span class="listing-summary__value" id="summary-price">-</span>
+                                    </div>
+                                    <div class="listing-summary__item">
+                                        <span class="listing-summary__label">Stock</span>
+                                        <span class="listing-summary__value" id="summary-stock">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="listing-escrow-notice">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                </svg>
+                                <div>
+                                    <strong>Protected by 2-of-3 Escrow</strong>
+                                    <p>All purchases go through our non-custodial escrow system. Funds are released only when the buyer confirms receipt.</p>
+                                </div>
+                            </div>
+
+                            <div class="listing-form-step__actions listing-form-step__actions--publish">
+                                <button type="button" class="btn-outline" onclick="prevListingStep()">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="15 18 9 12 15 6"></polyline>
+                                    </svg>
+                                    Back
+                                </button>
+                                <button type="submit" class="btn-gold btn-lg btn-shimmer" id="publish-btn">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/>
+                                        <line x1="8" x2="16" y1="12" y2="12"/>
+                                    </svg>
+                                    Publish Listing
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <div id="listing-result" class="mt-4"></div>
+                </div>
+            </div>
+
+            {# ===== MINI PREVIEW SIDEBAR ===== #}
+            <div class="create-listing-preview" id="mini-preview-sidebar">
+                <div class="preview-sticky">
+                    <h3 class="preview-title">Live Preview</h3>
+                    <div id="mini-preview" class="preview-container preview-container--mini">
+                        <div class="preview-placeholder">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <p>Start typing to see how your listing will appear.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Draft Recovery Modal #}
+<div class="draft-modal" id="draft-modal" style="display: none;">
+    <div class="draft-modal__backdrop" onclick="dismissDraftModal()"></div>
+    <div class="draft-modal__content">
+        <h3>Resume Draft?</h3>
+        <p>You have an unsaved listing from earlier. Would you like to continue where you left off?</p>
+        <div class="draft-modal__actions">
+            <button class="btn-outline" onclick="discardDraft()">Start Fresh</button>
+            <button class="btn-gold" onclick="restoreDraft()">Continue Draft</button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/xmr-converter.js"></script>
+<script nonce="{{ csp_nonce }}">
+const CSRF_TOKEN = "{{ csrf_token }}";
+const VENDOR_NAME = "{{ username }}";
+let currentListingStep = 1;
+let autoSaveTimer = null;
+const AUTOSAVE_KEY = 'nexus_listing_draft';
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
+
+// ============================================
+// STEP NAVIGATION
+// ============================================
+function goToListingStep(step) {
+    if (step < 1 || step > 4) return;
+
+    // Validate current step before advancing
+    if (step > currentListingStep) {
+        if (!validateCurrentStep()) {
+            return;
+        }
+    }
+
+    // Hide all steps
+    document.querySelectorAll('.listing-form-step').forEach(el => {
+        el.classList.remove('listing-form-step--active');
+    });
+
+    // Show target step
+    document.getElementById(`listing-step-${step}`).classList.add('listing-form-step--active');
+
+    // Update stepper
+    document.querySelectorAll('.listing-stepper__step').forEach(el => {
+        const stepNum = parseInt(el.dataset.step);
+        el.classList.remove('listing-stepper__step--active', 'listing-stepper__step--completed');
+        if (stepNum === step) {
+            el.classList.add('listing-stepper__step--active');
+        } else if (stepNum < step) {
+            el.classList.add('listing-stepper__step--completed');
+        }
+    });
+
+    // Update progress bar
+    const progress = (step / 4) * 100;
+    document.getElementById('stepper-progress').style.width = `${progress}%`;
+
+    // Update summary on step 4
+    if (step === 4) {
+        updateSummary();
+        updatePreview();
+    }
+
+    // Toggle mini preview visibility
+    const miniPreview = document.getElementById('mini-preview-sidebar');
+    if (step === 4) {
+        miniPreview.style.display = 'none';
+    } else {
+        miniPreview.style.display = 'block';
+    }
+
+    currentListingStep = step;
+    saveDraft();
+}
+
+function nextListingStep() {
+    if (currentListingStep < 4) {
+        goToListingStep(currentListingStep + 1);
+    }
+}
+
+function prevListingStep() {
+    if (currentListingStep > 1) {
+        goToListingStep(currentListingStep - 1);
+    }
+}
+
+function validateCurrentStep() {
+    const form = document.getElementById('create-listing-form');
+
+    if (currentListingStep === 1) {
+        const title = document.getElementById('title');
+        const category = document.getElementById('category');
+        const description = document.getElementById('description');
+
+        if (!title.value.trim()) {
+            title.focus();
+            showFieldError(title, 'Please enter a title');
+            return false;
+        }
+        if (!category.value) {
+            category.focus();
+            showFieldError(category, 'Please select a category');
+            return false;
+        }
+        if (!description.value.trim() || description.value.length < 10) {
+            description.focus();
+            showFieldError(description, 'Please enter a description (min 10 characters)');
+            return false;
+        }
+    }
+
+    if (currentListingStep === 2) {
+        const price = document.getElementById('price-xmr-human');
+        const stock = document.getElementById('stock');
+
+        if (!price.value || parseFloat(price.value) <= 0) {
+            price.focus();
+            showFieldError(price, 'Please enter a valid price');
+            return false;
+        }
+        if (!stock.value || parseInt(stock.value) < 1) {
+            stock.focus();
+            showFieldError(stock, 'Please enter stock quantity');
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function showFieldError(field, message) {
+    // Remove existing error
+    const existingError = field.parentElement.querySelector('.field-error');
+    if (existingError) existingError.remove();
+
+    // Add error message
+    const error = document.createElement('div');
+    error.className = 'field-error';
+    error.textContent = message;
+    field.parentElement.appendChild(error);
+
+    // Remove after 3 seconds
+    setTimeout(() => error.remove(), 3000);
+}
+
+// ============================================
+// AUTO-SAVE & DRAFT RECOVERY
+// ============================================
+function saveDraft() {
+    const draft = {
+        step: currentListingStep,
+        title: document.getElementById('title').value,
+        category: document.getElementById('category').value,
+        description: document.getElementById('description').value,
+        price: document.getElementById('price-xmr-human').value,
+        stock: document.getElementById('stock').value,
+        timestamp: Date.now()
+    };
+
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draft));
+
+    // Show save indicator
+    const status = document.getElementById('draft-status');
+    status.style.display = 'flex';
+    setTimeout(() => {
+        status.style.opacity = '0';
+        setTimeout(() => {
+            status.style.display = 'none';
+            status.style.opacity = '1';
+        }, 300);
+    }, 2000);
+}
+
+function checkForDraft() {
+    const draftStr = localStorage.getItem(AUTOSAVE_KEY);
+    if (!draftStr) return;
+
+    try {
+        const draft = JSON.parse(draftStr);
+        // Check if draft is less than 24 hours old
+        if (Date.now() - draft.timestamp < 24 * 60 * 60 * 1000) {
+            if (draft.title || draft.description) {
+                document.getElementById('draft-modal').style.display = 'flex';
+            }
+        } else {
+            // Expired draft, remove it
+            localStorage.removeItem(AUTOSAVE_KEY);
+        }
+    } catch (e) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+    }
+}
+
+function restoreDraft() {
+    const draftStr = localStorage.getItem(AUTOSAVE_KEY);
+    if (!draftStr) return;
+
+    try {
+        const draft = JSON.parse(draftStr);
+
+        document.getElementById('title').value = draft.title || '';
+        document.getElementById('category').value = draft.category || '';
+        document.getElementById('description').value = draft.description || '';
+        document.getElementById('price-xmr-human').value = draft.price || '';
+        document.getElementById('stock').value = draft.stock || '1';
+
+        // Update character counts
+        updateCharCounts();
+
+        // Go to saved step
+        if (draft.step > 1) {
+            goToListingStep(draft.step);
+        }
+
+        dismissDraftModal();
+        updateMiniPreview();
+    } catch (e) {
+        console.error('Error restoring draft:', e);
+        discardDraft();
+    }
+}
+
+function discardDraft() {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    dismissDraftModal();
+}
+
+function dismissDraftModal() {
+    document.getElementById('draft-modal').style.display = 'none';
+}
+
+function startAutoSave() {
+    if (autoSaveTimer) clearInterval(autoSaveTimer);
+    autoSaveTimer = setInterval(saveDraft, AUTOSAVE_INTERVAL);
+}
+
+// ============================================
+// PREVIEW & SUMMARY
+// ============================================
+function updateMiniPreview() {
+    const title = document.getElementById('title').value || 'Your Product Title';
+    const price = document.getElementById('price-xmr-human').value || '0.00';
+    const category = document.getElementById('category').value || 'category';
+
+    const preview = document.getElementById('mini-preview');
+    preview.innerHTML = `
+        <div class="preview-card-mini">
+            <div class="preview-card-mini__image">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="preview-card-mini__content">
+                <div class="preview-card-mini__category">${category.toUpperCase()}</div>
+                <h4 class="preview-card-mini__title">${escapeHtml(title)}</h4>
+                <div class="preview-card-mini__price">${price} XMR</div>
+                <div class="preview-card-mini__vendor">by ${VENDOR_NAME}</div>
+            </div>
+        </div>
+    `;
+}
+
+function updatePreview() {
+    const title = document.getElementById('title').value || 'Your Product Title';
+    const description = document.getElementById('description').value || 'Product description...';
+    const price = document.getElementById('price-xmr-human').value || '0.00';
+    const category = document.getElementById('category').value || 'category';
+    const stock = document.getElementById('stock').value || '1';
+
+    const preview = document.getElementById('listing-preview');
+    preview.innerHTML = `
+        <div class="preview-card-full">
+            <div class="preview-card-full__image">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                    <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+            </div>
+            <div class="preview-card-full__content">
+                <div class="preview-card-full__category">${category.toUpperCase()}</div>
+                <h3 class="preview-card-full__title">${escapeHtml(title)}</h3>
+                <p class="preview-card-full__description">${escapeHtml(description.substring(0, 200))}${description.length > 200 ? '...' : ''}</p>
+                <div class="preview-card-full__footer">
+                    <div class="preview-card-full__price">${price} XMR</div>
+                    <div class="preview-card-full__stock">${stock} in stock</div>
+                </div>
+                <div class="preview-card-full__vendor">
+                    <span>by</span> <strong>${VENDOR_NAME}</strong>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function updateSummary() {
+    const title = document.getElementById('title').value || '-';
+    const category = document.getElementById('category');
+    const categoryText = category.options[category.selectedIndex]?.text || '-';
+    const price = document.getElementById('price-xmr-human').value || '-';
+    const stock = document.getElementById('stock').value || '-';
+
+    document.getElementById('summary-title').textContent = title;
+    document.getElementById('summary-category').textContent = categoryText;
+    document.getElementById('summary-price').textContent = price ? `${price} XMR` : '-';
+    document.getElementById('summary-stock').textContent = stock;
+}
+
+function updateCharCounts() {
+    const title = document.getElementById('title');
+    const description = document.getElementById('description');
+
+    document.getElementById('title-count').textContent = title.value.length;
+    document.getElementById('description-count').textContent = description.value.length;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
+// FORM SUBMISSION
+// ============================================
+document.getElementById('create-listing-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const btn = document.getElementById('publish-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Publishing...';
+
+    // Convert XMR price to atomic units
+    const humanPrice = document.getElementById('price-xmr-human').value;
+    document.getElementById('price_xmr').value = Math.floor(parseFloat(humanPrice) * 1e12);
+
+    // Convert shipping cost to atomic units
+    const humanShipping = document.getElementById('shipping-cost-xmr-human').value || '0';
+    document.getElementById('shipping_cost_xmr').value = Math.floor(parseFloat(humanShipping) * 1e12);
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('/api/listings/with-images', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-Token': CSRF_TOKEN
+            },
+            body: formData,
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Clear draft on success
+            localStorage.removeItem(AUTOSAVE_KEY);
+
+            // Show success and redirect
+            document.getElementById('listing-result').innerHTML = `
+                <div class="success-message">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Listing created successfully! Redirecting...
+                </div>
+            `;
+
+            setTimeout(() => {
+                window.location.href = data.redirect || '/vendor/listings';
+            }, 1500);
+        } else {
+            document.getElementById('listing-result').innerHTML = `
+                <div class="error-message">
+                    ${data.message || 'Failed to create listing. Please try again.'}
+                </div>
+            `;
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg> Publish Listing';
+        }
+    } catch (err) {
+        console.error('Listing creation error:', err);
+        document.getElementById('listing-result').innerHTML = `
+            <div class="error-message">
+                Network error. Please check your connection and try again.
+            </div>
+        `;
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="16"/><line x1="8" x2="16" y1="12" y2="12"/></svg> Publish Listing';
+    }
+});
+
+// ============================================
+// IMAGE HANDLING
+// ============================================
+document.getElementById('images').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
+
+    files.slice(0, 5).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const div = document.createElement('div');
+            div.className = 'image-preview-item';
+            div.innerHTML = `
+                <img src="${e.target.result}" alt="Preview ${index + 1}">
+                ${index === 0 ? '<span class="image-preview-cover">Cover</span>' : ''}
+                <button type="button" class="image-preview-remove" onclick="removeImage(${index})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+            preview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+});
+
+// ============================================
+// EVENT LISTENERS
+// ============================================
+document.getElementById('title').addEventListener('input', function() {
+    document.getElementById('title-count').textContent = this.value.length;
+    updateMiniPreview();
+});
+
+document.getElementById('description').addEventListener('input', function() {
+    document.getElementById('description-count').textContent = this.value.length;
+});
+
+document.getElementById('category').addEventListener('change', function() {
+    // Show shipping options for physical goods
+    const shippingOptions = document.getElementById('shipping-options');
+    if (this.value === 'physical') {
+        shippingOptions.style.display = 'block';
+    } else {
+        shippingOptions.style.display = 'none';
+    }
+    updateMiniPreview();
+});
+
+document.getElementById('price-xmr-human').addEventListener('input', function() {
+    updateMiniPreview();
+    // USD conversion can be added here if needed
+});
+
+// ============================================
+// INITIALIZATION
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    checkForDraft();
+    startAutoSave();
+    updateMiniPreview();
+});
+</script>
+
+<style>
+/* Multi-step form specific styles */
+.listing-stepper {
+    margin-bottom: 2rem;
+}
+
+.listing-stepper__track {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.listing-stepper__progress {
+    height: 100%;
+    background: linear-gradient(90deg, var(--nexus-gold), var(--nexus-gold-light));
+    border-radius: 2px;
+    transition: width 0.4s ease;
+}
+
+.listing-stepper__steps {
+    display: flex;
+    justify-content: space-between;
+}
+
+.listing-stepper__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.listing-stepper__step--active,
+.listing-stepper__step--completed {
+    opacity: 1;
+}
+
+.listing-stepper__step-number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.listing-stepper__step--active .listing-stepper__step-number {
+    background: var(--nexus-gold);
+    border-color: var(--nexus-gold);
+    color: #000;
+}
+
+.listing-stepper__step--completed .listing-stepper__step-number {
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: #fff;
+}
+
+.listing-stepper__step-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.listing-stepper__step--active .listing-stepper__step-label {
+    color: var(--nexus-gold);
+}
+
+/* Form Steps */
+.listing-form-step {
+    display: none;
+}
+
+.listing-form-step--active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+.listing-form-step__header {
+    margin-bottom: 2rem;
+}
+
+.listing-form-step__header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.listing-form-step__header p {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+}
+
+.listing-form-step__actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.listing-form-step__actions--publish {
+    justify-content: flex-end;
+}
+
+/* Draft Status */
+.draft-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(76, 175, 80, 0.1);
+    border: 1px solid rgba(76, 175, 80, 0.3);
+    border-radius: 6px;
+    color: #4CAF50;
+    font-size: 0.8rem;
+    transition: opacity 0.3s ease;
+}
+
+/* Draft Modal */
+.draft-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.draft-modal__backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.draft-modal__content {
+    position: relative;
+    background: var(--nexus-surface);
+    border: 1px solid var(--nexus-border);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    text-align: center;
+}
+
+.draft-modal__content h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 0.5rem;
+}
+
+.draft-modal__content p {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1.5rem;
+}
+
+.draft-modal__actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+/* Image Tips */
+.image-tips {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.image-tips h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.75rem;
+}
+
+.image-tips ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.image-tips li {
+    padding-left: 1rem;
+    position: relative;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 0.5rem;
+}
+
+.image-tips li::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--nexus-gold);
+}
+
+/* Listing Summary */
+.listing-summary {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+}
+
+.listing-summary h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1rem;
+}
+
+.listing-summary__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.listing-summary__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.listing-summary__label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.listing-summary__value {
+    font-size: 0.875rem;
+    color: #fff;
+    font-weight: 500;
+}
+
+/* Escrow Notice */
+.listing-escrow-notice {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: rgba(76, 175, 80, 0.08);
+    border: 1px solid rgba(76, 175, 80, 0.2);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.listing-escrow-notice svg {
+    flex-shrink: 0;
+    color: #4CAF50;
+}
+
+.listing-escrow-notice strong {
+    display: block;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.listing-escrow-notice p {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+}
+
+/* Preview Cards */
+.preview-card-mini {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.preview-card-mini__image {
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.preview-card-mini__content {
+    padding: 1rem;
+}
+
+.preview-card-mini__category {
+    font-size: 0.65rem;
+    color: var(--nexus-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+}
+
+.preview-card-mini__title {
+    font-size: 0.875rem;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.preview-card-mini__price {
+    font-size: 1rem;
+    color: var(--nexus-gold);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.preview-card-mini__vendor {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.preview-card-full {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.preview-card-full__image {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.preview-card-full__content {
+    padding: 1.5rem;
+}
+
+.preview-card-full__category {
+    font-size: 0.7rem;
+    color: var(--nexus-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+}
+
+.preview-card-full__title {
+    font-size: 1.25rem;
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.preview-card-full__description {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.preview-card-full__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.5rem;
+}
+
+.preview-card-full__price {
+    font-size: 1.25rem;
+    color: var(--nexus-gold);
+    font-weight: 600;
+}
+
+.preview-card-full__stock {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.preview-card-full__vendor {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.preview-card-full__vendor strong {
+    color: #fff;
+}
+
+/* Shipping Options */
+.shipping-options-grid {
+    display: flex;
+    gap: 1rem;
+}
+
+.shipping-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shipping-option:has(input:checked) {
+    border-color: var(--nexus-gold);
+    background: rgba(255, 102, 0, 0.05);
+}
+
+.shipping-option input {
+    display: none;
+}
+
+.shipping-option__mark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    position: relative;
+}
+
+.shipping-option:has(input:checked) .shipping-option__mark {
+    border-color: var(--nexus-gold);
+    background: var(--nexus-gold);
+}
+
+.shipping-option:has(input:checked) .shipping-option__mark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #000;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.shipping-option__text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Field Error */
+.field-error {
+    color: #F44336;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Image Preview */
+.image-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.image-preview-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.image-preview-cover {
+    position: absolute;
+    bottom: 0.25rem;
+    left: 0.25rem;
+    padding: 0.15rem 0.4rem;
+    background: var(--nexus-gold);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 600;
+    border-radius: 3px;
+    text-transform: uppercase;
+}
+
+.image-preview-remove {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.image-preview-item:hover .image-preview-remove {
+    opacity: 1;
+}
+
+.image-preview-remove:hover {
+    background: #F44336;
+}
+
+/* Listing Final Preview */
+.listing-final-preview {
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .listing-stepper__step-label {
+        display: none;
+    }
+
+    .listing-summary__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .image-preview-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .shipping-options-grid {
+        flex-direction: column;
+    }
+}
+</style>
+{% endblock %}

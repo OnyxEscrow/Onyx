@@ -1,0 +1,486 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}{{ listing.title }} - FROST MARKET{% endblock %}
+
+{% block content %}
+{# Full-screen Modal - Gravity 4 Style #}
+<div class="listing-modal">
+    {# Backdrop #}
+    <div class="listing-modal__backdrop" id="modal-backdrop"></div>
+
+    {# Modal Container #}
+    <div class="listing-modal__container">
+        {# Close Button (X) #}
+        <a href="/" class="listing-modal__close" title="Close">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+        </a>
+
+        {# Left: Image Section (5/12 width) #}
+        <div class="listing-modal__image-section">
+            {% if images and images | length > 0 %}
+                <img src="/api/listings/{{ listing.id }}/images/{{ images[0] }}"
+                     alt="{{ listing.title }}"
+                     class="listing-modal__image"
+                     onerror="this.src='https://picsum.photos/seed/{{ listing.id }}/800/1000'">
+            {% else %}
+                <img src="https://picsum.photos/seed/{{ listing.id }}/800/1000"
+                     alt="{{ listing.title }}"
+                     class="listing-modal__image">
+            {% endif %}
+
+            {# Gradient Overlay #}
+            <div class="listing-modal__image-gradient"></div>
+
+            {# Category Badge #}
+            <div class="listing-modal__category-badge">
+                {{ listing.category | default(value="DIGITAL") | upper }}
+            </div>
+        </div>
+
+        {# Right: Details Section #}
+        <div class="listing-modal__details">
+            {# Header #}
+            <div class="listing-modal__header">
+                <h2 class="listing-modal__title">{{ listing.title | upper }}</h2>
+            </div>
+
+            {# Scrollable Content #}
+            <div class="listing-modal__content">
+                {# Crypto Currency Selector #}
+                <div class="listing-modal__crypto-selector">
+                    <span class="listing-modal__crypto-label">PAY WITH</span>
+                    <div id="crypto-selector-container"></div>
+                </div>
+
+                {# Info Grid #}
+                <div class="listing-modal__info-grid">
+                    {# Price Box #}
+                    <div class="listing-modal__info-box">
+                        <span class="listing-modal__info-label">PRICE</span>
+                        <span class="listing-modal__info-value listing-modal__info-value--price">
+                            <span data-xmr-price="{{ listing.price_xmr / 1000000000000 }}">{{ price_display }}</span>
+                            <span class="crypto-symbol">XMR</span>
+                        </span>
+                        {% if show_usd and price_usd %}
+                        <span class="listing-modal__info-usd">≈ ${{ price_usd }} USD</span>
+                        {% endif %}
+                    </div>
+
+                    {# Shipping Box #}
+                    <div class="listing-modal__info-box">
+                        <span class="listing-modal__info-label">SHIPPING</span>
+                        <span class="listing-modal__info-value">
+                            {% if listing.shipping_cost_xmr and listing.shipping_cost_xmr > 0 %}
+                                {{ shipping_display | default(value="+ Shipping") }}
+                                {% if show_usd and shipping_usd %}
+                                <span class="listing-modal__info-usd">≈ ${{ shipping_usd }}</span>
+                                {% endif %}
+                            {% else %}
+                                FREE
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    {# Stock Box #}
+                    <div class="listing-modal__info-box">
+                        <span class="listing-modal__info-label">STOCK</span>
+                        <span class="listing-modal__info-value listing-modal__info-value--status">
+                            {% if listing.stock > 0 %}{{ listing.stock }} UNITS{% else %}OUT OF STOCK{% endif %}
+                        </span>
+                    </div>
+
+                    {# Category Box #}
+                    <div class="listing-modal__info-box">
+                        <span class="listing-modal__info-label">CATEGORY</span>
+                        <span class="listing-modal__info-value">{{ listing.category | upper }}</span>
+                    </div>
+                </div>
+
+                {# Vendor Info #}
+                <div class="listing-modal__vendor">
+                    <a href="/vendor/{{ vendor.id }}" class="listing-modal__vendor-link">
+                        <div class="listing-modal__vendor-avatar">
+                            {{ vendor.username | truncate(length=1, end="") | upper }}
+                        </div>
+                        <div class="listing-modal__vendor-info">
+                            <span class="listing-modal__vendor-name">{{ vendor.username | upper }}</span>
+                            <div class="listing-modal__vendor-rating">
+                                <span class="listing-modal__rating-star">★</span>
+                                <span class="listing-modal__rating-value">{{ vendor_rating | default(value="0.0") }}</span>
+                                <span class="listing-modal__rating-count">({{ vendor_review_count | default(value=0) }})</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                {# Manifest / Description #}
+                <div class="listing-modal__manifest">
+                    <h3 class="listing-modal__manifest-title">MANIFEST</h3>
+                    <p class="listing-modal__manifest-text">
+                        {{ listing.description }}
+                    </p>
+                    <div class="listing-modal__manifest-notice">
+                        > 2-OF-3 MULTISIG ESCROW REQUIRED
+                    </div>
+                </div>
+
+                {# Accepted Cryptocurrencies #}
+                <div class="listing-modal__accepted-crypto">
+                    <h4 class="listing-modal__accepted-title">ACCEPTED CURRENCIES</h4>
+                    <div class="listing-modal__crypto-grid">
+                        <div class="crypto-badge crypto-badge--xmr" title="Monero (native)">
+                            <span class="crypto-badge__symbol">Ⓜ</span>
+                            <span class="crypto-badge__ticker">XMR</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--btc" title="Bitcoin">
+                            <span class="crypto-badge__symbol">₿</span>
+                            <span class="crypto-badge__ticker">BTC</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--eth" title="Ethereum">
+                            <span class="crypto-badge__symbol">Ξ</span>
+                            <span class="crypto-badge__ticker">ETH</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--usdt" title="Tether">
+                            <span class="crypto-badge__symbol">₮</span>
+                            <span class="crypto-badge__ticker">USDT</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--usdc" title="USD Coin">
+                            <span class="crypto-badge__symbol">$</span>
+                            <span class="crypto-badge__ticker">USDC</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--ltc" title="Litecoin">
+                            <span class="crypto-badge__symbol">Ł</span>
+                            <span class="crypto-badge__ticker">LTC</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--doge" title="Dogecoin">
+                            <span class="crypto-badge__symbol">Ð</span>
+                            <span class="crypto-badge__ticker">DOGE</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--trx" title="TRON">
+                            <span class="crypto-badge__symbol">◈</span>
+                            <span class="crypto-badge__ticker">TRX</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--sol" title="Solana">
+                            <span class="crypto-badge__symbol">◎</span>
+                            <span class="crypto-badge__ticker">SOL</span>
+                        </div>
+                        <div class="crypto-badge crypto-badge--bnb" title="BNB">
+                            <span class="crypto-badge__symbol">⧫</span>
+                            <span class="crypto-badge__ticker">BNB</span>
+                        </div>
+                    </div>
+                    <p class="listing-modal__crypto-note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        Non-XMR payments are auto-converted via secure swap
+                    </p>
+                </div>
+
+                {# Security Info #}
+                <div class="listing-modal__security">
+                    <div class="listing-modal__security-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span>Non-Custodial Escrow</span>
+                    </div>
+                    <div class="listing-modal__security-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <span>Monero Privacy</span>
+                    </div>
+                </div>
+
+                {# Buyer Protection Box with Inline Tooltip #}
+                <div class="buyer-protection-box">
+                    <div class="buyer-protection-box__header">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="buyer-protection-box__icon">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        <h4 class="buyer-protection-box__title">Buyer Protection</h4>
+                    </div>
+                    <p class="buyer-protection-box__text">
+                        Your payment is held in escrow until you confirm delivery.
+                    </p>
+                    <details class="education-expandable education-expandable--escrow">
+                        <summary>How does this work?</summary>
+                        <div class="education-expandable__content">
+                            <p>When you pay, your funds are locked in a secure contract between you, the seller, and a neutral arbiter.</p>
+                            <ul>
+                                <li><strong>Neither party can access the funds alone</strong> - requires 2-of-3 signatures</li>
+                                <li><strong>You release payment</strong> after receiving and inspecting your order</li>
+                                <li><strong>If there's a problem</strong>, the arbiter helps resolve the dispute fairly</li>
+                            </ul>
+                            <p>Your private keys never leave your browser. This is truly non-custodial.</p>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            {# Footer Actions #}
+            <div class="listing-modal__footer">
+                <div class="listing-modal__actions">
+                    {% if is_owner %}
+                    <a href="/listings/{{ listing.id }}/edit" class="listing-modal__btn listing-modal__btn--secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        EDIT LISTING
+                    </a>
+                    {% else %}
+                    {% if listing.stock > 0 %}
+                    <div id="cart-btn-container" class="listing-modal__cart-actions">
+                        <button type="button" id="add-to-cart-btn" class="listing-modal__btn listing-modal__btn--primary">
+                            ADD TO BAG
+                        </button>
+                        <div id="cart-action-btns" class="listing-modal__cart-links" style="display: none;">
+                            <a href="/cart" class="listing-modal__btn listing-modal__btn--secondary">View Bag</a>
+                            <a href="/checkout" class="listing-modal__btn listing-modal__btn--primary">Checkout</a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="listing-modal__btn listing-modal__btn--disabled">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            <line x1="3.27" y1="6.96" x2="12" y2="12.01"></line>
+                            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                            <line x1="20.73" y1="6.96" x2="12" y2="12.01"></line>
+                        </svg>
+                        OUT OF STOCK
+                    </div>
+                    {% endif %}
+                    <a href="/messages/{{ vendor.id }}" class="listing-modal__btn listing-modal__btn--secondary" title="Contact Vendor">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Contact Seller
+                    </a>
+                    <button id="wishlist-btn" class="listing-modal__btn listing-modal__btn--icon" title="Add to Wishlist">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/crypto-price-converter.js" nonce="{{ csp_nonce }}"></script>
+<script nonce="{{ csp_nonce }}">
+const LISTING_ID = "{{ listing.id }}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+async function addToCart() {
+    const btn = document.getElementById('add-to-cart-btn');
+    btn.disabled = true;
+    btn.textContent = 'ADDING...';
+
+    try {
+        const response = await fetch('/api/cart/add', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': CSRF_TOKEN
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                listing_id: LISTING_ID,
+                quantity: 1,
+                csrf_token: CSRF_TOKEN
+            })
+        });
+
+        if (response.ok) {
+            // Hide ADD TO BAG, show View Bag + Checkout buttons
+            btn.style.display = 'none';
+            const actionBtns = document.getElementById('cart-action-btns');
+            if (actionBtns) {
+                actionBtns.style.display = 'flex';
+            }
+        } else {
+            const data = await response.json();
+            alert(data.message || 'Failed to add to cart');
+            btn.textContent = 'ADD TO BAG';
+        }
+    } catch (e) {
+        console.error('Add to cart error:', e);
+        alert('Failed to add to cart');
+        btn.textContent = 'ADD TO BAG';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add to cart button
+    const btn = document.getElementById('add-to-cart-btn');
+    if (btn) {
+        btn.addEventListener('click', addToCart);
+    }
+
+    // Modal backdrop click to close
+    const backdrop = document.getElementById('modal-backdrop');
+    if (backdrop) {
+        backdrop.addEventListener('click', function() {
+            window.location.href = '/';
+        });
+    }
+
+    // Wishlist toggle
+    const wishlistBtn = document.getElementById('wishlist-btn');
+    if (wishlistBtn) {
+        wishlistBtn.addEventListener('click', function() {
+            this.classList.toggle('listing-modal__btn--icon-active');
+        });
+    }
+
+    // Crypto badge selection - click to change display currency
+    document.querySelectorAll('.crypto-badge').forEach(badge => {
+        badge.addEventListener('click', function() {
+            const ticker = this.querySelector('.crypto-badge__ticker')?.textContent?.trim();
+            if (ticker && window.cryptoPriceConverter) {
+                window.cryptoPriceConverter.setCurrency(ticker);
+                // Update active state visually
+                document.querySelectorAll('.crypto-badge').forEach(b => b.classList.remove('crypto-badge--active'));
+                this.classList.add('crypto-badge--active');
+            }
+        });
+    });
+});
+</script>
+
+<style>
+/* Crypto Currency Selector */
+.listing-modal__crypto-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 102, 0, 0.05);
+    border: 1px solid rgba(255, 102, 0, 0.2);
+    border-radius: 8px;
+}
+
+.listing-modal__crypto-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.crypto-symbol {
+    font-weight: 500;
+    margin-left: 0.25rem;
+    color: var(--nexus-gold, #FF6600);
+}
+
+/* Accepted Cryptocurrencies Grid */
+.listing-modal__accepted-crypto {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+
+.listing-modal__accepted-title {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+}
+
+.listing-modal__crypto-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.5rem;
+}
+
+.crypto-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.crypto-badge:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.crypto-badge__symbol {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.crypto-badge__ticker {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Currency-specific colors */
+.crypto-badge--xmr .crypto-badge__symbol { color: #FF6600; }
+.crypto-badge--btc .crypto-badge__symbol { color: #F7931A; }
+.crypto-badge--eth .crypto-badge__symbol { color: #627EEA; }
+.crypto-badge--usdt .crypto-badge__symbol { color: #26A17B; }
+.crypto-badge--usdc .crypto-badge__symbol { color: #2775CA; }
+.crypto-badge--ltc .crypto-badge__symbol { color: #345D9D; }
+.crypto-badge--doge .crypto-badge__symbol { color: #C2A633; }
+.crypto-badge--trx .crypto-badge__symbol { color: #FF0013; }
+.crypto-badge--sol .crypto-badge__symbol { color: #9945FF; }
+.crypto-badge--bnb .crypto-badge__symbol { color: #F3BA2F; }
+
+.crypto-badge--xmr {
+    background: rgba(255, 102, 0, 0.1);
+    border-color: rgba(255, 102, 0, 0.3);
+}
+
+/* Active/Selected state */
+.crypto-badge--active {
+    background: rgba(255, 102, 0, 0.2) !important;
+    border-color: #FF6600 !important;
+    box-shadow: 0 0 10px rgba(255, 102, 0, 0.3);
+}
+
+.listing-modal__crypto-note {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.listing-modal__crypto-note svg {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Responsive - 2 rows of 5 on small screens */
+@media (max-width: 480px) {
+    .listing-modal__crypto-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+</style>
+{% endblock %}

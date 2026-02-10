@@ -1,0 +1,25 @@
+// EaaS Core Models (24 modules)
+pub mod api_key;
+pub mod dispute_evidence;
+pub mod encrypted_relay;
+pub mod escrow;
+pub mod escrow_message;
+pub mod fee_ledger;
+pub mod frost_dkg;
+pub mod marketplace_client;
+pub mod shield_backup;
+pub mod login_attempt;
+pub mod multisig_challenge;
+pub mod multisig_session;
+pub mod multisig_state;
+pub mod notification;
+pub mod recovery_code;
+pub mod secure_message;
+pub mod transaction;
+pub mod user;
+pub mod user_escrow_role;
+pub mod wallet;
+pub mod wallet_rpc_config;
+pub mod wasm_multisig_info;
+pub mod webhook;
+pub mod webhook_delivery;

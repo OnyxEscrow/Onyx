@@ -1,0 +1,98 @@
+{# Product Card - Industrial Stealth Design (Gravity 4) #}
+{# Data: listing with id, title, price, category, vendor_name, is_verified, rating, views, stock, image_cid #}
+
+{% set view_count = listing.views | default(value=0) %}
+{% set stock_level = listing.stock | default(value=50) %}
+{% set is_hot = view_count > 3500 %}
+{% set is_low_stock = stock_level < 10 and stock_level > 0 %}
+{% set is_out_of_stock = stock_level == 0 %}
+
+<a href="/listings/{{ listing.id }}" class="product-card" style="text-decoration: none;">
+    {# Image Section #}
+    <div class="product-card__image-wrapper">
+        {% if listing.image_cid %}
+            <img src="/api/listings/{{ listing.id }}/images/{{ listing.image_cid }}"
+                 alt="{{ listing.title }}"
+                 class="product-card__image"
+                 loading="lazy"
+                 onerror="this.src='https://picsum.photos/seed/{{ listing.id }}/600/800'">
+        {% else %}
+            <img src="https://picsum.photos/seed/{{ listing.id }}/600/800"
+                 alt="{{ listing.title }}"
+                 class="product-card__image"
+                 loading="lazy">
+        {% endif %}
+
+        {# Badges #}
+        <div class="product-card__badges">
+            {% if is_out_of_stock %}
+            <span class="product-card__badge--out-of-stock">Out of Stock</span>
+            {% elif is_hot %}
+            <span class="product-card__badge--hot">Hot Item</span>
+            {% endif %}
+            {% if listing.is_verified %}
+            <span class="product-card__badge--verified">
+                <span class="product-card__badge-dot"></span>
+                Verified
+            </span>
+            {% endif %}
+        </div>
+
+        {# Hover Overlay #}
+        <div class="product-card__overlay">
+            <div class="product-card__overlay-inner">
+                <span class="product-card__hash">ID: {{ listing.id | truncate(length=12, end="") | upper }}</span>
+                <span class="product-card__overlay-btn">View Details</span>
+            </div>
+        </div>
+    </div>
+
+    {# Info Section #}
+    <div class="product-card__content">
+        <div class="product-card__header">
+            <h3 class="product-card__title" title="{{ listing.title }}">
+                {{ listing.title | truncate(length=16, end="") | upper }}
+            </h3>
+            <div class="product-card__rating">
+                <span class="product-card__rating-star">★</span>
+                <span class="product-card__rating-value">{{ listing.rating | default(value="0.0") }}</span>
+            </div>
+        </div>
+
+        <div class="product-card__meta">
+            <span class="product-card__category-badge">{{ listing.category | default(value="DATA") | upper }}</span>
+            <span class="product-card__views">{{ view_count | default(value="0") }} views</span>
+        </div>
+
+        {# Stock Section #}
+        <div class="product-card__stock">
+            <div class="product-card__stock-header">
+                {% if is_out_of_stock %}
+                <span class="product-card__stock-label product-card__stock-label--out">Out of Stock</span>
+                <span class="product-card__stock-units">0 Units</span>
+                {% elif is_low_stock %}
+                <span class="product-card__stock-label product-card__stock-label--low">⚠ Low Stock</span>
+                <span class="product-card__stock-units">{{ stock_level }} Units</span>
+                {% else %}
+                <span class="product-card__stock-label">Stock Level</span>
+                <span class="product-card__stock-units">{{ stock_level }} Units</span>
+                {% endif %}
+            </div>
+            <div class="product-card__stock-bar">
+                <div class="product-card__stock-fill{% if is_out_of_stock %} product-card__stock-fill--out{% elif is_low_stock %} product-card__stock-fill--low{% endif %}"
+                     style="width: {% if is_out_of_stock %}0{% elif stock_level > 50 %}100{% else %}{{ stock_level * 2 }}{% endif %}%;"></div>
+            </div>
+        </div>
+
+        {# Footer - Price & Multisig #}
+        <div class="product-card__footer">
+            <div class="product-card__price-container">
+                <span class="product-card__price">{{ listing.price | default(value="0.00") }}</span>
+                {% if listing.price_usd %}
+                <span class="product-card__price-usd">{{ listing.price_usd }}</span>
+                {% endif %}
+            </div>
+            <span class="product-card__multisig">2/3 Multisig</span>
+        </div>
+    </div>
+</a>

@@ -1,0 +1,486 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Vendor Dashboard — FROST MARKET{% endblock %}
+
+{% block content %}
+{# ===== FIRST-TIME TOUR ===== #}
+<div class="dashboard-tour" id="dashboard-tour" style="display: none;">
+    <div class="dashboard-tour__overlay" onclick="skipTour()"></div>
+
+    {# Tour Step 1: Stats #}
+    <div class="dashboard-tour__step" id="tour-step-1" data-target="vendor-stats">
+        <div class="dashboard-tour__tooltip dashboard-tour__tooltip--bottom">
+            <div class="dashboard-tour__step-number">1 of 4</div>
+            <h3>Your Business at a Glance</h3>
+            <p>Track your listings, orders, revenue, and sales in real-time. These stats update automatically.</p>
+            <div class="dashboard-tour__actions">
+                <button class="btn-ghost-sm" onclick="skipTour()">Skip Tour</button>
+                <button class="btn-gold-sm" onclick="nextTourStep()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    {# Tour Step 2: Create Listing #}
+    <div class="dashboard-tour__step" id="tour-step-2" data-target="create-listing-btn">
+        <div class="dashboard-tour__tooltip dashboard-tour__tooltip--left">
+            <div class="dashboard-tour__step-number">2 of 4</div>
+            <h3>Add Products Here</h3>
+            <p>Click this button to create new listings. Each listing is protected by 2-of-3 multisig escrow.</p>
+            <div class="dashboard-tour__actions">
+                <button class="btn-ghost-sm" onclick="prevTourStep()">Back</button>
+                <button class="btn-gold-sm" onclick="nextTourStep()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    {# Tour Step 3: Listings #}
+    <div class="dashboard-tour__step" id="tour-step-3" data-target="listings-section">
+        <div class="dashboard-tour__tooltip dashboard-tour__tooltip--top">
+            <div class="dashboard-tour__step-number">3 of 4</div>
+            <h3>Manage Your Listings</h3>
+            <p>View, edit, and delete your products here. Keep your inventory updated for best results.</p>
+            <div class="dashboard-tour__actions">
+                <button class="btn-ghost-sm" onclick="prevTourStep()">Back</button>
+                <button class="btn-gold-sm" onclick="nextTourStep()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    {# Tour Step 4: Orders #}
+    <div class="dashboard-tour__step" id="tour-step-4" data-target="orders-section">
+        <div class="dashboard-tour__tooltip dashboard-tour__tooltip--top">
+            <div class="dashboard-tour__step-number">4 of 4</div>
+            <h3>Track Orders</h3>
+            <p>New orders appear here. Mark them as shipped when dispatched, and funds release after buyer confirms receipt.</p>
+            <div class="dashboard-tour__actions">
+                <button class="btn-ghost-sm" onclick="prevTourStep()">Back</button>
+                <button class="btn-gold-sm" onclick="finishTour()">Got it!</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="vendor-dashboard">
+    <div class="container-industrial">
+
+        {# ===== HEADER ===== #}
+        <div class="vendor-header">
+            <div class="vendor-header__left">
+                <h1 class="h1-massive">
+                    Vendor <span class="text-gold">Dashboard</span>
+                </h1>
+                <p class="vendor-header__subtitle">
+                    Welcome back, <span class="text-gold">{{ username }}</span>. Here's your marketplace overview.
+                </p>
+            </div>
+            <a href="/listings/create" class="btn-gold-outline btn-shimmer" id="create-listing-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/>
+                </svg>
+                <span>Create Listing</span>
+            </a>
+        </div>
+
+        {# ===== STATS GRID ===== #}
+        <div class="vendor-stats" id="vendor-stats">
+            {# Active Listings #}
+            <div class="stat-card" style="animation-delay: 0ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Active Listings</span>
+                    <div class="stat-card__icon stat-card__icon--blue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m7.5 4.27 9 5.15"/>
+                            <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                            <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ stats.active_listings }}</div>
+                <div class="stat-card__trend stat-card__trend--up">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span>+{{ stats.new_listings_this_week }} this week</span>
+                </div>
+            </div>
+
+            {# Pending Orders #}
+            <div class="stat-card" style="animation-delay: 100ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Pending Orders</span>
+                    <div class="stat-card__icon stat-card__icon--yellow">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ stats.pending_orders }}</div>
+                {% if stats.pending_orders > 0 %}
+                <a href="/orders" class="stat-card__link">
+                    View orders
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </a>
+                {% else %}
+                <div class="stat-card__note">All caught up!</div>
+                {% endif %}
+            </div>
+
+            {# Total Revenue #}
+            <div class="stat-card" style="animation-delay: 200ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Total Revenue</span>
+                    <div class="stat-card__icon stat-card__icon--green">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                            <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value stat-card__value--gold">
+                    {{ stats.total_revenue_xmr }} <span class="stat-card__unit">XMR</span>
+                </div>
+                <div class="stat-card__trend stat-card__trend--up">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+                    </svg>
+                    <span>+{{ stats.revenue_this_month_xmr }} XMR this month</span>
+                </div>
+            </div>
+
+            {# Total Sales #}
+            <div class="stat-card" style="animation-delay: 300ms;">
+                <div class="stat-card__header">
+                    <span class="stat-card__label">Total Sales</span>
+                    <div class="stat-card__icon stat-card__icon--purple">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="stat-card__value">{{ stats.total_sales }}</div>
+                <div class="stat-card__note">{{ stats.completed_orders }} completed</div>
+            </div>
+        </div>
+
+        {# ===== ACTIVE LISTINGS TABLE ===== #}
+        <section class="vendor-section" id="listings-section" style="animation-delay: 400ms;">
+            <div class="vendor-section__header">
+                <h2 class="vendor-section__title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/>
+                        <line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/>
+                        <line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/>
+                    </svg>
+                    Your Active Listings
+                </h2>
+                <a href="/vendor/listings" class="vendor-section__link">
+                    View all
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </a>
+            </div>
+
+            {% if listings and listings | length > 0 %}
+            <div class="listings-table-container">
+                <table class="listings-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th class="text-right">Price</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for listing in listings %}
+                        <tr>
+                            <td>
+                                <div class="listing-product">
+                                    <div class="listing-product__image">
+                                        {% if listing.first_image_cid %}
+                                        <img src="/api/listings/{{ listing.id }}/images/{{ listing.first_image_cid }}" alt="{{ listing.title }}">
+                                        {% else %}
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+                                            <circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="listing-product__info">
+                                        <a href="/listings/{{ listing.id }}" class="listing-product__title">
+                                            {{ listing.title }}
+                                        </a>
+                                        <span class="listing-product__id">ID: {{ listing.id | truncate(length=8, end="") | upper }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="category-badge">{{ listing.category | upper }}</span>
+                            </td>
+                            <td class="text-right">
+                                <span class="price-display">{{ (listing.price_xmr / 1000000000000) | round(precision=4) }} XMR</span>
+                            </td>
+                            <td class="text-center">
+                                {% if listing.stock > 5 %}
+                                <span class="stock-badge stock-badge--good">{{ listing.stock }}</span>
+                                {% elif listing.stock > 0 %}
+                                <span class="stock-badge stock-badge--low">{{ listing.stock }}</span>
+                                {% else %}
+                                <span class="stock-badge stock-badge--out">Out</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="status-badge status-badge--active">
+                                    <span class="status-badge__dot"></span>
+                                    {{ listing.status | upper }}
+                                </span>
+                            </td>
+                            <td class="text-right">
+                                <div class="listing-actions">
+                                    <a href="/listings/{{ listing.id }}/edit" class="listing-action" title="Edit">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                                            <path d="m15 5 4 4"/>
+                                        </svg>
+                                    </a>
+                                    <button class="listing-action listing-action--danger" data-listing-id="{{ listing.id }}" title="Delete">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="vendor-empty">
+                <div class="vendor-empty__icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>
+                    </svg>
+                </div>
+                <h3 class="vendor-empty__title">No Active Listings</h3>
+                <p class="vendor-empty__text">Create your first listing to start selling on FROST MARKET.</p>
+                <a href="/listings/create" class="btn-gold-outline btn-shimmer" style="margin-top: 16px;">
+                    Create Your First Listing
+                </a>
+            </div>
+            {% endif %}
+        </section>
+
+        {# ===== RECENT ORDERS ===== #}
+        <section class="vendor-section" id="orders-section" style="animation-delay: 500ms;">
+            <div class="vendor-section__header">
+                <h2 class="vendor-section__title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+                    </svg>
+                    Recent Orders
+                </h2>
+                <a href="/orders" class="vendor-section__link">
+                    View all
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </a>
+            </div>
+
+            {% if orders and orders | length > 0 %}
+            <div class="recent-orders-grid">
+                {% for order in orders %}
+                <div class="recent-order-card">
+                    <div class="recent-order-card__header">
+                        <span class="recent-order-card__id">#{{ order.id | truncate(length=8, end="") | upper }}</span>
+                        {% if order.status == "pending" %}
+                        <span class="order-status order-status--pending">Pending</span>
+                        {% elif order.status == "shipped" %}
+                        <span class="order-status order-status--shipped">Shipped</span>
+                        {% elif order.status == "completed" %}
+                        <span class="order-status order-status--completed">Completed</span>
+                        {% else %}
+                        <span class="order-status">{{ order.status | upper }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="recent-order-card__body">
+                        <h3 class="recent-order-card__title">{{ order.listing_title | truncate(length=25, end="...") }}</h3>
+                        <p class="recent-order-card__buyer">Buyer: <span>{{ order.buyer_username }}</span></p>
+                    </div>
+
+                    <div class="recent-order-card__footer">
+                        <div class="recent-order-card__price-block">
+                            <span class="recent-order-card__price">{{ order.total_price_xmr }} XMR</span>
+                            <span class="recent-order-card__date">{{ order.created_at | date(format="%b %d") }}</span>
+                        </div>
+                        <a href="/orders/{{ order.id }}" class="recent-order-card__link">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="vendor-empty">
+                <div class="vendor-empty__icon">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                    </svg>
+                </div>
+                <h3 class="vendor-empty__title">No Recent Orders</h3>
+                <p class="vendor-empty__text">Keep your listings active to attract buyers.</p>
+            </div>
+            {% endif %}
+        </section>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ===== FIRST-TIME TOUR =====
+const TOUR_STORAGE_KEY = 'nexus_vendor_tour_completed';
+let currentTourStep = 1;
+const totalTourSteps = 4;
+
+function shouldShowTour() {
+    return !localStorage.getItem(TOUR_STORAGE_KEY);
+}
+
+function startTour() {
+    const tourContainer = document.getElementById('dashboard-tour');
+    if (!tourContainer) return;
+
+    tourContainer.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    currentTourStep = 1;
+    showTourStep(1);
+}
+
+function showTourStep(step) {
+    // Hide all steps
+    document.querySelectorAll('.dashboard-tour__step').forEach(el => {
+        el.classList.remove('dashboard-tour__step--active');
+    });
+
+    // Show current step
+    const currentStep = document.getElementById(`tour-step-${step}`);
+    if (!currentStep) return;
+
+    currentStep.classList.add('dashboard-tour__step--active');
+
+    // Position tooltip near target element
+    const targetId = currentStep.dataset.target;
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Add highlight to target
+        document.querySelectorAll('.dashboard-tour__highlight').forEach(el => {
+            el.classList.remove('dashboard-tour__highlight');
+        });
+        targetEl.classList.add('dashboard-tour__highlight');
+    }
+}
+
+function nextTourStep() {
+    if (currentTourStep < totalTourSteps) {
+        currentTourStep++;
+        showTourStep(currentTourStep);
+    }
+}
+
+function prevTourStep() {
+    if (currentTourStep > 1) {
+        currentTourStep--;
+        showTourStep(currentTourStep);
+    }
+}
+
+function skipTour() {
+    closeTour();
+}
+
+function finishTour() {
+    localStorage.setItem(TOUR_STORAGE_KEY, 'true');
+    closeTour();
+}
+
+function closeTour() {
+    const tourContainer = document.getElementById('dashboard-tour');
+    if (tourContainer) {
+        tourContainer.style.display = 'none';
+    }
+    document.body.style.overflow = '';
+
+    // Remove highlights
+    document.querySelectorAll('.dashboard-tour__highlight').forEach(el => {
+        el.classList.remove('dashboard-tour__highlight');
+    });
+}
+
+// Start tour on first visit
+document.addEventListener('DOMContentLoaded', function() {
+    if (shouldShowTour()) {
+        // Small delay to let page render
+        setTimeout(startTour, 500);
+    }
+});
+
+// Keyboard navigation for tour
+document.addEventListener('keydown', function(e) {
+    const tourContainer = document.getElementById('dashboard-tour');
+    if (!tourContainer || tourContainer.style.display === 'none') return;
+
+    if (e.key === 'Escape') {
+        skipTour();
+    } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+        if (currentTourStep < totalTourSteps) {
+            nextTourStep();
+        } else {
+            finishTour();
+        }
+    } else if (e.key === 'ArrowLeft') {
+        prevTourStep();
+    }
+});
+
+// ===== DELETE LISTING =====
+document.querySelectorAll('.listing-action--danger').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const listingId = this.dataset.listingId;
+        if (confirm('Are you sure you want to delete this listing?')) {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            fetch(`/api/listings/${listingId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken ? csrfToken.content : ''
+                }
+            }).then(response => {
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete listing');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base-aura.html" %}
+
+{% block title %}My Orders - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="container mx-auto px-4 py-12 pb-32 max-w-5xl">
+    <!-- Header -->
+    <div class="mb-12 animate-slide-down-clip">
+        <h1 class="text-4xl md:text-6xl font-light tracking-tighter text-white mb-4">
+            My <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400">Orders</span>
+        </h1>
+        <p class="text-gray-400 text-lg font-light">Track your purchases and manage your transactions securely.</p>
+    </div>
+
+    <!-- Orders List -->
+    <div class="space-y-4">
+        {% if orders and orders | length > 0 %}
+        {% for order in orders %}
+        <a href="/orders/{{ order.id }}"
+            class="group block p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all duration-300 backdrop-blur-md animate-reveal"
+            style="animation-delay: {{ loop.index0 * 50 }}ms;">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div class="flex-grow">
+                    <div class="flex items-center gap-3 mb-2">
+                        <h3 class="text-lg text-white font-medium flex items-center gap-2">
+                            <i data-lucide="package" class="w-4 h-4 text-purple-400"></i>
+                            Order #{{ order.id | truncate(length=8, end="") }}
+                        </h3>
+                        <!-- Status Badge -->
+                        {% if order.status == "pending" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs uppercase tracking-wider">Pending</span>
+                        {% elif order.status == "funded" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs uppercase tracking-wider">Funded</span>
+                        {% elif order.status == "shipped" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs uppercase tracking-wider">Shipped</span>
+                        {% elif order.status == "releasing" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs uppercase tracking-wider">Confirming</span>
+                        {% elif order.status == "completed" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs uppercase tracking-wider">Completed</span>
+                        {% elif order.status == "cancelled" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs uppercase tracking-wider">Cancelled</span>
+                        {% elif order.status == "disputed" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs uppercase tracking-wider">Disputed</span>
+                        {% elif order.status == "refunded" %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-gray-500/10 border border-gray-500/20 text-gray-400 text-xs uppercase tracking-wider">Refunded</span>
+                        {% else %}
+                        <span
+                            class="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-xs uppercase tracking-wider">{{
+                            order.status | title }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-400">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                            {{ order.created_at | date(format="%Y-%m-%d %H:%M") }}
+                        </span>
+                        {% if order.listing_title %}
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="tag" class="w-3.5 h-3.5"></i>
+                            {{ order.listing_title }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between md:justify-end gap-6 min-w-[150px]">
+                    {% if order.total_price_xmr %}
+                    <span class="text-xl text-cyan-400 font-light">{{ order.total_price_xmr }} XMR</span>
+                    {% endif %}
+                    <i data-lucide="chevron-right"
+                        class="w-5 h-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all"></i>
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <!-- Empty State -->
+        <div
+            class="flex flex-col items-center justify-center py-20 text-center border border-dashed border-white/10 rounded-3xl bg-white/5 animate-reveal">
+            <div
+                class="w-20 h-20 mb-6 rounded-full bg-white/5 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+                <i data-lucide="shopping-bag" class="w-10 h-10 text-gray-600"></i>
+            </div>
+            <h3 class="text-2xl text-white font-light mb-2">No orders yet</h3>
+            <p class="text-gray-400 mb-8">When you make a purchase, your orders will appear here.</p>
+            <a href="/listings"
+                class="px-8 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition-all hover:shadow-[0_0_20px_rgba(255,255,255,0.1)]">
+                Browse Listings
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Info Card -->
+    {% if orders and orders | length > 0 %}
+    <div class="mt-12 p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md max-w-2xl animate-reveal"
+        style="animation-delay: 200ms;">
+        <h3 class="text-lg text-white font-light mb-4 flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-5 h-5 text-green-400"></i>
+            Order Protection
+        </h3>
+        <div class="space-y-3">
+            <div class="flex items-center gap-3 text-sm text-gray-400">
+                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                <span>2-of-3 multisig escrow on all transactions</span>
+            </div>
+            <div class="flex items-center gap-3 text-sm text-gray-400">
+                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                <span>Funds released only after confirmation</span>
+            </div>
+            <div class="flex items-center gap-3 text-sm text-gray-400">
+                <i data-lucide="check" class="w-4 h-4 text-green-400"></i>
+                <span>Dispute resolution available for all orders</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% include "components/navigation-aura.html" %}
+{% endblock %}

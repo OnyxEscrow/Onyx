@@ -1,0 +1,222 @@
+{% extends "base-aura.html" %}
+
+{% block title %}My Escrows - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="min-h-screen pt-24 pb-32">
+    <div class="w-full max-w-7xl mx-auto px-4 md:px-8 animate-reveal">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-light text-white tracking-wide">
+                    Escrows
+                    {% if pending_actions | length > 0 %}
+                    <span class="inline-flex items-center justify-center ml-2 px-3 py-1 text-sm bg-red-500/20 border border-red-500/50 text-red-400 rounded-full animate-pulse">
+                        {{ pending_actions | length }} action{% if pending_actions | length > 1 %}s{% endif %}
+                    </span>
+                    {% endif %}
+                </h1>
+                <p class="text-gray-400 mt-2">Manage your multisig escrows and complete pending signatures</p>
+            </div>
+
+            <!-- Quick Setup Button if no wallet -->
+            {% if not has_wasm_wallet %}
+            <a href="/wallet" class="group relative px-6 py-3 rounded-xl overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-xl"></div>
+                <span class="relative text-yellow-400 group-hover:text-white transition-colors flex items-center gap-2 font-medium">
+                    <i data-lucide="wallet" class="w-5 h-5"></i>
+                    Setup Your Wallet First
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </span>
+            </a>
+            {% endif %}
+        </div>
+
+        <!-- Actions Required Section -->
+        {% if pending_actions | length > 0 %}
+        <div class="mb-12">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-full bg-red-500/20 border border-red-500/50 flex items-center justify-center">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-red-400"></i>
+                </div>
+                <h2 class="text-xl font-medium text-white">Actions Required</h2>
+            </div>
+
+            <div class="grid gap-4">
+                {% for escrow in pending_actions %}
+                <div class="group relative bg-[#0F1115]/80 backdrop-blur-md border border-red-500/30 hover:border-red-500/50 rounded-2xl p-6 transition-all duration-300">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="text-lg font-mono text-white">Escrow #{{ escrow.id | truncate(length=8, end="") }}</span>
+                                <span class="px-2 py-0.5 text-xs rounded-full bg-{{ escrow.status_color }}-500/20 text-{{ escrow.status_color }}-400 border border-{{ escrow.status_color }}-500/30">
+                                    {{ escrow.status }}
+                                </span>
+                                <span class="px-2 py-0.5 text-xs rounded-full bg-white/5 text-gray-400 border border-white/10">
+                                    {{ escrow.role }}
+                                </span>
+                            </div>
+                            <p class="text-gray-400 text-sm">{{ escrow.action_message }}</p>
+                            <div class="flex items-center gap-4 mt-3 text-sm">
+                                <span class="text-cyan-400 font-mono">{{ escrow.amount_xmr }} XMR</span>
+                                <span class="text-gray-500">{{ escrow.created_at }}</span>
+                            </div>
+                        </div>
+
+                        <a href="/escrow/{{ escrow.id }}" class="group/btn relative px-6 py-3 rounded-xl overflow-hidden shrink-0">
+                            <div class="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 opacity-90 group-hover/btn:opacity-100 transition-opacity rounded-xl"></div>
+                            <span class="relative text-white font-medium flex items-center gap-2">
+                                {% if escrow.action_type == "sign" %}
+                                <i data-lucide="pen-tool" class="w-4 h-4"></i>
+                                Complete Signature
+                                {% elif escrow.action_type == "ship" %}
+                                <i data-lucide="truck" class="w-4 h-4"></i>
+                                Ship & Release
+                                {% else %}
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                                View Details
+                                {% endif %}
+                            </span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- All Escrows Section -->
+        <div>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                        <i data-lucide="list" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <h2 class="text-xl font-medium text-white">All Escrows</h2>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="hidden md:flex items-center gap-2 bg-white/5 border border-white/10 rounded-full p-1">
+                    <button class="px-4 py-1.5 text-sm rounded-full {% if filter == 'all' %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %} transition-colors"
+                            hx-get="/escrows?filter=all" hx-target="#escrows-list" hx-swap="innerHTML">
+                        All
+                    </button>
+                    <button class="px-4 py-1.5 text-sm rounded-full {% if filter == 'buyer' %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %} transition-colors"
+                            hx-get="/escrows?filter=buyer" hx-target="#escrows-list" hx-swap="innerHTML">
+                        As Buyer
+                    </button>
+                    <button class="px-4 py-1.5 text-sm rounded-full {% if filter == 'vendor' %}bg-white/10 text-white{% else %}text-gray-400 hover:text-white{% endif %} transition-colors"
+                            hx-get="/escrows?filter=vendor" hx-target="#escrows-list" hx-swap="innerHTML">
+                        As Vendor
+                    </button>
+                </div>
+            </div>
+
+            <div id="escrows-list">
+                {% if escrows | length > 0 %}
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
+                    <!-- Table Header -->
+                    <div class="hidden md:grid grid-cols-6 gap-4 px-6 py-4 border-b border-white/10 text-xs text-gray-500 uppercase tracking-wider">
+                        <div>ID</div>
+                        <div>Status</div>
+                        <div>Amount</div>
+                        <div>Role</div>
+                        <div>Date</div>
+                        <div class="text-right">Action</div>
+                    </div>
+
+                    <!-- Table Body -->
+                    {% for escrow in escrows %}
+                    <div class="grid grid-cols-2 md:grid-cols-6 gap-4 px-6 py-4 border-b border-white/5 hover:bg-white/5 transition-colors items-center">
+                        <div class="font-mono text-white text-sm">
+                            <a href="/escrow/{{ escrow.id }}" class="hover:text-cyan-400 transition-colors">
+                                #{{ escrow.id | truncate(length=8, end="") }}
+                            </a>
+                        </div>
+                        <div>
+                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full
+                                {% if escrow.status == 'funded' %}bg-blue-500/20 text-blue-400 border border-blue-500/30
+                                {% elif escrow.status == 'signing_initiated' %}bg-yellow-500/20 text-yellow-400 border border-yellow-500/30
+                                {% elif escrow.status == 'signing_completed' %}bg-green-500/20 text-green-400 border border-green-500/30
+                                {% elif escrow.status == 'shipped' %}bg-purple-500/20 text-purple-400 border border-purple-500/30
+                                {% elif escrow.status == 'completed' %}bg-emerald-500/20 text-emerald-400 border border-emerald-500/30
+                                {% elif escrow.status == 'disputed' %}bg-red-500/20 text-red-400 border border-red-500/30
+                                {% else %}bg-gray-500/20 text-gray-400 border border-gray-500/30{% endif %}">
+                                {{ escrow.status | replace(from="_", to=" ") | title }}
+                            </span>
+                        </div>
+                        <div class="text-cyan-400 font-mono text-sm">{{ escrow.amount_xmr }} XMR</div>
+                        <div class="text-gray-400 text-sm capitalize">{{ escrow.role }}</div>
+                        <div class="text-gray-500 text-sm">{{ escrow.created_at }}</div>
+                        <div class="text-right col-span-2 md:col-span-1">
+                            {% if escrow.needs_action %}
+                            <a href="/escrow/{{ escrow.id }}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors">
+                                <i data-lucide="zap" class="w-3 h-3"></i>
+                                Action
+                            </a>
+                            {% else %}
+                            <a href="/escrow/{{ escrow.id }}" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10 transition-colors">
+                                <i data-lucide="eye" class="w-3 h-3"></i>
+                                View
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <!-- Empty State -->
+                <div class="text-center py-16">
+                    <div class="w-20 h-20 mx-auto rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                        <i data-lucide="shield-off" class="w-8 h-8 text-gray-500"></i>
+                    </div>
+                    <h3 class="text-xl font-light text-white mb-2">No Escrows Yet</h3>
+                    <p class="text-gray-400 max-w-md mx-auto mb-6">When you buy or sell items, your escrow transactions will appear here.</p>
+                    <a href="/listings" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-all">
+                        <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                        Browse Marketplace
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="mt-12 p-6 bg-[#0F1115]/40 border border-white/5 rounded-2xl">
+            <h3 class="text-lg font-medium text-white mb-4 flex items-center gap-2">
+                <i data-lucide="help-circle" class="w-5 h-5 text-cyan-400"></i>
+                How Escrow Works
+            </h3>
+            <div class="grid md:grid-cols-3 gap-6 text-sm">
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold">1</div>
+                    <div>
+                        <p class="text-white font-medium">Buyer Funds</p>
+                        <p class="text-gray-400">Buyer sends XMR to the 2-of-3 multisig escrow wallet</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center text-yellow-400 font-bold">2</div>
+                    <div>
+                        <p class="text-white font-medium">Vendor Ships</p>
+                        <p class="text-gray-400">Vendor ships the item and initiates release signature</p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <div class="shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center text-green-400 font-bold">3</div>
+                    <div>
+                        <p class="text-white font-medium">Buyer Confirms</p>
+                        <p class="text-gray-400">Buyer co-signs to release funds to vendor</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+{% endblock %}

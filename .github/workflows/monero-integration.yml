@@ -1,0 +1,145 @@
+name: Monero Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  monero-testnet:
+    name: Monero Testnet Integration
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Download Monero CLI
+      run: |
+        # Download Monero CLI for Windows
+        $moneroVersion = "0.18.3.2"
+        $url = "https://downloads.getmonero.org/cli/monero-win-x64-v$moneroVersion.zip"
+        Invoke-WebRequest -Uri $url -OutFile "monero.zip"
+        Expand-Archive -Path "monero.zip" -DestinationPath "monero"
+        Add-Path "monero"
+        
+    - name: Setup Monero Testnet
+      run: |
+        # Create testnet directory
+        New-Item -ItemType Directory -Path "testnet" -Force
+        
+        # Start Monero daemon in testnet mode
+        Start-Process -FilePath "monero/monerod.exe" -ArgumentList "--testnet", "--data-dir", "testnet", "--rpc-bind-ip", "127.0.0.1", "--rpc-bind-port", "28081" -WindowStyle Hidden
+        
+        # Wait for daemon to start
+        Start-Sleep -Seconds 30
+        
+        # Create test wallet
+        $walletPassword = "test123"
+        $walletFile = "testnet/test_wallet"
+        
+        # Create wallet
+        echo $walletPassword | monero/monero-wallet-cli.exe --testnet --generate-new-wallet $walletFile --password $walletPassword --restore-height 1
+        
+        # Start wallet RPC
+        Start-Process -FilePath "monero/monero-wallet-rpc.exe" -ArgumentList "--testnet", "--wallet-file", $walletFile, "--password", $walletPassword, "--rpc-bind-ip", "127.0.0.1", "--rpc-bind-port", "18082", "--disable-rpc-login" -WindowStyle Hidden
+        
+        # Wait for wallet RPC to start
+        Start-Sleep -Seconds 10
+        
+    - name: Test RPC Connection
+      run: |
+        # Test basic RPC connectivity
+        $response = Invoke-RestMethod -Uri "http://127.0.0.1:18082/json_rpc" -Method Post -ContentType "application/json" -Body '{"jsonrpc":"2.0","id":"0","method":"get_version"}'
+        Write-Host "Monero RPC Version: $($response.result.version)"
+        
+    - name: Run Integration Tests
+      run: |
+        # Set environment variables for tests
+        $env:MONERO_RPC_URL = "http://127.0.0.1:18082/json_rpc"
+        $env:MONERO_RPC_TIMEOUT_SECS = "30"
+        
+        # Run integration tests
+        cargo test --package wallet --test integration -- --nocapture
+        
+    - name: Test Multisig Operations
+      run: |
+        # Test prepare_multisig
+        cargo test --package wallet test_prepare_multisig -- --nocapture
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        # Stop processes
+        Get-Process | Where-Object {$_.ProcessName -like "*monero*"} | Stop-Process -Force -ErrorAction SilentlyContinue
+        
+    - name: Upload Test Logs
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: monero-test-logs
+        path: |
+          testnet/
+          *.log
+        retention-days: 3
+
+  tor-integration:
+    name: Tor Integration Tests
+    runs-on: windows-latest
+    needs: monero-testnet
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Install Tor
+      run: |
+        # Download Tor Browser (includes Tor daemon)
+        $torVersion = "12.5.6"
+        $url = "https://www.torproject.org/dist/torbrowser/$torVersion/torbrowser-install-win64-$torVersion_en-US.exe"
+        Invoke-WebRequest -Uri $url -OutFile "tor-installer.exe"
+        
+        # Install Tor (silent mode)
+        Start-Process -FilePath "tor-installer.exe" -ArgumentList "/S" -Wait
+        
+        # Start Tor daemon
+        Start-Process -FilePath "C:\Program Files\Tor Browser\Browser\TorBrowser\Tor\tor.exe" -ArgumentList "-f", "torrc" -WindowStyle Hidden
+        
+        # Wait for Tor to start
+        Start-Sleep -Seconds 15
+        
+    - name: Test Tor Connection
+      run: |
+        # Test Tor connectivity
+        $response = Invoke-RestMethod -Uri "https://check.torproject.org/api/ip" -Proxy "http://127.0.0.1:9050"
+        if ($response.IsTor) {
+          Write-Host "✅ Tor connection successful"
+        } else {
+          Write-Host "❌ Tor connection failed"
+          exit 1
+        }
+        
+    - name: Run Tor Reality Checks
+      run: |
+        # Run Tor-specific tests
+        cargo test --package wallet test_check_tor_connection -- --nocapture
+        
+    - name: Validate Reality Checks
+      run: |
+        if (Test-Path "scripts/validate-reality-check-tor.ps1") {
+          pwsh -ExecutionPolicy Bypass -File "scripts/validate-reality-check-tor.ps1" prepare_multisig
+        }
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        # Stop Tor
+        Get-Process | Where-Object {$_.ProcessName -like "*tor*"} | Stop-Process -Force -ErrorAction SilentlyContinue

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Onyx_Escrow | Secure Multisig</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              art: {
+                bg: '#F3F2EE',     // The warm beige from the reference
+                black: '#121212',  // Ink black
+                gray: '#888888',   // Muted text
+                white: '#FFFFFF',
+                accent: '#000000',
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              display: ['Syne', 'sans-serif'], // The wide, artistic font
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+            animation: {
+              'float': 'float 6s ease-in-out infinite',
+              'float-delayed': 'float 6s ease-in-out 3s infinite',
+              'spin-slow': 'spin 20s linear infinite',
+              'hero-enter': 'hero-enter 1.5s cubic-bezier(0.22, 1, 0.36, 1) both',
+              'reveal-mask': 'reveal-mask 1.5s cubic-bezier(0.22, 1, 0.36, 1) both',
+              'text-slide-down': 'text-slide-down 1s cubic-bezier(0.16, 1, 0.3, 1) both',
+              'ticker': 'ticker 30s linear infinite',
+            },
+            keyframes: {
+              float: {
+                '0%, 100%': { transform: 'translateY(0)' },
+                '50%': { transform: 'translateY(-10px)' },
+              },
+              'hero-enter': {
+                '0%': { opacity: '0', transform: 'translateY(20px)', filter: 'blur(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
+              },
+              'reveal-mask': {
+                '0%': { 'clip-path': 'inset(0 100% 0 0)' },
+                '100%': { 'clip-path': 'inset(0 0 0 0)' },
+              },
+              'text-slide-down': {
+                '0%': { transform: 'translateY(-100%)' },
+                '100%': { transform: 'translateY(0)' },
+              },
+              'ticker': {
+                '0%': { transform: 'translateX(0)' },
+                '100%': { transform: 'translateX(-50%)' },
+              },
+              'confetti': {
+                '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+                '100%': { transform: 'translateY(-200px) scale(0)', opacity: '0' },
+              },
+              'draw-circle': {
+                '0%': { strokeDashoffset: '226' },
+                '100%': { strokeDashoffset: '0' },
+              },
+              'scale-bounce': {
+                '0%': { transform: 'scale(0.3)', opacity: '0' },
+                '50%': { transform: 'scale(1.1)' },
+                '100%': { transform: 'scale(1)', opacity: '1' },
+              },
+              'ripple': {
+                '0%': { transform: 'scale(1)', opacity: '0.4' },
+                '100%': { transform: 'scale(3)', opacity: '0' },
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        background-color: #F3F2EE;
+        color: #121212;
+        overflow-x: hidden;
+      }
+      
+      /* Artistic Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #000;
+        border-radius: 3px;
+      }
+
+      /* Text Outline Effect for Background Typography */
+      .text-outline {
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(0,0,0,0.1);
+      }
+      
+      .glass-card {
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+      }
+    </style>
+
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/BlNuvHOb.js"></script>
+</head>
+  <body>
+    <div id="root"></div>
+</body>
+</html>

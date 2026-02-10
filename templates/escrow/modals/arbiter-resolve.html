@@ -1,0 +1,284 @@
+<!-- Apple Modal: Arbiter Resolve Dispute -->
+<div class="apple-modal active" id="arbiter-resolve-modal">
+    <div class="apple-modal-content" onclick="event.stopPropagation()">
+        <div class="apple-modal-header">
+            <h3 class="apple-modal-title">
+                <span class="apple-modal-title-icon" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1)); color: #8b5cf6;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </span>
+                Resolve Dispute
+            </h3>
+            <button class="apple-modal-close" onclick="document.getElementById('arbiter-resolve-modal').remove()" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="apple-modal-body">
+            <!-- Dispute Info -->
+            <div class="apple-alert apple-alert-info" style="margin-bottom: 24px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <div>
+                    <strong>Arbiter Decision Required</strong>
+                    <p style="margin: 4px 0 0 0; font-size: 13px;">
+                        Review the dispute reason and evidence, then decide who receives the funds.
+                        This decision is final and will trigger the signing process.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dispute Reason Display -->
+            {% if dispute_reason %}
+            <div class="apple-form-group">
+                <label class="apple-form-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                    </svg>
+                    Dispute Reason
+                </label>
+                <div class="apple-textarea" style="background: var(--apple-bg-tertiary); min-height: 80px; white-space: pre-wrap;">{{ dispute_reason }}</div>
+            </div>
+            {% endif %}
+
+            <!-- Escrow Details -->
+            <div class="apple-details-grid" style="margin-bottom: 24px;">
+                <span class="apple-detail-label">Escrow Amount:</span>
+                <span class="apple-detail-value">{{ amount_xmr }} XMR</span>
+
+                <span class="apple-detail-label">Buyer:</span>
+                <span class="apple-detail-value">{{ buyer_name | default(value="Unknown") }}</span>
+
+                <span class="apple-detail-label">Vendor:</span>
+                <span class="apple-detail-value">{{ vendor_name | default(value="Unknown") }}</span>
+            </div>
+
+            <!-- Resolution Form -->
+            <form id="arbiter-resolve-form">
+                <div class="apple-form-group">
+                    <label class="apple-form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Resolution Decision
+                    </label>
+
+                    <div class="apple-radio-group" style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Refund to Buyer -->
+                        <label class="apple-radio-card" style="display: flex; align-items: center; padding: 16px; border: 1px solid var(--apple-separator); border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="resolution" value="buyer_refund" required style="margin-right: 12px;">
+                            <div style="flex: 1;">
+                                <strong style="color: #ef4444;">Refund to Buyer</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--apple-text-secondary);">
+                                    Funds will be returned to the buyer. Arbiter + Buyer will sign.
+                                </p>
+                            </div>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                                <path d="M3 12h18m-6 6l6-6-6-6"/>
+                            </svg>
+                        </label>
+
+                        <!-- Release to Vendor -->
+                        <label class="apple-radio-card" style="display: flex; align-items: center; padding: 16px; border: 1px solid var(--apple-separator); border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="resolution" value="vendor_release" required style="margin-right: 12px;">
+                            <div style="flex: 1;">
+                                <strong style="color: #22c55e;">Release to Vendor</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--apple-text-secondary);">
+                                    Funds will be released to the vendor. Arbiter + Vendor will sign.
+                                </p>
+                            </div>
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Arbiter Notes (optional) -->
+                <div class="apple-form-group">
+                    <label for="arbiter-notes" class="apple-form-label">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Resolution Notes (Optional)
+                    </label>
+                    <textarea id="arbiter-notes"
+                              class="apple-textarea"
+                              rows="3"
+                              placeholder="Add notes explaining your decision..."
+                              maxlength="1000"></textarea>
+                    <span class="apple-form-hint">These notes will be visible to both parties.</span>
+                </div>
+
+                <!-- Warning -->
+                <div class="apple-alert apple-alert-danger" style="margin-top: 16px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    <div>
+                        <strong>This action is irreversible</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 13px;">Once resolved, the signing process will begin and cannot be undone.</p>
+                    </div>
+                </div>
+
+                <!-- Result Container -->
+                <div id="resolve-result"></div>
+
+                <!-- Actions -->
+                <div class="apple-modal-footer" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--apple-separator);">
+                    <button type="button"
+                            class="apple-btn apple-btn-ghost"
+                            onclick="document.getElementById('arbiter-resolve-modal').remove()">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            id="resolve-submit-btn"
+                            class="apple-btn"
+                            style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1)); border-color: rgba(139, 92, 246, 0.4); color: #8b5cf6;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Confirm Resolution
+                    </button>
+                    <div id="resolve-spinner" class="apple-spinner-inline" style="display: none;">
+                        <div class="apple-spinner-sm"></div>
+                        <span>Processing resolution...</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.apple-radio-card:hover {
+    border-color: var(--apple-accent) !important;
+    background: var(--apple-bg-secondary);
+}
+.apple-radio-card:has(input:checked) {
+    border-color: var(--apple-accent) !important;
+    background: rgba(139, 92, 246, 0.1);
+}
+</style>
+
+<script>
+(function() {
+    const ESCROW_ID = '{{ escrow_id }}';
+    const form = document.getElementById('arbiter-resolve-form');
+    const submitBtn = document.getElementById('resolve-submit-btn');
+    const spinner = document.getElementById('resolve-spinner');
+    const resultDiv = document.getElementById('resolve-result');
+
+    // Close modal on overlay click
+    document.getElementById('arbiter-resolve-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.remove();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('arbiter-resolve-modal');
+            if (modal) modal.remove();
+        }
+    }, { once: true });
+
+    // Handle form submission
+    form?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const resolution = formData.get('resolution');
+        const notes = document.getElementById('arbiter-notes')?.value?.trim() || '';
+
+        if (!resolution) {
+            resultDiv.innerHTML = '<div class="apple-alert apple-alert-danger">Please select a resolution.</div>';
+            return;
+        }
+
+        // Determine signing pair based on resolution
+        const signingPair = resolution === 'buyer_refund' ? 'arbiter_buyer' : 'arbiter_vendor';
+
+        // Show loading state
+        submitBtn.disabled = true;
+        spinner.style.display = 'flex';
+        resultDiv.innerHTML = '';
+
+        try {
+            // Step 1: Resolve the dispute
+            const resolveResponse = await fetch(`/api/escrow/${ESCROW_ID}/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resolution: resolution,
+                    notes: notes
+                }),
+                credentials: 'include'
+            });
+
+            if (!resolveResponse.ok) {
+                const data = await resolveResponse.json();
+                throw new Error(data.error || 'Failed to resolve dispute');
+            }
+
+            // Step 2: Set the signing pair
+            const signingPairResponse = await fetch(`/api/escrow/${ESCROW_ID}/dispute/signing-pair`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ signing_pair: signingPair }),
+                credentials: 'include'
+            });
+
+            if (!signingPairResponse.ok) {
+                const data = await signingPairResponse.json();
+                throw new Error(data.error || 'Failed to set signing pair');
+            }
+
+            // Success
+            const winnerLabel = resolution === 'buyer_refund' ? 'Buyer' : 'Vendor';
+            resultDiv.innerHTML = `<div class="apple-alert apple-alert-success">
+                Dispute resolved in favor of ${winnerLabel}.
+                Signing pair set to ${signingPair}.
+                The signing process can now begin.
+            </div>`;
+
+            if (window.notificationManager) {
+                window.notificationManager.showToast(
+                    'Dispute Resolved',
+                    `Decision: ${winnerLabel}. Signing pair: ${signingPair}`,
+                    'success',
+                    8000
+                );
+            }
+
+            setTimeout(() => {
+                document.getElementById('arbiter-resolve-modal')?.remove();
+                window.location.reload();
+            }, 2500);
+
+        } catch (err) {
+            console.error('[Arbiter Resolve] Error:', err);
+            resultDiv.innerHTML = `<div class="apple-alert apple-alert-danger">${err.message}</div>`;
+
+            if (window.notificationManager) {
+                window.notificationManager.showToast('Resolution Failed', err.message, 'error', 8000);
+            }
+        } finally {
+            submitBtn.disabled = false;
+            spinner.style.display = 'none';
+        }
+    });
+})();
+</script>

@@ -1,0 +1,229 @@
+{% extends "base-nexus.html" %}
+{% import "partials/nexus-macros.html" as nx %}
+
+{% block title %}{{ listing.title }} - Monero Marketplace{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Breadcrumb Navigation -->
+    <nav class="nexus-breadcrumb" aria-label="Breadcrumb">
+        <ol class="nexus-breadcrumb-list">
+            <li class="nexus-breadcrumb-item">
+                <a href="/" class="nexus-breadcrumb-link" hx-boost="true">Home</a>
+                <span class="nexus-breadcrumb-separator" aria-hidden="true">/</span>
+            </li>
+            <li class="nexus-breadcrumb-item">
+                <a href="/listings" class="nexus-breadcrumb-link" hx-boost="true">Listings</a>
+                <span class="nexus-breadcrumb-separator" aria-hidden="true">/</span>
+            </li>
+            <li class="nexus-breadcrumb-item nexus-breadcrumb-item-current">
+                <span class="nexus-breadcrumb-current" aria-current="page">{{ listing.title }}</span>
+            </li>
+        </ol>
+    </nav>
+
+    <div style="margin-top: 2rem; max-width: 1000px; margin-left: auto; margin-right: auto;">
+        <!-- Listing Card -->
+        <div class="nexus-card nexus-card-elevated nexus-card-glass">
+            <!-- Badge -->
+            <div class="nexus-card-badge">
+                {{ nx::badge(text=listing.status | upper, variant="primary") }}
+            </div>
+
+            <!-- Header -->
+            <div class="nexus-card-header" style="border-bottom: 1px solid #2a2a2a; padding-bottom: 20px;">
+                <h3 class="nexus-card-title" style="font-size: 24px; margin-bottom: 10px;">
+                    {{ listing.title | upper }}
+                </h3>
+                <p class="nexus-card-subtitle" style="display: flex; gap: 20px; font-size: 11px; color: #888; letter-spacing: 1px; text-transform: uppercase;">
+                    <span>VENDOR: {{ vendor.username | upper }}</span>
+                    <span class="separator">—</span>
+                    <span>STOCK: {{ listing.stock }}</span>
+                </p>
+            </div>
+
+            <!-- Content -->
+            <div class="nexus-card-content">
+                <!-- Images -->
+                {% if images %}
+                <div style="margin-bottom: 40px;">
+                    <h2 style="font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-bottom: 15px;">
+                        — PRODUCT IMAGES
+                    </h2>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;">
+                        {% for image_cid in images %}
+                        <div style="border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; background: #1a1a1a;">
+                            <img
+                                src="/api/listings/{{ listing.id }}/images/{{ image_cid }}"
+                                alt="Product image"
+                                style="width: 100%; height: 200px; object-fit: cover; cursor: pointer;"
+                                onclick="openImageModal(this.src)"
+                            >
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Description -->
+                <div style="margin-bottom: 40px;">
+                    <h2 style="font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-bottom: 15px;">
+                        — DESCRIPTION
+                    </h2>
+                    <p style="color: #f5f5f5; line-height: 1.8; font-size: 13px;">
+                        {{ listing.description }}
+                    </p>
+                </div>
+
+                <!-- Price -->
+                <div style="margin-bottom: 40px; padding: 20px; border: 1px solid #2a2a2a; background-color: #1a1a1a; border-radius: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span style="display: block; font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px;">
+                                UNIT PRICE
+                            </span>
+                            <span style="font-size: 28px; font-weight: bold; color: #f5f5f5; letter-spacing: 2px;">
+                                {{ listing.price_xmr }}
+                            </span>
+                            <span style="font-size: 12px; color: #888; margin-left: 8px;">XMR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order form (buyer only) -->
+                {% if logged_in and role == "buyer" and listing.status == "active" and listing.stock > 0 %}
+                <div style="border-top: 1px solid #2a2a2a; padding-top: 40px; margin-top: 40px;">
+                    <h2 style="font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 20px;">
+                        — PLACE ORDER
+                    </h2>
+
+                    <form id="order-form" data-unit-price="{{ listing.price_xmr }}">
+                        <input type="hidden" name="listing_id" value="{{ listing.id }}">
+
+                        <div class="form-group">
+                            <label for="quantity">QUANTITY</label>
+                            <input
+                                type="number"
+                                id="quantity"
+                                name="quantity"
+                                min="1"
+                                max="{{ listing.stock }}"
+                                value="1"
+                                required
+                            >
+                            <small>AVAILABLE: {{ listing.stock }} UNITS</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shipping_address">SHIPPING ADDRESS <span style="color: #ff1a5c;">*</span></label>
+                            <textarea
+                                id="shipping_address"
+                                name="shipping_address"
+                                rows="3"
+                                minlength="10"
+                                maxlength="500"
+                                placeholder="Enter your full delivery address..."
+                                required
+                                style="width: 100%; padding: 10px; background-color: #1a1a1a; border: 1px solid #2a2a2a; color: #f5f5f5; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
+                            ></textarea>
+                            <small style="color: #888; font-size: 11px;">🔒 ENCRYPTED AND VISIBLE ONLY TO YOU AND THE VENDOR</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shipping_notes">DELIVERY INSTRUCTIONS (OPTIONAL)</label>
+                            <textarea
+                                id="shipping_notes"
+                                name="shipping_notes"
+                                rows="2"
+                                maxlength="200"
+                                placeholder="e.g., 'Ring doorbell', 'Leave with neighbor'..."
+                                style="width: 100%; padding: 10px; background-color: #1a1a1a; border: 1px solid #2a2a2a; color: #f5f5f5; border-radius: 4px; font-family: inherit; font-size: 14px; resize: vertical;"
+                            ></textarea>
+                            <small style="color: #888; font-size: 11px;">SPECIAL INSTRUCTIONS FOR THE COURIER (MAX 200 CHARS)</small>
+                        </div>
+
+                        <div style="margin-bottom: 20px; padding: 15px; border: 1px solid #2a2a2a; background-color: #1a1a1a; border-radius: 8px;">
+                            <span style="font-size: 10px; color: #888; letter-spacing: 1px; text-transform: uppercase;">
+                                TOTAL PRICE
+                            </span>
+                            <div style="font-size: 18px; color: #f5f5f5; margin-top: 5px;">
+                                <span id="total-price">{{ price_display | round(precision=12) }} XMR</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">
+                            CREATE ESCROW ORDER →
+                        </button>
+                    </form>
+
+                    <div id="order-result" style="margin-top: 20px;"></div>
+                </div>
+                {% endif %}
+
+                <!-- Vendor actions -->
+                {% if logged_in and role == "vendor" and listing.vendor_id == user_id %}
+                <div style="border-top: 1px solid #2a2a2a; padding-top: 40px; margin-top: 40px; display: flex; gap: 15px;">
+                    <a href="/listings/{{ listing.id }}/edit" class="btn btn-secondary" style="flex: 1;">
+                        EDIT LISTING
+                    </a>
+                    <button
+                        hx-delete="/api/listings/{{ listing.id }}"
+                        hx-confirm="DELETE THIS LISTING? THIS CANNOT BE UNDONE."
+                        hx-target="body"
+                        hx-indicator="#delete-spinner"
+                        hx-disabled-elt="this"
+                        class="btn btn-danger"
+                        style="flex: 1;"
+                    >
+                        <span>DELETE</span>
+                        <span id="delete-spinner" class="htmx-indicator" style="margin-left: 8px;">
+                            <svg class="spinner" width="16" height="16" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg">
+                                <circle class="path" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" cx="25" cy="25" r="20"></circle>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/show-listing.js" defer></script>
+<script>
+// Image modal functionality
+function openImageModal(src) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        cursor: pointer;
+    `;
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.style.cssText = `
+        max-width: 90%;
+        max-height: 90%;
+        object-fit: contain;
+    `;
+
+    modal.appendChild(img);
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+}
+</script>
+{% endblock %}

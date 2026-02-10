@@ -1,0 +1,61 @@
+<header role="banner">
+    <div style="width: 20px; height: 20px; background-color: red; margin-left: 10px;"></div>
+    <nav class="nav-container" role="navigation" aria-label="Main navigation">
+        <div class="nav-brand">
+            <a href="/" aria-label="Amazawn Home">
+                <img src="/static/amazawn_logo_v3_white_only.svg" alt="Amazawn Logo" class="logo" style="height: 24px; vertical-align: middle; margin-right: 8px;">
+                AMAZAWN
+            </a>
+        </div>
+
+        <div class="nav-menu" role="menubar">
+            <a href="/" role="menuitem" aria-label="Go to homepage">BROWSE</a>
+            <a href="/listings" role="menuitem" aria-label="Browse all listings">NEW</a>
+
+            {% if logged_in %}
+                {% if role == "vendor" %}
+                    <a href="/listings/new" role="menuitem" aria-label="Create a new listing">SELL</a>
+                {% endif %}
+                <a href="/messages" role="menuitem" aria-label="View messages" style="position: relative;">
+                    MESSAGES
+                    <span id="messages-badge" class="notification-badge" style="display: none;"></span>
+                </a>
+                <a href="/orders" role="menuitem" aria-label="View my orders" style="position: relative;">
+                    ORDERS
+                    <span id="orders-badge" class="notification-badge" style="display: none;"></span>
+                </a>
+                <span class="nav-user" aria-label="Current user">{{ username | upper }}</span>
+                <form action="/logout" method="post" style="display: inline;">
+                    <button type="submit" class="btn-link" aria-label="Logout from account">LOGOUT</button>
+                </form>
+            {% else %}
+                <a href="/login" role="menuitem" aria-label="Login to your account">LOGIN</a>
+                <a href="/register" role="menuitem" aria-label="Create a new account" style="background-color: #f5f5f5; color: #0a0a0a; border: 1px solid #f5f5f5;">REGISTER</a>
+            {% endif %}
+        </div>
+    </nav>
+</header>
+
+{% if logged_in %}
+<script>
+// Fetch unread message count and update badge
+(function updateMessageBadge() {
+    fetch('/api/secure-messages/unread-count', {
+        method: 'GET',
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        const badge = document.getElementById('messages-badge');
+        if (badge && data.unread_count > 0) {
+            badge.textContent = data.unread_count > 99 ? '99+' : data.unread_count;
+            badge.style.display = 'inline-block';
+        }
+    })
+    .catch(() => {});
+
+    // Refresh every 30 seconds
+    setTimeout(updateMessageBadge, 30000);
+})();
+</script>
+{% endif %}

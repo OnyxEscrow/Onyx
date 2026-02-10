@@ -1,0 +1,151 @@
+{#
+  NEXUS SKELETON COMPONENT (Loading Placeholder)
+
+  Usage:
+    {% include "partials/nexus/molecules/skeleton.html" %}
+
+  Parameters:
+    - variant (optional): text|circle|rectangle|card (default: text)
+    - width (optional): Width in any CSS unit (e.g., "200px", "100%")
+    - height (optional): Height in any CSS unit
+    - lines (optional): Number of lines for text variant (default: 1)
+    - class (optional): Additional CSS classes
+#}
+
+{% set skeleton_variant = variant | default(value="text") %}
+{% set skeleton_lines = lines | default(value=1) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-skeleton nexus-skeleton-" ~ skeleton_variant %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+{% if skeleton_variant == "text" %}
+  {# Text Skeleton (multiple lines) #}
+  <div class="nexus-skeleton-text-container">
+    {% for i in range(end=skeleton_lines) %}
+      <div
+        class="{{ css_classes }}"
+        {% if width %}style="width: {{ width }};"{% endif %}
+      ></div>
+    {% endfor %}
+  </div>
+{% elif skeleton_variant == "card" %}
+  {# Card Skeleton (image + text) #}
+  <div class="nexus-skeleton-card">
+    <div class="nexus-skeleton nexus-skeleton-rectangle nexus-skeleton-card-image"></div>
+    <div class="nexus-skeleton-card-content">
+      <div class="nexus-skeleton nexus-skeleton-text" style="width: 80%;"></div>
+      <div class="nexus-skeleton nexus-skeleton-text" style="width: 60%;"></div>
+      <div class="nexus-skeleton nexus-skeleton-text" style="width: 40%;"></div>
+    </div>
+  </div>
+{% else %}
+  {# Single Skeleton (circle, rectangle) #}
+  <div
+    class="{{ css_classes }}"
+    {% if width %}style="width: {{ width }}; {% if height %}height: {{ height }};{% endif %}"
+    {% elif height %}style="height: {{ height }};"{% endif %}
+  ></div>
+{% endif %}
+
+<style>
+/* Base Skeleton */
+.nexus-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--nexus-muted) 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    var(--nexus-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: nexus-skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--nexus-radius-sm);
+}
+
+@keyframes nexus-skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Text Skeleton */
+.nexus-skeleton-text {
+  height: 1rem;
+  width: 100%;
+  margin-bottom: var(--nexus-space-2);
+}
+
+.nexus-skeleton-text-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+}
+
+.nexus-skeleton-text-container .nexus-skeleton-text:last-child {
+  width: 70%;
+  margin-bottom: 0;
+}
+
+/* Circle Skeleton */
+.nexus-skeleton-circle {
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--nexus-radius-full);
+}
+
+/* Rectangle Skeleton */
+.nexus-skeleton-rectangle {
+  width: 100%;
+  height: 10rem;
+  border-radius: var(--nexus-radius-md);
+}
+
+/* Card Skeleton */
+.nexus-skeleton-card {
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-lg);
+  overflow: hidden;
+}
+
+.nexus-skeleton-card-image {
+  width: 100%;
+  height: 12rem;
+  border-radius: 0;
+}
+
+.nexus-skeleton-card-content {
+  padding: var(--nexus-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-2);
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .nexus-skeleton {
+    animation: none;
+    background: var(--nexus-muted);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-skeleton-text {
+    height: 0.875rem;
+  }
+
+  .nexus-skeleton-card-image {
+    height: 10rem;
+  }
+
+  .nexus-skeleton-card-content {
+    padding: var(--nexus-space-3);
+  }
+}
+</style>

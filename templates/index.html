@@ -1,0 +1,132 @@
+{% extends "base-aura.html" %}
+
+{% block title %}FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="w-full max-w-7xl mx-auto px-4 md:px-8 py-12 relative pt-32">
+
+  <!-- Filter Sidebar (Hidden by default) -->
+  <div id="filter-sidebar"
+    class="fixed inset-y-0 left-0 w-80 bg-charcoal/95 backdrop-blur-2xl z-50 transform -translate-x-full transition-transform duration-500 ease-in-out border-r border-white/10 shadow-2xl">
+    <div class="h-full overflow-y-auto p-8 flex flex-col">
+      <div class="flex justify-between items-center mb-8">
+        <h2 class="text-xl font-light tracking-wide text-white">Filters</h2>
+        <button onclick="toggleFilters()" class="text-gray-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+      </div>
+
+      <!-- Price Filter -->
+      <div class="mb-8">
+        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Price Range</h3>
+        <div class="flex items-center justify-between text-sm text-white mb-4">
+          <span>0 XMR</span>
+          <span>100 XMR</span>
+        </div>
+        <input type="range" min="0" max="100"
+          class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+      </div>
+
+      <!-- Categories Filter -->
+      <div class="mb-8">
+        <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wider mb-4">Categories</h3>
+        <div class="flex flex-wrap gap-2">
+          <a href="/?category=Digital"
+            class="px-3 py-1 rounded-full text-xs border border-white/10 text-gray-400 hover:border-white/30 hover:text-white transition-all">Digital</a>
+          <a href="/?category=Physical"
+            class="px-3 py-1 rounded-full text-xs border border-white/10 text-gray-400 hover:border-white/30 hover:text-white transition-all">Physical</a>
+          <a href="/?category=Services"
+            class="px-3 py-1 rounded-full text-xs border border-white/10 text-gray-400 hover:border-white/30 hover:text-white transition-all">Services</a>
+        </div>
+      </div>
+
+      <div class="mt-auto pt-6 border-t border-white/10">
+        <p class="text-xs text-gray-600 text-center">FROST MARKET © 2025</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay for Sidebar -->
+  <div id="filter-overlay" onclick="toggleFilters()"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+
+  <!-- Header Area -->
+  <div class="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
+    <div>
+      <!-- Animated Title -->
+      <div class="text-4xl md:text-6xl font-light tracking-tighter text-white mb-2 overflow-hidden">
+        Curated Universe
+      </div>
+      <p
+        class="text-gray-400 font-light max-w-md animate-in fade-in slide-in-from-bottom-2 duration-700 delay-300 fill-mode-both">
+        Premium goods, services, and experiences.
+      </p>
+    </div>
+
+    <!-- Navigation & Tools -->
+    <div class="flex flex-col items-end gap-4">
+      <div class="flex gap-6 border-b border-white/5 pb-1">
+        <a href="/?sort=trending"
+          class="text-xs uppercase tracking-widest pb-2 transition-all duration-300 text-white font-medium relative">
+          Trending
+          <span
+            class="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-purple-500 to-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></span>
+        </a>
+        <a href="/?sort=newest"
+          class="text-xs uppercase tracking-widest pb-2 transition-all duration-300 text-gray-600 hover:text-white">Newest</a>
+        <a href="/?sort=services"
+          class="text-xs uppercase tracking-widest pb-2 transition-all duration-300 text-gray-600 hover:text-white">Services</a>
+        <a href="/?sort=products"
+          class="text-xs uppercase tracking-widest pb-2 transition-all duration-300 text-gray-600 hover:text-white">Products</a>
+      </div>
+
+      <!-- Filter Toggle -->
+      <button onclick="toggleFilters()" class="group relative rounded-full p-[1px] overflow-hidden">
+        <div
+          class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#06b6d4_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        </div>
+        <div
+          class="relative flex items-center gap-2 text-xs uppercase tracking-widest px-4 py-2 rounded-full border border-white/10 text-gray-400 group-hover:text-white group-hover:bg-charcoal/80 transition-all duration-300 h-full w-full bg-charcoal/90">
+          <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+          Filter
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Masonry Columns -->
+  <div class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 min-h-[50vh]">
+    {% for listing in listings %}
+    {% include "components/listing-card-aura.html" %}
+    {% else %}
+    <div
+      class="text-gray-500 text-center col-span-full py-20 font-light tracking-wide flex flex-col items-center justify-center h-64 border border-dashed border-white/10 rounded-3xl break-inside-avoid">
+      <span class="text-4xl mb-4 opacity-30">🕸️</span>
+      <p>No items found.</p>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<!-- Simple Script for Filter Toggle -->
+<script>
+  function toggleFilters() {
+    const sidebar = document.getElementById('filter-sidebar');
+    const overlay = document.getElementById('filter-overlay');
+
+    if (sidebar.classList.contains('-translate-x-full')) {
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      overlay.classList.remove('hidden');
+    } else {
+      sidebar.classList.add('-translate-x-full');
+      sidebar.classList.remove('translate-x-0');
+      overlay.classList.add('hidden');
+    }
+  }
+</script>
+{% endblock %}

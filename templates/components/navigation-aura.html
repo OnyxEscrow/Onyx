@@ -1,0 +1,96 @@
+<div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 animate-float hover:animate-none focus-within:animate-none flex flex-col items-center">
+      
+    <!-- Main Nav Pill -->
+    <nav class="flex items-center gap-2 p-2 bg-white/5 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl shadow-black/50 transition-all duration-300 hover:bg-white/10 hover:border-white/20">
+      
+      <!-- Search Input (HTMX Driven) -->
+      <div class="relative group flex items-center">
+        <div class="absolute left-4 text-gray-400 group-focus-within:text-cyan-400 transition-colors pointer-events-none">
+            <i data-lucide="search" class="w-4 h-4"></i>
+        </div>
+        <input 
+          type="text" 
+          name="q"
+          hx-get="/listings/search" 
+          hx-target="#product-grid"
+          hx-trigger="keyup changed delay:500ms"
+          placeholder="Search Nexus..."
+          class="pl-10 pr-8 py-2.5 w-32 focus:w-64 bg-transparent rounded-full text-sm font-medium text-white placeholder-gray-500 focus:bg-white/5 focus:outline-none border border-transparent focus:border-white/10 focus:shadow-[0_0_20px_rgba(6,182,212,0.15)] transition-all duration-500 ease-out"
+        />
+      </div>
+
+      <div class="w-px h-6 bg-white/10 mx-1"></div>
+
+      <!-- Marketplace Button -->
+      <a href="/aura" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#06b6d4_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-6 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full">
+          Marketplace
+        </div>
+      </a>
+
+      <!-- Profile / Collections Button -->
+      {% if logged_in %}
+      <a href="/profile" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#a855f7_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-6 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full">
+          {% if role == 'vendor' %}Vendor{% else %}Profile{% endif %}
+        </div>
+      </a>
+
+      <!-- Escrows Button with Badge -->
+      <a href="/escrows" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#22c55e_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-5 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          Escrows
+          {% if pending_escrow_actions is defined and pending_escrow_actions > 0 %}
+          <span class="bg-red-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center animate-pulse">
+            {{ pending_escrow_actions }}
+          </span>
+          {% endif %}
+        </div>
+      </a>
+
+      <!-- Wallet Button -->
+      <a href="/wallet" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#eab308_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-5 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full gap-2">
+          <i data-lucide="wallet" class="w-4 h-4"></i>
+          Wallet
+          {% if has_wasm_wallet is defined and not has_wasm_wallet %}
+          <span class="bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-full">Setup</span>
+          {% endif %}
+        </div>
+      </a>
+      {% else %}
+      <a href="/login" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#a855f7_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-6 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full">
+          Login
+        </div>
+      </a>
+      {% endif %}
+      
+      <!-- Create Listing Button (Vendors Only) -->
+      {% if role == 'vendor' %}
+      <a href="/listings/create" class="relative group rounded-full p-[1px] overflow-hidden">
+        <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#f97316_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative px-6 py-2.5 rounded-full bg-charcoal/90 group-hover:bg-charcoal/80 text-sm font-medium text-gray-400 group-hover:text-white transition-all duration-300 flex items-center justify-center h-full w-full gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4"></i>
+          Create
+        </div>
+      </a>
+      {% endif %}
+      
+      <!-- Cart Button -->
+      <a href="/cart" class="relative w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-tr from-purple-500 to-cyan-500 text-white shadow-lg shadow-purple-900/20 hover:shadow-purple-500/30 transition-all duration-300 transform hover:scale-110 hover:rotate-3 ml-2">
+        <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+        
+        <!-- Cart Badge (HTMX can update this) -->
+        <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce {% if cart_count == 0 %}hidden{% endif %}">
+            {{ cart_count | default(value="0") }}
+        </span>
+      </a>
+    </nav>
+</div>

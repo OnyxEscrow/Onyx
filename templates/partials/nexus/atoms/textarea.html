@@ -1,0 +1,89 @@
+{#
+  NEXUS TEXTAREA COMPONENT
+
+  Usage:
+    {% include "partials/nexus/atoms/textarea.html" %}
+
+  Parameters:
+    - name (required): Textarea name attribute
+    - placeholder (optional): Placeholder text
+    - value (optional): Textarea value (for pre-filling)
+    - label (optional): Label text
+    - rows (optional): Number of rows (default: 4)
+    - cols (optional): Number of columns
+    - required (optional): true|false (default: false)
+    - disabled (optional): true|false (default: false)
+    - readonly (optional): true|false (default: false)
+    - error (optional): Error message to display
+    - maxlength (optional): Maximum character length
+    - class (optional): Additional CSS classes
+    - id (optional): Element ID (defaults to name)
+#}
+
+{% set textarea_id = id | default(value=name) %}
+{% set textarea_rows = rows | default(value=4) %}
+{% set textarea_required = required | default(value=false) %}
+{% set textarea_disabled = disabled | default(value=false) %}
+{% set textarea_readonly = readonly | default(value=false) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-input nexus-textarea" %}
+{% if error %}
+  {% set css_classes = css_classes ~ " nexus-input-error" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="nexus-input-wrapper">
+  {# Label (if provided) #}
+  {% if label %}
+    <label for="{{ textarea_id }}" class="nexus-label">
+      {{ label }}
+      {% if textarea_required %}<span class="nexus-label-required">*</span>{% endif %}
+    </label>
+  {% endif %}
+
+  {# Textarea field #}
+  <textarea
+    id="{{ textarea_id }}"
+    name="{{ name }}"
+    class="{{ css_classes }}"
+    rows="{{ textarea_rows }}"
+    {% if cols %}cols="{{ cols }}"{% endif %}
+    {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+    {% if textarea_required %}required{% endif %}
+    {% if textarea_disabled %}disabled{% endif %}
+    {% if textarea_readonly %}readonly{% endif %}
+    {% if maxlength %}maxlength="{{ maxlength }}"{% endif %}
+    {% if error %}aria-invalid="true" aria-describedby="{{ textarea_id }}-error"{% endif %}
+  >{% if value %}{{ value }}{% endif %}</textarea>
+
+  {# Character count (if maxlength provided) #}
+  {% if maxlength %}
+    <div class="nexus-textarea-count">
+      <span id="{{ textarea_id }}-count">{% if value %}{{ value | length }}{% else %}0{% endif %}</span> / {{ maxlength }}
+    </div>
+  {% endif %}
+
+  {# Error message #}
+  {% if error %}
+    <span id="{{ textarea_id }}-error" class="nexus-input-error-message" role="alert">
+      {{ error }}
+    </span>
+  {% endif %}
+</div>
+
+<style>
+.nexus-textarea {
+  min-height: 100px;
+  resize: vertical;
+  font-family: var(--nexus-font-mono);
+}
+
+.nexus-textarea-count {
+  font-size: var(--nexus-text-xs);
+  color: var(--nexus-muted-fg);
+  text-align: right;
+}
+</style>

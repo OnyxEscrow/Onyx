@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Review - FROST MARKET</title>
+    <meta name="description" content="Leave a cryptographically signed review for your transaction.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+
+    <script src="/static/js/htmx.min.js"></script>
+</head>
+
+<body class="apple-theme">
+    {% include "header.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 100px; max-width: 640px;">
+            <div class="apple-card">
+                <div class="apple-card-header" style="text-align: center; border-bottom: 1px solid var(--apple-border); padding-bottom: 24px;">
+                    <h1 style="font-size: 28px; font-weight: 600; color: var(--apple-text); margin: 0 0 8px;">
+                        Rate Your <span class="text-gold">Transaction</span>
+                    </h1>
+                    <p style="font-size: 14px; color: var(--apple-gray); margin: 0;">
+                        Your review is cryptographically signed and permanently stored in the vendor's reputation.
+                    </p>
+                </div>
+
+                <div class="apple-card-body">
+                    <form id="review-form" hx-post="/api/reviews" hx-swap="outerHTML" style="display: flex; flex-direction: column; gap: 24px;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        <input type="hidden" name="vendor_id" value="{{ vendor_id }}">
+                        <input type="hidden" name="txid" value="{{ txid }}">
+
+                        <!-- Rating -->
+                        <div class="apple-form-group">
+                            <label class="apple-form-label">Overall Rating</label>
+                            <div class="apple-rating-selector">
+                                {% for i in range(start=1, end=6) %}
+                                <label class="apple-rating-option">
+                                    <input type="radio" name="rating" value="{{ i }}" required>
+                                    <svg class="apple-rating-star" width="40" height="40" viewBox="0 0 24 24">
+                                        <polygon
+                                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                    </svg>
+                                    <span class="apple-rating-label">{{ i }}</span>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- Comment -->
+                        <div class="apple-form-group">
+                            <label for="comment" class="apple-form-label">Comment (Optional)</label>
+                            <textarea id="comment" name="comment" class="apple-textarea" rows="4"
+                                placeholder="Share your experience with this vendor..." maxlength="500"></textarea>
+                            <div style="display: flex; justify-content: flex-end; margin-top: 8px;">
+                                <span class="apple-char-counter">
+                                    <span id="char-count">0</span>/500
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Crypto Info -->
+                        <div class="apple-alert apple-alert-info">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                            </svg>
+                            <div>
+                                <strong style="display: block; margin-bottom: 4px;">Cryptographic Signature</strong>
+                                <p style="margin: 0; font-size: 13px; opacity: 0.9;">
+                                    By submitting this review, you digitally sign its content with your private key.
+                                    This ensures the review is authentic and cannot be forged.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Submit -->
+                        <button type="submit" class="apple-btn apple-btn-gold" style="width: 100%; padding: 14px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                            </svg>
+                            Sign and Publish Review
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="apple-footer">
+        <div class="apple-footer-container">
+            <div class="apple-footer-content">
+                <div class="apple-footer-logo">FROST MARKET</div>
+                <p class="apple-footer-tagline">Your marketplace. Your keys. Your privacy.</p>
+
+                <div class="apple-footer-links">
+                    <a href="/about" class="apple-footer-link">About</a>
+                    <a href="/faq" class="apple-footer-link">FAQ</a>
+                    <a href="/privacy" class="apple-footer-link">Privacy</a>
+                    <a href="/terms" class="apple-footer-link">Terms</a>
+                    <a href="/contact" class="apple-footer-link">Contact</a>
+                </div>
+
+                <p class="apple-footer-copyright">2025 FROST MARKET. Built for financial sovereignty.</p>
+                <p class="apple-footer-note">Powered by Monero for private and secure transactions.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/js/lucide.min.js"></script>
+    <script src="/static/js/base.js"></script>
+    <script>
+        // Character counter
+        const comment = document.getElementById('comment');
+        const count = document.getElementById('char-count');
+
+        if (comment && count) {
+            comment.addEventListener('input', function () {
+                count.textContent = this.value.length;
+            });
+        }
+    </script>
+</body>
+
+</html>

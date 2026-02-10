@@ -1,0 +1,875 @@
+/**
+ * Dispute System Component
+ *
+ * Modal-based dispute filing system with evidence upload.
+ * Respects design system: #C9A445 accent, glassmorphism.
+ *
+ * Features:
+ * - Modal overlay with backdrop blur
+ * - Structured form with reason dropdown
+ * - Multi-file evidence upload with preview
+ * - Character counter for description
+ * - Submission with loading state
+ */
+
+/* ========== MODAL OVERLAY ========== */
+
+.dispute-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    padding: 1rem;
+}
+
+.dispute-modal.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* ========== MODAL CONTENT ========== */
+
+.dispute-modal-content {
+    background: #1A1A1A;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ========== MODAL HEADER ========== */
+
+.dispute-modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.dispute-modal-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-foreground);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dispute-modal-title i {
+    color: #ef4444;
+    width: 24px;
+    height: 24px;
+}
+
+.dispute-modal-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.dispute-modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-foreground);
+}
+
+.dispute-modal-close i {
+    width: 20px;
+    height: 20px;
+}
+
+/* ========== MODAL BODY ========== */
+
+.dispute-modal-body {
+    padding: 1.5rem;
+}
+
+.dispute-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Form Groups */
+.dispute-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dispute-form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-foreground);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dispute-form-label-required {
+    color: #ef4444;
+    font-size: 0.75rem;
+}
+
+.dispute-form-label i {
+    width: 16px;
+    height: 16px;
+    color: var(--color-accent, #C9A445);
+}
+
+/* Inputs */
+.dispute-form-select,
+.dispute-form-textarea {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-foreground);
+    font-family: var(--font-inter);
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.dispute-form-select:focus,
+.dispute-form-textarea:focus {
+    outline: none;
+    border-color: var(--color-accent, #C9A445);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dispute-form-textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.6;
+}
+
+/* Character Counter */
+.dispute-form-counter {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    text-align: right;
+}
+
+.dispute-form-counter.warning {
+    color: #eab308;
+}
+
+.dispute-form-counter.error {
+    color: #ef4444;
+}
+
+/* ========== FILE UPLOAD ========== */
+
+.dispute-file-upload {
+    border: 2px dashed var(--color-border);
+    border-radius: 4px;
+    padding: 2rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.02);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dispute-file-upload:hover {
+    border-color: var(--color-accent, #C9A445);
+    background: rgba(201, 164, 69, 0.05);
+}
+
+.dispute-file-upload.dragover {
+    border-color: var(--color-accent, #C9A445);
+    background: rgba(201, 164, 69, 0.1);
+}
+
+.dispute-file-upload-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.dispute-file-upload-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 0.5rem;
+}
+
+.dispute-file-upload-hint {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.dispute-file-upload-link {
+    color: var(--color-accent, #C9A445);
+    text-decoration: underline;
+}
+
+.dispute-file-input {
+    display: none;
+}
+
+/* File Preview Grid */
+.dispute-file-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.dispute-file-preview {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.dispute-file-preview-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.dispute-file-preview-remove {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 24px;
+    height: 24px;
+    background: rgba(239, 68, 68, 0.9);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.dispute-file-preview-remove:hover {
+    background: #ef4444;
+    transform: scale(1.1);
+}
+
+.dispute-file-preview-remove i {
+    width: 14px;
+    height: 14px;
+}
+
+/* ========== INFO BOX ========== */
+
+.dispute-info-box {
+    padding: 1rem;
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.dispute-info-box i {
+    width: 20px;
+    height: 20px;
+    color: #22d3ee;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.dispute-info-box-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+/* ========== MODAL FOOTER ========== */
+
+.dispute-modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.dispute-btn {
+    padding: 0.75rem 1.5rem;
+    border-radius: 4px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: none;
+}
+
+.dispute-btn i {
+    width: 18px;
+    height: 18px;
+}
+
+.dispute-btn-secondary {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    color: var(--color-foreground);
+}
+
+.dispute-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dispute-btn-primary {
+    background: #ef4444;
+    color: white;
+}
+
+.dispute-btn-primary:hover {
+    background: #dc2626;
+}
+
+.dispute-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loading state */
+.dispute-btn-primary.loading {
+    position: relative;
+    color: transparent;
+}
+
+.dispute-btn-primary.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid white;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========== RESPONSIVE ========== */
+
+@media (max-width: 640px) {
+    .dispute-modal-content {
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .dispute-modal {
+        padding: 0;
+    }
+
+    .dispute-file-upload {
+        padding: 1.5rem 1rem;
+    }
+
+    .dispute-file-previews {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 0.5rem;
+    }
+
+    .dispute-modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .dispute-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+.dispute-modal-close:focus,
+.dispute-form-select:focus,
+.dispute-form-textarea:focus,
+.dispute-btn:focus {
+    outline: 2px solid var(--color-accent, #C9A445);
+    outline-offset: 2px;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .dispute-modal,
+    .dispute-modal-content,
+    .dispute-btn,
+    .dispute-file-upload {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* ========== BUTTON VARIANTS ========== */
+
+/* Success Button (green - for positive actions) */
+.dispute-btn-success {
+    background: #22c55e;
+    color: white;
+}
+
+.dispute-btn-success:hover {
+    background: #16a34a;
+}
+
+.dispute-btn-success:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dispute-btn-success.loading {
+    position: relative;
+    color: transparent;
+}
+
+.dispute-btn-success.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid white;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.6s linear infinite;
+}
+
+/* Warning Button (yellow - for caution actions) */
+.dispute-btn-warning {
+    background: #eab308;
+    color: #1A1A1A;
+}
+
+.dispute-btn-warning:hover {
+    background: #ca8a04;
+}
+
+.dispute-btn-warning:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Accent Button (gold - for highlight actions) */
+.dispute-btn-accent {
+    background: #C9A445;
+    color: #1A1A1A;
+}
+
+.dispute-btn-accent:hover {
+    background: #b8933d;
+}
+
+.dispute-btn-accent:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ========== ALERT/INFO BOX VARIANTS ========== */
+
+/* Warning Alert Box (yellow) */
+.dispute-alert-warning {
+    padding: 1rem;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.dispute-alert-warning i {
+    width: 20px;
+    height: 20px;
+    color: #eab308;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.dispute-alert-warning-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+/* Error Alert Box (red) */
+.dispute-alert-error {
+    padding: 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.dispute-alert-error i {
+    width: 20px;
+    height: 20px;
+    color: #ef4444;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.dispute-alert-error-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+/* Success Alert Box (green) */
+.dispute-alert-success {
+    padding: 1rem;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.dispute-alert-success i {
+    width: 20px;
+    height: 20px;
+    color: #22c55e;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.dispute-alert-success-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+/* Info Alert Box (cyan) - alias for dispute-info-box */
+.dispute-alert-info {
+    padding: 1rem;
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.3);
+    border-radius: 4px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.dispute-alert-info i {
+    width: 20px;
+    height: 20px;
+    color: #22d3ee;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.dispute-alert-info-text {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+}
+
+/* ========== FORM INPUT VARIANTS ========== */
+
+/* Standard text input */
+.dispute-form-input {
+    width: 100%;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    color: var(--color-foreground);
+    font-family: var(--font-inter);
+    font-size: 0.9375rem;
+    transition: all 0.2s ease;
+}
+
+.dispute-form-input:focus {
+    outline: none;
+    border-color: var(--color-accent, #C9A445);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.dispute-form-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Monospace input (for addresses, seeds, etc.) */
+.dispute-form-input-mono {
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+}
+
+/* ========== MODAL TITLE ICON VARIANTS ========== */
+
+/* Default icon color (red for warnings/disputes) */
+.dispute-modal-title i.icon-warning {
+    color: #ef4444;
+}
+
+/* Success icon (green) */
+.dispute-modal-title i.icon-success {
+    color: #22c55e;
+}
+
+/* Info icon (cyan) */
+.dispute-modal-title i.icon-info {
+    color: #22d3ee;
+}
+
+/* Accent icon (gold) */
+.dispute-modal-title i.icon-accent {
+    color: #C9A445;
+}
+
+/* ========== SEED DISPLAY (for wallet modals) ========== */
+
+.dispute-seed-display {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    word-break: break-word;
+    position: relative;
+}
+
+.dispute-seed-display.blurred {
+    filter: blur(8px);
+    user-select: none;
+}
+
+.dispute-seed-word {
+    display: inline-block;
+    background: rgba(201, 164, 69, 0.1);
+    border: 1px solid rgba(201, 164, 69, 0.3);
+    padding: 0.25rem 0.5rem;
+    margin: 0.25rem;
+    border-radius: 4px;
+}
+
+.dispute-seed-word-index {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-right: 0.25rem;
+}
+
+/* ========== QUIZ INPUTS (for seed verification) ========== */
+
+.dispute-quiz-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.dispute-quiz-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.dispute-quiz-input-group label {
+    font-weight: 600;
+    color: var(--color-foreground);
+    font-size: 0.95rem;
+}
+
+.dispute-quiz-index {
+    color: var(--color-accent, #C9A445);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* ========== RADIO OPTIONS (for ship payout, etc.) ========== */
+
+.dispute-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.dispute-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dispute-radio-option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-accent, #C9A445);
+}
+
+.dispute-radio-option.selected {
+    background: rgba(201, 164, 69, 0.1);
+    border-color: var(--color-accent, #C9A445);
+}
+
+.dispute-radio-option input[type="radio"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.dispute-radio-option input[type="radio"]:checked {
+    border-color: var(--color-accent, #C9A445);
+}
+
+.dispute-radio-option input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background: var(--color-accent, #C9A445);
+    border-radius: 50%;
+}
+
+.dispute-radio-label {
+    font-weight: 500;
+    color: var(--color-foreground);
+}
+
+.dispute-radio-description {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.25rem;
+}
+
+/* ========== CHECKBOX (for acknowledgments) ========== */
+
+.dispute-checkbox-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+.dispute-checkbox-group input[type="checkbox"] {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--color-border);
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    margin-top: 0.125rem;
+}
+
+.dispute-checkbox-group input[type="checkbox"]:checked {
+    background: var(--color-accent, #C9A445);
+    border-color: var(--color-accent, #C9A445);
+}
+
+.dispute-checkbox-group input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #1A1A1A;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.dispute-checkbox-label {
+    font-size: 0.9375rem;
+    color: var(--color-foreground);
+    line-height: 1.5;
+}
+
+/* ========== PROGRESS INDICATOR ========== */
+
+.dispute-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+}
+
+.dispute-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--color-accent, #C9A445);
+    animation: spin 0.8s linear infinite;
+}
+
+.dispute-progress-text {
+    font-size: 0.9375rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* ========== MODAL SIZE VARIANTS ========== */
+
+/* Small modal (400px) */
+.dispute-modal-content.dispute-modal-sm {
+    max-width: 400px;
+}
+
+/* Large modal (800px) */
+.dispute-modal-content.dispute-modal-lg {
+    max-width: 800px;
+}
+
+/* Extra large modal (1000px) */
+.dispute-modal-content.dispute-modal-xl {
+    max-width: 1000px;
+}

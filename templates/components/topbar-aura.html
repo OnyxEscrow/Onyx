@@ -1,0 +1,49 @@
+<header class="fixed top-0 w-full z-40 px-8 py-6 flex justify-between items-center mix-blend-difference pointer-events-none text-white">
+    <!-- Logo -->
+    <a href="/" class="flex items-center gap-2 cursor-pointer group pointer-events-auto">
+       <div class="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center group-hover:border-orange-500 transition-colors">
+         <div class="w-3 h-3 bg-white rounded-full group-hover:bg-orange-500 shadow-[0_0_10px_rgba(255,255,255,0.5)] group-hover:shadow-orange-500/50 transition-all"></div>
+       </div>
+       <span class="text-2xl font-semibold tracking-tighter">FROST MARKET <span class="text-xs align-top opacity-50 font-mono">.onion</span></span>
+    </a>
+    
+    <!-- Top Right Actions -->
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium tracking-wide opacity-80 pointer-events-auto">
+      {% if logged_in %}
+
+        <!-- Escrows Button with Badge -->
+        <a href="/escrows" class="relative hover:text-cyan-300 transition-colors flex items-center gap-1">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
+            <span>Escrows</span>
+            {% if pending_escrow_actions is defined and pending_escrow_actions > 0 %}
+            <span class="absolute -top-2 -right-3 bg-red-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center animate-pulse">
+                {{ pending_escrow_actions }}
+            </span>
+            {% endif %}
+        </a>
+
+        <!-- Wallet Button -->
+        <a href="/wallet" class="relative hover:text-cyan-300 transition-colors flex items-center gap-1">
+            <i data-lucide="wallet" class="w-4 h-4"></i>
+            <span>Wallet</span>
+            {% if has_wasm_wallet is defined and not has_wasm_wallet %}
+            <span class="absolute -top-2 -right-3 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-full">
+                Setup
+            </span>
+            {% endif %}
+        </a>
+
+        <a href="/profile" class="text-cyan-300 hover:text-white transition-colors">
+            {{ username }}
+        </a>
+
+        <form action="/api/auth/logout" method="post" class="inline">
+            <button type="submit" class="hover:text-red-400 transition-colors">Disconnect</button>
+        </form>
+      {% else %}
+        <a href="/login" class="hover:text-cyan-300 transition-colors">Login</a>
+      {% endif %}
+
+      <a href="/cart" class="hover:text-cyan-300 transition-colors">Cart</a>
+    </div>
+  </header>

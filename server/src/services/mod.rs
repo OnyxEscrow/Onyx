@@ -1,0 +1,21 @@
+// EaaS Core Services (19 modules)
+pub mod airgap;
+pub mod arbiter_auto_dkg;
+pub mod arbiter_watchdog;
+pub mod blockchain_monitor;
+pub mod bulletproofs_builder;
+pub mod clsag_verifier;
+pub mod escrow;
+pub mod fee_resolver;
+pub mod frost_coordinator;
+pub mod frost_signing_coordinator;
+pub mod key_image_aggregation;
+pub mod messaging;
+pub mod multisig_auto_coordinator;
+pub mod ring_selection;
+pub mod round_robin_signing;
+pub mod signature_aggregation;
+pub mod sync_proxy;
+pub mod timeout_monitor;
+pub mod transaction_builder;
+pub mod webhook_dispatcher;

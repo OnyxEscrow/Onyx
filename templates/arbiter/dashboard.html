@@ -1,0 +1,166 @@
+{% extends "base-aura.html" %}
+
+{% block title %}Arbiter Dashboard - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="container mx-auto px-4 py-12 pb-32 max-w-7xl">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-3xl text-white font-light tracking-tight mb-2">
+                <span class="text-purple-400">Arbiter</span> Dashboard
+            </h1>
+            <p class="text-gray-400 text-sm">Resolve disputes and protect the marketplace</p>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="flex gap-4">
+            <div class="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+                <span class="text-2xl font-mono text-white">{{ stats.active_disputes | default(value=0) }}</span>
+                <span class="text-xs text-gray-500 ml-2">Active</span>
+            </div>
+            <div class="px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20">
+                <span class="text-2xl font-mono text-green-400">{{ stats.resolved_total | default(value=0) }}</span>
+                <span class="text-xs text-gray-500 ml-2">Resolved</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex gap-2 mb-6 border-b border-white/10 pb-4">
+        <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+            {% if filter == 'active' or not filter %}bg-purple-500/20 text-purple-400 border border-purple-500/30{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+            onclick="window.location.href='/arbiter/dashboard?filter=active'">
+            <i data-lucide="alert-circle" class="w-4 h-4 inline mr-1"></i>
+            Active Disputes
+        </button>
+        <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+            {% if filter == 'escalated' %}bg-orange-500/20 text-orange-400 border border-orange-500/30{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+            onclick="window.location.href='/arbiter/dashboard?filter=escalated'">
+            <i data-lucide="clock" class="w-4 h-4 inline mr-1"></i>
+            Escalated (Auto)
+        </button>
+        <button class="px-4 py-2 rounded-lg text-sm font-medium transition-all
+            {% if filter == 'resolved' %}bg-green-500/20 text-green-400 border border-green-500/30{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+            onclick="window.location.href='/arbiter/dashboard?filter=resolved'">
+            <i data-lucide="check-circle" class="w-4 h-4 inline mr-1"></i>
+            Resolved
+        </button>
+    </div>
+
+    <!-- Disputes List -->
+    <div class="space-y-4">
+        {% if disputes and disputes | length > 0 %}
+            {% for dispute in disputes %}
+            <div class="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-purple-500/30 transition-all">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <!-- Left: Dispute Info -->
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="px-2 py-1 rounded-full text-xs font-medium uppercase tracking-wider
+                                {% if dispute.status == 'disputed' %}bg-orange-500/20 text-orange-400 border border-orange-500/30
+                                {% elif dispute.status == 'auto_escalated' %}bg-red-500/20 text-red-400 border border-red-500/30 animate-pulse
+                                {% else %}bg-green-500/20 text-green-400 border border-green-500/30{% endif %}">
+                                {{ dispute.status | replace(from="_", to=" ") | title }}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                Escrow #{{ dispute.escrow_id | truncate(length=8, end="") }}
+                            </span>
+                        </div>
+
+                        <h3 class="text-white font-medium mb-1">
+                            {{ dispute.listing_title | default(value="Order Dispute") }}
+                        </h3>
+
+                        <div class="flex flex-wrap gap-4 text-sm text-gray-400">
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="user" class="w-3 h-3 text-cyan-400"></i>
+                                Buyer: {{ dispute.buyer_username | default(value="Anonymous") }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="store" class="w-3 h-3 text-purple-400"></i>
+                                Vendor: {{ dispute.vendor_username | default(value="Anonymous") }}
+                            </span>
+                            <span class="flex items-center gap-1">
+                                <i data-lucide="coins" class="w-3 h-3 text-yellow-400"></i>
+                                {{ dispute.amount_xmr | default(value="0.00") }} XMR
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Time & Actions -->
+                    <div class="flex flex-col items-end gap-2">
+                        {% if dispute.auto_escalated_at %}
+                        <div class="text-xs text-red-400 flex items-center gap-1">
+                            <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                            Auto-escalated {{ dispute.auto_escalated_at }}
+                        </div>
+                        {% elif dispute.disputed_at %}
+                        <div class="text-xs text-gray-500">
+                            Opened {{ dispute.disputed_at }}
+                        </div>
+                        {% elif dispute.created_at %}
+                        <div class="text-xs text-gray-500">
+                            Created {{ dispute.created_at }}
+                        </div>
+                        {% else %}
+                        <div class="text-xs text-gray-500">
+                            Date unknown
+                        </div>
+                        {% endif %}
+
+                        {% if dispute.status == 'disputed' or dispute.status == 'auto_escalated' %}
+                        <!-- Countdown to auto-resolution -->
+                        <div class="text-xs text-orange-400 flex items-center gap-1 mb-2">
+                            <i data-lucide="timer" class="w-3 h-3"></i>
+                            <span id="countdown-{{ dispute.escrow_id }}">
+                                {% if dispute.hours_remaining %}{{ dispute.hours_remaining }}h remaining{% else %}Awaiting resolution{% endif %}
+                            </span>
+                        </div>
+
+                        <a href="/arbiter/resolve/{{ dispute.escrow_id }}"
+                           class="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:opacity-90 transition-opacity shadow-lg shadow-purple-500/20 flex items-center gap-2">
+                            <i data-lucide="gavel" class="w-4 h-4"></i>
+                            Resolve Dispute
+                        </a>
+                        {% else %}
+                        <div class="px-4 py-2 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm flex items-center gap-2">
+                            <i data-lucide="check-circle" class="w-4 h-4"></i>
+                            Resolved: {{ dispute.resolution | default(value="N/A") }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Evidence Preview (if available) -->
+                {% if dispute.evidence_count and dispute.evidence_count > 0 %}
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <span class="text-xs text-gray-500 flex items-center gap-1">
+                        <i data-lucide="paperclip" class="w-3 h-3"></i>
+                        {{ dispute.evidence_count }} evidence file(s) attached
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- Empty State -->
+            <div class="p-12 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <i data-lucide="shield-check" class="w-16 h-16 text-green-400 mx-auto mb-4 opacity-50"></i>
+                <h3 class="text-xl text-white font-light mb-2">No Active Disputes</h3>
+                <p class="text-gray-400 text-sm">
+                    {% if filter == 'resolved' %}
+                    No resolved disputes found.
+                    {% else %}
+                    All disputes have been resolved. Great work!
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+{% endblock %}

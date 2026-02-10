@@ -1,0 +1,478 @@
+/* ========================================
+   HERO CINEMATIC ANIMATIONS
+   Séquence d'intro en 5 phases (~11s total)
+   ======================================== */
+
+/* ========================================
+   BASE STYLES
+   ======================================== */
+
+/* Hero section avec shake support */
+.nexus-hero-true {
+  transition: transform 0.1s ease-in-out;
+}
+
+/* Flash blanc aveuglant (Phase 4) */
+.cinematic-flash-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: white;
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cinematic-flash-overlay.cinematic-flash {
+  animation: cinematic-flash 0.5s ease-out;
+}
+
+/* Container pour les 3 états du titre */
+#cinematic-title-container {
+  position: relative;
+  min-height: 12rem;
+}
+
+/* NEXUS letters container - GRANDE TAILLE */
+.cinematic-nexus-container {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 1rem;
+  font-size: 12rem;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: hsl(0, 0%, 5%);  /* NOIR pour fond rose */
+  margin: 0;
+}
+
+/* Lettres NEXUS - forcer couleur noire */
+.cinematic-nexus-container .nexus-animated-letter {
+  color: hsl(0, 0%, 5%);  /* NOIR */
+}
+
+/* E reste transparent pour montrer les 3 barres */
+.cinematic-nexus-container .nexus-letter-e {
+  color: transparent !important;
+}
+
+/* Désactiver hover pendant cinématique */
+.nexus-hero-true.cinematic-active .nexus-animated-letter {
+  pointer-events: none;
+}
+
+/* Phase 3: Typewriter */
+.cinematic-typewriter {
+  font-size: 6rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: hsl(0, 0%, 5%);  /* NOIR */
+  text-align: center;
+  line-height: 1.2;
+}
+
+.cinematic-cursor {
+  animation: cinematic-cursor-blink 1s infinite;
+  margin-left: 0.1em;
+}
+
+/* Phase 4: Zoom Strike */
+.cinematic-zoom-strike {
+  font-family: var(--nexus-font-mono);
+  font-size: 6rem;
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: hsl(0, 0%, 5%);  /* NOIR */
+  text-align: center;
+  line-height: 1.2;
+  opacity: 0;
+}
+
+.cinematic-zoom-strike.cinematic-zoom {
+  animation: cinematic-zoom-strike 1.5s ease-out forwards;
+}
+
+/* ========================================
+   PHASE 1: JUMP SYNC
+   Toutes les lettres sautent ensemble
+   ======================================== */
+
+@keyframes cinematic-jump-sync {
+  0% {
+    transform: translateY(0) rotate(0deg) scale(1) translateZ(0);
+  }
+  15% {
+    transform: translateY(-100vh) rotate(180deg) scale(1.05) translateZ(0);
+  }
+  40% {
+    transform: translateY(-105vh) rotate(270deg) scale(1) translateZ(0);
+  }
+  70% {
+    transform: translateY(0) rotate(350deg) scale(1) translateZ(0);
+  }
+  75% {
+    transform: translateY(0) rotate(360deg) scale(1) translateZ(0);
+  }
+  82% {
+    transform: translateY(-30px) rotate(360deg) scale(1) translateZ(0);
+  }
+  88% {
+    transform: translateY(0) rotate(360deg) scale(1) translateZ(0);
+  }
+  94% {
+    transform: translateY(-10px) rotate(360deg) scale(1) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) rotate(360deg) scale(1) translateZ(0);
+  }
+}
+
+.nexus-animated-letter.cinematic-jump {
+  animation: cinematic-jump-sync 1.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ========================================
+   PHASE 2: EXPLOSION
+   Chaque lettre part dans une direction fixe
+   ======================================== */
+
+/* N: Haut-Gauche */
+@keyframes cinematic-explode-0 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-300px, -200px) rotate(-180deg) translateZ(0);
+    opacity: 0;
+  }
+}
+
+/* E: Haut légèrement Gauche */
+@keyframes cinematic-explode-1 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-150px, -250px) rotate(120deg) translateZ(0);
+    opacity: 0;
+  }
+}
+
+/* X: Tout droit vers le Haut */
+@keyframes cinematic-explode-2 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, -300px) rotate(240deg) translateZ(0);
+    opacity: 0;
+  }
+}
+
+/* U: Haut légèrement Droite */
+@keyframes cinematic-explode-3 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(150px, -250px) rotate(-120deg) translateZ(0);
+    opacity: 0;
+  }
+}
+
+/* S: Haut-Droite */
+@keyframes cinematic-explode-4 {
+  0% {
+    transform: translate(0, 0) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(300px, -200px) rotate(180deg) translateZ(0);
+    opacity: 0;
+  }
+}
+
+.nexus-animated-letter.cinematic-explode-0 {
+  animation: cinematic-explode-0 0.5s ease-out forwards;
+}
+
+.nexus-animated-letter.cinematic-explode-1 {
+  animation: cinematic-explode-1 0.5s ease-out forwards;
+}
+
+.nexus-animated-letter.cinematic-explode-2 {
+  animation: cinematic-explode-2 0.5s ease-out forwards;
+}
+
+.nexus-animated-letter.cinematic-explode-3 {
+  animation: cinematic-explode-3 0.5s ease-out forwards;
+}
+
+.nexus-animated-letter.cinematic-explode-4 {
+  animation: cinematic-explode-4 0.5s ease-out forwards;
+}
+
+/* ========================================
+   PHASE 3: TYPEWRITER
+   Curseur clignotant
+   ======================================== */
+
+@keyframes cinematic-cursor-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   PHASE 4: ZOOM + SHAKE + FLASH
+   Le texte zoom et frappe l'écran
+   ======================================== */
+
+@keyframes cinematic-zoom-strike {
+  0% {
+    transform: scale(0.5) translateZ(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.5) translateZ(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5) translateZ(0);
+    opacity: 0;
+  }
+}
+
+/* Shake de l'écran - violent */
+@keyframes cinematic-screen-shake {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translate(-10px, 5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translate(10px, -5px);
+  }
+}
+
+.nexus-hero-true.cinematic-shake {
+  animation: cinematic-screen-shake 0.5s ease-in-out;
+}
+
+/* Flash blanc aveuglant */
+@keyframes cinematic-flash {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ========================================
+   PHASE 5: FALL FROM SKY
+   Lettres retombent du ciel en désordre
+   ======================================== */
+
+/* N */
+@keyframes cinematic-fall-0 {
+  0% {
+    transform: translateY(-1000px) rotate(720deg) translateZ(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(30px) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-15px) translateZ(0);
+  }
+  90% {
+    transform: translateY(8px) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* E */
+@keyframes cinematic-fall-1 {
+  0% {
+    transform: translateY(-1000px) rotate(-720deg) translateZ(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(30px) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-15px) translateZ(0);
+  }
+  90% {
+    transform: translateY(8px) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* X */
+@keyframes cinematic-fall-2 {
+  0% {
+    transform: translateY(-1000px) rotate(540deg) translateZ(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(30px) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-15px) translateZ(0);
+  }
+  90% {
+    transform: translateY(8px) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* U */
+@keyframes cinematic-fall-3 {
+  0% {
+    transform: translateY(-1000px) rotate(-540deg) translateZ(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(30px) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-15px) translateZ(0);
+  }
+  90% {
+    transform: translateY(8px) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) translateZ(0);
+    opacity: 1;
+  }
+}
+
+/* S */
+@keyframes cinematic-fall-4 {
+  0% {
+    transform: translateY(-1000px) rotate(900deg) translateZ(0);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(30px) rotate(0deg) translateZ(0);
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-15px) translateZ(0);
+  }
+  90% {
+    transform: translateY(8px) translateZ(0);
+  }
+  100% {
+    transform: translateY(0) translateZ(0);
+    opacity: 1;
+  }
+}
+
+.nexus-animated-letter.cinematic-fall-0 {
+  animation: cinematic-fall-0 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.nexus-animated-letter.cinematic-fall-1 {
+  animation: cinematic-fall-1 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.nexus-animated-letter.cinematic-fall-2 {
+  animation: cinematic-fall-2 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.nexus-animated-letter.cinematic-fall-3 {
+  animation: cinematic-fall-3 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+.nexus-animated-letter.cinematic-fall-4 {
+  animation: cinematic-fall-4 1s cubic-bezier(0.6, 0, 0.2, 1) forwards;
+}
+
+/* ========================================
+   RESPONSIVE MOBILE
+   Réduire distances et tailles
+   ======================================== */
+
+@media (max-width: 768px) {
+  /* Réduire taille textes Phase 3 et 4 */
+  .cinematic-typewriter,
+  .cinematic-zoom-strike {
+    font-size: 3rem;
+  }
+  
+  /* Réduire distances explosion Phase 2 */
+  @keyframes cinematic-explode-0 {
+    100% {
+      transform: translate(-150px, -100px) rotate(-180deg) translateZ(0);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes cinematic-explode-1 {
+    100% {
+      transform: translate(-75px, -125px) rotate(120deg) translateZ(0);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes cinematic-explode-2 {
+    100% {
+      transform: translate(0, -150px) rotate(240deg) translateZ(0);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes cinematic-explode-3 {
+    100% {
+      transform: translate(75px, -125px) rotate(-120deg) translateZ(0);
+      opacity: 0;
+    }
+  }
+  
+  @keyframes cinematic-explode-4 {
+    100% {
+      transform: translate(150px, -100px) rotate(180deg) translateZ(0);
+      opacity: 0;
+    }
+  }
+  
+  /* Réduire shake Phase 4 */
+  @keyframes cinematic-screen-shake {
+    0%, 100% {
+      transform: translate(0, 0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translate(-5px, 2.5px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translate(5px, -2.5px);
+    }
+  }
+}

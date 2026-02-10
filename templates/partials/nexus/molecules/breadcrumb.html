@@ -1,0 +1,152 @@
+{#
+  NEXUS BREADCRUMB COMPONENT
+
+  Usage:
+    {% include "partials/nexus/molecules/breadcrumb.html" with
+       items=[
+         {"text": "Home", "href": "/"},
+         {"text": "Products", "href": "/products"},
+         {"text": "Electronics", "href": "/products/electronics"},
+         {"text": "Current Page"}
+       ]
+    %}
+
+  Parameters:
+    - items (required): Array of breadcrumb items with:
+        - text: Breadcrumb text
+        - href: Link URL (optional, last item is typically without href)
+        - icon: Optional icon
+    - separator (optional): Separator character (default: "/")
+    - class (optional): Additional CSS classes
+#}
+
+{% set breadcrumb_separator = separator | default(value="/") %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-breadcrumb" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<nav class="{{ css_classes }}" aria-label="Breadcrumb">
+  <ol class="nexus-breadcrumb-list">
+    {% for item in items %}
+      <li class="nexus-breadcrumb-item {% if loop.last %}nexus-breadcrumb-item-current{% endif %}">
+        {% if item.href and not loop.last %}
+          {# Link Item #}
+          <a href="{{ item.href }}" class="nexus-breadcrumb-link" hx-boost="true">
+            {% if item.icon %}
+              <span class="nexus-breadcrumb-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            {{ item.text }}
+          </a>
+        {% else %}
+          {# Current Page (no link) #}
+          <span class="nexus-breadcrumb-current" aria-current="page">
+            {% if item.icon %}
+              <span class="nexus-breadcrumb-icon">{{ item.icon | safe }}</span>
+            {% endif %}
+            {{ item.text }}
+          </span>
+        {% endif %}
+
+        {# Separator #}
+        {% if not loop.last %}
+          <span class="nexus-breadcrumb-separator" aria-hidden="true">{{ breadcrumb_separator }}</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+</nav>
+
+<style>
+/* Base Breadcrumb */
+.nexus-breadcrumb {
+  display: flex;
+  align-items: center;
+}
+
+/* Breadcrumb List */
+.nexus-breadcrumb-list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--nexus-space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Breadcrumb Item */
+.nexus-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-2);
+  font-size: var(--nexus-text-sm);
+}
+
+/* Breadcrumb Link */
+.nexus-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nexus-space-1);
+  color: var(--nexus-muted-fg);
+  text-decoration: none;
+  transition: color var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+.nexus-breadcrumb-link:hover {
+  color: var(--nexus-primary);
+  text-decoration: underline;
+}
+
+.nexus-breadcrumb-link:focus {
+  outline: 2px solid var(--nexus-ring);
+  outline-offset: 2px;
+  border-radius: var(--nexus-radius-sm);
+}
+
+/* Current Page */
+.nexus-breadcrumb-current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--nexus-space-1);
+  color: var(--nexus-fg);
+  font-weight: var(--nexus-weight-medium);
+}
+
+/* Breadcrumb Icon */
+.nexus-breadcrumb-icon {
+  display: inline-flex;
+  font-size: var(--nexus-text-base);
+}
+
+/* Breadcrumb Separator */
+.nexus-breadcrumb-separator {
+  color: var(--nexus-border);
+  user-select: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-breadcrumb-list {
+    gap: var(--nexus-space-1);
+  }
+
+  .nexus-breadcrumb-item {
+    font-size: var(--nexus-text-xs);
+  }
+
+  /* Hide middle items on mobile, show first and last 2 */
+  .nexus-breadcrumb-item:not(:first-child):not(:nth-last-child(-n+2)) {
+    display: none;
+  }
+
+  /* Add ellipsis for hidden items */
+  .nexus-breadcrumb-item:nth-child(2)::before {
+    content: '...';
+    margin-right: var(--nexus-space-2);
+    color: var(--nexus-muted-fg);
+  }
+}
+</style>

@@ -1,0 +1,4 @@
+-- Remove ring_data_json column
+-- Note: SQLite doesn't support DROP COLUMN directly, need to recreate table
+-- For simplicity, we just leave the column (it will be NULL for new escrows)
+-- In production, use proper table recreation

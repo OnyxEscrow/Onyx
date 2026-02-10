@@ -1,0 +1,242 @@
+{% extends "base-aura.html" %}
+
+{% block title %}FROST MARKET{% endblock %}
+
+{% block content %}
+{# Include Filter Sidebar #}
+{% include "components/filter-sidebar.html" %}
+
+{# Top Navbar - Mix-blend-difference style like React #}
+<header class="fixed top-0 w-full z-40 px-8 py-6 flex justify-between items-center mix-blend-difference pointer-events-none">
+    <!-- Logo -->
+    <div class="flex items-center gap-2 cursor-pointer group pointer-events-auto" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <div class="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center group-hover:border-purple-500 transition-colors">
+            <div class="w-3 h-3 bg-white rounded-full group-hover:bg-purple-500 shadow-[0_0_10px_rgba(255,255,255,0.5)] group-hover:shadow-purple-500/50 transition-all"></div>
+        </div>
+        <span class="text-2xl font-semibold tracking-tighter">FROST MARKET <span class="text-xs align-top opacity-50 font-mono">.onion</span></span>
+    </div>
+
+    <!-- Top Right Navigation -->
+    <div class="hidden md:flex items-center gap-6 text-sm font-medium tracking-wide opacity-80 pointer-events-auto">
+        {% if logged_in %}
+            {% if role == 'vendor' %}
+            <a href="/listings/create" class="group relative rounded-full p-[1px] overflow-hidden">
+                <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#a855f7_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div class="relative px-4 py-1.5 rounded-full bg-charcoal/90 text-purple-200 border border-purple-500/50 group-hover:border-transparent group-hover:bg-charcoal/80 transition-all text-xs uppercase tracking-widest flex items-center justify-center">
+                    + New Listing
+                </div>
+            </a>
+            {% endif %}
+            <a href="/profile" class="text-cyan-300 hover:text-white transition-colors">
+                {{ username | default(value="User") }}
+            </a>
+            <a href="/profile" class="hover:text-cyan-300 transition-colors flex items-center gap-1">
+                {% if role == 'vendor' %}My Listings{% else %}Saved{% endif %}
+            </a>
+            <button onclick="performLogout()" class="hover:text-red-400 transition-colors">Disconnect</button>
+        {% else %}
+            <a href="/login" class="hover:text-cyan-300 transition-colors">Login</a>
+        {% endif %}
+        <a href="/cart" class="hover:text-cyan-300 transition-colors">Cart ({{ cart_count | default(value=0) }})</a>
+    </div>
+</header>
+
+{# Main Content Area #}
+<main class="relative z-10 pt-24 pb-32">
+    <div class="w-full max-w-7xl mx-auto px-4 md:px-8 py-12 relative">
+
+        {# Header Area with Dynamic Title #}
+        <div class="mb-12 flex flex-col md:flex-row justify-between items-end gap-6">
+            <div>
+                <!-- Animated Title -->
+                <div id="category-title" class="text-4xl md:text-6xl font-light tracking-tighter text-white mb-2 overflow-hidden">
+                    <span class="inline-block animate-reveal">Curated Universe</span>
+                </div>
+                <p id="category-subtitle" class="text-gray-400 font-light max-w-md">
+                    Premium goods, services, and experiences.
+                </p>
+            </div>
+
+            <!-- Category Tabs & Filter -->
+            <div class="flex flex-col items-end gap-4">
+                <!-- Category Navigation -->
+                <div class="flex gap-6 border-b border-white/5 pb-1">
+                    <button data-category="trending" onclick="changeCategory('trending')"
+                            class="category-tab text-xs uppercase tracking-widest pb-2 transition-all duration-300 relative text-gray-600 hover:text-white">
+                        Trending
+                    </button>
+                    <button data-category="newest" onclick="changeCategory('newest')"
+                            class="category-tab text-xs uppercase tracking-widest pb-2 transition-all duration-300 relative text-white font-medium active">
+                        Newest
+                        <span class="category-indicator absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-purple-500 to-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]"></span>
+                    </button>
+                    <button data-category="services" onclick="changeCategory('services')"
+                            class="category-tab text-xs uppercase tracking-widest pb-2 transition-all duration-300 relative text-gray-600 hover:text-white">
+                        Services
+                    </button>
+                    <button data-category="products" onclick="changeCategory('products')"
+                            class="category-tab text-xs uppercase tracking-widest pb-2 transition-all duration-300 relative text-gray-600 hover:text-white">
+                        Products
+                    </button>
+                </div>
+
+                <!-- Filter Toggle Button -->
+                <button
+                    id="filter-toggle-btn"
+                    onclick="toggleFilterSidebar()"
+                    class="relative group rounded-full p-[1px] overflow-hidden">
+                    <div class="filter-glow absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#06b6d4_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="relative flex items-center gap-2 text-xs uppercase tracking-widest px-4 py-2 rounded-full border border-white/10 text-gray-400 group-hover:text-white group-hover:bg-charcoal/80 transition-all duration-300 h-full w-full bg-charcoal/90">
+                        <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                        Filter
+                        <span id="filter-active-indicator" class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse hidden"></span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        {# Masonry Product Grid #}
+        <div id="product-grid" class="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 min-h-[50vh]">
+            {% for listing in listings %}
+                {% include "components/listing-card-aura.html" %}
+            {% else %}
+                <div class="text-gray-500 text-center col-span-full py-20 font-light tracking-wide flex flex-col items-center justify-center h-64 border border-dashed border-white/10 rounded-3xl break-inside-avoid">
+                    <span class="text-4xl mb-4 opacity-30">&#128375;</span>
+                    <p>No items found matching your filters.</p>
+                    <button onclick="clearAllFilters()" class="mt-4 text-sm text-cyan-400 hover:underline">Clear all filters</button>
+                </div>
+            {% endfor %}
+        </div>
+
+    </div>
+</main>
+
+{# Bottom Navigation Pill #}
+{% include "components/navigation-aura.html" %}
+
+{# AI Chat Widget #}
+{% include "components/ai-chat.html" %}
+
+{# Category Switching Script #}
+<script nonce="{{ csp_nonce }}">
+const categoryData = {
+    trending: { title: 'Trending', subtitle: 'What everyone is talking about right now.' },
+    newest: { title: 'Curated Universe', subtitle: 'Premium goods, services, and experiences.' },
+    services: { title: 'Services', subtitle: 'Professional expertise and digital solutions.' },
+    products: { title: 'Products', subtitle: 'Tangible luxury and high-tech gear.' }
+};
+
+let activeCategory = 'newest';
+
+function changeCategory(category) {
+    if (category === activeCategory) return;
+
+    // Update active state
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('text-white', 'font-medium', 'active');
+        tab.classList.add('text-gray-600');
+        const indicator = tab.querySelector('.category-indicator');
+        if (indicator) indicator.remove();
+    });
+
+    const activeTab = document.querySelector(`[data-category="${category}"]`);
+    activeTab.classList.add('text-white', 'font-medium', 'active');
+    activeTab.classList.remove('text-gray-600');
+
+    // Add indicator
+    const indicator = document.createElement('span');
+    indicator.className = 'category-indicator absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-purple-500 to-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]';
+    activeTab.appendChild(indicator);
+
+    // Animate title change
+    const titleEl = document.getElementById('category-title');
+    const subtitleEl = document.getElementById('category-subtitle');
+
+    titleEl.innerHTML = `<span class="inline-block animate-reveal">${categoryData[category].title}</span>`;
+    subtitleEl.textContent = categoryData[category].subtitle;
+
+    activeCategory = category;
+
+    // Filter existing cards client-side (no server roundtrip needed for categories)
+    filterProductCards(category);
+}
+
+function filterProductCards(category) {
+    const cards = document.querySelectorAll('#product-grid > div');
+
+    cards.forEach(card => {
+        // Get category from card data or class
+        const cardCategory = card.dataset.category || 'Digital';
+
+        let show = true;
+        if (category === 'services') {
+            show = cardCategory.toLowerCase().includes('service');
+        } else if (category === 'products') {
+            show = !cardCategory.toLowerCase().includes('service');
+        }
+        // 'trending' and 'newest' show all
+
+        card.style.display = show ? '' : 'none';
+    });
+}
+
+// Re-init Lucide icons after HTMX swaps
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+});
+
+// Logout function (POST request)
+async function performLogout() {
+    try {
+        const response = await fetch('/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+        });
+
+        if (response.ok || response.redirected) {
+            window.location.href = '/';
+        } else {
+            console.error('Logout failed:', response.status);
+            // Fallback: redirect anyway
+            window.location.href = '/';
+        }
+    } catch (error) {
+        console.error('Logout error:', error);
+        window.location.href = '/';
+    }
+}
+</script>
+
+<style nonce="{{ csp_nonce }}">
+/* Animation for title reveal */
+@keyframes reveal {
+    0% {
+        opacity: 0;
+        transform: translateY(40px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-reveal {
+    animation: reveal 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* Spin animation for beam effect */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+    animation: spin 4s linear infinite;
+}
+</style>
+{% endblock %}

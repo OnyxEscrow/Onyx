@@ -1,0 +1,321 @@
+{#
+  NEXUS HERO COMPONENT
+
+  Usage:
+    {% include "partials/nexus/organisms/hero.html" %}
+
+  Parameters:
+    - title (required): Main hero title
+    - subtitle (optional): Hero subtitle/tagline
+    - description (optional): Hero description text
+    - cta_primary_text (optional): Primary CTA button text
+    - cta_primary_url (optional): Primary CTA button URL
+    - cta_secondary_text (optional): Secondary CTA button text
+    - cta_secondary_url (optional): Secondary CTA button URL
+    - animated (optional): true|false - Animated letters (default: true)
+    - show_stats (optional): true|false - Show stats banner (default: false)
+    - stats (optional): Array of stat objects for stats banner
+    - background_gradient (optional): true|false - Gradient background (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set hero_animated = animated | default(value=true) %}
+{% set hero_show_stats = show_stats | default(value=false) %}
+{% set hero_background_gradient = background_gradient | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-hero" %}
+{% if hero_background_gradient %}
+  {% set css_classes = css_classes ~ " nexus-hero-gradient" %}
+{% endif %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<section class="{{ css_classes }}">
+  {# Background Elements #}
+  <div class="nexus-hero-bg">
+    <div class="nexus-hero-bg-orb nexus-hero-bg-orb-1"></div>
+    <div class="nexus-hero-bg-orb nexus-hero-bg-orb-2"></div>
+    <div class="nexus-hero-bg-orb nexus-hero-bg-orb-3"></div>
+  </div>
+
+  {# Content #}
+  <div class="nexus-hero-content">
+    {# Title #}
+    {% if title %}
+      <h1 class="nexus-hero-title">
+        {% if hero_animated %}
+          {# Animated letters #}
+          {% for char in title %}
+            <span class="nexus-hero-letter" style="--i: {{ loop.index0 }}">{% if char != ' ' %}{{char | safe }}{% else %}{{'&nbsp;' | safe }}{% endif %}</span>
+          {% endfor %}
+        {% else %}
+          {{ title }}
+        {% endif %}
+      </h1>
+    {% endif %}
+
+    {# Subtitle #}
+    {% if subtitle %}
+      <p class="nexus-hero-subtitle">{{ subtitle }}</p>
+    {% endif %}
+
+    {# Description #}
+    {% if description %}
+      <p class="nexus-hero-description">{{ description }}</p>
+    {% endif %}
+
+    {# CTA Buttons #}
+    {% if cta_primary_text or cta_secondary_text %}
+      <div class="nexus-hero-cta">
+        {% if cta_primary_text %}
+          {% include "partials/nexus/atoms/button.html" %}
+        {% endif %}
+
+        {% if cta_secondary_text %}
+          {% include "partials/nexus/atoms/button.html" %}
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  {# Stats Banner #}
+  {% if hero_show_stats and stats %}
+    <div class="nexus-hero-stats">
+      {% include "partials/nexus/organisms/stats-banner.html" %}
+    </div>
+  {% endif %}
+</section>
+
+<style>
+/* Base Hero */
+.nexus-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+  padding: var(--nexus-space-16) var(--nexus-space-6);
+  overflow: hidden;
+  background-color: var(--nexus-bg);
+}
+
+/* Gradient Background */
+.nexus-hero-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(349, 100%, 10%) 0%,
+    hsl(280, 60%, 10%) 50%,
+    hsl(0, 0%, 5%) 100%
+  );
+}
+
+/* Background Orbs */
+.nexus-hero-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.nexus-hero-bg-orb {
+  position: absolute;
+  border-radius: var(--nexus-radius-full);
+  filter: blur(100px);
+  opacity: 0.3;
+  animation: nexus-hero-orb-float 20s ease-in-out infinite;
+}
+
+.nexus-hero-bg-orb-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--nexus-primary) 0%, transparent 70%);
+  top: -300px;
+  right: -200px;
+  animation-delay: 0s;
+}
+
+.nexus-hero-bg-orb-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--nexus-secondary) 0%, transparent 70%);
+  bottom: -250px;
+  left: -150px;
+  animation-delay: 5s;
+}
+
+.nexus-hero-bg-orb-3 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--nexus-accent) 0%, transparent 70%);
+  top: 50%;
+  left: 50%;
+  animation-delay: 10s;
+}
+
+@keyframes nexus-hero-orb-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+/* Content */
+.nexus-hero-content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 1000px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nexus-space-6);
+}
+
+/* Title */
+.nexus-hero-title {
+  font-size: var(--nexus-text-6xl);
+  font-weight: var(--nexus-weight-black);
+  line-height: var(--nexus-leading-tight);
+  color: var(--nexus-fg);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-tight);
+  text-shadow: 0 0 40px rgba(255, 26, 92, 0.5);
+}
+
+/* Animated Letters */
+.nexus-hero-letter {
+  display: inline-block;
+  animation: nexus-hero-letter-jump 2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 0.1s);
+}
+
+@keyframes nexus-hero-letter-jump {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  10% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+  20% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+.nexus-hero-letter:hover {
+  color: var(--nexus-primary);
+  animation: nexus-hero-letter-bounce 0.5s ease-out;
+}
+
+@keyframes nexus-hero-letter-bounce {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-30px) scale(1.2);
+  }
+}
+
+/* Subtitle */
+.nexus-hero-subtitle {
+  font-size: var(--nexus-text-2xl);
+  font-weight: var(--nexus-weight-semibold);
+  color: var(--nexus-muted-fg);
+  margin: 0;
+  line-height: var(--nexus-leading-normal);
+  letter-spacing: var(--nexus-tracking-wide);
+}
+
+/* Description */
+.nexus-hero-description {
+  font-size: var(--nexus-text-lg);
+  color: var(--nexus-muted-fg);
+  margin: 0;
+  line-height: var(--nexus-leading-relaxed);
+  max-width: 700px;
+}
+
+/* CTA Buttons */
+.nexus-hero-cta {
+  display: flex;
+  gap: var(--nexus-space-4);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: var(--nexus-space-4);
+}
+
+/* Stats Banner */
+.nexus-hero-stats {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--nexus-space-12);
+  width: 100%;
+}
+
+/* Accessibility: Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .nexus-hero-bg-orb {
+    animation: none;
+  }
+
+  .nexus-hero-letter {
+    animation: none;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .nexus-hero {
+    min-height: 70vh;
+    padding: var(--nexus-space-12) var(--nexus-space-4);
+  }
+
+  .nexus-hero-title {
+    font-size: var(--nexus-text-5xl);
+  }
+
+  .nexus-hero-subtitle {
+    font-size: var(--nexus-text-xl);
+  }
+
+  .nexus-hero-description {
+    font-size: var(--nexus-text-base);
+  }
+}
+
+@media (max-width: 768px) {
+  .nexus-hero {
+    min-height: 60vh;
+    padding: var(--nexus-space-10) var(--nexus-space-3);
+  }
+
+  .nexus-hero-title {
+    font-size: var(--nexus-text-4xl);
+  }
+
+  .nexus-hero-subtitle {
+    font-size: var(--nexus-text-lg);
+  }
+
+  .nexus-hero-description {
+    font-size: var(--nexus-text-sm);
+  }
+
+  .nexus-hero-cta {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .nexus-hero-stats {
+    margin-top: var(--nexus-space-8);
+  }
+}
+</style>

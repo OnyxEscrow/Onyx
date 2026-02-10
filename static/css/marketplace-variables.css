@@ -1,0 +1,202 @@
+/**
+ * MARKETPLACE - Design System Variables
+ *
+ * Professional e-commerce design based on modern standards
+ * Focus: Convert visitors to buyers
+ * Style: Clean, trustworthy, premium
+ */
+
+:root {
+  /* ========================================
+     COLOR PALETTE (HSL for easy theming)
+     ======================================== */
+
+  /* Background & Foreground - DARK THEME */
+  --background: 0 0% 10%;
+  --foreground: 0 0% 100%;
+
+  /* Primary (Dark blue-gray for trust) */
+  --primary: 215 28% 17%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Accent (Yellow/Gold for CTAs) */
+  --accent: 45 65% 55%;
+  --accent-foreground: 0 0% 0%;
+
+  /* Muted (Dark backgrounds) */
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 60%;
+
+  /* Card */
+  --card: 0 0% 12%;
+  --card-foreground: 0 0% 100%;
+
+  /* Border */
+  --border: 0 0% 20%;
+
+  /* Category colors (vibrant gradients) */
+  --category-red: 0 91% 59%;
+  --category-yellow: 45 93% 58%;
+  --category-green: 160 84% 39%;
+  --category-blue: 217 91% 60%;
+  --category-gray: 0 0% 20%;
+
+  /* Trust & Security (orange for warmth) */
+  --trust-orange: 24 95% 53%;
+
+  /* ========================================
+     TYPOGRAPHY
+     ======================================== */
+
+  /* Font families (system fonts = fast load) */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+               'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono',
+               Consolas, 'Courier New', monospace;
+
+  /* Font sizes (responsive scale) */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 1.875rem;    /* 30px */
+  --text-4xl: 2.25rem;     /* 36px */
+  --text-5xl: 3rem;        /* 48px */
+  --text-7xl: 4.5rem;      /* 72px */
+
+  /* Font weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Line heights */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* Letter spacing */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+  --tracking-wider: 0.05em;
+
+  /* ========================================
+     SPACING (8px base scale)
+     ======================================== */
+
+  --space-1: 0.25rem;   /* 4px */
+  --space-2: 0.5rem;    /* 8px */
+  --space-3: 0.75rem;   /* 12px */
+  --space-4: 1rem;      /* 16px */
+  --space-5: 1.25rem;   /* 20px */
+  --space-6: 1.5rem;    /* 24px */
+  --space-8: 2rem;      /* 32px */
+  --space-10: 2.5rem;   /* 40px */
+  --space-12: 3rem;     /* 48px */
+  --space-16: 4rem;     /* 64px */
+  --space-20: 5rem;     /* 80px */
+  --space-24: 6rem;     /* 96px */
+
+  /* ========================================
+     BORDER RADIUS
+     ======================================== */
+
+  --radius-sm: 0.25rem;   /* 4px */
+  --radius-md: 0.5rem;    /* 8px */
+  --radius-lg: 0.75rem;   /* 12px */
+  --radius-xl: 1rem;      /* 16px */
+  --radius-2xl: 1.5rem;   /* 24px */
+  --radius-3xl: 2rem;     /* 32px */
+  --radius-full: 9999px;
+
+  /* ========================================
+     SHADOWS (subtle depth)
+     ======================================== */
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+               0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+               0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+               0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* ========================================
+     TRANSITIONS
+     ======================================== */
+
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ========================================
+     LAYOUT
+     ======================================== */
+
+  --container-max: 1400px;
+  --container-padding: 2rem;
+
+  --header-height: 4rem;  /* 64px */
+
+  /* Grid gaps */
+  --gap-sm: 1rem;
+  --gap-md: 1.5rem;
+  --gap-lg: 2rem;
+
+  /* ========================================
+     Z-INDEX LAYERS
+     ======================================== */
+
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-fixed: 1200;
+  --z-modal: 1300;
+  --z-popover: 1400;
+  --z-tooltip: 1500;
+}
+
+/* ========================================
+   DARK MODE
+   ======================================== */
+
+.dark-mode {
+  --background: 215 28% 10%;
+  --foreground: 0 0% 98%;
+
+  --primary: 0 0% 98%;
+  --primary-foreground: 215 28% 17%;
+
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 65%;
+
+  --card: 215 25% 12%;
+  --card-foreground: 0 0% 98%;
+
+  --border: 217 33% 18%;
+}
+
+/* ========================================
+   COLOR UTILITIES (HSL conversion)
+   ======================================== */
+
+.bg-background { background-color: hsl(var(--background)); }
+.bg-foreground { background-color: hsl(var(--foreground)); }
+.bg-primary { background-color: hsl(var(--primary)); }
+.bg-accent { background-color: hsl(var(--accent)); }
+.bg-muted { background-color: hsl(var(--muted)); }
+.bg-card { background-color: hsl(var(--card)); }
+
+.text-foreground { color: hsl(var(--foreground)); }
+.text-primary { color: hsl(var(--primary)); }
+.text-accent { color: hsl(var(--accent)); }
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+
+.border-default { border-color: hsl(var(--border)); }

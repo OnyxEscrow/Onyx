@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recovery Portal - FROST MARKET</title>
+    <meta name="description" content="Restore your escrow session using your Recovery Shield">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <!-- CSS - Industrial Theme -->
+    <link rel="stylesheet" href="/static/css/industrial-stealth.css?v=2.0.0">
+    <link rel="stylesheet" href="/static/css/nexus-industrial-unified.css?v=1.0.0">
+    <link rel="stylesheet" href="/static/css/apple-style.css?v=7">
+
+    <!-- HTMX -->
+    <script src="/static/js/htmx.min.js"></script>
+
+    <!-- Lucide Icons -->
+    <script src="/static/js/lucide.min.js"></script>
+
+    <style>
+        /* Dropzone Styles */
+        .shield-dropzone {
+            position: relative;
+            padding: 48px 32px;
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .shield-dropzone:hover {
+            border-color: rgba(212, 175, 55, 0.4);
+            background: rgba(212, 175, 55, 0.02);
+        }
+
+        .shield-dropzone.drag-over {
+            border-color: #D4AF37;
+            border-style: solid;
+            background: rgba(212, 175, 55, 0.05);
+            box-shadow: 0 0 30px rgba(212, 175, 55, 0.15);
+        }
+
+        .shield-dropzone.drag-over .dropzone-icon {
+            transform: scale(1.1);
+            color: #D4AF37;
+        }
+
+        .shield-dropzone.invalid {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.05);
+            animation: shake 0.5s ease;
+        }
+
+        .shield-dropzone.processing {
+            border-color: hsl(190, 100%, 55%);
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .shield-dropzone.success {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.05);
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+
+        .dropzone-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .dropzone-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.25rem;
+            color: white;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .dropzone-subtitle {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 24px;
+        }
+
+        .dropzone-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 24px 0;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .dropzone-divider::before,
+        .dropzone-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropzone-hint {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* File Input */
+        .shield-file-input {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* Processing State */
+        .processing-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .processing-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: #D4AF37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Success State */
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: rgba(34, 197, 94, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        /* Alternative Recovery Options */
+        .recovery-alternative {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .recovery-alternative:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .recovery-alternative-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(212, 175, 55, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* Recovered Session Card */
+        .recovered-session {
+            padding: 24px;
+            border-radius: 12px;
+            background: rgba(34, 197, 94, 0.05);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .session-detail {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .session-detail:last-child {
+            border-bottom: none;
+        }
+
+        .session-detail-label {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .session-detail-value {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.875rem;
+            color: white;
+        }
+    </style>
+</head>
+
+<body class="industrial-stealth" data-page="recovery">
+    <!-- Grid Overlay -->
+    <div class="grid-overlay"></div>
+
+    {% include "partials/header-industrial.html" %}
+
+    <main class="apple-page">
+        <div class="apple-container" style="padding-top: 80px; padding-bottom: 80px; max-width: 700px;">
+
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 48px;">
+                <div style="width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 20px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05)); display: flex; align-items: center; justify-content: center;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: #D4AF37;">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                </div>
+                <h1 class="apple-page-title">
+                    Recovery <span class="text-gold">Portal</span>
+                </h1>
+                <p class="apple-page-subtitle">
+                    Restore your escrow session using your Recovery Shield file
+                </p>
+            </div>
+
+            <!-- Main Card -->
+            <div class="apple-card">
+                <div class="apple-card-body" style="padding: 32px;">
+
+                    <!-- Dropzone -->
+                    <div class="shield-dropzone" id="shield-dropzone"
+                        ondragover="handleDragOver(event)"
+                        ondragleave="handleDragLeave(event)"
+                        ondrop="handleDrop(event)"
+                        onclick="document.getElementById('shield-file-input').click()"
+                        role="button"
+                        tabindex="0"
+                        aria-label="Recovery shield upload area, drop file or press Enter to browse">
+
+                        <input type="file"
+                            id="shield-file-input"
+                            class="shield-file-input"
+                            accept=".json,.frost"
+                            onchange="handleFileSelect(event)"
+                            aria-hidden="true">
+
+                        <!-- Default State -->
+                        <div id="dropzone-default">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="dropzone-icon">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                            <p class="dropzone-title">Drop your Recovery Shield here</p>
+                            <p class="dropzone-subtitle">or click to browse your files</p>
+
+                            <div class="dropzone-divider">
+                                <span>Accepted Formats</span>
+                            </div>
+
+                            <p class="dropzone-hint">.json &bull; nexus-shield-*.json</p>
+                        </div>
+
+                        <!-- Processing State -->
+                        <div id="dropzone-processing" class="processing-overlay" style="display: none;">
+                            <div class="processing-spinner"></div>
+                            <p style="color: white; font-size: 0.875rem;">Validating shield...</p>
+                        </div>
+
+                        <!-- Success State -->
+                        <div id="dropzone-success" style="display: none;">
+                            <div class="success-icon">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #22c55e;">
+                                    <path d="M20 6 9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <p class="dropzone-title" style="color: #22c55e;">Shield Validated</p>
+                            <p class="dropzone-subtitle">Enter your password to unlock</p>
+                        </div>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div id="recovery-error" class="apple-alert apple-alert-warning" style="display: none; margin-top: 16px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <path d="M12 9v4"/><path d="M12 17h.01"/>
+                        </svg>
+                        <div>
+                            <strong>Unable to process file</strong>
+                            <p id="recovery-error-message" style="margin: 4px 0 0 0; font-size: 13px;"></p>
+                        </div>
+                    </div>
+
+                    <!-- Password Section (shown after valid file) -->
+                    <div id="password-section" style="display: none; margin-top: 24px;">
+                        <div class="apple-form-group">
+                            <label class="apple-label" for="recovery-password">Shield Password</label>
+                            <div style="position: relative;">
+                                <input type="password"
+                                    id="recovery-password"
+                                    class="apple-input"
+                                    placeholder="Enter the password you used to create this shield"
+                                    style="padding-right: 48px;">
+                                <button type="button"
+                                    onclick="togglePasswordVisibility('recovery-password', this)"
+                                    style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="eye-icon">
+                                        <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <button id="unlock-shield-btn" class="apple-btn apple-btn-gold" style="width: 100%; margin-top: 16px;" onclick="unlockShield()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            Unlock Shield
+                        </button>
+                    </div>
+
+                    <!-- Recovered Session Display -->
+                    <div id="recovered-session" class="recovered-session" style="display: none; margin-top: 24px;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                            <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(34, 197, 94, 0.2); display: flex; align-items: center; justify-content: center;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #22c55e;">
+                                    <path d="M20 6 9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <p style="font-family: 'Oswald', sans-serif; font-size: 1rem; color: #22c55e; text-transform: uppercase; letter-spacing: 0.08em; margin: 0;">Session Restored</p>
+                                <p style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin: 0;">Your escrow data has been recovered</p>
+                            </div>
+                        </div>
+
+                        <div class="session-detail">
+                            <span class="session-detail-label">Escrow ID</span>
+                            <span class="session-detail-value" id="recovered-escrow-id">-</span>
+                        </div>
+                        <div class="session-detail">
+                            <span class="session-detail-label">Your Role</span>
+                            <span class="session-detail-value" id="recovered-role">-</span>
+                        </div>
+                        <div class="session-detail">
+                            <span class="session-detail-label">Vault Address</span>
+                            <span class="session-detail-value" id="recovered-address" style="font-size: 0.75rem; word-break: break-all;">-</span>
+                        </div>
+                        <div class="session-detail">
+                            <span class="session-detail-label">Master Key</span>
+                            <span class="session-detail-value" style="color: #22c55e;">Restored</span>
+                        </div>
+                        <div class="session-detail">
+                            <span class="session-detail-label">Security Fragment</span>
+                            <span class="session-detail-value" id="recovered-fragment-status">-</span>
+                        </div>
+
+                        <a id="continue-to-escrow-btn" href="#" class="apple-btn apple-btn-gold" style="width: 100%; margin-top: 24px; text-decoration: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+                            </svg>
+                            Continue to Escrow
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Alternative Recovery Options -->
+            <div style="margin-top: 32px;">
+                <p style="font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 16px;">Alternative Recovery Options</p>
+
+                <div class="recovery-alternative">
+                    <div class="recovery-alternative-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: #D4AF37;">
+                            <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; color: white; margin: 0 0 4px 0; font-weight: 500;">Recover from Master Key</p>
+                        <p style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin: 0;">
+                            If you saved your 12-word Master Key separately, you can restore your wallet and rejoin the escrow setup process.
+                        </p>
+                        <a href="/escrow/new" style="font-size: 0.8rem; color: #D4AF37; margin-top: 8px; display: inline-block;">
+                            Start New Escrow Setup
+                        </a>
+                    </div>
+                </div>
+
+                <div class="recovery-alternative">
+                    <div class="recovery-alternative-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: #D4AF37;">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p style="font-size: 0.875rem; color: white; margin: 0 0 4px 0; font-weight: 500;">Contact Other Participants</p>
+                        <p style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin: 0;">
+                            In a 2-of-3 multisig, any 2 participants can complete transactions. Contact your buyer, vendor, or arbiter to coordinate.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // State
+        let pendingFile = null;
+        let recoveredData = null;
+
+        /**
+         * Handle drag over
+         */
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('shield-dropzone').classList.add('drag-over');
+        }
+
+        /**
+         * Handle drag leave
+         */
+        function handleDragLeave(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('shield-dropzone').classList.remove('drag-over');
+        }
+
+        /**
+         * Handle file drop
+         */
+        function handleDrop(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            document.getElementById('shield-dropzone').classList.remove('drag-over');
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        /**
+         * Handle file selection via input
+         */
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                processFile(files[0]);
+            }
+        }
+
+        /**
+         * Process uploaded file
+         */
+        async function processFile(file) {
+            const dropzone = document.getElementById('shield-dropzone');
+            const defaultState = document.getElementById('dropzone-default');
+            const processingState = document.getElementById('dropzone-processing');
+            const successState = document.getElementById('dropzone-success');
+            const errorDiv = document.getElementById('recovery-error');
+            const passwordSection = document.getElementById('password-section');
+
+            // Reset states
+            errorDiv.style.display = 'none';
+            passwordSection.style.display = 'none';
+            dropzone.classList.remove('invalid', 'success', 'processing');
+
+            // Validate file type
+            if (!file.name.endsWith('.json') && !file.name.endsWith('.frost')) {
+                showRecoveryError('Please drop a Recovery Shield file (.json)');
+                dropzone.classList.add('invalid');
+                return;
+            }
+
+            // Show processing
+            defaultState.style.display = 'none';
+            processingState.style.display = 'flex';
+            dropzone.classList.add('processing');
+
+            try {
+                // Read and parse file
+                const content = await readFileAsText(file);
+                const data = JSON.parse(content);
+
+                // Validate shield format
+                if (!data.nexus_recovery_shield && !data.frost_recovery_file) {
+                    throw new Error('This doesn\'t look like a NEXUS Recovery Shield file.');
+                }
+
+                // Store for decryption
+                pendingFile = data;
+
+                // Show success and password input
+                processingState.style.display = 'none';
+                successState.style.display = 'block';
+                dropzone.classList.remove('processing');
+                dropzone.classList.add('success');
+                passwordSection.style.display = 'block';
+
+                // Focus password input
+                setTimeout(() => {
+                    document.getElementById('recovery-password').focus();
+                }, 100);
+
+            } catch (error) {
+                processingState.style.display = 'none';
+                defaultState.style.display = 'block';
+                dropzone.classList.remove('processing');
+                dropzone.classList.add('invalid');
+                showRecoveryError(error.message || 'File appears corrupted. Try downloading again.');
+            }
+        }
+
+        /**
+         * Read file as text
+         */
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+        }
+
+        /**
+         * Unlock shield with password
+         */
+        async function unlockShield() {
+            const password = document.getElementById('recovery-password').value;
+            const unlockBtn = document.getElementById('unlock-shield-btn');
+
+            if (!password) {
+                showRecoveryError('Please enter your password');
+                return;
+            }
+
+            if (!pendingFile) {
+                showRecoveryError('No file loaded. Please drop your Recovery Shield first.');
+                return;
+            }
+
+            // Show loading state
+            unlockBtn.disabled = true;
+            unlockBtn.innerHTML = `
+                <svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Decrypting...
+            `;
+
+            try {
+                // Decrypt the payload
+                const decrypted = await decryptShieldPayload(pendingFile, password);
+                recoveredData = decrypted;
+
+                // Restore to localStorage
+                restoreToLocalStorage(decrypted);
+
+                // Show recovered session
+                showRecoveredSession(decrypted);
+
+            } catch (error) {
+                console.error('Decryption error:', error);
+                showRecoveryError('Incorrect password or file is corrupted. Please try again.');
+
+                // Reset button
+                unlockBtn.disabled = false;
+                unlockBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    Unlock Shield
+                `;
+            }
+        }
+
+        /**
+         * Decrypt shield payload using Web Crypto API
+         */
+        async function decryptShieldPayload(fileData, password) {
+            // Handle both old format (flat) and new format (nested encryption object)
+            const salt = fileData.encryption?.salt || fileData.salt;
+            const iv = fileData.encryption?.iv || fileData.iv;
+            const ciphertext = fileData.payload_encrypted || fileData.ciphertext;
+
+            if (!salt || !iv || !ciphertext) {
+                throw new Error('Invalid file format');
+            }
+
+            // Convert from base64
+            const saltBuffer = base64ToBuffer(salt);
+            const ivBuffer = base64ToBuffer(iv);
+            const ciphertextBuffer = base64ToBuffer(ciphertext);
+
+            // Derive key from password
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+
+            const iterations = fileData.encryption?.iterations || fileData.kdf_iterations || 100000;
+
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: saltBuffer,
+                    iterations: iterations,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+
+            // Decrypt
+            const plainBuffer = await crypto.subtle.decrypt(
+                { name: 'AES-GCM', iv: ivBuffer },
+                key,
+                ciphertextBuffer
+            );
+
+            const decoder = new TextDecoder();
+            const plaintext = decoder.decode(plainBuffer);
+
+            return JSON.parse(plaintext);
+        }
+
+        /**
+         * Convert base64 to Uint8Array
+         */
+        function base64ToBuffer(base64) {
+            const binary = atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        /**
+         * Restore decrypted data to localStorage
+         * CRITICAL: Must restore ALL keys that sign-action.js expects
+         */
+        function restoreToLocalStorage(data) {
+            // Handle both new shield format and old recovery file format
+            if (data.wallet) {
+                // New shield format (v1.1+)
+                localStorage.setItem('monero_seed_phrase', data.wallet.bip39_seed);
+                if (data.wallet.address) localStorage.setItem('monero_address', data.wallet.address);
+                if (data.wallet.spend_key_pub) localStorage.setItem('monero_spend_key_pub', data.wallet.spend_key_pub);
+
+                // CRITICAL: Restore view key private (needed for tx derivation)
+                if (data.wallet.view_key_priv) {
+                    localStorage.setItem('monero_view_key_priv', data.wallet.view_key_priv);
+                }
+
+                if (data.escrow) {
+                    const escrowId = data.escrow.escrow_id;
+                    const role = data.escrow.role;
+
+                    localStorage.setItem('current_escrow_id', escrowId);
+                    localStorage.setItem('escrow_role', role);
+
+                    if (data.escrow.multisig_address) {
+                        localStorage.setItem(`escrow_${escrowId}_address`, data.escrow.multisig_address);
+                    }
+
+                    // Restore multisig view key (for balance monitoring)
+                    if (data.escrow.multisig_view_key) {
+                        localStorage.setItem(`frost_dkg_${escrowId}_${role}_view_key_private`, data.escrow.multisig_view_key);
+                    }
+                }
+
+                if (data.frost_dkg && data.escrow) {
+                    const escrowId = data.escrow.escrow_id;
+                    const role = data.escrow.role;
+
+                    // Restore key_package
+                    if (data.frost_dkg.key_package) {
+                        localStorage.setItem(`frost_dkg_${escrowId}_${role}_key_package`, data.frost_dkg.key_package);
+                    }
+
+                    // CRITICAL: Restore secret_share in ALL formats
+                    // sign-action.js checks these in priority order
+                    if (data.frost_dkg.secret_share) {
+                        localStorage.setItem(`frost_secret_share_${escrowId}_${role}`, data.frost_dkg.secret_share);
+                        localStorage.setItem(`frost_secret_share_${escrowId}`, data.frost_dkg.secret_share);
+                        localStorage.setItem(`spend_key_${role}`, data.frost_dkg.secret_share);
+                        localStorage.setItem('spend_key', data.frost_dkg.secret_share);
+                        console.log('[Recovery] FROST secret_share restored (4 formats)');
+                    } else {
+                        console.warn('[Recovery] WARNING: No secret_share in shield - signing may fail!');
+                    }
+
+                    if (data.frost_dkg.group_public_key) {
+                        localStorage.setItem(`frost_dkg_${escrowId}_${role}_group_pubkey`, data.frost_dkg.group_public_key);
+                    }
+                    if (data.frost_dkg.verifying_share) {
+                        localStorage.setItem(`frost_dkg_${escrowId}_${role}_verifying_share`, data.frost_dkg.verifying_share);
+                    }
+
+                    // Set FROST flags
+                    localStorage.setItem('escrow_uses_frost', 'true');
+                    localStorage.setItem('current_frost_role', role);
+                }
+            } else if (data.my_seed_phrase) {
+                // Old recovery file format (legacy)
+                localStorage.setItem('monero_seed_phrase', data.my_seed_phrase);
+                if (data.escrow_id) localStorage.setItem('current_escrow_id', data.escrow_id);
+                if (data.my_role) localStorage.setItem('escrow_role', data.my_role);
+                if (data.multisig_address && data.escrow_id) {
+                    localStorage.setItem(`escrow_${data.escrow_id}_address`, data.multisig_address);
+                }
+            }
+
+            // Verify recovery completeness
+            const escrowId = localStorage.getItem('current_escrow_id');
+            const role = localStorage.getItem('escrow_role');
+            const hasSecretShare = !!localStorage.getItem(`frost_secret_share_${escrowId}_${role}`);
+            const hasViewKey = !!localStorage.getItem('monero_view_key_priv');
+            const hasSeed = !!localStorage.getItem('monero_seed_phrase');
+
+            console.log('[Recovery] Verification:', { hasSeed, hasViewKey, hasSecretShare });
+
+            if (hasSeed && hasViewKey && hasSecretShare) {
+                console.log('[Recovery] ✅ Full recovery - signing should work');
+                // Mark shield as "downloaded" so status indicator shows green
+                localStorage.setItem(`shield_downloaded_${escrowId}`, new Date().toISOString());
+                console.log('[Recovery] Shield status set to downloaded (restored from backup)');
+                // Dispatch event for shield-status-indicator to update
+                window.dispatchEvent(new CustomEvent('shieldRecovered', { detail: { escrowId, role } }));
+            } else if (hasSeed && !hasSecretShare) {
+                console.warn('[Recovery] ⚠️ Partial recovery - wallet restored but signing may fail');
+            }
+        }
+
+        /**
+         * Show recovered session UI
+         */
+        function showRecoveredSession(data) {
+            const dropzone = document.getElementById('shield-dropzone');
+            const passwordSection = document.getElementById('password-section');
+            const recoveredSession = document.getElementById('recovered-session');
+
+            // Hide dropzone and password
+            dropzone.style.display = 'none';
+            passwordSection.style.display = 'none';
+
+            // Populate recovered data
+            const escrowId = data.escrow?.escrow_id || data.escrow_id || '-';
+            const role = data.escrow?.role || data.my_role || '-';
+            const address = data.escrow?.multisig_address || data.multisig_address || 'Not yet generated';
+
+            // Check signing capability (secret_share is what matters, not key_package)
+            const hasSecretShare = !!data.frost_dkg?.secret_share;
+            const hasKeyPackage = !!data.frost_dkg?.key_package;
+            const hasViewKey = !!data.wallet?.view_key_priv;
+
+            let fragmentStatus, fragmentColor;
+            if (hasSecretShare && hasViewKey) {
+                fragmentStatus = 'Full Recovery';
+                fragmentColor = '#22c55e';  // Green - can sign
+            } else if (hasKeyPackage && !hasSecretShare) {
+                fragmentStatus = 'Partial (Old Shield)';
+                fragmentColor = '#eab308';  // Yellow - may not sign
+            } else if (!hasKeyPackage && !hasSecretShare) {
+                fragmentStatus = 'Not available';
+                fragmentColor = '#ef4444';  // Red - cannot sign
+            } else {
+                fragmentStatus = 'Restored';
+                fragmentColor = '#22c55e';
+            }
+
+            document.getElementById('recovered-escrow-id').textContent = escrowId.substring(0, 16) + '...';
+            document.getElementById('recovered-role').textContent = role.charAt(0).toUpperCase() + role.slice(1);
+            document.getElementById('recovered-address').textContent = address;
+            document.getElementById('recovered-fragment-status').textContent = fragmentStatus;
+            document.getElementById('recovered-fragment-status').style.color = fragmentColor;
+
+            // Warn user if partial recovery
+            if (hasKeyPackage && !hasSecretShare) {
+                console.warn('[Recovery] Shield v1.0 detected - missing secret_share. User may need to re-download shield.');
+                // Could show a warning banner here
+            }
+
+            // Set continue button URL
+            if (escrowId !== '-') {
+                document.getElementById('continue-to-escrow-btn').href = `/escrow/${escrowId}`;
+            } else {
+                document.getElementById('continue-to-escrow-btn').href = '/dashboard';
+            }
+
+            // Show recovered session
+            recoveredSession.style.display = 'block';
+        }
+
+        /**
+         * Show error message
+         */
+        function showRecoveryError(message) {
+            const errorDiv = document.getElementById('recovery-error');
+            const errorMessage = document.getElementById('recovery-error-message');
+
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'flex';
+        }
+
+        /**
+         * Toggle password visibility
+         */
+        function togglePasswordVisibility(inputId, button) {
+            const input = document.getElementById(inputId);
+            if (!input) return;
+
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+
+            const icon = button.querySelector('.eye-icon');
+            if (icon) {
+                icon.innerHTML = isPassword
+                    ? '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>'
+                    : '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>';
+            }
+        }
+
+        // Keyboard support for dropzone
+        document.getElementById('shield-dropzone').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                document.getElementById('shield-file-input').click();
+            }
+        });
+
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+
+</html>

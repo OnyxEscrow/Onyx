@@ -1,0 +1,217 @@
+{% extends "base-aura.html" %}
+
+{% block title %}Become a Vendor - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="min-h-screen w-full max-w-7xl mx-auto px-4 md:px-8 py-12 pt-32 relative animate-reveal">
+
+    <!-- Hero Section -->
+    <div class="text-center max-w-3xl mx-auto mb-20">
+        <div
+            class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-tr from-yellow-600 to-orange-600 mb-8 shadow-2xl shadow-orange-500/20">
+            <i data-lucide="store" class="w-10 h-10 text-white"></i>
+        </div>
+        <h1 class="text-5xl md:text-7xl font-light tracking-tighter text-white mb-6">
+            Become a FROST MARKET <span
+                class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-400">Vendor</span>
+        </h1>
+        <p class="text-xl text-gray-400 font-light leading-relaxed">
+            Join a marketplace built on privacy, security, and fair commerce. Reach customers who value financial
+            sovereignty.
+        </p>
+    </div>
+
+    <!-- Benefits Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
+        <!-- Secure Escrow -->
+        <div
+            class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300 group">
+            <div
+                class="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="shield-check" class="w-6 h-6 text-yellow-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-white mb-2">Secure Escrow</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">2-of-3 multisig protection ensures both buyer and seller
+                security.</p>
+        </div>
+
+        <!-- Low Fees -->
+        <div
+            class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300 group">
+            <div
+                class="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="percent" class="w-6 h-6 text-green-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-white mb-2">Low Fees</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Competitive commission rates with transparent pricing.</p>
+        </div>
+
+        <!-- Privacy First -->
+        <div
+            class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300 group">
+            <div
+                class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="eye-off" class="w-6 h-6 text-blue-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-white mb-2">Privacy-First</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Reach customers who value privacy and cryptocurrency
+                payments.</p>
+        </div>
+
+        <!-- Easy Setup -->
+        <div
+            class="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md hover:bg-white/10 transition-all duration-300 group">
+            <div
+                class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                <i data-lucide="rocket" class="w-6 h-6 text-purple-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-white mb-2">Easy Setup</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">Quick onboarding process with dedicated vendor support.</p>
+        </div>
+    </div>
+
+    <!-- Application Form -->
+    <div class="max-w-2xl mx-auto">
+        <div
+            class="relative bg-[#0F1115]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 md:p-12 shadow-2xl overflow-hidden">
+            <!-- Ambient Glow -->
+            <div class="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-[80px] pointer-events-none">
+            </div>
+
+            <h2 class="text-2xl font-light text-white mb-2 relative z-10">Vendor Application</h2>
+            <p class="text-gray-400 text-sm mb-8 relative z-10">Fill out the form below to apply. We'll review your
+                application within 48 hours.</p>
+
+            <form hx-post="/vendor/apply" hx-target="body" class="space-y-6 relative z-10">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="first-name" class="text-xs font-medium text-gray-500 uppercase tracking-wider">First
+                            Name</label>
+                        <input id="first-name" name="first_name" type="text" required
+                            class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all"
+                            placeholder="John">
+                    </div>
+                    <div class="space-y-2">
+                        <label for="last-name" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Last
+                            Name</label>
+                        <input id="last-name" name="last_name" type="text" required
+                            class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all"
+                            placeholder="Doe">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="email" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email
+                        Address</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                            <i data-lucide="mail" class="w-4 h-4"></i>
+                        </div>
+                        <input id="email" name="email" type="email" required
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all"
+                            placeholder="vendor@example.com">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="store-name" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Store
+                        Name</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                            <i data-lucide="store" class="w-4 h-4"></i>
+                        </div>
+                        <input id="store-name" name="store_name" type="text" required
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all"
+                            placeholder="Your Store Name">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="category" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Primary
+                        Product Category</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                            <i data-lucide="tag" class="w-4 h-4"></i>
+                        </div>
+                        <select id="category" name="category" required
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-10 py-3 text-white appearance-none focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 transition-all cursor-pointer">
+                            <option value="" disabled selected>Select a category</option>
+                            <option value="digital">Digital Goods</option>
+                            <option value="physical">Physical Goods</option>
+                            <option value="services">Services</option>
+                            <option value="software">Software & Tools</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="description" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Store
+                        Description</label>
+                    <textarea id="description" name="description" rows="4" required
+                        class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all resize-none"
+                        placeholder="Tell us about your store and the products you plan to sell..."></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="experience" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Previous
+                        Selling Experience</label>
+                    <textarea id="experience" name="experience" rows="3"
+                        class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all resize-none"
+                        placeholder="Share your experience with e-commerce or marketplace selling..."></textarea>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="website" class="text-xs font-medium text-gray-500 uppercase tracking-wider">Website or
+                        Social Media (Optional)</label>
+                    <div class="relative group">
+                        <div
+                            class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-yellow-400 transition-colors">
+                            <i data-lucide="globe" class="w-4 h-4"></i>
+                        </div>
+                        <input id="website" name="website" type="url"
+                            class="w-full bg-black/20 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500/50 focus:bg-black/40 focus:shadow-[0_0_20px_rgba(234,179,8,0.1)] transition-all"
+                            placeholder="https://...">
+                    </div>
+                </div>
+
+                <label
+                    class="flex items-start gap-3 p-4 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                    <div class="relative flex items-center">
+                        <input type="checkbox" name="terms" required
+                            class="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-white/20 bg-black/20 checked:border-yellow-500 checked:bg-yellow-500 transition-all">
+                        <i data-lucide="check"
+                            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-black opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none"></i>
+                    </div>
+                    <span class="text-sm text-gray-300 select-none pt-0.5">I agree to FROST MARKET vendor terms and conditions,
+                        including the use of 2-of-3 multisig escrow for all transactions</span>
+                </label>
+
+                <button type="submit"
+                    class="group relative w-full rounded-xl p-[1px] overflow-hidden shadow-lg shadow-yellow-900/20 active:scale-[0.99] transition-transform duration-200">
+                    <div
+                        class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#eab308_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    </div>
+                    <div
+                        class="relative w-full py-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 text-white font-semibold tracking-wide rounded-xl flex items-center justify-center gap-2 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)]">
+                        Submit Application
+                        <i data-lucide="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+{% endblock %}

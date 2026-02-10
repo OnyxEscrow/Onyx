@@ -1,0 +1,309 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Secure Bag - FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="cart-industrial">
+    {# Hidden Data #}
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+    <div class="cart-industrial__container">
+        {# Header #}
+        <div class="cart-industrial__header">
+            <h1 class="cart-industrial__title">
+                Secure Bag
+                <span class="cart-industrial__badge">{{ cart_count | default(value=0) }} ITEMS</span>
+            </h1>
+            <a href="/listings" class="cart-industrial__back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Continue Shopping
+            </a>
+        </div>
+
+        {% if cart and cart.items and cart.items | length > 0 %}
+        <div class="cart-industrial__content">
+            {# Items List #}
+            <div class="cart-industrial__items">
+                {% for item in cart.items %}
+                <div class="cart-industrial__item" data-listing-id="{{ item.listing_id }}">
+                    {# Image #}
+                    <div class="cart-industrial__item-image">
+                        {% if item.image_cid %}
+                            <img src="/api/listings/{{ item.listing_id }}/images/{{ item.image_cid }}" alt="{{ item.title }}">
+                        {% else %}
+                            <img src="https://picsum.photos/seed/{{ item.listing_id }}/160/160" alt="{{ item.title }}">
+                        {% endif %}
+                    </div>
+
+                    {# Details #}
+                    <div class="cart-industrial__item-details">
+                        <div class="cart-industrial__item-header">
+                            <div>
+                                <h3 class="cart-industrial__item-title">{{ item.title | upper }}</h3>
+                                <p class="cart-industrial__item-vendor">
+                                    <span class="cart-industrial__item-vendor-label">VENDOR:</span>
+                                    {{ item.vendor_username | default(value="Unknown") }}
+                                </p>
+                            </div>
+                            <button type="button" class="cart-industrial__item-remove" data-action="remove" data-listing-id="{{ item.listing_id }}" title="Remove">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="cart-industrial__item-price">{{ item.total_xmr }} XMR</div>
+
+                        {# Quantity Controls #}
+                        <div class="cart-industrial__item-controls">
+                            <div class="cart-industrial__quantity">
+                                <button type="button" class="cart-industrial__quantity-btn" data-action="quantity" data-listing-id="{{ item.listing_id }}" data-delta="-1" {% if item.quantity <= 1 %}disabled{% endif %}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M5 12h14"/>
+                                    </svg>
+                                </button>
+                                <span class="cart-industrial__quantity-value">{{ item.quantity }}</span>
+                                <button type="button" class="cart-industrial__quantity-btn" data-action="quantity" data-listing-id="{{ item.listing_id }}" data-delta="1">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M5 12h14"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            {% if item.category %}
+                            <span class="cart-industrial__item-category">{{ item.category }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {# Summary Sidebar #}
+            <aside class="cart-industrial__summary">
+                <div class="cart-industrial__summary-card">
+                    <h3 class="cart-industrial__summary-title">Order Summary</h3>
+
+                    <div class="cart-industrial__summary-rows">
+                        <div class="cart-industrial__summary-row">
+                            <span>Subtotal ({{ cart_total_quantity }} items)</span>
+                            <span>{{ cart_total_xmr }} XMR</span>
+                        </div>
+                        <div class="cart-industrial__summary-row">
+                            <span>Network Fee</span>
+                            <span class="cart-industrial__summary-fee">~0.0001 XMR</span>
+                        </div>
+                    </div>
+
+                    <div class="cart-industrial__summary-total">
+                        <span class="cart-industrial__summary-total-label">Total Value</span>
+                        <div class="cart-industrial__summary-total-amount">
+                            <span class="cart-industrial__summary-total-xmr">{{ cart_total_xmr }}</span>
+                            <span class="cart-industrial__summary-total-unit">XMR</span>
+                        </div>
+                        {% if show_usd and cart_total_usd %}
+                        <span class="cart-industrial__summary-total-usd">≈ ${{ cart_total_usd }} USD</span>
+                        {% endif %}
+                        <span class="cart-industrial__summary-total-note">Excluding Network Fees</span>
+                    </div>
+
+                    <a href="/checkout" class="cart-industrial__checkout-btn">
+                        Secure Checkout
+                    </a>
+
+                    <div class="cart-industrial__escrow-status">
+                        <span class="cart-industrial__escrow-pulse"></span>
+                        Escrow Contracts Ready
+                    </div>
+                </div>
+
+                {# Security Info #}
+                <div class="cart-industrial__security">
+                    <div class="cart-industrial__security-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>2-of-3 Multisig Escrow</span>
+                    </div>
+                    <div class="cart-industrial__security-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <span>Non-Custodial</span>
+                    </div>
+                    <div class="cart-industrial__security-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <span>Monero Privacy</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+
+        {% else %}
+        {# Empty Cart - Using Unified Design System #}
+        <div class="nx-empty-state">
+            <div class="nx-empty-state__icon">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                    <line x1="3" y1="6" x2="21" y2="6"/>
+                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+            </div>
+            <h2 class="nx-empty-state__title">Your bag is empty</h2>
+            <p class="nx-empty-state__description">
+                Discover products from verified vendors with secure escrow protection
+            </p>
+            <a href="/listings" class="nx-btn nx-btn--primary nx-btn--lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                Explore Listings
+            </a>
+            <div class="nx-empty-state__hints">
+                <div class="nx-empty-state__hint">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>2-of-3 multisig escrow on every purchase</span>
+                </div>
+                <div class="nx-empty-state__hint">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4l2 2"/>
+                    </svg>
+                    <span>Buyer protection until you confirm delivery</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script nonce="{{ csp_nonce }}">
+(function() {
+    const csrfToken = document.getElementById('csrf-token')?.value;
+
+    // Event delegation for cart actions
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const listingId = btn.dataset.listingId;
+
+        if (action === 'remove' && listingId) {
+            removeFromCart(listingId);
+        } else if (action === 'quantity' && listingId) {
+            const delta = parseInt(btn.dataset.delta || '0');
+            updateQuantity(listingId, delta);
+        }
+    });
+
+    async function removeFromCart(listingId) {
+        try {
+            const response = await fetch('/api/cart/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    listing_id: listingId,
+                    csrf_token: csrfToken
+                })
+            });
+
+            if (response.ok) {
+                // Animate removal then reload
+                const item = document.querySelector(`[data-listing-id="${listingId}"]`);
+                if (item) {
+                    item.style.transition = 'opacity 0.3s, transform 0.3s';
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateX(20px)';
+                    setTimeout(() => location.reload(), 300);
+                } else {
+                    location.reload();
+                }
+            } else {
+                const error = await response.json();
+                showToast(error.message || 'Failed to remove item', 'error');
+            }
+        } catch (err) {
+            console.error('Remove error:', err);
+            showToast('Network error', 'error');
+        }
+    }
+
+    async function updateQuantity(listingId, delta) {
+        const item = document.querySelector(`[data-listing-id="${listingId}"]`);
+        const quantityEl = item?.querySelector('.cart-industrial__quantity-value');
+        const currentQty = parseInt(quantityEl?.textContent || '1');
+        const newQty = currentQty + delta;
+
+        if (newQty < 1) return;
+
+        try {
+            const response = await fetch('/api/cart/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    listing_id: listingId,
+                    quantity: newQty,
+                    csrf_token: csrfToken
+                })
+            });
+
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.json();
+                showToast(error.message || 'Failed to update quantity', 'error');
+            }
+        } catch (err) {
+            console.error('Update error:', err);
+            showToast('Network error', 'error');
+        }
+    }
+
+    window.clearCart = async function() {
+        if (!confirm('Clear all items from your bag?')) return;
+
+        try {
+            const response = await fetch('/api/cart/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include'
+            });
+
+            if (response.ok) {
+                location.reload();
+            }
+        } catch (err) {
+            console.error('Clear error:', err);
+        }
+    };
+
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast toast--${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+})();
+</script>
+{% endblock %}

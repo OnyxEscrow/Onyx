@@ -1,0 +1,26 @@
+{# Skeleton Loading Screen for Listings Grid #}
+{# Usage: Include before actual content, hide when content loads #}
+
+<div class="skeleton-container skeleton-grid" id="listings-skeleton">
+    {% for i in range(end=6) %}
+    <div class="skeleton-card">
+        <div class="skeleton-card__image"></div>
+        <div class="skeleton-card__title"></div>
+        <div class="skeleton-card__price"></div>
+        <div class="skeleton-card__meta">
+            <div class="skeleton-card__badge"></div>
+            <div class="skeleton-card__badge"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Hide skeleton when content loads
+document.addEventListener('htmx:afterSwap', function(evt) {
+    const skeleton = document.getElementById('listings-skeleton');
+    if (skeleton) {
+        skeleton.classList.add('loaded');
+    }
+});
+</script>

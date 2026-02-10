@@ -1,0 +1,342 @@
+{#
+  NEXUS EMOJI RATING COMPONENT (MACRO)
+  5-point emoji rating system for zero-friction reviews
+
+  Usage:
+    {% import "partials/nexus/atoms/emoji-rating.html" as emoji %}
+    {{ emoji::rating(name="rating") }}
+    {{ emoji::rating(name="review_rating", selected=4, size="lg") }}
+
+  Parameters:
+    - name (required): Form input name
+    - selected (optional): Pre-selected value 1-5 (default: 0 = none)
+    - size (optional): sm|md|lg (default: md)
+    - disabled (optional): Disable interaction (default: false)
+    - class (optional): Additional CSS classes
+
+  JavaScript Events:
+    - Emits 'emoji-rating:change' custom event on selection
+    - Event detail: { name, value, emoji }
+
+  Emoji Mapping (Universal, culture-agnostic):
+    1 = Very Bad
+    2 = Bad
+    3 = Neutral
+    4 = Good
+    5 = Excellent
+#}
+
+{% macro rating(name, selected=0, size="md", disabled=false, class="") %}
+  {# Build CSS classes #}
+  {%- set css_classes = "emoji-rating emoji-rating--" ~ size -%}
+  {%- if disabled -%}
+    {%- set css_classes = css_classes ~ " emoji-rating--disabled" -%}
+  {%- endif -%}
+  {%- if class -%}
+    {%- set css_classes = css_classes ~ " " ~ class -%}
+  {%- endif -%}
+
+  <fieldset class="{{ css_classes }}"
+            role="radiogroup"
+            aria-label="Rate your experience"
+            data-emoji-rating
+            data-name="{{ name }}">
+    <legend class="sr-only">Rate your experience from 1 to 5</legend>
+
+    {# Hidden input for form submission #}
+    <input type="hidden" name="{{ name }}" value="{{ selected }}" data-emoji-rating-value>
+
+    {# Emoji buttons #}
+    <button type="button"
+            class="emoji-rating__btn{% if selected == 1 %} emoji-rating__btn--selected{% endif %}"
+            data-value="1"
+            data-emoji="angry"
+            aria-label="Very bad - 1 out of 5"
+            aria-pressed="{% if selected == 1 %}true{% else %}false{% endif %}"
+            {% if disabled %}disabled{% endif %}>
+      <span class="emoji-rating__emoji" aria-hidden="true">&#128544;</span>
+      <span class="emoji-rating__label">Terrible</span>
+    </button>
+
+    <button type="button"
+            class="emoji-rating__btn{% if selected == 2 %} emoji-rating__btn--selected{% endif %}"
+            data-value="2"
+            data-emoji="sad"
+            aria-label="Bad - 2 out of 5"
+            aria-pressed="{% if selected == 2 %}true{% else %}false{% endif %}"
+            {% if disabled %}disabled{% endif %}>
+      <span class="emoji-rating__emoji" aria-hidden="true">&#128577;</span>
+      <span class="emoji-rating__label">Bad</span>
+    </button>
+
+    <button type="button"
+            class="emoji-rating__btn{% if selected == 3 %} emoji-rating__btn--selected{% endif %}"
+            data-value="3"
+            data-emoji="neutral"
+            aria-label="Neutral - 3 out of 5"
+            aria-pressed="{% if selected == 3 %}true{% else %}false{% endif %}"
+            {% if disabled %}disabled{% endif %}>
+      <span class="emoji-rating__emoji" aria-hidden="true">&#128528;</span>
+      <span class="emoji-rating__label">Average</span>
+    </button>
+
+    <button type="button"
+            class="emoji-rating__btn{% if selected == 4 %} emoji-rating__btn--selected{% endif %}"
+            data-value="4"
+            data-emoji="happy"
+            aria-label="Good - 4 out of 5"
+            aria-pressed="{% if selected == 4 %}true{% else %}false{% endif %}"
+            {% if disabled %}disabled{% endif %}>
+      <span class="emoji-rating__emoji" aria-hidden="true">&#128578;</span>
+      <span class="emoji-rating__label">Good</span>
+    </button>
+
+    <button type="button"
+            class="emoji-rating__btn{% if selected == 5 %} emoji-rating__btn--selected{% endif %}"
+            data-value="5"
+            data-emoji="excellent"
+            aria-label="Excellent - 5 out of 5"
+            aria-pressed="{% if selected == 5 %}true{% else %}false{% endif %}"
+            {% if disabled %}disabled{% endif %}>
+      <span class="emoji-rating__emoji" aria-hidden="true">&#128513;</span>
+      <span class="emoji-rating__label">Excellent</span>
+    </button>
+  </fieldset>
+
+  {# Inline script for interactivity #}
+  <script>
+  (function() {
+    const container = document.currentScript.previousElementSibling;
+    if (!container || container.dataset.initialized) return;
+    container.dataset.initialized = 'true';
+
+    const buttons = container.querySelectorAll('.emoji-rating__btn');
+    const hiddenInput = container.querySelector('[data-emoji-rating-value]');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        if (this.disabled) return;
+
+        // Update visual state
+        buttons.forEach(b => {
+          b.classList.remove('emoji-rating__btn--selected');
+          b.setAttribute('aria-pressed', 'false');
+        });
+        this.classList.add('emoji-rating__btn--selected');
+        this.setAttribute('aria-pressed', 'true');
+
+        // Update hidden input
+        const value = this.dataset.value;
+        hiddenInput.value = value;
+
+        // Emit custom event
+        const event = new CustomEvent('emoji-rating:change', {
+          bubbles: true,
+          detail: {
+            name: container.dataset.name,
+            value: parseInt(value),
+            emoji: this.dataset.emoji
+          }
+        });
+        container.dispatchEvent(event);
+      });
+
+      // Keyboard navigation
+      btn.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = this.nextElementSibling;
+          if (next && next.classList.contains('emoji-rating__btn')) {
+            next.focus();
+            next.click();
+          }
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = this.previousElementSibling;
+          if (prev && prev.classList.contains('emoji-rating__btn')) {
+            prev.focus();
+            prev.click();
+          }
+        }
+      });
+    });
+  })();
+  </script>
+{%- endmacro rating %}
+
+{% macro display(value, size="sm") %}
+  {# Display-only emoji (no interaction) for showing existing ratings #}
+  {%- if value == 1 -%}
+    {%- set emoji = "&#128544;" -%}
+    {%- set label = "Terrible" -%}
+  {%- elif value == 2 -%}
+    {%- set emoji = "&#128577;" -%}
+    {%- set label = "Bad" -%}
+  {%- elif value == 3 -%}
+    {%- set emoji = "&#128528;" -%}
+    {%- set label = "Average" -%}
+  {%- elif value == 4 -%}
+    {%- set emoji = "&#128578;" -%}
+    {%- set label = "Good" -%}
+  {%- elif value == 5 -%}
+    {%- set emoji = "&#128513;" -%}
+    {%- set label = "Excellent" -%}
+  {%- else -%}
+    {%- set emoji = "&#128528;" -%}
+    {%- set label = "Not rated" -%}
+  {%- endif -%}
+
+  <span class="emoji-rating-display emoji-rating-display--{{ size }}"
+        title="{{ label }}"
+        aria-label="Rating: {{ label }}">
+    {{ emoji | safe }}
+  </span>
+{%- endmacro display %}
+
+{% macro styles() %}
+{# CSS styles embedded for component isolation #}
+<style>
+/* Emoji Rating Component */
+.emoji-rating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--nx-space-3);
+  padding: var(--nx-space-4);
+  border: none;
+  margin: 0;
+}
+
+.emoji-rating__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--nx-space-1);
+  padding: var(--nx-space-2);
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--nx-radius-lg);
+  cursor: pointer;
+  transition: all var(--nx-transition-fast);
+  min-width: 56px;
+  min-height: 56px;
+}
+
+.emoji-rating__btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: scale(var(--nx-emoji-hover-scale));
+}
+
+.emoji-rating__btn:focus-visible {
+  outline: 2px solid var(--nx-gold);
+  outline-offset: 2px;
+}
+
+.emoji-rating__btn--selected {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--nx-gold);
+  transform: scale(var(--nx-emoji-selected-scale));
+  box-shadow: var(--nx-emoji-glow);
+}
+
+.emoji-rating__btn--selected .emoji-rating__emoji {
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.5));
+}
+
+.emoji-rating__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emoji-rating__emoji {
+  font-size: var(--nx-emoji-size);
+  line-height: 1;
+  transition: filter var(--nx-transition-fast);
+}
+
+.emoji-rating__label {
+  font-family: var(--nx-font-body);
+  font-size: var(--nx-text-xs);
+  color: var(--nx-text-muted);
+  opacity: 0;
+  transition: opacity var(--nx-transition-fast);
+}
+
+.emoji-rating__btn:hover .emoji-rating__label,
+.emoji-rating__btn--selected .emoji-rating__label {
+  opacity: 1;
+}
+
+/* Size variants */
+.emoji-rating--sm .emoji-rating__emoji {
+  font-size: calc(var(--nx-emoji-size) * 0.75);
+}
+
+.emoji-rating--sm .emoji-rating__btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.emoji-rating--lg .emoji-rating__emoji {
+  font-size: var(--nx-emoji-size-lg);
+}
+
+.emoji-rating--lg .emoji-rating__btn {
+  min-width: 72px;
+  min-height: 72px;
+}
+
+.emoji-rating--lg .emoji-rating__label {
+  font-size: var(--nx-text-sm);
+}
+
+/* Disabled state */
+.emoji-rating--disabled {
+  pointer-events: none;
+}
+
+/* Display-only version */
+.emoji-rating-display {
+  display: inline-block;
+  line-height: 1;
+}
+
+.emoji-rating-display--sm {
+  font-size: 1.25rem;
+}
+
+.emoji-rating-display--md {
+  font-size: 1.5rem;
+}
+
+.emoji-rating-display--lg {
+  font-size: 2rem;
+}
+
+/* Screen reader only class */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .emoji-rating__btn {
+    transition: none;
+  }
+
+  .emoji-rating__btn:hover:not(:disabled),
+  .emoji-rating__btn--selected {
+    transform: none;
+  }
+}
+</style>
+{%- endmacro styles %}

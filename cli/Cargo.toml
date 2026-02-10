@@ -1,0 +1,39 @@
+[package]
+name = "monero-marketplace-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line interface for Monero Marketplace"
+
+[[bin]]
+name = "monero-marketplace"
+path = "src/main.rs"
+
+[[bin]]
+name = "test-tool"
+path = "src/test_tool.rs"
+
+[dependencies]
+monero-marketplace-common = { path = "../common" }
+monero-marketplace-wallet = { path = "../wallet" }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+chrono = { version = "0.4.42", features = ["serde"] }
+bip39 = "2.0"
+hkdf = "0.12"
+zeroize = { version = "1.7", features = ["derive"] }
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = { workspace = true }

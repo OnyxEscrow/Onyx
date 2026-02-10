@@ -1,0 +1,52 @@
+[package]
+name = "nexus-crypto-wasm"
+version = "0.1.0"
+edition = "2021"
+authors = ["NEXUS Team"]
+license = "MIT"
+description = "WASM bindings for nexus-crypto-core - browser-based Monero multisig"
+repository = "https://github.com/nexus-escrow/nexus-crypto-core"
+keywords = ["monero", "frost", "multisig", "wasm", "browser"]
+categories = ["cryptography", "wasm"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+# Core crypto library
+nexus-crypto-core = { path = "..", features = ["wasm"] }
+
+# WASM bindings
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = ["console"] }
+
+# Serialization for JS interop
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.6"
+
+# Crypto primitives
+sha3 = { version = "0.10", default-features = false }
+hex = { version = "0.4", default-features = false, features = ["alloc"] }
+
+# Better panic messages in browser console
+console_error_panic_hook = { version = "0.1", optional = true }
+
+# Random number generation in browser
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+# Optimize for size in WASM
+opt-level = "s"
+lto = true
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

@@ -1,0 +1,236 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}ACCOUNT RECOVERY — FROST MARKET{% endblock %}
+
+{% block marquee %}
+<div class="marquee-bar" style="justify-content: center; display: flex; align-items: center;">
+    <div class="marquee-item" style="padding: 0;">
+        <span class="marquee-item__dot"></span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); letter-spacing: 0.2em;">
+            SECURE_RECOVERY_MODE // ENCRYPTED_CHANNEL
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block header %}
+<header class="header-industrial" style="justify-content: center;">
+    <a href="/" class="logo-industrial">
+        <div class="logo-industrial__icon">
+            <span class="logo-industrial__dot"></span>
+        </div>
+        <div class="logo-industrial__brand">
+            <span class="logo-industrial__text">FROST MARKET</span>
+            <span class="logo-industrial__subtitle">Protocol v3</span>
+        </div>
+    </a>
+</header>
+{% endblock %}
+
+{% block content %}
+
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-cyan-500/20 to-purple-500/20 flex items-center justify-center">
+                <i data-lucide="key" class="w-8 h-8 text-cyan-400"></i>
+            </div>
+            <h1 class="text-2xl font-light text-white mb-2">Account Recovery</h1>
+            <p class="text-gray-400 text-sm">Enter your username and 12-word recovery phrase to reset your password.</p>
+        </div>
+
+        <!-- Recovery Form -->
+        <div class="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+            <form id="recovery-form" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+                <!-- Step 1: Username -->
+                <div id="step-1">
+                    <label class="text-sm text-gray-400 block mb-2">Username</label>
+                    <input type="text" name="username" id="username" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500/50 transition-all"
+                        placeholder="Enter your username">
+                </div>
+
+                <!-- Step 2: Recovery Phrase -->
+                <div>
+                    <label class="text-sm text-gray-400 block mb-2">
+                        Recovery Phrase <span class="text-xs text-gray-500">(12 words)</span>
+                    </label>
+                    <textarea name="recovery_phrase" id="recovery_phrase" rows="3" required
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500/50 transition-all resize-none font-mono"
+                        placeholder="word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12"></textarea>
+                    <p class="text-xs text-gray-500 mt-1">Enter all 12 words separated by spaces, in the correct order.</p>
+                </div>
+
+                <!-- Step 3: New Password -->
+                <div>
+                    <label class="text-sm text-gray-400 block mb-2">New Password</label>
+                    <input type="password" name="new_password" id="new_password" required minlength="8"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500/50 transition-all"
+                        placeholder="Min 8 characters">
+                </div>
+
+                <!-- Confirm Password -->
+                <div>
+                    <label class="text-sm text-gray-400 block mb-2">Confirm New Password</label>
+                    <input type="password" name="confirm_password" id="confirm_password" required minlength="8"
+                        class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 text-sm focus:outline-none focus:border-cyan-500/50 transition-all"
+                        placeholder="Repeat your new password">
+                </div>
+
+                <!-- Warning -->
+                <div class="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
+                    <div class="flex items-start gap-3">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5"></i>
+                        <div class="text-sm text-yellow-400/80">
+                            <strong class="text-yellow-400">Security Notice</strong>
+                            <p class="mt-1">Your recovery phrase is the only way to recover your account. After resetting your password, you will receive a new recovery phrase. Make sure to back it up securely.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" id="submit-btn"
+                    class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+                    Reset Password
+                </button>
+
+                <!-- Result Container -->
+                <div id="result" class="hidden"></div>
+
+                <!-- Back to Login -->
+                <div class="text-center">
+                    <a href="/login" class="text-sm text-gray-400 hover:text-cyan-400 transition-colors">
+                        Back to Login
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Info Box -->
+        <div class="mt-6 p-4 rounded-xl bg-cyan-500/5 border border-cyan-500/10">
+            <div class="flex items-start gap-3">
+                <i data-lucide="info" class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+                <div class="text-sm text-gray-400">
+                    <p><strong class="text-white">Don't have your recovery phrase?</strong></p>
+                    <p class="mt-1">Unfortunately, without your 12-word recovery phrase, there is no way to recover your account. This is a security feature to protect your privacy.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('recovery-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = document.getElementById('submit-btn');
+    const resultDiv = document.getElementById('result');
+
+    const username = form.username.value.trim();
+    const recoveryPhrase = form.recovery_phrase.value.trim().toLowerCase();
+    const newPassword = form.new_password.value;
+    const confirmPassword = form.confirm_password.value;
+    const csrfToken = form.csrf_token.value;
+
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+        resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">Passwords do not match</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    // Validate password length
+    if (newPassword.length < 8) {
+        resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">Password must be at least 8 characters</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    // Validate recovery phrase word count
+    const words = recoveryPhrase.split(/\s+/).filter(w => w.length > 0);
+    if (words.length !== 12) {
+        resultDiv.innerHTML = '<div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">Recovery phrase must be exactly 12 words. You entered ' + words.length + ' words.</div>';
+        resultDiv.classList.remove('hidden');
+        return;
+    }
+
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="animate-spin inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full mr-2"></span>Verifying...';
+
+    try {
+        const response = await fetch('/api/auth/recover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: username,
+                recovery_phrase: recoveryPhrase,
+                new_password: newPassword,
+                csrf_token: csrfToken
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            resultDiv.innerHTML = `
+                <div class="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="check-circle" class="w-5 h-5"></i>
+                        <strong>Password Reset Successful!</strong>
+                    </div>
+                    <p class="text-sm text-green-400/80">Your password has been updated. You can now log in with your new password.</p>
+                    <a href="/login" class="inline-block mt-3 text-sm text-white hover:text-green-400">
+                        &rarr; Go to Login
+                    </a>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+
+            // Clear form
+            form.reset();
+        } else {
+            resultDiv.innerHTML = `
+                <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i data-lucide="x-circle" class="w-5 h-5"></i>
+                        <strong>Recovery Failed</strong>
+                    </div>
+                    <p class="text-sm">${result.error || 'Invalid username or recovery phrase'}</p>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+            lucide.createIcons();
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `
+            <div class="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="x-circle" class="w-5 h-5"></i>
+                    <strong>Error</strong>
+                </div>
+                <p class="text-sm">Network error. Please try again.</p>
+            </div>
+        `;
+        resultDiv.classList.remove('hidden');
+        lucide.createIcons();
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="rotate-ccw" class="w-5 h-5"></i> Reset Password';
+        lucide.createIcons();
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Lucide Icons -->
+<script src="/static/js/lucide.min.js"></script>
+<script>lucide.createIcons();</script>
+{% endblock %}

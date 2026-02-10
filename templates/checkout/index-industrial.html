@@ -1,0 +1,1282 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Secure Checkout - FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="checkout-industrial">
+    {# Hidden Data #}
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+    {% if order %}<input type="hidden" id="order-id" value="{{ order.id }}">{% endif %}
+    {% if escrow %}
+    <input type="hidden" id="escrow-id" value="{{ escrow.id }}">
+    <input type="hidden" id="escrow-status" value="{{ escrow.status }}">
+    {% endif %}
+    <input type="hidden" id="checkout-mode" value="{{ checkout_mode | default(value='cart') }}">
+    {% if listing %}<input type="hidden" id="listing-id" value="{{ listing.id }}">{% endif %}
+
+    {# ========================================
+       GUEST CHECKOUT GATE
+       Shows when user is not logged in
+       ======================================== #}
+    {% if not logged_in %}
+    <div class="checkout-gate" id="checkout-gate">
+        <div class="checkout-gate__content">
+            <div class="checkout-gate__icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <path d="M9 12l2 2 4-4"></path>
+                </svg>
+            </div>
+            <h2 class="checkout-gate__title">Create Account to Checkout</h2>
+            <p class="checkout-gate__subtitle">
+                Your cart items are saved. Create a free account to complete your secure, non-custodial purchase.
+            </p>
+
+            {# Guest Cart Summary (from localStorage) #}
+            <div class="checkout-gate__cart-summary" id="guest-cart-summary">
+                <div class="checkout-gate__cart-items" id="guest-cart-items">
+                    {# Populated by JavaScript #}
+                </div>
+                <div class="checkout-gate__cart-total">
+                    <span>Total:</span>
+                    <span id="guest-cart-total">0.00 XMR</span>
+                </div>
+            </div>
+
+            <div class="checkout-gate__benefits">
+                <div class="checkout-gate__benefit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Non-custodial escrow protection</span>
+                </div>
+                <div class="checkout-gate__benefit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    <span>Your keys, your funds</span>
+                </div>
+                <div class="checkout-gate__benefit">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                    <span>15-minute payment window</span>
+                </div>
+            </div>
+
+            <div class="checkout-gate__actions">
+                <a href="/auth/register?redirect=/checkout" class="checkout-gate__btn checkout-gate__btn--primary">
+                    Create Account
+                </a>
+                <a href="/auth/login?redirect=/checkout" class="checkout-gate__btn checkout-gate__btn--secondary">
+                    Already have an account? Log in
+                </a>
+            </div>
+
+            <p class="checkout-gate__privacy">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>No email required. Your privacy is protected by Tor.</span>
+            </p>
+        </div>
+    </div>
+
+    <script nonce="{{ csp_nonce }}">
+        // Populate guest cart summary from localStorage
+        (function() {
+            const cart = window.CartManager?.getLocalCart?.() || { items: [] };
+            const itemsContainer = document.getElementById('guest-cart-items');
+            const totalEl = document.getElementById('guest-cart-total');
+
+            if (cart.items.length === 0) {
+                document.getElementById('guest-cart-summary').style.display = 'none';
+                return;
+            }
+
+            let total = 0;
+            itemsContainer.innerHTML = cart.items.map(item => {
+                const itemTotal = (item.price_xmr || 0) * item.quantity;
+                total += itemTotal;
+                return `
+                    <div class="checkout-gate__cart-item">
+                        <span class="checkout-gate__cart-item-title">${item.title || 'Item'}</span>
+                        <span class="checkout-gate__cart-item-qty">×${item.quantity}</span>
+                    </div>
+                `;
+            }).join('');
+
+            totalEl.textContent = total.toFixed(6) + ' XMR';
+        })();
+    </script>
+    {% endif %}
+    {# END GUEST GATE #}
+
+    <div class="checkout-industrial__container" {% if not logged_in %}style="display: none;"{% endif %}>
+        {# Checkout Progress Bar - "Grandma Test" visibility #}
+        <div class="nx-checkout-progress" id="checkout-progress">
+            <div class="nx-checkout-progress__step nx-checkout-progress__step--active" data-step="1">
+                <div class="nx-checkout-progress__circle">
+                    <span class="nx-checkout-progress__number">1</span>
+                    <svg class="nx-checkout-progress__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <span class="nx-checkout-progress__label">Shipping</span>
+            </div>
+            <div class="nx-checkout-progress__connector"></div>
+            <div class="nx-checkout-progress__step" data-step="2">
+                <div class="nx-checkout-progress__circle">
+                    <span class="nx-checkout-progress__number">2</span>
+                    <svg class="nx-checkout-progress__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <span class="nx-checkout-progress__label">Payment</span>
+            </div>
+            <div class="nx-checkout-progress__connector"></div>
+            <div class="nx-checkout-progress__step" data-step="3">
+                <div class="nx-checkout-progress__circle">
+                    <span class="nx-checkout-progress__number">3</span>
+                    <svg class="nx-checkout-progress__check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+                <span class="nx-checkout-progress__label">Confirmation</span>
+            </div>
+        </div>
+
+        {# Left Column: Order Summary #}
+        <aside class="checkout-industrial__sidebar">
+            <div class="checkout-industrial__summary">
+                <h3 class="checkout-industrial__summary-title">Order Summary</h3>
+
+                <div class="checkout-industrial__items">
+                    {% if listing %}
+                        {# Buy Now Mode - Single listing #}
+                        <div class="checkout-industrial__item">
+                            <div class="checkout-industrial__item-image">
+                                {% if listing.images_ipfs_cids %}
+                                    {% set images = listing.images_ipfs_cids | json_decode %}
+                                    {% if images and images | length > 0 %}
+                                        <img src="/api/listings/{{ listing.id }}/images/{{ images[0] }}" alt="{{ listing.title }}">
+                                    {% else %}
+                                        <img src="https://picsum.photos/seed/{{ listing.id }}/100/100" alt="{{ listing.title }}">
+                                    {% endif %}
+                                {% else %}
+                                    <img src="https://picsum.photos/seed/{{ listing.id }}/100/100" alt="{{ listing.title }}">
+                                {% endif %}
+                            </div>
+                            <div class="checkout-industrial__item-info">
+                                <div class="checkout-industrial__item-title">{{ listing.title | upper }}</div>
+                                <div class="checkout-industrial__item-meta">Qty: 1 × {{ cart_total_xmr | default(value=0) }} XMR</div>
+                            </div>
+                        </div>
+                    {% elif cart and cart.items %}
+                        {# Cart Mode - Multiple items #}
+                        {% for item in cart.items %}
+                        <div class="checkout-industrial__item">
+                            <div class="checkout-industrial__item-image">
+                                {% if item.image_cid %}
+                                    <img src="/api/listings/{{ item.listing_id }}/images/{{ item.image_cid }}" alt="{{ item.title }}">
+                                {% else %}
+                                    <img src="https://picsum.photos/seed/{{ item.listing_id }}/100/100" alt="{{ item.title }}">
+                                {% endif %}
+                            </div>
+                            <div class="checkout-industrial__item-info">
+                                <div class="checkout-industrial__item-title">{{ item.title | upper }}</div>
+                                <div class="checkout-industrial__item-meta">Qty: {{ item.quantity }}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% elif order %}
+                        {# Existing Order Mode #}
+                        <div class="checkout-industrial__item">
+                            <div class="checkout-industrial__item-image">
+                                <img src="https://picsum.photos/seed/{{ order.id }}/100/100" alt="Order">
+                            </div>
+                            <div class="checkout-industrial__item-info">
+                                <div class="checkout-industrial__item-title">ORDER #{{ order.id | truncate(length=8, end="") | upper }}</div>
+                                <div class="checkout-industrial__item-meta">Qty: 1</div>
+                            </div>
+                        </div>
+                    {% else %}
+                        {# Fallback #}
+                        <div class="checkout-industrial__item">
+                            <div class="checkout-industrial__item-image">
+                                <img src="https://picsum.photos/seed/checkout/100/100" alt="Item">
+                            </div>
+                            <div class="checkout-industrial__item-info">
+                                <div class="checkout-industrial__item-title">ITEM</div>
+                                <div class="checkout-industrial__item-meta">Qty: 1</div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="checkout-industrial__totals">
+                    <div class="checkout-industrial__total-row">
+                        <span>Subtotal</span>
+                        <span id="subtotal-display">{{ cart_total_xmr | default(value=0) }} XMR</span>
+                    </div>
+                    <div class="checkout-industrial__total-row">
+                        <span>Network Fee</span>
+                        <span>~0.0001 XMR</span>
+                    </div>
+                    <div class="checkout-industrial__total-final">
+                        <span>TOTAL DUE</span>
+                        <span class="checkout-industrial__total-amount" id="total-display">
+                            {{ cart_total_xmr | default(value=0) }} <small>XMR</small>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <a href="/cart" class="checkout-industrial__cancel" id="cancel-order-btn">
+                <span class="checkout-industrial__cancel-arrow">←</span>
+                Cancel Order & Return
+            </a>
+        </aside>
+
+        {# Right Column: Checkout Steps #}
+        <main class="checkout-industrial__main">
+            {# ========== STEP 1: SHIPPING + PAYMENT METHOD (wrapped for checkout.js) ========== #}
+            <div id="shipping-address-form">
+            <section class="checkout-industrial__step" id="step-shipping" data-step="1">
+                <div class="checkout-industrial__step-accent"></div>
+
+                <div class="checkout-industrial__step-header">
+                    <div>
+                        <h2 class="checkout-industrial__step-title">01 // Delivery & Payment</h2>
+                        <p class="checkout-industrial__step-subtitle">
+                            <span class="checkout-industrial__pulse"></span>
+                            SERVER-SIDE ENCRYPTION ACTIVE (AES-256)
+                        </p>
+                    </div>
+                    <div class="checkout-industrial__step-indicator">STEP 1/3</div>
+                </div>
+
+                <form id="shipping-form" class="checkout-industrial__form">
+                    <div class="checkout-industrial__form-grid">
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Recipient Alias / Name</label>
+                            <input type="text" name="alias" id="shipping-alias"
+                                   class="checkout-industrial__input"
+                                   placeholder="JOHN DOE" required>
+                        </div>
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Country / Region</label>
+                            <input type="text" name="country" id="country"
+                                   class="checkout-industrial__input"
+                                   placeholder="SELECT TERRITORY" required>
+                        </div>
+                        <div class="checkout-industrial__field checkout-industrial__field--full">
+                            <label class="checkout-industrial__label">Street Address</label>
+                            <input type="text" name="address" id="street-address"
+                                   class="checkout-industrial__input"
+                                   placeholder="UNIT 42, INDUSTRIAL SECTOR 7G" required>
+                        </div>
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">City</label>
+                            <input type="text" name="city" id="city"
+                                   class="checkout-industrial__input"
+                                   placeholder="NEO TOKYO" required>
+                        </div>
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Postal Code</label>
+                            <input type="text" name="zip" id="postal-code"
+                                   class="checkout-industrial__input"
+                                   placeholder="10110">
+                        </div>
+                    </div>
+
+                    <div class="checkout-industrial__notice checkout-industrial__notice--security">
+                        <div class="checkout-industrial__notice-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                        </div>
+                        <p class="checkout-industrial__notice-text">
+                            <strong>SECURITY NOTICE:</strong> Your shipping data is encrypted server-side immediately upon submission using unique session keys. No plaintext data is ever stored.
+                        </p>
+                    </div>
+
+                    <div class="checkout-industrial__notice checkout-industrial__notice--timing">
+                        <div class="checkout-industrial__notice-icon">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <p class="checkout-industrial__notice-text">
+                            <strong>PAYMENT WINDOW:</strong> After proceeding, you'll have <strong>15 minutes</strong> to complete payment. This protects against price volatility. The order will auto-cancel if time expires.
+                        </p>
+                    </div>
+
+                    {# ========== PAYMENT METHOD SELECTION ========== #}
+                    <div class="checkout-industrial__payment-method">
+                        <label class="checkout-industrial__label">Payment Method</label>
+                        <div class="payment-method-cards" id="payment-method-cards">
+                            {# XMR Option - Default #}
+                            <label class="payment-method-card payment-method-card--selected" data-method="xmr">
+                                <input type="radio" name="payment_method" value="xmr" checked hidden>
+                                <div class="payment-method-card__icon">
+                                    <svg width="32" height="32" viewBox="0 0 256 256" fill="currentColor">
+                                        <path d="M127.998 0C57.318 0 0 57.317 0 127.999c0 70.68 57.318 127.999 127.998 127.999 70.681 0 128-57.319 128-127.999C256 57.317 198.679 0 127.998 0zm0 22.393c58.308 0 105.606 47.298 105.606 105.606 0 58.308-47.298 105.606-105.606 105.606-58.308 0-105.606-47.298-105.606-105.606 0-58.308 47.298-105.606 105.606-105.606zM64 166.127V89.873l63.998 46.218L192 89.873v76.254l-63.998-46.219L64 166.127z"/>
+                                    </svg>
+                                </div>
+                                <div class="payment-method-card__content">
+                                    <span class="payment-method-card__name">Monero (XMR)</span>
+                                    <span class="payment-method-card__badge payment-method-card__badge--recommended">Recommended</span>
+                                    <span class="payment-method-card__desc">Direct non-custodial escrow</span>
+                                </div>
+                                <div class="payment-method-card__check">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                </div>
+                            </label>
+
+                            {# BTC Option #}
+                            <label class="payment-method-card" data-method="btc">
+                                <input type="radio" name="payment_method" value="btc" hidden>
+                                <div class="payment-method-card__icon payment-method-card__icon--btc">
+                                    <svg width="32" height="32" viewBox="0 0 32 32" fill="currentColor">
+                                        <path d="M16 32C7.163 32 0 24.837 0 16S7.163 0 16 0s16 7.163 16 16-7.163 16-16 16zm7.189-17.98c.314-2.096-1.283-3.223-3.465-3.975l.708-2.84-1.728-.43-.69 2.765c-.454-.114-.92-.22-1.385-.326l.695-2.783L15.596 6l-.708 2.839c-.376-.086-.746-.17-1.104-.26l.002-.009-2.384-.595-.46 1.846s1.283.294 1.256.312c.7.175.826.638.805 1.006l-.806 3.235c.048.012.11.03.18.057l-.183-.046-1.13 4.532c-.086.212-.303.531-.793.41.018.025-1.256-.314-1.256-.314l-.858 1.978 2.25.561c.418.105.828.215 1.231.318l-.715 2.872 1.727.43.708-2.84c.472.127.93.245 1.378.357l-.706 2.828 1.728.43.715-2.866c2.948.558 5.164.333 6.097-2.333.752-2.146-.037-3.385-1.588-4.192 1.13-.26 1.98-1.003 2.207-2.538zm-3.95 5.538c-.533 2.147-4.148.986-5.32.695l.95-3.805c1.172.293 4.929.872 4.37 3.11zm.535-5.569c-.487 1.953-3.495.96-4.47.717l.86-3.45c.975.243 4.118.696 3.61 2.733z"/>
+                                    </svg>
+                                </div>
+                                <div class="payment-method-card__content">
+                                    <span class="payment-method-card__name">Bitcoin (BTC)</span>
+                                    <span class="payment-method-card__badge payment-method-card__badge--new">Auto-Swap</span>
+                                    <span class="payment-method-card__desc">Converts to XMR escrow</span>
+                                </div>
+                                <div class="payment-method-card__check">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                    </svg>
+                                </div>
+                            </label>
+                        </div>
+
+                        {# BTC Custody Disclaimer - Hidden by default #}
+                        <div class="checkout-industrial__notice checkout-industrial__notice--custody" id="btc-custody-disclaimer" style="display: none;">
+                            <div class="checkout-industrial__notice-icon checkout-industrial__notice-icon--warning">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                            </div>
+                            <div class="checkout-industrial__notice-content">
+                                <p class="checkout-industrial__notice-text">
+                                    <strong>TEMPORARY CUSTODY NOTICE:</strong> BTC payments are converted to XMR via swap provider. During the ~10 min swap, funds are briefly held by the provider. Once converted, your XMR enters the non-custodial escrow.
+                                </p>
+                                <p class="checkout-industrial__notice-subtext">
+                                    For maximum security, pay directly with XMR.
+                                </p>
+                            </div>
+                        </div>
+
+                        {# BTC Rate Preview - Hidden by default #}
+                        <div class="checkout-industrial__btc-rate" id="btc-rate-preview" style="display: none;">
+                            <div class="btc-rate-row">
+                                <span class="btc-rate-label">Estimated BTC Amount:</span>
+                                <span class="btc-rate-value" id="btc-amount-estimate">Loading...</span>
+                            </div>
+                            <div class="btc-rate-row btc-rate-row--small">
+                                <span class="btc-rate-label">Exchange Rate:</span>
+                                <span class="btc-rate-value" id="btc-rate-display">1 XMR ≈ ? BTC</span>
+                            </div>
+                            <div class="btc-rate-row btc-rate-row--small">
+                                <span class="btc-rate-label">Rate valid for:</span>
+                                <span class="btc-rate-value btc-rate-timer" id="rate-expiry-timer">10:00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Hidden field for checkout.js #}
+                    <input type="hidden" id="shipping-notes" value="">
+                    <input type="hidden" id="selected-payment-method" value="xmr">
+
+                    <button type="submit" id="submit-shipping-btn" class="checkout-industrial__btn checkout-industrial__btn--primary">
+                        Proceed to Payment
+                    </button>
+                </form>
+            </section>
+            </div>{# End shipping-address-form #}
+
+            {# ========== ESCROW INIT (for checkout.js WASM flow) ========== #}
+            <div id="escrow-init" style="display: none;">
+                <section class="checkout-industrial__step">
+                    <div class="checkout-industrial__step-accent"></div>
+                    <div class="checkout-industrial__step-header">
+                        <h2 class="checkout-industrial__step-title">🔐 Initializing Secure Escrow</h2>
+                        <p class="checkout-industrial__step-subtitle">
+                            <span class="checkout-industrial__pulse"></span>
+                            GENERATING NON-CUSTODIAL MULTISIG WALLET
+                        </p>
+                    </div>
+                    <div class="checkout-industrial__escrow-progress">
+                        <p id="escrow-progress-status">Setting up FROST 2-of-3 threshold signatures...</p>
+                        <div class="checkout-industrial__progress-bar" style="background: #333; height: 8px; border-radius: 4px; margin-top: 1rem;">
+                            <div id="escrow-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #f97316, #fb923c); border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                        <p id="escrow-progress-eta" style="color: #888; font-size: 0.85rem; margin-top: 0.5rem;">This process ensures your funds remain in your control</p>
+                    </div>
+                </section>
+            </div>
+
+            {# ========== STEP 2: PAYMENT (also id=payment-instructions for checkout.js) ========== #}
+            <div id="payment-instructions" style="display: none;">
+            <section class="checkout-industrial__step" id="step-payment" data-step="2">
+                <div class="checkout-industrial__step-accent checkout-industrial__step-accent--partial"></div>
+
+                <div class="checkout-industrial__step-header">
+                    <div>
+                        <h2 class="checkout-industrial__step-title">02 // Initiate Transfer</h2>
+                        <p class="checkout-industrial__step-subtitle--gold">
+                            SEND EXACT AMOUNT TO THE ESCROW ADDRESS BELOW.
+                        </p>
+                    </div>
+                    <div class="checkout-industrial__timer">
+                        <div class="checkout-industrial__timer-label">TIME REMAINING</div>
+                        <div class="checkout-industrial__timer-value" id="payment-timer">15:00</div>
+                    </div>
+                </div>
+
+                <div class="checkout-industrial__payment-grid">
+                    {# QR Code #}
+                    <div class="checkout-industrial__qr-wrapper">
+                        <div class="checkout-industrial__qr" id="qrcode">
+                            {# QR generated by JS #}
+                        </div>
+                        <span class="checkout-industrial__qr-label">Scan to Pay</span>
+                    </div>
+
+                    {# Payment Details #}
+                    <div class="checkout-industrial__payment-details">
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Monero Sub-Address</label>
+                            <div class="checkout-industrial__address-wrapper">
+                                <div class="checkout-industrial__address" id="multisig-address">
+                                    {% if escrow and escrow.multisig_address %}
+                                        {{ escrow.multisig_address }}
+                                    {% else %}
+                                        Generating address...
+                                    {% endif %}
+                                </div>
+                                <button type="button" id="copy-address-btn" class="checkout-industrial__copy-btn" title="Copy Address">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Amount to Send</label>
+                            <div class="checkout-industrial__amount-display">
+                                <span class="checkout-industrial__amount-value" id="amount-to-send">
+                                    {{ total_xmr | default(value="0.001") }}
+                                </span>
+                                <span class="checkout-industrial__amount-currency">XMR</span>
+                            </div>
+                        </div>
+
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Payment Status</label>
+
+                            <!-- Payment Pipeline (Visual Stepper) -->
+                            <div class="payment-pipeline" id="payment-pipeline">
+                                <!-- Stage 1: Awaiting -->
+                                <div class="payment-pipeline__stage payment-pipeline__stage--active" id="pipeline-awaiting">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Awaiting Payment</span>
+                                        <span class="payment-pipeline__subtitle">Send XMR to the address above</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--waiting">
+                                        <span class="payment-pipeline__pulse"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 2: Detected -->
+                                <div class="payment-pipeline__stage" id="pipeline-detected">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Transaction Detected</span>
+                                        <span class="payment-pipeline__subtitle">Found in mempool, waiting for block</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--detected">
+                                        <span class="payment-pipeline__check">✓</span>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 3: Confirming -->
+                                <div class="payment-pipeline__stage" id="pipeline-confirming">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                            <path d="M3 9h18"></path>
+                                            <path d="M9 21V9"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Confirming</span>
+                                        <span class="payment-pipeline__subtitle" id="confirmations-subtitle">0 of 10 blocks confirmed</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--confirming">
+                                        <span class="payment-pipeline__count" id="confirmations-count">0</span>
+                                        <span class="payment-pipeline__total">/10</span>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 4: Complete -->
+                                <div class="payment-pipeline__stage" id="pipeline-complete">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                            <polyline points="9 12 12 15 16 10"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Payment Complete</span>
+                                        <span class="payment-pipeline__subtitle">Your escrow is now funded</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--complete">
+                                        <span class="payment-pipeline__check">✓</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Confirmation Progress Bar (visible during confirming stage) -->
+                            <div class="payment-pipeline__progress" id="confirmations-progress-container" style="display: none;">
+                                <div class="payment-pipeline__progress-bar">
+                                    <div class="payment-pipeline__progress-fill" id="confirmations-progress" style="width: 0%;"></div>
+                                </div>
+                                <div class="payment-pipeline__progress-info">
+                                    <span id="confirmations-text">0/10 blocks</span>
+                                    <span id="confirmations-eta">~20 min remaining</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Education Expandable - What happens next #}
+                <details class="education-expandable education-expandable--wallet">
+                    <summary>What happens after I pay?</summary>
+                    <div class="education-expandable__content">
+                        <p>Your XMR is secured in a 2-of-3 multisig escrow contract:</p>
+                        <ul>
+                            <li><strong>Your keys stay in your browser</strong> - we never have access</li>
+                            <li><strong>Vendor ships your order</strong> - they're notified automatically</li>
+                            <li><strong>You confirm delivery</strong> - then release funds to the vendor</li>
+                            <li><strong>If there's a problem</strong> - request dispute, arbiter helps resolve</li>
+                        </ul>
+                        <p>The funds cannot be moved without 2 of 3 signatures (you, vendor, or arbiter).</p>
+                    </div>
+                </details>
+
+                <button type="button" id="payment-sent-btn" class="checkout-industrial__btn checkout-industrial__btn--secondary">
+                    I've Sent the XMR
+                </button>
+            </section>
+            </div>{# End payment-instructions #}
+
+            {# ========== STEP 2B: BTC PAYMENT (shown when BTC selected) ========== #}
+            <div id="btc-payment-instructions" style="display: none;">
+            <section class="checkout-industrial__step" id="step-btc-payment" data-step="2">
+                <div class="checkout-industrial__step-accent checkout-industrial__step-accent--btc"></div>
+
+                <div class="checkout-industrial__step-header">
+                    <div>
+                        <h2 class="checkout-industrial__step-title">02 // BTC Payment</h2>
+                        <p class="checkout-industrial__step-subtitle--gold">
+                            SEND BTC TO THE ADDRESS BELOW. AUTO-SWAP TO XMR ESCROW.
+                        </p>
+                    </div>
+                    <div class="checkout-industrial__timer">
+                        <div class="checkout-industrial__timer-label">RATE EXPIRES</div>
+                        <div class="checkout-industrial__timer-value checkout-industrial__timer-value--btc" id="btc-payment-timer">10:00</div>
+                    </div>
+                </div>
+
+                {# BTC Custody Banner - Always visible for BTC payments #}
+                <div class="checkout-industrial__custody-banner">
+                    <div class="custody-banner__icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                    </div>
+                    <div class="custody-banner__content">
+                        <strong>Swap Provider Custody</strong>
+                        <p>Your BTC will be temporarily held (~10 min) by the swap provider during conversion. Once converted, XMR enters non-custodial escrow.</p>
+                    </div>
+                </div>
+
+                <div class="checkout-industrial__payment-grid">
+                    {# QR Code for BTC #}
+                    <div class="checkout-industrial__qr-wrapper checkout-industrial__qr-wrapper--btc">
+                        <div class="checkout-industrial__qr" id="btc-qrcode">
+                            {# QR generated by JS #}
+                        </div>
+                        <span class="checkout-industrial__qr-label">Scan to Pay BTC</span>
+                    </div>
+
+                    {# BTC Payment Details #}
+                    <div class="checkout-industrial__payment-details">
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">BTC Deposit Address</label>
+                            <div class="checkout-industrial__address-wrapper checkout-industrial__address-wrapper--btc">
+                                <div class="checkout-industrial__address" id="btc-deposit-address">
+                                    Generating address...
+                                </div>
+                                <button type="button" id="copy-btc-address-btn" class="checkout-industrial__copy-btn" title="Copy Address">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Amount to Send</label>
+                            <div class="checkout-industrial__amount-display checkout-industrial__amount-display--btc">
+                                <span class="checkout-industrial__amount-value" id="btc-amount-to-send">
+                                    0.00000000
+                                </span>
+                                <span class="checkout-industrial__amount-currency">BTC</span>
+                            </div>
+                            <div class="checkout-industrial__amount-conversion">
+                                ≈ <span id="btc-xmr-equivalent">0.00</span> XMR → Escrow
+                            </div>
+                        </div>
+
+                        <div class="checkout-industrial__field">
+                            <label class="checkout-industrial__label">Swap Status</label>
+
+                            <!-- BTC Swap Pipeline (Visual Stepper) -->
+                            <div class="payment-pipeline payment-pipeline--btc" id="btc-swap-pipeline">
+                                <!-- Stage 1: Awaiting BTC -->
+                                <div class="payment-pipeline__stage payment-pipeline__stage--active" id="btc-pipeline-awaiting">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Awaiting BTC Deposit</span>
+                                        <span class="payment-pipeline__subtitle">Send BTC to the address above</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--waiting">
+                                        <span class="payment-pipeline__pulse"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 2: BTC Detected -->
+                                <div class="payment-pipeline__stage" id="btc-pipeline-detected">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">BTC Detected</span>
+                                        <span class="payment-pipeline__subtitle">Waiting for confirmation</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--detected">
+                                        <span class="payment-pipeline__check">✓</span>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 3: Swapping -->
+                                <div class="payment-pipeline__stage" id="btc-pipeline-swapping">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="17 1 21 5 17 9"></polyline>
+                                            <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                            <polyline points="7 23 3 19 7 15"></polyline>
+                                            <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Converting BTC → XMR</span>
+                                        <span class="payment-pipeline__subtitle" id="swap-provider-name">Via swap provider</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--swapping">
+                                        <div class="payment-pipeline__spinner"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Stage 4: XMR to Escrow -->
+                                <div class="payment-pipeline__stage" id="btc-pipeline-escrow">
+                                    <div class="payment-pipeline__icon">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                            <polyline points="9 12 12 15 16 10"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="payment-pipeline__content">
+                                        <span class="payment-pipeline__title">Escrow Funded</span>
+                                        <span class="payment-pipeline__subtitle">XMR secured in 2-of-3 multisig</span>
+                                    </div>
+                                    <div class="payment-pipeline__indicator payment-pipeline__indicator--complete">
+                                        <span class="payment-pipeline__check">✓</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Swap Progress Details -->
+                            <div class="btc-swap-details" id="btc-swap-details" style="display: none;">
+                                <div class="btc-swap-details__row">
+                                    <span>BTC TX:</span>
+                                    <a href="#" id="btc-tx-link" target="_blank" rel="noopener">View on Explorer</a>
+                                </div>
+                                <div class="btc-swap-details__row">
+                                    <span>XMR TX:</span>
+                                    <span id="xmr-tx-display">Pending...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Education Expandable - BTC Swap Flow #}
+                <details class="education-expandable education-expandable--btc">
+                    <summary>How does BTC → XMR swap work?</summary>
+                    <div class="education-expandable__content">
+                        <ol>
+                            <li><strong>You send BTC</strong> to the provided deposit address</li>
+                            <li><strong>Swap provider receives BTC</strong> and converts it to XMR (~10 min)</li>
+                            <li><strong>XMR is sent to escrow</strong> - the 2-of-3 multisig address</li>
+                            <li><strong>Order proceeds normally</strong> - vendor ships, you confirm, funds release</li>
+                        </ol>
+                        <p class="education-expandable__note">
+                            <strong>Note:</strong> For maximum privacy and no third-party involvement, pay directly with XMR.
+                        </p>
+                    </div>
+                </details>
+
+                <button type="button" id="btc-payment-sent-btn" class="checkout-industrial__btn checkout-industrial__btn--secondary">
+                    I've Sent the BTC
+                </button>
+            </section>
+            </div>{# End btc-payment-instructions #}
+
+            {# ========== STEP 3: CONFIRMATION (also id=payment-confirmed for checkout.js) ========== #}
+            <div id="payment-confirmed" style="display: none;">
+            <section class="checkout-industrial__step checkout-industrial__step--confirmation" id="step-confirmation" data-step="3">
+                <div class="checkout-industrial__step-accent checkout-industrial__step-accent--green"></div>
+
+                <div class="checkout-industrial__confirmation">
+                    <div class="checkout-industrial__confirmation-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+
+                    <h2 class="checkout-industrial__confirmation-title">Order Finalized</h2>
+
+                    <div class="checkout-industrial__confirmation-badge">
+                        <span>Order ID: #<span id="order-id-display">7729-AFF-XMR</span></span>
+                    </div>
+
+                    <p class="checkout-industrial__confirmation-text">
+                        The escrow contract has been successfully initialized. Your funds are now locked in a 2-of-3 multisig address. The vendor has been notified to begin the shipping process.
+                    </p>
+
+                    <div class="checkout-industrial__confirmation-actions">
+                        <a href="#" id="view-escrow-btn" class="checkout-industrial__btn checkout-industrial__btn--primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            View Escrow Contract
+                        </a>
+                        <a href="/orders" class="checkout-industrial__btn checkout-industrial__btn--secondary">
+                            View My Orders
+                        </a>
+                    </div>
+                </div>
+            </section>
+            </div>{# End payment-confirmed #}
+        </main>
+    </div>
+</div>
+
+{# Toast Notification #}
+<div id="checkout-toast" class="checkout-toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span id="toast-message">Address copied!</span>
+</div>
+
+{# FROST WASM Integration - checkout.js auto-initializes on DOMContentLoaded #}
+<script src="/static/js/checkout.js?v=0.66.0"></script>
+
+{# BTC Payment Method Selection Logic #}
+<script nonce="{{ csp_nonce }}">
+(function() {
+    'use strict';
+
+    const paymentMethodCards = document.getElementById('payment-method-cards');
+    const btcDisclaimer = document.getElementById('btc-custody-disclaimer');
+    const btcRatePreview = document.getElementById('btc-rate-preview');
+    const selectedMethodInput = document.getElementById('selected-payment-method');
+    const csrfToken = document.getElementById('csrf-token')?.value;
+
+    // State
+    let currentRate = null;
+    let rateExpiryTimer = null;
+    let rateExpiryTime = null;
+    let currentSwapOrderId = null;
+
+    // Payment method selection
+    if (paymentMethodCards) {
+        paymentMethodCards.addEventListener('click', function(e) {
+            const card = e.target.closest('.payment-method-card');
+            if (!card) return;
+
+            const method = card.dataset.method;
+            if (!method) return;
+
+            // Update selection UI
+            document.querySelectorAll('.payment-method-card').forEach(c => {
+                c.classList.remove('payment-method-card--selected');
+            });
+            card.classList.add('payment-method-card--selected');
+
+            // Update hidden input
+            if (selectedMethodInput) {
+                selectedMethodInput.value = method;
+            }
+
+            // Show/hide BTC-specific elements
+            if (method === 'btc') {
+                if (btcDisclaimer) btcDisclaimer.style.display = 'flex';
+                if (btcRatePreview) {
+                    btcRatePreview.style.display = 'block';
+                    fetchBtcRate();
+                }
+            } else {
+                if (btcDisclaimer) btcDisclaimer.style.display = 'none';
+                if (btcRatePreview) btcRatePreview.style.display = 'none';
+                if (rateExpiryTimer) clearInterval(rateExpiryTimer);
+            }
+        });
+    }
+
+    // Fetch BTC exchange rate
+    async function fetchBtcRate() {
+        const btcAmountEl = document.getElementById('btc-amount-estimate');
+        const btcRateEl = document.getElementById('btc-rate-display');
+        const subtotalEl = document.getElementById('subtotal-display');
+
+        if (btcAmountEl) btcAmountEl.textContent = 'Loading...';
+
+        try {
+            const response = await fetch('/api/v1/swap/rate', {
+                method: 'GET',
+                headers: { 'X-CSRF-Token': csrfToken },
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch rate');
+            }
+
+            const data = await response.json();
+            currentRate = data.rate_btc_per_xmr;
+
+            // Parse XMR amount from subtotal
+            const xmrAmount = parseFloat(subtotalEl?.textContent?.replace(/[^\d.]/g, '') || '0');
+            const btcAmount = xmrAmount * currentRate;
+
+            if (btcAmountEl) btcAmountEl.textContent = btcAmount.toFixed(8) + ' BTC';
+            if (btcRateEl) btcRateEl.textContent = `1 XMR ≈ ${currentRate.toFixed(8)} BTC`;
+
+            // Start 10 minute expiry timer
+            startRateExpiryTimer(600);
+        } catch (err) {
+            console.error('Rate fetch error:', err);
+            if (btcAmountEl) btcAmountEl.textContent = 'Rate unavailable';
+        }
+    }
+
+    // Rate expiry countdown
+    function startRateExpiryTimer(seconds) {
+        if (rateExpiryTimer) clearInterval(rateExpiryTimer);
+
+        rateExpiryTime = seconds;
+        const timerEl = document.getElementById('rate-expiry-timer');
+
+        rateExpiryTimer = setInterval(() => {
+            rateExpiryTime--;
+            if (timerEl) {
+                const mins = Math.floor(rateExpiryTime / 60);
+                const secs = rateExpiryTime % 60;
+                timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+                if (rateExpiryTime <= 60) {
+                    timerEl.style.color = '#ef4444';
+                }
+            }
+
+            if (rateExpiryTime <= 0) {
+                clearInterval(rateExpiryTimer);
+                // Auto-refresh rate
+                fetchBtcRate();
+            }
+        }, 1000);
+    }
+
+    // Create BTC swap quote
+    window.createBtcSwapQuote = async function(orderId, xmrAddress) {
+        const subtotalEl = document.getElementById('subtotal-display');
+        const xmrAmount = parseFloat(subtotalEl?.textContent?.replace(/[^\d.]/g, '') || '0');
+
+        // Convert XMR to satoshis (via rate)
+        if (!currentRate) {
+            await fetchBtcRate();
+        }
+        const btcAmount = xmrAmount * currentRate;
+        const satoshis = Math.ceil(btcAmount * 100000000);
+
+        try {
+            const response = await fetch('/api/v1/swap/quote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    order_id: orderId,
+                    from_amount_sats: satoshis,
+                    xmr_destination_address: xmrAddress
+                })
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to create swap quote');
+            }
+
+            const quote = await response.json();
+            currentSwapOrderId = quote.swap_order_id;
+
+            // Update UI with BTC payment details
+            showBtcPaymentStep(quote);
+
+            return quote;
+        } catch (err) {
+            console.error('Swap quote error:', err);
+            showToast('Failed to create BTC payment: ' + err.message, 'error');
+            throw err;
+        }
+    };
+
+    // Show BTC payment step
+    function showBtcPaymentStep(quote) {
+        const btcSection = document.getElementById('btc-payment-instructions');
+        const xmrSection = document.getElementById('payment-instructions');
+
+        // Hide XMR section, show BTC section
+        if (xmrSection) xmrSection.style.display = 'none';
+        if (btcSection) btcSection.style.display = 'block';
+
+        // Update BTC payment details
+        const btcAddressEl = document.getElementById('btc-deposit-address');
+        const btcAmountEl = document.getElementById('btc-amount-to-send');
+        const btcXmrEquivEl = document.getElementById('btc-xmr-equivalent');
+        const btcTimerEl = document.getElementById('btc-payment-timer');
+
+        if (btcAddressEl) btcAddressEl.textContent = quote.btc_deposit_address;
+        if (btcAmountEl) btcAmountEl.textContent = (quote.from_amount_sats / 100000000).toFixed(8);
+        if (btcXmrEquivEl) btcXmrEquivEl.textContent = (quote.expected_xmr_atomic / 1000000000000).toFixed(6);
+
+        // Generate QR code
+        generateBtcQrCode(quote.btc_deposit_address, quote.from_amount_sats);
+
+        // Start payment timer
+        startBtcPaymentTimer(quote.expires_at);
+
+        // Start polling for swap status
+        startSwapStatusPolling(quote.swap_order_id);
+
+        // Update progress
+        if (typeof updateCheckoutProgress === 'function') {
+            updateCheckoutProgress(2);
+        }
+    }
+
+    // Generate BTC QR code
+    function generateBtcQrCode(address, amountSats) {
+        const qrContainer = document.getElementById('btc-qrcode');
+        if (!qrContainer) return;
+
+        const btcAmount = amountSats / 100000000;
+        const btcUri = `bitcoin:${address}?amount=${btcAmount}`;
+
+        // Clear existing QR
+        qrContainer.innerHTML = '';
+
+        // Use QRCode library if available, otherwise show address
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(qrContainer, {
+                text: btcUri,
+                width: 160,
+                height: 160,
+                colorDark: '#f7931a',
+                colorLight: '#1a1a1a',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        } else {
+            qrContainer.innerHTML = `<div style="padding: 1rem; text-align: center; color: rgba(255,255,255,0.5);">QR: ${address.substring(0, 20)}...</div>`;
+        }
+    }
+
+    // BTC payment timer
+    function startBtcPaymentTimer(expiresAt) {
+        const timerEl = document.getElementById('btc-payment-timer');
+        if (!timerEl) return;
+
+        const expiryTime = new Date(expiresAt).getTime();
+
+        const timerInterval = setInterval(() => {
+            const now = Date.now();
+            const remaining = Math.max(0, expiryTime - now);
+            const mins = Math.floor(remaining / 60000);
+            const secs = Math.floor((remaining % 60000) / 1000);
+
+            timerEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+            if (remaining <= 60000) {
+                timerEl.style.color = '#ef4444';
+            }
+
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                timerEl.textContent = 'EXPIRED';
+                showToast('BTC payment quote expired. Please create a new order.', 'error');
+            }
+        }, 1000);
+    }
+
+    // Poll swap status
+    function startSwapStatusPolling(swapOrderId) {
+        const pollInterval = setInterval(async () => {
+            try {
+                const response = await fetch(`/api/v1/swap/${swapOrderId}`, {
+                    method: 'GET',
+                    headers: { 'X-CSRF-Token': csrfToken },
+                    credentials: 'include'
+                });
+
+                if (!response.ok) return;
+
+                const status = await response.json();
+                updateSwapPipeline(status);
+
+                // Stop polling on terminal states
+                if (['completed', 'failed', 'expired'].includes(status.status)) {
+                    clearInterval(pollInterval);
+
+                    if (status.status === 'completed') {
+                        // Show confirmation
+                        showPaymentConfirmation(status);
+                    }
+                }
+            } catch (err) {
+                console.error('Status poll error:', err);
+            }
+        }, 10000); // Poll every 10 seconds
+    }
+
+    // Update swap pipeline UI
+    function updateSwapPipeline(status) {
+        const stages = {
+            'awaiting_deposit': 'btc-pipeline-awaiting',
+            'deposit_detected': 'btc-pipeline-detected',
+            'deposit_confirmed': 'btc-pipeline-detected',
+            'swapping': 'btc-pipeline-swapping',
+            'swap_complete': 'btc-pipeline-escrow',
+            'completed': 'btc-pipeline-escrow'
+        };
+
+        const activeStage = stages[status.status];
+        if (!activeStage) return;
+
+        // Reset all stages
+        document.querySelectorAll('#btc-swap-pipeline .payment-pipeline__stage').forEach(stage => {
+            stage.classList.remove('payment-pipeline__stage--active', 'payment-pipeline__stage--complete');
+        });
+
+        // Mark completed stages
+        const stageOrder = ['btc-pipeline-awaiting', 'btc-pipeline-detected', 'btc-pipeline-swapping', 'btc-pipeline-escrow'];
+        const activeIndex = stageOrder.indexOf(activeStage);
+
+        stageOrder.forEach((stageId, index) => {
+            const stageEl = document.getElementById(stageId);
+            if (!stageEl) return;
+
+            if (index < activeIndex) {
+                stageEl.classList.add('payment-pipeline__stage--complete');
+            } else if (index === activeIndex) {
+                stageEl.classList.add('payment-pipeline__stage--active');
+            }
+        });
+
+        // Show swap details if available
+        if (status.btc_tx_hash || status.xmr_tx_hash) {
+            const detailsEl = document.getElementById('btc-swap-details');
+            if (detailsEl) detailsEl.style.display = 'block';
+
+            if (status.btc_tx_hash) {
+                const linkEl = document.getElementById('btc-tx-link');
+                if (linkEl) {
+                    linkEl.href = `https://mempool.space/tx/${status.btc_tx_hash}`;
+                    linkEl.textContent = status.btc_tx_hash.substring(0, 16) + '...';
+                }
+            }
+
+            if (status.xmr_tx_hash) {
+                const xmrEl = document.getElementById('xmr-tx-display');
+                if (xmrEl) xmrEl.textContent = status.xmr_tx_hash.substring(0, 16) + '...';
+            }
+        }
+    }
+
+    // Show payment confirmation
+    function showPaymentConfirmation(status) {
+        const btcSection = document.getElementById('btc-payment-instructions');
+        const confirmSection = document.getElementById('payment-confirmed');
+
+        if (btcSection) btcSection.style.display = 'none';
+        if (confirmSection) confirmSection.style.display = 'block';
+
+        if (typeof updateCheckoutProgress === 'function') {
+            updateCheckoutProgress(3);
+        }
+
+        showToast('BTC payment complete! Escrow funded.', 'success');
+    }
+
+    // Copy BTC address
+    const copyBtcBtn = document.getElementById('copy-btc-address-btn');
+    if (copyBtcBtn) {
+        copyBtcBtn.addEventListener('click', function() {
+            const address = document.getElementById('btc-deposit-address')?.textContent;
+            if (address && navigator.clipboard) {
+                navigator.clipboard.writeText(address.trim());
+                showToast('BTC address copied!');
+            }
+        });
+    }
+
+    // Toast helper
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('checkout-toast');
+        const messageEl = document.getElementById('toast-message');
+        if (toast && messageEl) {
+            messageEl.textContent = message;
+            toast.classList.add('checkout-toast--visible');
+            setTimeout(() => toast.classList.remove('checkout-toast--visible'), 3000);
+        }
+    }
+
+    // Expose for checkout.js integration
+    window.BtcPayment = {
+        getSelectedMethod: () => selectedMethodInput?.value || 'xmr',
+        createSwapQuote: window.createBtcSwapQuote,
+        getCurrentRate: () => currentRate
+    };
+})();
+</script>
+
+{# Checkout Progress Indicator Logic #}
+<script nonce="{{ csp_nonce }}">
+(function() {
+    'use strict';
+
+    const progressSteps = document.querySelectorAll('.nx-checkout-progress__step');
+    const connectors = document.querySelectorAll('.nx-checkout-progress__connector');
+
+    // Function to update progress indicator
+    window.updateCheckoutProgress = function(currentStep) {
+        progressSteps.forEach((step, index) => {
+            const stepNum = index + 1;
+            step.classList.remove('nx-checkout-progress__step--active', 'nx-checkout-progress__step--completed');
+
+            if (stepNum < currentStep) {
+                step.classList.add('nx-checkout-progress__step--completed');
+            } else if (stepNum === currentStep) {
+                step.classList.add('nx-checkout-progress__step--active');
+            }
+        });
+
+        // Update connectors
+        connectors.forEach((connector, index) => {
+            if (index < currentStep - 1) {
+                connector.style.background = 'var(--nx-success)';
+            } else {
+                connector.style.background = 'var(--nx-border)';
+            }
+        });
+    };
+
+    // Observer for step visibility changes
+    const stepObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                const paymentSection = document.getElementById('payment-instructions');
+                const confirmSection = document.getElementById('payment-confirmed');
+
+                if (confirmSection && confirmSection.style.display !== 'none') {
+                    updateCheckoutProgress(3);
+                } else if (paymentSection && paymentSection.style.display !== 'none') {
+                    updateCheckoutProgress(2);
+                } else {
+                    updateCheckoutProgress(1);
+                }
+            }
+        });
+    });
+
+    // Observe step sections for display changes
+    const paymentSection = document.getElementById('payment-instructions');
+    const confirmSection = document.getElementById('payment-confirmed');
+
+    if (paymentSection) {
+        stepObserver.observe(paymentSection, { attributes: true, attributeFilter: ['style'] });
+    }
+    if (confirmSection) {
+        stepObserver.observe(confirmSection, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCheckoutProgress(1);
+    });
+})();
+</script>
+{% endblock %}

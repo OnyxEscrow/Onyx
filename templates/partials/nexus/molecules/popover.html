@@ -1,0 +1,316 @@
+{#
+  NEXUS POPOVER COMPONENT
+
+  Usage:
+    {% include "partials/nexus/molecules/popover.html" %}
+
+  Parameters:
+    - id (required): Unique popover ID
+    - trigger_text (optional): Trigger button text
+    - trigger_icon (optional): Trigger button icon
+    - trigger_variant (optional): Button variant (default: ghost)
+    - title (optional): Popover title
+    - content (required): Popover content HTML
+    - position (optional): top|bottom|left|right (default: bottom)
+    - width (optional): Popover width (default: 300px)
+    - closable (optional): true|false - Show close button (default: true)
+    - class (optional): Additional CSS classes
+#}
+
+{% set popover_trigger_variant = trigger_variant | default(value="ghost") %}
+{% set popover_position = position | default(value="bottom") %}
+{% set popover_width = width | default(value="300px") %}
+{% set popover_closable = closable | default(value=true) %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-popover-wrapper" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}" id="{{ id }}">
+  {# Trigger Button #}
+  <button
+    class="nexus-btn nexus-btn-{{ popover_trigger_variant }} nexus-popover-trigger"
+    aria-haspopup="true"
+    aria-expanded="false"
+    onclick="togglePopover('{{ id }}')"
+  >
+    {% if trigger_icon %}
+      <span class="nexus-popover-trigger-icon">{{ trigger_icon | safe }}</span>
+    {% endif %}
+    {% if trigger_text %}
+      <span>{{ trigger_text }}</span>
+    {% endif %}
+  </button>
+
+  {# Popover Content #}
+  <div
+    class="nexus-popover nexus-popover-{{ popover_position }}"
+    role="dialog"
+    aria-hidden="true"
+    style="width: {{ popover_width }};"
+  >
+    {# Arrow #}
+    <div class="nexus-popover-arrow"></div>
+
+    {# Header #}
+    {% if title or popover_closable %}
+      <div class="nexus-popover-header">
+        {% if title %}
+          <h3 class="nexus-popover-title">{{ title }}</h3>
+        {% endif %}
+        {% if popover_closable %}
+          <button
+            class="nexus-popover-close"
+            aria-label="Close popover"
+            onclick="closePopover('{{ id }}')"
+          >
+            ✕
+          </button>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    {# Body #}
+    <div class="nexus-popover-body">
+      {{ content | safe }}
+    </div>
+  </div>
+</div>
+
+<script>
+function togglePopover(id) {
+  var wrapper = document.getElementById(id);
+  var trigger = wrapper.querySelector('.nexus-popover-trigger');
+  var popover = wrapper.querySelector('.nexus-popover');
+  var isOpen = popover.getAttribute('aria-hidden') === 'false';
+
+  // Close all other popovers
+  document.querySelectorAll('.nexus-popover[aria-hidden="false"]').forEach(function(openPopover) {
+    if (openPopover !== popover) {
+      openPopover.setAttribute('aria-hidden', 'true');
+      openPopover.parentElement.querySelector('.nexus-popover-trigger').setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Toggle current popover
+  if (isOpen) {
+    popover.setAttribute('aria-hidden', 'true');
+    trigger.setAttribute('aria-expanded', 'false');
+  } else {
+    popover.setAttribute('aria-hidden', 'false');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function closePopover(id) {
+  var wrapper = document.getElementById(id);
+  var trigger = wrapper.querySelector('.nexus-popover-trigger');
+  var popover = wrapper.querySelector('.nexus-popover');
+  popover.setAttribute('aria-hidden', 'true');
+  trigger.setAttribute('aria-expanded', 'false');
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.nexus-popover-wrapper')) {
+    document.querySelectorAll('.nexus-popover[aria-hidden="false"]').forEach(function(popover) {
+      popover.setAttribute('aria-hidden', 'true');
+      popover.parentElement.querySelector('.nexus-popover-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+
+// Close popover on Escape key
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    document.querySelectorAll('.nexus-popover[aria-hidden="false"]').forEach(function(popover) {
+      popover.setAttribute('aria-hidden', 'true');
+      popover.parentElement.querySelector('.nexus-popover-trigger').setAttribute('aria-expanded', 'false');
+    });
+  }
+});
+</script>
+
+<style>
+/* Popover Wrapper */
+.nexus-popover-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Popover Trigger */
+.nexus-popover-trigger-icon {
+  font-size: var(--nexus-text-lg);
+}
+
+/* Base Popover */
+.nexus-popover {
+  position: absolute;
+  z-index: 9999;
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-md);
+  box-shadow: var(--nexus-shadow-xl);
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.95);
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+  pointer-events: none;
+}
+
+.nexus-popover[aria-hidden="false"] {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+/* Popover Arrow */
+.nexus-popover-arrow {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  transform: rotate(45deg);
+}
+
+/* Position: Top */
+.nexus-popover-top {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.nexus-popover-top[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.nexus-popover-top .nexus-popover-arrow {
+  bottom: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-top: none;
+  border-left: none;
+}
+
+/* Position: Bottom */
+.nexus-popover-bottom {
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+}
+
+.nexus-popover-bottom[aria-hidden="false"] {
+  transform: translateX(-50%) scale(1);
+}
+
+.nexus-popover-bottom .nexus-popover-arrow {
+  top: -6px;
+  left: 50%;
+  margin-left: -6px;
+  border-bottom: none;
+  border-right: none;
+}
+
+/* Position: Left */
+.nexus-popover-left {
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.nexus-popover-left[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.nexus-popover-left .nexus-popover-arrow {
+  right: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-left: none;
+  border-bottom: none;
+}
+
+/* Position: Right */
+.nexus-popover-right {
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.95);
+}
+
+.nexus-popover-right[aria-hidden="false"] {
+  transform: translateY(-50%) scale(1);
+}
+
+.nexus-popover-right .nexus-popover-arrow {
+  left: -6px;
+  top: 50%;
+  margin-top: -6px;
+  border-right: none;
+  border-top: none;
+}
+
+/* Popover Header */
+.nexus-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--nexus-space-4);
+  border-bottom: 1px solid var(--nexus-border);
+}
+
+/* Popover Title */
+.nexus-popover-title {
+  font-size: var(--nexus-text-base);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-fg);
+  margin: 0;
+  line-height: var(--nexus-leading-tight);
+}
+
+/* Popover Close Button */
+.nexus-popover-close {
+  background: none;
+  border: none;
+  color: var(--nexus-muted-fg);
+  font-size: var(--nexus-text-lg);
+  cursor: pointer;
+  padding: var(--nexus-space-1);
+  line-height: 1;
+  transition: all var(--nexus-transition-base) var(--nexus-ease-out);
+  border-radius: var(--nexus-radius-sm);
+}
+
+.nexus-popover-close:hover {
+  color: var(--nexus-fg);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.nexus-popover-close:focus {
+  outline: 2px solid var(--nexus-ring);
+  outline-offset: 2px;
+}
+
+/* Popover Body */
+.nexus-popover-body {
+  padding: var(--nexus-space-4);
+  color: var(--nexus-fg);
+  font-size: var(--nexus-text-sm);
+  line-height: var(--nexus-leading-relaxed);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-popover {
+    max-width: calc(100vw - var(--nexus-space-8)) !important;
+  }
+
+  .nexus-popover-header,
+  .nexus-popover-body {
+    padding: var(--nexus-space-3);
+  }
+}
+</style>

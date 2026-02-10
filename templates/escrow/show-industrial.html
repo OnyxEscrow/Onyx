@@ -1,0 +1,2490 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}Escrow #{{ escrow.id | truncate(length=8, end="") }} — FROST MARKET{% endblock %}
+
+{% block content %}
+<div class="escrow-detail-interface">
+    <div class="container-industrial">
+
+        {# ===== BACK LINK ===== #}
+        <a href="/orders" class="order-detail-back">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back to Orders
+        </a>
+
+        <div class="order-detail-layout">
+            {# ===== MAIN CONTENT ===== #}
+            <div class="order-detail-main">
+
+                {# ===== ESCROW HEADER ===== #}
+                <div class="order-detail-card" style="animation-delay: 0ms;">
+                    <div class="order-header">
+                        <div class="order-header__info">
+                            <h1 class="order-header__title">
+                                Escrow <span class="text-gold">#{{ escrow.id | truncate(length=8, end="") | upper }}</span>
+                            </h1>
+                            <p class="order-header__date">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                </svg>
+                                2-of-3 Multisig Protection
+                            </p>
+                        </div>
+
+                        {# Status Badge #}
+                        {% if escrow.status == "created" %}
+                        <span class="order-status-badge status--pending">Created</span>
+                        {% elif escrow.status == "funded" %}
+                        <span class="order-status-badge status--funded">Funded</span>
+                        {% elif escrow.status == "active" %}
+                        <span class="order-status-badge status--funded">Active</span>
+                        {% elif escrow.status == "signing_initiated" %}
+                        <span class="order-status-badge status--releasing">Signing</span>
+                        {% elif escrow.status == "ready_to_broadcast" %}
+                        <span class="order-status-badge status--releasing">Ready</span>
+                        {% elif escrow.status == "releasing" %}
+                        <span class="order-status-badge status--releasing">Releasing</span>
+                        {% elif escrow.status == "refunding" %}
+                        <span class="order-status-badge status--releasing">Refunding</span>
+                        {% elif escrow.status == "completed" %}
+                        <span class="order-status-badge status--completed">Completed</span>
+                        {% elif escrow.status == "disputed" %}
+                        <span class="order-status-badge status--disputed">Disputed</span>
+                        {% elif escrow.status == "round_robin_signing" %}
+                        <span class="order-status-badge status--releasing">Signing</span>
+                        {% elif escrow.status == "refunded" %}
+                        <span class="order-status-badge status--refunded">Refunded</span>
+                        {% else %}
+                        <span class="order-status-badge">{{ escrow.status | upper }}</span>
+                        {% endif %}
+                    </div>
+
+                    {# Escrow Amount Display #}
+                    <div class="escrow-amount-display">
+                        <div class="escrow-amount-display__value">{{ escrow.amount_xmr }} <span>XMR</span></div>
+                        <div class="escrow-amount-display__atomic">{{ escrow.amount_atomic }} atomic units</div>
+                    </div>
+
+                    {# Escrow Details Grid #}
+                    <div class="order-details-grid">
+                        <div class="order-detail-field">
+                            <span class="order-detail-field__label">Created</span>
+                            <span class="order-detail-field__value order-detail-field__value--mono">
+                                {{ escrow.created_at | date(format="%Y-%m-%d %H:%M UTC") }}
+                            </span>
+                        </div>
+                        {% if escrow.multisig_address %}
+                        <div class="order-detail-field" style="grid-column: span 2;">
+                            <span class="order-detail-field__label">Multisig Address</span>
+                            <code class="order-detail-field__value order-detail-field__value--mono" style="font-size: 11px; word-break: break-all;">
+                                {{ escrow.multisig_address }}
+                            </code>
+                        </div>
+                        {% endif %}
+                        {% if escrow.transaction_hash %}
+                        <div class="order-detail-field" style="grid-column: span 2;">
+                            <span class="order-detail-field__label">TX Hash</span>
+                            <code class="order-detail-field__value order-detail-field__value--mono" style="font-size: 11px; word-break: break-all;">
+                                {{ escrow.transaction_hash }}
+                            </code>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {# ===== ESCROW TIMELINE ===== #}
+                <div class="order-detail-card" style="animation-delay: 50ms;">
+                    <h2 class="order-card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Escrow Process
+                    </h2>
+
+                    <div class="order-timeline" id="escrow-timeline">
+                        {# Step 1: Created #}
+                        <div class="timeline-item timeline-item--done">
+                            <div class="timeline-item__dot timeline-item__dot--done"></div>
+                            <div class="timeline-item__content">
+                                <h3 class="timeline-item__title">Escrow Initiated</h3>
+                                <p class="timeline-item__date">{{ escrow.created_at | date(format="%Y-%m-%d %H:%M") }}</p>
+                                <p class="timeline-item__desc">Multisig wallet created (Buyer, Vendor, Arbiter)</p>
+                            </div>
+                        </div>
+
+                        {# Step 2: Multisig Setup #}
+                        <div class="timeline-item {% if escrow.multisig_address %}timeline-item--done{% elif escrow.status == 'created' %}timeline-item--active{% endif %}">
+                            <div class="timeline-item__dot {% if escrow.multisig_address %}timeline-item__dot--done{% elif escrow.status == 'created' %}timeline-item__dot--active{% endif %}"></div>
+                            <div class="timeline-item__content">
+                                <h3 class="timeline-item__title">Multisig Setup</h3>
+                                {% if escrow.multisig_address %}
+                                <p class="timeline-item__desc">All parties exchanged multisig info</p>
+                                {% else %}
+                                <p class="timeline-item__desc timeline-item__desc--pending">Awaiting multisig exchange</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {# Step 3: Funded #}
+                        <div class="timeline-item {% if escrow.status == 'funded' or escrow.status == 'active' or escrow.status == 'releasing' or escrow.status == 'refunding' or escrow.status == 'completed' or escrow.status == 'signing_initiated' or escrow.status == 'ready_to_broadcast' %}timeline-item--done{% elif escrow.multisig_address and escrow.status == 'created' %}timeline-item--active{% endif %}">
+                            <div class="timeline-item__dot {% if escrow.status == 'funded' or escrow.status == 'active' or escrow.status == 'releasing' or escrow.status == 'refunding' or escrow.status == 'completed' or escrow.status == 'signing_initiated' or escrow.status == 'ready_to_broadcast' %}timeline-item__dot--done{% elif escrow.multisig_address and escrow.status == 'created' %}timeline-item__dot--active{% endif %}"></div>
+                            <div class="timeline-item__content">
+                                <h3 class="timeline-item__title">Escrow Funded</h3>
+                                {% if escrow.status != 'created' %}
+                                <p class="timeline-item__desc">Buyer deposited {{ escrow.amount_xmr }} XMR</p>
+                                {% else %}
+                                <p class="timeline-item__desc timeline-item__desc--pending">Awaiting buyer deposit</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {# Step 4: Resolution #}
+                        <div class="timeline-item {% if escrow.status == 'completed' %}timeline-item--done{% elif escrow.status == 'releasing' or escrow.status == 'refunding' or escrow.status == 'ready_to_broadcast' %}timeline-item--active{% endif %}">
+                            <div class="timeline-item__dot {% if escrow.status == 'completed' %}timeline-item__dot--done{% elif escrow.status == 'releasing' or escrow.status == 'refunding' or escrow.status == 'ready_to_broadcast' %}timeline-item__dot--active{% endif %}"></div>
+                            <div class="timeline-item__content">
+                                {% if escrow.status == 'completed' %}
+                                <h3 class="timeline-item__title">Funds Released</h3>
+                                <p class="timeline-item__desc">Transaction confirmed on blockchain</p>
+                                {% elif escrow.status == 'releasing' or escrow.status == 'ready_to_broadcast' %}
+                                <h3 class="timeline-item__title">Releasing to Vendor</h3>
+                                <p class="timeline-item__desc">2-of-3 signatures in progress</p>
+                                {% elif escrow.status == 'refunding' %}
+                                <h3 class="timeline-item__title">Refunding to Buyer</h3>
+                                <p class="timeline-item__desc">2-of-3 signatures in progress</p>
+                                {% else %}
+                                <h3 class="timeline-item__title">Awaiting Resolution</h3>
+                                <p class="timeline-item__desc timeline-item__desc--pending">Pending confirmation or dispute</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ===== PARTICIPANTS ===== #}
+                <div class="order-detail-card" style="animation-delay: 100ms;">
+                    <h2 class="order-card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Participants
+                    </h2>
+
+                    <div class="escrow-participants">
+                        <div class="escrow-participant">
+                            <div class="escrow-participant__icon escrow-participant__icon--buyer">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 1 0-16 0"/>
+                                </svg>
+                            </div>
+                            <div class="escrow-participant__info">
+                                <span class="escrow-participant__role">Buyer</span>
+                                <span class="escrow-participant__id">{{ buyer_name | default(value=escrow.buyer_id | truncate(length=8, end="...")) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="escrow-participant">
+                            <div class="escrow-participant__icon escrow-participant__icon--vendor">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/>
+                                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                                    <path d="M2 7h20"/>
+                                </svg>
+                            </div>
+                            <div class="escrow-participant__info">
+                                <span class="escrow-participant__role">Vendor</span>
+                                <span class="escrow-participant__id">{{ vendor_name | default(value=escrow.vendor_id | truncate(length=8, end="...")) }}</span>
+                            </div>
+                        </div>
+
+                        <div class="escrow-participant">
+                            <div class="escrow-participant__icon escrow-participant__icon--arbiter">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                </svg>
+                            </div>
+                            <div class="escrow-participant__info">
+                                <span class="escrow-participant__role">Arbiter</span>
+                                <span class="escrow-participant__id">FROST MARKET System</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# ===== DISPUTE SECTION (only when disputed) ===== #}
+                {% if escrow.status == "disputed" %}
+                <div class="order-detail-card dispute-card" style="animation-delay: 150ms;">
+                    <h2 class="order-card-title" style="color: #ef4444;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>
+                        </svg>
+                        Active Dispute
+                    </h2>
+
+                    {% if escrow.dispute_reason %}
+                    <div class="dispute-reason-box">
+                        <span class="dispute-reason-box__label">Dispute Reason</span>
+                        <p class="dispute-reason-box__text">{{ escrow.dispute_reason }}</p>
+                    </div>
+                    {% endif %}
+
+                    {# Evidence List #}
+                    <div class="dispute-evidence" id="evidence-list">
+                        <h3 class="dispute-evidence__title">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Evidence Files
+                        </h3>
+                        <div id="evidence-list-content" class="dispute-evidence__list">
+                            <div class="dispute-evidence__loading">
+                                <div class="loading-spinner"></div>
+                                Loading evidence...
+                            </div>
+                        </div>
+                    </div>
+
+                    {# Upload Evidence #}
+                    <div class="dispute-upload">
+                        <h3 class="dispute-upload__title">Upload Evidence</h3>
+                        <div class="dispute-upload__dropzone" id="evidence-dropzone">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p>Drop files here or click to upload</p>
+                            <span>PDF, JPEG, PNG, GIF, TXT | Max 5MB | Max 10 files</span>
+                        </div>
+                        <input type="file" id="evidence-file-input" accept=".pdf,.jpg,.jpeg,.png,.gif,.txt" style="display: none;">
+                        <textarea id="evidence-description" class="dispute-upload__desc" placeholder="Optional: Describe this evidence..."></textarea>
+                        <div id="evidence-upload-status"></div>
+                    </div>
+
+                    {# Buyer Refund Address #}
+                    {% if escrow_user_role == "buyer" %}
+                    <div class="dispute-refund-address">
+                        <h3>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/>
+                            </svg>
+                            Your Refund Address
+                        </h3>
+                        <p class="dispute-refund-address__desc">If the arbiter decides in your favor, funds will be sent here.</p>
+                        {% if escrow.buyer_refund_address %}
+                        <div class="dispute-refund-address__current">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            {{ escrow.buyer_refund_address }}
+                        </div>
+                        {% endif %}
+                        <div class="dispute-refund-address__form">
+                            <input type="text" id="buyer-refund-address" placeholder="Your Monero address (95 or 106 characters)" value="{{ escrow.buyer_refund_address | default(value='') }}">
+                            <button onclick="setRefundAddress()" id="set-refund-btn">
+                                {% if escrow.buyer_refund_address %}Update{% else %}Save{% endif %}
+                            </button>
+                        </div>
+                        <div id="refund-address-status"></div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {# ===== ROUND-ROBIN SIGNING PANEL ===== #}
+                {% if escrow.status == "round_robin_signing" %}
+                <div class="order-detail-card signing-panel-card" style="animation-delay: 150ms;">
+                    <h2 class="order-card-title" style="color: var(--nexus-gold);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                            <path d="m9 12 2 2 4-4"/>
+                        </svg>
+                        2-of-3 Multisig Signing
+                    </h2>
+
+                    {# Signing Status Display #}
+                    <div class="signing-status-display">
+                        <div class="signing-status-row">
+                            <span class="signing-status-label">Status</span>
+                            <span class="signing-status-value" id="signing-phase-display">
+                                {% if escrow.signing_round == 0 %}
+                                    Waiting for first signer to create TX
+                                {% elif escrow.signing_round == 1 %}
+                                    Waiting for second signer to sign
+                                {% elif escrow.signing_round == 2 %}
+                                    Waiting for broadcast confirmation
+                                {% elif escrow.signing_round == 3 %}
+                                    Completed
+                                {% else %}
+                                    Initializing...
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="signing-status-row">
+                            <span class="signing-status-label">Round</span>
+                            <span class="signing-status-value">{{ escrow.signing_round | default(value=0) }} of 3</span>
+                        </div>
+                        <div class="signing-status-row">
+                            <span class="signing-status-label">Current Signer</span>
+                            <span class="signing-status-value signing-status-value--highlight" id="current-signer-display">
+                                {% if escrow.current_signer_id == user_id %}
+                                    <span style="color: #4ade80;">👤 YOU</span>
+                                {% else %}
+                                    Waiting for other party...
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if escrow.dispute_signing_pair %}
+                        <div class="signing-status-row">
+                            <span class="signing-status-label">Signing Pair</span>
+                            <span class="signing-status-value">
+                                {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                    Arbiter + Buyer (Refund)
+                                {% else %}
+                                    Arbiter + Vendor (Release)
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    {# My Turn To Sign Section #}
+                    {% if escrow.current_signer_id == user_id %}
+                    <div class="signing-action-panel">
+                        {# Round 0: First signer creates partial TX #}
+                        {% if escrow.signing_round == 0 %}
+                        <div class="signing-action-info">
+                            <h3>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                                </svg>
+                                Create Partial Transaction
+                            </h3>
+                            <p>Use your FROST threshold share to create a partial signature. This will be sent to the other signer for completion.</p>
+                        </div>
+                        <button class="btn-gold btn-shimmer btn-full" id="btn-create-partial-tx" onclick="createPartialTx()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                            Sign with FROST Share
+                        </button>
+
+                        {# Round 1: Second signer completes signature #}
+                        {% elif escrow.signing_round == 1 %}
+                        <div class="signing-action-info">
+                            <h3>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Complete Signature
+                            </h3>
+                            <p>The first signer has created a partial transaction. Use your FROST share to complete the signature.</p>
+                        </div>
+                        <button class="btn-gold btn-shimmer btn-full" id="btn-complete-signature" onclick="completeSignature()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                            Complete Signature
+                        </button>
+
+                        {# Round 2: First signer broadcasts #}
+                        {% elif escrow.signing_round == 2 %}
+                        <div class="signing-action-info">
+                            <h3>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 2 11 13"/>
+                                    <path d="m22 2-7 20-4-9-9-4 20-7z"/>
+                                </svg>
+                                Broadcast Transaction
+                            </h3>
+                            <p>Both signatures are complete. You can now broadcast the transaction to the Monero network.</p>
+                        </div>
+                        <button class="btn-gold btn-shimmer btn-full" id="btn-broadcast-tx" onclick="broadcastTransaction()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 2 11 13"/>
+                                <path d="m22 2-7 20-4-9-9-4 20-7z"/>
+                            </svg>
+                            Broadcast to Network
+                        </button>
+                        {% endif %}
+
+                        <div id="signing-action-result" class="mt-3"></div>
+                    </div>
+
+                    {% else %}
+                    {# Waiting for other party #}
+                    <div class="signing-waiting-panel">
+                        <div class="signing-waiting-icon">
+                            <div class="loading-spinner"></div>
+                        </div>
+                        <p class="signing-waiting-text">Waiting for the other party to sign...</p>
+                        <p class="signing-waiting-subtext">This page will automatically update when it's your turn.</p>
+                    </div>
+                    {% endif %}
+
+                    {# Progress Indicator #}
+                    <div class="signing-progress">
+                        <div class="signing-progress-step {% if escrow.signing_round >= 0 %}signing-progress-step--done{% endif %}">
+                            <div class="signing-progress-dot"></div>
+                            <span>Create TX</span>
+                        </div>
+                        <div class="signing-progress-line {% if escrow.signing_round >= 1 %}signing-progress-line--done{% endif %}"></div>
+                        <div class="signing-progress-step {% if escrow.signing_round >= 1 %}signing-progress-step--done{% endif %}">
+                            <div class="signing-progress-dot"></div>
+                            <span>Sign</span>
+                        </div>
+                        <div class="signing-progress-line {% if escrow.signing_round >= 2 %}signing-progress-line--done{% endif %}"></div>
+                        <div class="signing-progress-step {% if escrow.signing_round >= 2 %}signing-progress-step--done{% endif %}">
+                            <div class="signing-progress-dot"></div>
+                            <span>Broadcast</span>
+                        </div>
+                        <div class="signing-progress-line {% if escrow.signing_round >= 3 %}signing-progress-line--done{% endif %}"></div>
+                        <div class="signing-progress-step {% if escrow.signing_round >= 3 %}signing-progress-step--done{% endif %}">
+                            <div class="signing-progress-dot"></div>
+                            <span>Complete</span>
+                        </div>
+                    </div>
+
+                    {# Security Note #}
+                    <div class="signing-security-note">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                        </svg>
+                        <span>All signing happens locally in your browser using WASM. Your private keys never leave your device.</span>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+
+            {# ===== SIDEBAR ===== #}
+            <div class="order-detail-sidebar">
+                <div class="sidebar-sticky">
+
+                    {# ===== ARBITER RESOLUTION PANEL ===== #}
+                    {% if escrow.status == "disputed" and escrow_user_role == "arbiter" %}
+                    <div class="order-detail-card sidebar-card arbiter-resolution-card" style="animation-delay: 200ms;">
+                        <div class="arbiter-resolution__header">
+                            <div class="arbiter-resolution__icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="arbiter-resolution__title">Arbiter Resolution</h2>
+                                <p class="arbiter-resolution__subtitle">Make your decision</p>
+                            </div>
+                        </div>
+
+                        {% if escrow.dispute_signing_pair %}
+                        <div class="arbiter-resolution__decided">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            <div>
+                                <span class="arbiter-resolution__decided-label">Decision Recorded</span>
+                                <span class="arbiter-resolution__decided-value">
+                                    {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                    Refund to Buyer (Arbiter + Buyer sign)
+                                    {% else %}
+                                    Release to Vendor (Arbiter + Vendor sign)
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+
+                        {# Step 2: Initiate Signing #}
+                        <div class="arbiter-signing-section">
+                            <h3 class="arbiter-signing-section__title">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
+                                Next Step: Initiate Signing
+                            </h3>
+
+                            <div class="arbiter-signing-section__form">
+                                <label class="arbiter-signing-section__label">
+                                    {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                    Buyer's Refund Address:
+                                    {% else %}
+                                    Vendor's Payout Address:
+                                    {% endif %}
+                                </label>
+                                <input type="text"
+                                       id="signing-destination-address"
+                                       class="arbiter-signing-section__input"
+                                       placeholder="Monero address (95 or 106 chars)"
+                                       value="{% if escrow.dispute_signing_pair == 'arbiter_buyer' %}{{ escrow.buyer_refund_address | default(value='') }}{% else %}{{ vendor_wallet_address | default(value='') }}{% endif %}">
+
+                                <button class="btn-gold btn-shimmer btn-full" id="btn-initiate-signing" onclick="initiateDisputeSigning()">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                    </svg>
+                                    Initiate Signing Process
+                                </button>
+                            </div>
+
+                            <div id="signing-result" class="mt-3"></div>
+
+                            <div class="arbiter-signing-section__info">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                                </svg>
+                                <span>After initiating, both parties must sign using their local wallets.</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="arbiter-resolution__options">
+                            <button class="arbiter-resolution__btn arbiter-resolution__btn--refund" id="btn-refund-buyer" onclick="setDisputeSigningPair('arbiter_buyer')">
+                                <div class="arbiter-resolution__btn-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/>
+                                    </svg>
+                                </div>
+                                <div class="arbiter-resolution__btn-content">
+                                    <span class="arbiter-resolution__btn-title">Refund Buyer</span>
+                                    <span class="arbiter-resolution__btn-desc">Return funds to buyer</span>
+                                </div>
+                            </button>
+
+                            <button class="arbiter-resolution__btn arbiter-resolution__btn--release" id="btn-release-vendor" onclick="setDisputeSigningPair('arbiter_vendor')">
+                                <div class="arbiter-resolution__btn-icon">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                        <polyline points="22 4 12 14.01 9 11.01"/>
+                                    </svg>
+                                </div>
+                                <div class="arbiter-resolution__btn-content">
+                                    <span class="arbiter-resolution__btn-title">Release to Vendor</span>
+                                    <span class="arbiter-resolution__btn-desc">Complete transaction</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        <div class="arbiter-resolution__warning">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                <line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>
+                            </svg>
+                            Decision is final and irreversible
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {# ===== DISPUTE RESOLVED - WINNER INITIATION PANEL ===== #}
+                    {# Shown to buyer when arbiter_buyer is set, or vendor when arbiter_vendor is set #}
+                    {% if escrow.status == "disputed" and escrow.dispute_signing_pair %}
+                        {% if (escrow.dispute_signing_pair == "arbiter_buyer" and escrow_user_role == "buyer") or (escrow.dispute_signing_pair == "arbiter_vendor" and escrow_user_role == "vendor") %}
+                    <div class="order-detail-card sidebar-card dispute-resolved-card" style="animation-delay: 200ms;">
+                        <div class="dispute-resolved__header">
+                            <div class="dispute-resolved__icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="dispute-resolved__title">Dispute Resolved</h2>
+                                <p class="dispute-resolved__subtitle">
+                                    {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                    Arbiter ruled in your favor - Refund approved
+                                    {% else %}
+                                    Arbiter ruled in your favor - Release approved
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="dispute-resolved__action">
+                            <label class="dispute-resolved__label">
+                                {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                Your Refund Address:
+                                {% else %}
+                                Your Payout Address:
+                                {% endif %}
+                            </label>
+                            <input type="text"
+                                   id="winner-payout-address"
+                                   class="dispute-resolved__input"
+                                   placeholder="Your Monero address (95 or 106 chars)"
+                                   value="{% if escrow.dispute_signing_pair == 'arbiter_buyer' %}{{ escrow.buyer_refund_address | default(value='') }}{% else %}{{ vendor_wallet_address | default(value='') }}{% endif %}">
+
+                            <button class="btn-gold btn-shimmer btn-full" id="btn-winner-initiate" onclick="initiateWinnerSigning()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                                    <path d="m9 12 2 2 4-4"/>
+                                </svg>
+                                {% if escrow.dispute_signing_pair == "arbiter_buyer" %}
+                                Claim Refund
+                                {% else %}
+                                Claim Payment
+                                {% endif %}
+                            </button>
+
+                            <div id="winner-signing-result" class="mt-3"></div>
+
+                            <div class="dispute-resolved__info">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                                </svg>
+                                <span>This will start the 2-of-3 multisig signing process. The arbiter will co-sign.</span>
+                            </div>
+                        </div>
+                    </div>
+                        {% endif %}
+                    {% endif %}
+
+                    {# ===== ACTIONS CARD ===== #}
+                    <div class="order-detail-card sidebar-card" style="animation-delay: 250ms;">
+                        <h2 class="order-card-title">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                            </svg>
+                            Actions
+                        </h2>
+
+                        <div id="action-result" class="mb-4"></div>
+
+                        <div class="actions-list">
+                            {# Buyer Actions #}
+                            {% if escrow_user_role == "buyer" and escrow.status == "funded" %}
+                            <button class="btn-gold btn-shimmer btn-full" onclick="showReleaseModal()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                Release Funds
+                            </button>
+
+                            <button class="btn-outline-danger btn-full" onclick="showDisputeModal()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                                    <line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/>
+                                </svg>
+                                Open Dispute
+                            </button>
+                            {% endif %}
+
+                            {# Vendor Actions #}
+                            {% if escrow_user_role == "vendor" and escrow.status == "funded" %}
+                            <button class="btn-outline btn-full" onclick="showRefundModal()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 10h10a8 8 0 0 1 8 8v2M3 10l6 6m-6-6l6-6"/>
+                                </svg>
+                                Refund Buyer
+                            </button>
+                            {% endif %}
+
+                            {# Status Messages #}
+                            {% if escrow.status == "completed" %}
+                            <div class="action-status action-status--success">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Escrow completed successfully
+                            </div>
+                            {% elif escrow.status == "disputed" and escrow_user_role != "arbiter" %}
+                            <div class="action-status action-status--warning">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Awaiting arbiter decision
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {# ===== SECURITY INFO ===== #}
+                    <div class="order-detail-card sidebar-card" style="animation-delay: 300ms;">
+                        <h2 class="order-card-title order-card-title--small">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+                            </svg>
+                            Security
+                        </h2>
+                        <ul class="help-list">
+                            <li>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                2-of-3 Multisig Protection
+                            </li>
+                            <li>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Monero Privacy Features
+                            </li>
+                            <li>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Neutral Arbiter System
+                            </li>
+                            <li>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-green)" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Testnet Only (v0.3.0)
+                            </li>
+                        </ul>
+                    </div>
+
+                    {# ===== HOW IT WORKS ===== #}
+                    <div class="order-detail-card sidebar-card" style="animation-delay: 350ms;">
+                        <h2 class="order-card-title order-card-title--small">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                <path d="M12 17h.01"/>
+                            </svg>
+                            How 2-of-3 Works
+                        </h2>
+                        <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin-bottom: 12px;">
+                            Any 2 of 3 parties must sign to move funds.
+                        </p>
+                        <div class="escrow-scenarios">
+                            <div class="escrow-scenario">
+                                <span class="escrow-scenario__label" style="color: var(--nexus-green);">Happy Path</span>
+                                <span class="escrow-scenario__value">Buyer + Arbiter → Vendor</span>
+                            </div>
+                            <div class="escrow-scenario">
+                                <span class="escrow-scenario__label" style="color: var(--nexus-gold);">Refund</span>
+                                <span class="escrow-scenario__value">Vendor + Arbiter → Buyer</span>
+                            </div>
+                            <div class="escrow-scenario">
+                                <span class="escrow-scenario__label" style="color: #ef4444;">Dispute</span>
+                                <span class="escrow-scenario__value">Arbiter decides</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        {# Hidden Data Attributes #}
+        <div id="escrow-page-data"
+            data-escrow-id="{{ escrow.id }}"
+            data-escrow-status="{{ escrow.status }}"
+            data-escrow-amount="{{ escrow.amount_xmr }}"
+            data-user-role="{{ escrow_user_role }}"
+            data-dispute-signing-pair="{{ escrow.dispute_signing_pair | default(value='') }}"
+            style="display: none;"></div>
+    </div>
+</div>
+
+{# Arbiter Resolve Modal Container #}
+<div id="modal-container"></div>
+
+{# Styles #}
+<style>
+/* === ESCROW AMOUNT DISPLAY === */
+.escrow-amount-display {
+    text-align: center;
+    padding: 24px;
+    margin: 20px 0;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), rgba(212, 175, 55, 0.02));
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 12px;
+}
+.escrow-amount-display__value {
+    font-family: var(--font-oswald);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--nexus-gold);
+    letter-spacing: -0.02em;
+}
+.escrow-amount-display__value span {
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+.escrow-amount-display__atomic {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+}
+
+/* === PARTICIPANTS === */
+.escrow-participants {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+.escrow-participant {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+.escrow-participant:hover {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+.escrow-participant__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.escrow-participant__icon--buyer {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+.escrow-participant__icon--vendor {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+.escrow-participant__icon--arbiter {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+.escrow-participant__role {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.5);
+}
+.escrow-participant__id {
+    display: block;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+/* === DISPUTE STYLES === */
+.dispute-card {
+    border-color: rgba(239, 68, 68, 0.3) !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), transparent) !important;
+}
+.dispute-reason-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.dispute-reason-box__label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #ef4444;
+    margin-bottom: 8px;
+}
+.dispute-reason-box__text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    line-height: 1.6;
+}
+.dispute-evidence__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+.dispute-evidence__loading {
+    text-align: center;
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 13px;
+}
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--nexus-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 8px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.dispute-upload__title {
+    margin: 20px 0 12px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+.dispute-upload__dropzone {
+    border: 2px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.dispute-upload__dropzone:hover {
+    border-color: var(--nexus-gold);
+    background: rgba(212, 175, 55, 0.05);
+}
+.dispute-upload__dropzone svg {
+    color: rgba(255, 255, 255, 0.3);
+    margin-bottom: 8px;
+}
+.dispute-upload__dropzone p {
+    margin: 0 0 4px 0;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+.dispute-upload__dropzone span {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+.dispute-upload__desc {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 13px;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.dispute-refund-address {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.dispute-refund-address h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+}
+.dispute-refund-address__desc {
+    margin: 0 0 12px 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+.dispute-refund-address__current {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: #4ade80;
+    word-break: break-all;
+}
+.dispute-refund-address__form {
+    display: flex;
+    gap: 8px;
+}
+.dispute-refund-address__form input {
+    flex: 1;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 12px;
+    font-family: var(--font-mono);
+}
+.dispute-refund-address__form button {
+    padding: 10px 16px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 8px;
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.dispute-refund-address__form button:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(59, 130, 246, 0.15));
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+/* === ARBITER RESOLUTION === */
+.arbiter-resolution-card {
+    border-color: rgba(139, 92, 246, 0.3) !important;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), transparent) !important;
+}
+.arbiter-resolution__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.arbiter-resolution__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #a78bfa;
+    flex-shrink: 0;
+}
+.arbiter-resolution__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+.arbiter-resolution__subtitle {
+    margin: 4px 0 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+.arbiter-resolution__decided {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 10px;
+    color: #4ade80;
+}
+.arbiter-resolution__decided-label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+.arbiter-resolution__decided-value {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    margin-top: 2px;
+}
+.arbiter-resolution__options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.arbiter-resolution__btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
+}
+.arbiter-resolution__btn:hover {
+    transform: translateY(-2px);
+}
+.arbiter-resolution__btn--refund {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.02));
+    border-color: rgba(59, 130, 246, 0.3);
+}
+.arbiter-resolution__btn--refund:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
+}
+.arbiter-resolution__btn--release {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.02));
+    border-color: rgba(34, 197, 94, 0.3);
+}
+.arbiter-resolution__btn--release:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+    border-color: rgba(34, 197, 94, 0.5);
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+}
+.arbiter-resolution__btn-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.arbiter-resolution__btn--refund .arbiter-resolution__btn-icon {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+.arbiter-resolution__btn--release .arbiter-resolution__btn-icon {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+.arbiter-resolution__btn-title {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.95);
+}
+.arbiter-resolution__btn-desc {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 2px;
+}
+.arbiter-resolution__warning {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: 8px;
+    font-size: 12px;
+    color: #fbbf24;
+}
+
+/* === ARBITER SIGNING SECTION === */
+.arbiter-signing-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.arbiter-signing-section__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 14px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+}
+.arbiter-signing-section__title svg {
+    color: var(--nexus-gold);
+}
+.arbiter-signing-section__form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.arbiter-signing-section__label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: -4px;
+}
+.arbiter-signing-section__input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    transition: all 0.2s ease;
+}
+.arbiter-signing-section__input:focus {
+    outline: none;
+    border-color: var(--nexus-gold);
+    background: rgba(212, 175, 55, 0.03);
+}
+.arbiter-signing-section__info {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+}
+.arbiter-signing-section__info svg {
+    color: #60a5fa;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* === DISPUTE RESOLVED WINNER PANEL === */
+.dispute-resolved-card {
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    background: linear-gradient(135deg, rgba(74, 222, 128, 0.05), rgba(0, 0, 0, 0.4));
+}
+.dispute-resolved__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 16px;
+}
+.dispute-resolved__icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(74, 222, 128, 0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.dispute-resolved__title {
+    margin: 0 0 4px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #4ade80;
+}
+.dispute-resolved__subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+}
+.dispute-resolved__action {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.dispute-resolved__label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: -6px;
+}
+.dispute-resolved__input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    transition: all 0.2s ease;
+}
+.dispute-resolved__input:focus {
+    outline: none;
+    border-color: #4ade80;
+    background: rgba(74, 222, 128, 0.03);
+}
+.dispute-resolved__info {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(59, 130, 246, 0.06);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+}
+.dispute-resolved__info svg {
+    color: #60a5fa;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* === SIGNING RESULT STATES === */
+.signing-result {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+}
+.signing-result--success {
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+}
+.signing-result--error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+.signing-result--info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #60a5fa;
+}
+
+/* === ESCROW SCENARIOS === */
+.escrow-scenarios {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.escrow-scenario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+.escrow-scenario__label {
+    font-weight: 600;
+}
+.escrow-scenario__value {
+    color: rgba(255, 255, 255, 0.5);
+    font-family: var(--font-mono);
+    font-size: 11px;
+}
+
+/* === SIGNING PANEL === */
+.signing-panel-card {
+    border-color: rgba(212, 175, 55, 0.3) !important;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.08), transparent) !important;
+}
+.signing-status-display {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.signing-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.signing-status-row:last-child {
+    border-bottom: none;
+}
+.signing-status-label {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.signing-status-value {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+.signing-status-value--highlight {
+    color: var(--nexus-gold);
+    font-weight: 600;
+}
+.signing-action-panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(212, 175, 55, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 10px;
+}
+.signing-action-info {
+    margin-bottom: 16px;
+}
+.signing-action-info h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--nexus-gold);
+}
+.signing-action-info p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.5;
+}
+.signing-waiting-panel {
+    text-align: center;
+    padding: 32px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    margin-top: 16px;
+}
+.signing-waiting-icon {
+    margin-bottom: 16px;
+}
+.signing-waiting-icon .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 3px;
+    margin: 0 auto;
+}
+.signing-waiting-text {
+    margin: 0 0 8px 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+}
+.signing-waiting-subtext {
+    margin: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+.signing-progress {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px;
+}
+.signing-progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.signing-progress-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+.signing-progress-step--done .signing-progress-dot {
+    background: var(--nexus-gold);
+    border-color: var(--nexus-gold);
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+.signing-progress-step span {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.signing-progress-step--done span {
+    color: var(--nexus-gold);
+}
+.signing-progress-line {
+    width: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 4px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+.signing-progress-line--done {
+    background: var(--nexus-gold);
+}
+.signing-security-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 8px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.6);
+}
+.signing-security-note svg {
+    color: #4ade80;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .escrow-participants {
+        grid-template-columns: 1fr;
+    }
+    .signing-progress {
+        flex-wrap: wrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Set FROST data attributes on body for frost-escrow.js -->
+<script>
+    document.body.dataset.frostEnabled = '{{ escrow.frost_enabled | default(value="false") }}';
+    document.body.dataset.escrowId = '{{ escrow.id }}';
+    document.body.dataset.userRole = '{{ escrow_user_role | default(value="") | lower }}';
+    console.log('[FROST] Body attributes set:', {
+        frostEnabled: document.body.dataset.frostEnabled,
+        escrowId: document.body.dataset.escrowId,
+        userRole: document.body.dataset.userRole
+    });
+</script>
+
+<!-- Auto-redirect to setup wizard if wallet not configured -->
+<script>
+    // CRITICAL: Redirect to setup wizard if wallet not configured
+    // All participants (Buyer, Vendor, Arbiter) MUST generate their wallet address
+    // before multisig coordination can begin
+    (function() {
+        const userWalletConfigured = {{ user_wallet_configured | default(value="false") }};
+        const escrowStatus = "{{ escrow.status }}";
+        const escrowId = "{{ escrow.id }}";
+        const userRole = "{{ escrow_user_role | default(value='') }}";
+
+        console.log('[Escrow Setup Check]', {
+            userWalletConfigured,
+            escrowStatus,
+            userRole,
+            escrowId: escrowId.substring(0, 8) + '...'
+        });
+
+        // Redirect if:
+        // 1. User hasn't configured wallet yet
+        // 2. Escrow is in setup phase (created or pending status)
+        // 3. User has a valid role (Buyer/Vendor/Arbiter)
+        const needsSetup = escrowStatus === "created" || escrowStatus === "pending";
+        if (!userWalletConfigured && needsSetup && userRole) {
+            console.log('[Escrow] Wallet not configured for ' + userRole + ', redirecting to setup wizard...');
+            window.location.href = `/escrow/setup?escrow_id=${escrowId}`;
+        }
+    })();
+</script>
+
+<!-- WASM Loader for FROST/CLSAG signing -->
+<script type="module" src="/static/js/wasm-loader.js"></script>
+<script>
+// Page data
+const escrowId = '{{ escrow.id }}';
+const escrowStatus = '{{ escrow.status }}';
+const userRole = '{{ escrow_user_role }}';
+const disputeSigningPair = '{{ escrow.dispute_signing_pair | default(value="") }}';
+
+// Load evidence on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if (escrowStatus === 'disputed') {
+        loadEvidence();
+    }
+
+    // Setup dropzone
+    const dropzone = document.getElementById('evidence-dropzone');
+    const fileInput = document.getElementById('evidence-file-input');
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = 'var(--nexus-gold)';
+            dropzone.style.background = 'rgba(212, 175, 55, 0.05)';
+        });
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            dropzone.style.background = 'transparent';
+        });
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+            dropzone.style.background = 'transparent';
+            if (e.dataTransfer.files.length > 0) {
+                uploadEvidence(e.dataTransfer.files[0]);
+            }
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadEvidence(e.target.files[0]);
+            }
+        });
+    }
+});
+
+// Load evidence list
+async function loadEvidence() {
+    const container = document.getElementById('evidence-list-content');
+    if (!container) return;
+
+    try {
+        const response = await fetch(`/api/escrow/${escrowId}/dispute/evidence`, { credentials: 'include' });
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.evidence.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: rgba(255,255,255,0.4); font-size: 13px; padding: 16px;">No evidence uploaded yet.</p>';
+            } else {
+                container.innerHTML = data.evidence.map(e => {
+                    const roleColor = e.uploader_role === 'buyer' ? '#60a5fa' : e.uploader_role === 'vendor' ? '#4ade80' : '#a78bfa';
+                    return `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; margin-bottom: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                <div>
+                                    <a href="${e.download_url}" target="_blank" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 13px;">${e.file_name}</a>
+                                    <span style="color: rgba(255,255,255,0.4); font-size: 11px; margin-left: 8px;">${(e.file_size / 1024).toFixed(1)} KB</span>
+                                </div>
+                            </div>
+                            <span style="font-size: 11px; text-transform: uppercase; color: ${roleColor}; font-weight: 500;">${e.uploader_role}</span>
+                        </div>
+                    `;
+                }).join('');
+                container.innerHTML += `<p style="text-align: center; color: rgba(255,255,255,0.3); font-size: 11px; margin-top: 8px;">${data.total_count}/10 files</p>`;
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load evidence:', err);
+        container.innerHTML = '<p style="color: #ef4444; text-align: center; font-size: 13px;">Failed to load evidence</p>';
+    }
+}
+
+// Upload evidence
+async function uploadEvidence(file) {
+    if (!file) return;
+
+    const statusDiv = document.getElementById('evidence-upload-status');
+    const maxSize = 5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+        statusDiv.innerHTML = '<p style="color: #ef4444; font-size: 12px; margin-top: 8px;">File too large (max 5MB)</p>';
+        return;
+    }
+
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'text/plain'];
+    if (!allowedTypes.includes(file.type)) {
+        statusDiv.innerHTML = '<p style="color: #ef4444; font-size: 12px; margin-top: 8px;">Invalid file type</p>';
+        return;
+    }
+
+    statusDiv.innerHTML = '<p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 8px;">Uploading...</p>';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    const desc = document.getElementById('evidence-description')?.value?.trim();
+    if (desc) formData.append('description', desc);
+
+    try {
+        const response = await fetch(`/api/escrow/${escrowId}/dispute/evidence`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            statusDiv.innerHTML = '<p style="color: #4ade80; font-size: 12px; margin-top: 8px;">Uploaded successfully</p>';
+            document.getElementById('evidence-description').value = '';
+            loadEvidence();
+        } else {
+            statusDiv.innerHTML = `<p style="color: #ef4444; font-size: 12px; margin-top: 8px;">${result.error || 'Upload failed'}</p>`;
+        }
+    } catch (err) {
+        statusDiv.innerHTML = '<p style="color: #ef4444; font-size: 12px; margin-top: 8px;">Upload failed</p>';
+    }
+}
+
+// Set refund address
+async function setRefundAddress() {
+    const input = document.getElementById('buyer-refund-address');
+    const statusDiv = document.getElementById('refund-address-status');
+    const btn = document.getElementById('set-refund-btn');
+    const address = input.value.trim();
+
+    if (address.length !== 95 && address.length !== 106) {
+        statusDiv.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin-top: 8px;">Invalid address length</p>';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+        const response = await fetch(`/api/v2/escrow/${escrowId}/set-refund-address`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refund_address: address }),
+            credentials: 'include'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            statusDiv.innerHTML = '<p style="color: #4ade80; font-size: 11px; margin-top: 8px;">Address saved</p>';
+            btn.textContent = 'Update';
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            statusDiv.innerHTML = `<p style="color: #ef4444; font-size: 11px; margin-top: 8px;">${result.error}</p>`;
+            btn.textContent = 'Save';
+        }
+    } catch (err) {
+        statusDiv.innerHTML = '<p style="color: #ef4444; font-size: 11px; margin-top: 8px;">Network error</p>';
+        btn.textContent = 'Save';
+    }
+    btn.disabled = false;
+}
+
+// Set dispute signing pair (Arbiter resolution)
+async function setDisputeSigningPair(signingPair) {
+    const action = signingPair === 'arbiter_buyer' ? 'REFUND TO BUYER' : 'RELEASE TO VENDOR';
+
+    // Confirm decision
+    if (!confirm(`⚠️ FINAL DECISION\n\nYou are about to: ${action}\n\nThis action is IRREVERSIBLE.\nThe signing pair will be set and the transaction process will begin.\n\nAre you sure?`)) {
+        return;
+    }
+
+    // Disable buttons
+    const btnRefund = document.getElementById('btn-refund-buyer');
+    const btnRelease = document.getElementById('btn-release-vendor');
+    if (btnRefund) btnRefund.disabled = true;
+    if (btnRelease) btnRelease.disabled = true;
+
+    // Show loading state
+    const resultDiv = document.getElementById('action-result');
+    if (resultDiv) {
+        resultDiv.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.3);border-radius:8px;"><div class="loading-spinner"></div><span style="color:var(--nexus-gold);">Processing resolution...</span></div>';
+    }
+
+    try {
+        const response = await fetch(`/api/escrow/${escrowId}/dispute/signing-pair`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ signing_pair: signingPair }),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            // Success
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg><span style="color:#4ade80;">Decision recorded: ${action}. Reloading...</span></div>`;
+            }
+            // Reload page after 2 seconds
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            // Error
+            if (resultDiv) {
+                resultDiv.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:#ef4444;">Error: ${result.error || 'Failed to set signing pair'}</span></div>`;
+            }
+            // Re-enable buttons
+            if (btnRefund) btnRefund.disabled = false;
+            if (btnRelease) btnRelease.disabled = false;
+        }
+    } catch (err) {
+        console.error('Error setting signing pair:', err);
+        if (resultDiv) {
+            resultDiv.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg><span style="color:#ef4444;">Network error. Please try again.</span></div>';
+        }
+        // Re-enable buttons
+        if (btnRefund) btnRefund.disabled = false;
+        if (btnRelease) btnRelease.disabled = false;
+    }
+}
+
+// Show arbiter resolve modal (legacy - kept for compatibility)
+function showArbiterResolveModal() {
+    fetch(`/escrow/${escrowId}/modals/arbiter-resolve`, { credentials: 'include' })
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById('modal-container').innerHTML = html;
+        });
+}
+
+// Initiate dispute signing process (after arbiter decision)
+async function initiateDisputeSigning() {
+    const addressInput = document.getElementById('signing-destination-address');
+    const btn = document.getElementById('btn-initiate-signing');
+    const resultDiv = document.getElementById('signing-result');
+
+    const destinationAddress = addressInput?.value?.trim();
+
+    // Validate address
+    if (!destinationAddress || (destinationAddress.length !== 95 && destinationAddress.length !== 106)) {
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Invalid Monero address (must be 95 or 106 characters)</div>';
+        return;
+    }
+
+    // Determine first_signer_role based on dispute_signing_pair
+    // arbiter_buyer = Arbiter + Buyer sign → buyer is first signer
+    // arbiter_vendor = Arbiter + Vendor sign → vendor is first signer
+    let firstSignerRole;
+    if (disputeSigningPair === 'arbiter_buyer') {
+        firstSignerRole = 'buyer';
+    } else if (disputeSigningPair === 'arbiter_vendor') {
+        firstSignerRole = 'vendor';
+    } else {
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Invalid dispute signing pair configuration</div>';
+        return;
+    }
+
+    // Confirm action
+    const signerName = firstSignerRole === 'buyer' ? 'Buyer' : 'Vendor';
+    if (!confirm(`⚠️ INITIATE SIGNING PROCESS\n\nThis will start the round-robin signing process.\nFirst signer: ${signerName}\nBoth ${signerName} and Arbiter must sign.\n\nProceed?`)) {
+        return;
+    }
+
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Initiating...';
+    resultDiv.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/escrow/${escrowId}/initiate-round-robin-signing`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destination_address: destinationAddress,
+                first_signer_role: firstSignerRole
+            }),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (response.ok && (result.success || result.status === 'success')) {
+            resultDiv.innerHTML = `<div class="signing-result signing-result--success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Signing process initiated! Status: ${result.status || 'signing_initiated'}</div>`;
+
+            // Show next steps info
+            setTimeout(() => {
+                resultDiv.innerHTML += '<div class="signing-result signing-result--info" style="margin-top:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Page will reload in 3 seconds...</div>';
+                setTimeout(() => location.reload(), 3000);
+            }, 500);
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg> Initiate Signing Process';
+            resultDiv.innerHTML = `<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${result.error || result.message || 'Failed to initiate signing'}</div>`;
+        }
+    } catch (err) {
+        console.error('Error initiating signing:', err);
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg> Initiate Signing Process';
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Network error. Please try again.</div>';
+    }
+}
+
+// Initiate signing as the winning party (buyer/vendor after arbiter decision)
+async function initiateWinnerSigning() {
+    const addressInput = document.getElementById('winner-payout-address');
+    const btn = document.getElementById('btn-winner-initiate');
+    const resultDiv = document.getElementById('winner-signing-result');
+
+    const destinationAddress = addressInput?.value?.trim();
+
+    // Validate address
+    if (!destinationAddress || (destinationAddress.length !== 95 && destinationAddress.length !== 106)) {
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Invalid Monero address (must be 95 or 106 characters)</div>';
+        return;
+    }
+
+    // Determine first_signer_role based on dispute_signing_pair
+    // The winning party is the first signer in dispute resolution
+    let firstSignerRole;
+    if (disputeSigningPair === 'arbiter_buyer') {
+        firstSignerRole = 'buyer';
+    } else if (disputeSigningPair === 'arbiter_vendor') {
+        firstSignerRole = 'vendor';
+    } else {
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Arbiter has not set the resolution yet</div>';
+        return;
+    }
+
+    // Confirm action
+    const actionType = disputeSigningPair === 'arbiter_buyer' ? 'refund' : 'payment';
+    if (!confirm(`Claim your ${actionType}?\n\nThis will initiate the signing process. You and the arbiter will sign the transaction.\n\nDestination: ${destinationAddress.substring(0, 12)}...`)) {
+        return;
+    }
+
+    // Show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></div> Initiating...';
+    resultDiv.innerHTML = '';
+
+    try {
+        const response = await fetch(`/api/escrow/${escrowId}/initiate-round-robin-signing`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                destination_address: destinationAddress,
+                first_signer_role: firstSignerRole
+            }),
+            credentials: 'include'
+        });
+
+        const result = await response.json();
+
+        if (response.ok && (result.success || result.status === 'success')) {
+            resultDiv.innerHTML = `<div class="signing-result signing-result--success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Signing process initiated!</div>`;
+
+            // Show next steps info
+            setTimeout(() => {
+                resultDiv.innerHTML += '<div class="signing-result signing-result--info" style="margin-top:8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>Page will reload to continue signing...</div>';
+                setTimeout(() => location.reload(), 2000);
+            }, 500);
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = disputeSigningPair === 'arbiter_buyer' ?
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg> Claim Refund' :
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/></svg> Claim Payment';
+            resultDiv.innerHTML = `<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${result.error || result.message || 'Failed to initiate signing'}</div>`;
+        }
+    } catch (err) {
+        console.error('Error initiating winner signing:', err);
+        btn.disabled = false;
+        btn.innerHTML = disputeSigningPair === 'arbiter_buyer' ? 'Claim Refund' : 'Claim Payment';
+        resultDiv.innerHTML = '<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>Network error. Please try again.</div>';
+    }
+}
+
+// Placeholder functions for other modals
+function showReleaseModal() { alert('Release modal - TODO'); }
+function showDisputeModal() { alert('Dispute modal - TODO'); }
+function showRefundModal() { alert('Refund modal - TODO'); }
+
+// ============================================================
+// FROST ROUND-ROBIN SIGNING (v0.55.0)
+// ============================================================
+
+/**
+ * Get user's FROST secret share from localStorage
+ */
+function getFrostSecretShare() {
+    // Try role-specific key first
+    const roleShare = localStorage.getItem(`frost_secret_share_${escrowId}_${userRole}`);
+    if (roleShare) return roleShare;
+
+    // Fallback to role-specific spend_key
+    const roleSpendKey = localStorage.getItem(`spend_key_${userRole}`);
+    if (roleSpendKey) return roleSpendKey;
+
+    // Fallback to generic spend_key
+    const spendKey = localStorage.getItem('spend_key');
+    if (spendKey) return spendKey;
+
+    // Fallback to escrow-specific share
+    return localStorage.getItem(`frost_secret_share_${escrowId}`);
+}
+
+/**
+ * Get signing data from server
+ */
+async function getSigningData() {
+    const response = await fetch(`/api/escrow/${escrowId}/round-robin-status`, {
+        credentials: 'include'
+    });
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to get signing status');
+    }
+    return await response.json();
+}
+
+/**
+ * Create partial TX (First signer - Round 0)
+ * Uses FROST WASM to create partial signature
+ */
+async function createPartialTx() {
+    const btn = document.getElementById('btn-create-partial-tx');
+    const resultDiv = document.getElementById('signing-action-result');
+
+    // Disable button, show loading
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;margin-right:8px;"></div> Creating partial TX...';
+    resultDiv.innerHTML = '';
+
+    try {
+        // Get FROST secret share
+        const secretShare = getFrostSecretShare();
+        if (!secretShare) {
+            throw new Error('FROST secret share not found. DKG may not be complete or localStorage was cleared.');
+        }
+
+        console.log('[FROST-SIGN] Secret share found:', secretShare.substring(0, 8) + '...');
+
+        // Get signing parameters from server
+        const signingData = await getSigningData();
+        console.log('[FROST-SIGN] Signing data:', signingData);
+
+        // At round 0, first signer creates TX - no data_to_sign needed
+        // We need to fetch ring data and other TX building parameters
+        if (!signingData.signing) {
+            throw new Error('No signing status available from server.');
+        }
+
+        // For round 0, we need to get ring data for TX building
+        const signingRound = signingData.signing.round || 0;
+        console.log('[FROST-SIGN] Signing round:', signingRound);
+
+        // Get the prepare-sign data from server (contains ring, tx_prefix_hash, etc.)
+        console.log('[FROST-SIGN] Fetching prepare-sign data...');
+        const prepareResponse = await fetch(`/api/v2/escrow/${escrowId}/prepare-sign`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!prepareResponse.ok) {
+            const error = await prepareResponse.json();
+            throw new Error(error.error || 'Failed to get signing data from prepare-sign');
+        }
+
+        const prepareData = await prepareResponse.json();
+        console.log('[FROST-SIGN] Prepare-sign data:', prepareData);
+
+        // Check if WASM is ready
+        if (!window.wasmReady) {
+            console.log('[FROST-SIGN] Waiting for WASM...');
+            await new Promise(resolve => {
+                window.addEventListener('wasmLoaded', resolve, { once: true });
+            });
+        }
+
+        // Get Lagrange coefficient from prepare_sign response
+        const lagrangeCoeff = prepareData.lagrange_coefficient;
+        console.log('[FROST-SIGN] Lagrange coefficient:', lagrangeCoeff);
+
+        // Get CLSAG message from prepare_sign (this is what we sign)
+        const clsagMessage = prepareData.clsag_message || prepareData.tx_prefix_hash;
+        console.log('[FROST-SIGN] CLSAG message to sign:', clsagMessage?.substring(0, 16) + '...');
+
+        // Get input data for signing
+        const input = prepareData.inputs && prepareData.inputs[0];
+        if (!input) {
+            throw new Error('No input data in prepare-sign response');
+        }
+
+        // Extract ring_public_keys from ring array if not directly provided
+        // Server returns: ring = [[pubkey, commitment], ...], ring_commitments = [commitment, ...]
+        if (!input.ring_public_keys && input.ring) {
+            input.ring_public_keys = input.ring.map(r => r[0]);
+            console.log('[FROST-SIGN] Extracted ring_public_keys from ring array:', input.ring_public_keys.length);
+        }
+
+        // Call WASM to sign CLSAG with FROST share
+        // WASM function signature (sign_clsag_partial_wasm):
+        // 1. spend_key_priv_hex       - FROST secret share
+        // 2. input_data_json          - JSON with ring, commitments, signer_index, etc.
+        // 3. tx_prefix_hash_hex       - message to sign (clsag_message)
+        // 4. multisig_pub_key_hex     - group public key
+        // 5. aggregated_key_image_hex - aggregated key image
+        // 6. first_signer_c1_hex      - c1 from first signer (null for first signer)
+        // 7. first_signer_s_values_json - s-values from first signer (null for first signer)
+        // 8. first_signer_d_hex       - D point from first signer (null for first signer)
+        // 9. mu_p_hex                 - mu_P coefficient
+        // 10. mu_c_hex                - mu_C coefficient
+        // 11. first_signer_pseudo_out_hex - pseudo-out (null for first signer)
+        // 12. first_signer_used_r_agg  - boolean
+        // 13. lagrange_coefficient_hex - FROST Lagrange coefficient (REQUIRED, LAST!)
+
+        console.log('[FROST-SIGN] Calling WASM signClsagPartial...');
+
+        // Build input_data_json for WASM (must match SignInputData struct in crypto.rs)
+        // Required fields: ring, offsets, signer_index, commitment_mask, commitment_amount
+        const inputDataForWasm = {
+            ring: input.ring || [],                              // [[pubkey, commitment], ...]
+            offsets: input.offsets || [],                        // Ring member global indices
+            signer_index: input.signer_index || 0,               // Our position in ring
+            commitment_mask: input.commitment_mask || '',        // Output mask (hex)
+            commitment_amount: input.commitment_amount || input.amount || 0,  // Amount in atomic units
+            funding_mask: input.funding_mask || null,            // Optional: input's commitment mask
+            alpha_secret: input.alpha_secret || null,            // Optional: MuSig2 nonce
+            peer_nonce_public: input.peer_nonce_public || null   // Optional: peer nonce
+        };
+
+        // Get group public key from server response (multisig_spend_pub_key)
+        // Fallback to localStorage FROST DKG data if not provided
+        const frostData = JSON.parse(localStorage.getItem(`frost_dkg_${escrowId}_${userRole}`) || '{}');
+        const groupPubKey = prepareData.multisig_spend_pub_key || frostData.group_pubkey || '';
+
+        console.log('[FROST-SIGN] Parameters (first signer):');
+        console.log('  secretShare:', typeof secretShare, secretShare?.length, 'chars');
+        console.log('  inputDataForWasm:', JSON.stringify(inputDataForWasm).length, 'bytes');
+        console.log('  clsagMessage:', clsagMessage?.length, 'chars');
+        console.log('  groupPubKey:', groupPubKey?.length, 'chars');
+        console.log('  key_image:', prepareData.key_image?.length, 'chars');
+        console.log('  mu_p:', prepareData.mu_p?.length, 'chars');
+        console.log('  mu_c:', prepareData.mu_c?.length, 'chars');
+        console.log('  lagrangeCoeff:', lagrangeCoeff?.length, 'chars');
+
+        const signResult = window.signClsagPartial(
+            secretShare,                            // 1. spend_key_priv_hex
+            JSON.stringify(inputDataForWasm),       // 2. input_data_json
+            clsagMessage || '',                     // 3. tx_prefix_hash_hex
+            groupPubKey,                            // 4. multisig_pub_key_hex
+            prepareData.key_image || '',            // 5. aggregated_key_image_hex
+            null,                                   // 6. first_signer_c1_hex (we are first signer)
+            null,                                   // 7. first_signer_s_values_json
+            null,                                   // 8. first_signer_d_hex
+            prepareData.mu_p || null,               // 9. mu_p_hex
+            prepareData.mu_c || null,               // 10. mu_c_hex
+            null,                                   // 11. first_signer_pseudo_out_hex
+            false,                                  // 12. first_signer_used_r_agg
+            lagrangeCoeff || ''                     // 13. lagrange_coefficient_hex (LAST!)
+        );
+
+        console.log('[FROST-SIGN] CLSAG partial signature created:', signResult);
+
+        // WASM returns a Map object - convert to plain object for easier access
+        const result = signResult instanceof Map ? Object.fromEntries(signResult) : signResult;
+        const sig = result.signature instanceof Map ? Object.fromEntries(result.signature) : result.signature;
+
+        console.log('[FROST-SIGN] Converted result:', result);
+        console.log('[FROST-SIGN] Signature object:', sig);
+
+        // Signature payload - server uses #[serde(rename = "D")] so expects uppercase D
+        const signaturePayload = {
+            D: sig.D,
+            s: sig.s,
+            c1: sig.c1
+        };
+
+        // Submit the signature to the server
+        const submitResponse = await fetch(`/api/v2/escrow/${escrowId}/submit-signature`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                signature: signaturePayload,
+                key_image: prepareData.key_image,
+                pseudo_out: result.pseudoOut || input.pseudo_out,
+                role: userRole,
+                partial_key_image: result.partialKeyImage,
+                mu_p: result.mu_p || prepareData.mu_p,
+                mu_c: result.mu_c || prepareData.mu_c,
+                frost_share: secretShare  // For CLI broadcast
+            })
+        });
+
+        if (!submitResponse.ok) {
+            const error = await submitResponse.json();
+            throw new Error(error.error || 'Failed to submit signature');
+        }
+
+        const submitResult = await submitResponse.json();
+        console.log('[FROST-SIGN] Signature submitted:', submitResult);
+
+        // Success!
+        resultDiv.innerHTML = '<div class="signing-result signing-result--success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Partial transaction created! Waiting for second signer...</div>';
+
+        setTimeout(() => location.reload(), 3000);
+
+    } catch (error) {
+        console.error('[FROST-SIGN] Error creating partial TX:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Sign with FROST Share';
+        resultDiv.innerHTML = `<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${error.message}</div>`;
+    }
+}
+
+/**
+ * Complete signature (Second signer - Round 1)
+ * Uses FROST WASM to complete the signature
+ * Same flow as first signer - both call prepare-sign and submit-signature
+ */
+async function completeSignature() {
+    const btn = document.getElementById('btn-complete-signature');
+    const resultDiv = document.getElementById('signing-action-result');
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;margin-right:8px;"></div> Completing signature...';
+    resultDiv.innerHTML = '';
+
+    try {
+        // Get FROST secret share
+        const secretShare = getFrostSecretShare();
+        if (!secretShare) {
+            throw new Error('FROST secret share not found. DKG may not be complete.');
+        }
+
+        console.log('[FROST-SIGN] Secret share found for second signer');
+
+        // Get prepare-sign data (same as first signer)
+        const prepareResponse = await fetch(`/api/v2/escrow/${escrowId}/prepare-sign`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!prepareResponse.ok) {
+            const error = await prepareResponse.json();
+            throw new Error(error.error || 'Failed to get signing data');
+        }
+
+        const prepareData = await prepareResponse.json();
+        console.log('[FROST-SIGN] Prepare-sign data for second signer:', prepareData);
+
+        // Check if WASM is ready
+        if (!window.wasmReady) {
+            await new Promise(resolve => {
+                window.addEventListener('wasmLoaded', resolve, { once: true });
+            });
+        }
+
+        // Get Lagrange coefficient and CLSAG message
+        const lagrangeCoeff = prepareData.lagrange_coefficient;
+        const clsagMessage = prepareData.clsag_message || prepareData.tx_prefix_hash;
+        const input = prepareData.inputs && prepareData.inputs[0];
+
+        if (!input) {
+            throw new Error('No input data in prepare-sign response');
+        }
+
+        // Extract ring_public_keys from ring array if not directly provided
+        if (!input.ring_public_keys && input.ring) {
+            input.ring_public_keys = input.ring.map(r => r[0]);
+        }
+
+        // Build input_data_json for WASM (must match SignInputData struct in crypto.rs)
+        const inputDataForWasm = {
+            ring: input.ring || [],                              // [[pubkey, commitment], ...]
+            offsets: input.offsets || [],                        // Ring member global indices
+            signer_index: input.signer_index || 0,               // Our position in ring
+            commitment_mask: input.commitment_mask || '',        // Output mask (hex)
+            commitment_amount: input.commitment_amount || input.amount || 0,  // Amount in atomic units
+            funding_mask: input.funding_mask || null,            // Optional: input's commitment mask
+            alpha_secret: input.alpha_secret || null,            // Optional: MuSig2 nonce
+            peer_nonce_public: input.peer_nonce_public || null   // Optional: peer nonce
+        };
+
+        // Get group public key from server response (multisig_spend_pub_key)
+        const frostData = JSON.parse(localStorage.getItem(`frost_dkg_${escrowId}_${userRole}`) || '{}');
+        const groupPubKey = prepareData.multisig_spend_pub_key || frostData.group_pubkey || '';
+
+        // Get first signer data from prepare-sign response
+        const firstSignerC1 = prepareData.first_signer_c1 || null;
+        const firstSignerSValues = prepareData.first_signer_s_values || null;
+        const firstSignerD = prepareData.first_signer_d || null;
+        const firstSignerPseudoOut = prepareData.first_signer_pseudo_out || null;
+        const firstSignerUsedRagg = prepareData.first_signer_used_r_agg || false;
+
+        console.log('[FROST-SIGN] Second signer parameters:');
+        console.log('  secretShare:', secretShare?.length, 'chars');
+        console.log('  groupPubKey:', groupPubKey?.length, 'chars');
+        console.log('  key_image:', prepareData.key_image?.length, 'chars');
+        console.log('  first_signer_c1:', firstSignerC1?.length || 'null', 'chars');
+        console.log('  first_signer_s_values:', firstSignerSValues ? 'present' : 'null');
+        console.log('  first_signer_d:', firstSignerD?.length || 'null', 'chars');
+        console.log('  first_signer_pseudo_out:', firstSignerPseudoOut?.length || 'null', 'chars');
+        console.log('  lagrangeCoeff:', lagrangeCoeff?.length, 'chars');
+
+        // Call WASM to sign CLSAG (with first signer data)
+        console.log('[FROST-SIGN] Calling WASM signClsagPartial for second signer...');
+        const signResult = window.signClsagPartial(
+            secretShare,                                          // 1. spend_key_priv_hex
+            JSON.stringify(inputDataForWasm),                     // 2. input_data_json
+            clsagMessage || '',                                   // 3. tx_prefix_hash_hex
+            groupPubKey,                                          // 4. multisig_pub_key_hex
+            prepareData.key_image || '',                          // 5. aggregated_key_image_hex
+            firstSignerC1,                                        // 6. first_signer_c1_hex
+            firstSignerSValues ? JSON.stringify(firstSignerSValues) : null,  // 7. first_signer_s_values_json
+            firstSignerD,                                         // 8. first_signer_d_hex
+            prepareData.mu_p || null,                             // 9. mu_p_hex
+            prepareData.mu_c || null,                             // 10. mu_c_hex
+            firstSignerPseudoOut,                                 // 11. first_signer_pseudo_out_hex
+            firstSignerUsedRagg,                                  // 12. first_signer_used_r_agg
+            lagrangeCoeff || ''                                   // 13. lagrange_coefficient_hex
+        );
+
+        console.log('[FROST-SIGN] Second signer CLSAG partial created:', signResult);
+
+        // WASM returns a Map object - convert to plain object for easier access
+        const result = signResult instanceof Map ? Object.fromEntries(signResult) : signResult;
+        const sig = result.signature instanceof Map ? Object.fromEntries(result.signature) : result.signature;
+
+        console.log('[FROST-SIGN] Second signer converted result:', result);
+
+        // Signature payload - server uses #[serde(rename = "D")] so expects uppercase D
+        const signaturePayload = {
+            D: sig.D,
+            s: sig.s,
+            c1: sig.c1
+        };
+
+        // Submit the signature
+        const submitResponse = await fetch(`/api/v2/escrow/${escrowId}/submit-signature`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                signature: signaturePayload,
+                key_image: prepareData.key_image,
+                pseudo_out: result.pseudoOut || input.pseudo_out,
+                role: userRole,
+                partial_key_image: result.partialKeyImage,
+                mu_p: result.mu_p || prepareData.mu_p,
+                mu_c: result.mu_c || prepareData.mu_c,
+                frost_share: secretShare
+            })
+        });
+
+        if (!submitResponse.ok) {
+            const error = await submitResponse.json();
+            throw new Error(error.error || 'Failed to submit signature');
+        }
+
+        const submitResult = await submitResponse.json();
+        console.log('[FROST-SIGN] Second signature submitted:', submitResult);
+
+        resultDiv.innerHTML = '<div class="signing-result signing-result--success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Signature completed! Ready for broadcast...</div>';
+
+        setTimeout(() => location.reload(), 3000);
+
+    } catch (error) {
+        console.error('[FROST-SIGN] Error completing signature:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg> Complete Signature';
+        resultDiv.innerHTML = `<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${error.message}</div>`;
+    }
+}
+
+/**
+ * Broadcast transaction (Round 2)
+ * Final step - broadcasts the fully signed TX to the network
+ * Uses the CLI-based atomic broadcast endpoint for guaranteed correctness
+ */
+async function broadcastTransaction() {
+    const btn = document.getElementById('btn-broadcast-tx');
+    const resultDiv = document.getElementById('signing-action-result');
+
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loading-spinner" style="width:16px;height:16px;border-width:2px;margin-right:8px;"></div> Broadcasting...';
+    resultDiv.innerHTML = '';
+
+    try {
+        let broadcastResponse;
+
+        // v0.67.0: Use dispute endpoint for arbiter resolution, regular for happy path
+        if (disputeSigningPair && (disputeSigningPair === 'arbiter_buyer' || disputeSigningPair === 'arbiter_vendor')) {
+            // Dispute resolution: arbiter + winner - get shares from localStorage
+            console.log('[FROST-SIGN] Using dispute broadcast endpoint for', disputeSigningPair);
+
+            // Get FROST share from localStorage
+            const frostData = localStorage.getItem(`frost_escrow_${escrowId}`);
+            let myFrostShare = null;
+            if (frostData) {
+                try {
+                    const parsed = JSON.parse(frostData);
+                    myFrostShare = parsed.secret_share;
+                    console.log('[FROST-SIGN] Found my FROST share:', myFrostShare ? myFrostShare.substring(0, 16) + '...' : 'null');
+                } catch (e) {
+                    console.error('[FROST-SIGN] Error parsing FROST data:', e);
+                }
+            }
+
+            if (!myFrostShare) {
+                throw new Error('FROST share not found in localStorage. Complete DKG first.');
+            }
+
+            broadcastResponse = await fetch(`/escrow/${escrowId}/broadcast_dispute_cli`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    frost_share: myFrostShare,
+                    user_role: userRole
+                })
+            });
+        } else {
+            // Happy path: buyer + vendor
+            const buyerShare = localStorage.getItem('spend_key_buyer') || localStorage.getItem('spend_key');
+            const vendorShare = localStorage.getItem('spend_key_vendor');
+
+            console.log('[FROST-SIGN] Using happy path broadcast endpoint');
+            broadcastResponse = await fetch(`/api/debug/escrow/${escrowId}/broadcast_cli`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    buyer_share: buyerShare,
+                    vendor_share: vendorShare
+                })
+            });
+        }
+
+        const broadcastResult = await broadcastResponse.json();
+        console.log('[FROST-SIGN] Broadcast result:', broadcastResult);
+
+        // Handle waiting status (202 Accepted)
+        if (broadcastResponse.status === 202 || broadcastResult.status === 'waiting') {
+            const hasArbiter = broadcastResult.has_arbiter_share ? '✅' : '⏳';
+            const hasWinner = broadcastResult.has_winner_share ? '✅' : '⏳';
+            const winnerRole = broadcastResult.winner_role || 'winner';
+
+            resultDiv.innerHTML = `<div class="signing-result signing-result--warning">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Your share submitted! Waiting for other party...<br>
+                <small>Arbiter: ${hasArbiter} | ${winnerRole}: ${hasWinner}</small>
+            </div>`;
+
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg> Check Status & Broadcast';
+
+            // Poll for other party's share
+            setTimeout(() => location.reload(), 5000);
+            return;
+        }
+
+        if (!broadcastResponse.ok) {
+            const error = broadcastResult;
+            throw new Error(error.error || 'Broadcast failed');
+        }
+
+        const txHash = broadcastResult.tx_hash || broadcastResult.hash || 'pending';
+
+        resultDiv.innerHTML = `<div class="signing-result signing-result--success"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Transaction broadcast! TX: ${txHash.substring(0, 16)}...</div>`;
+
+        setTimeout(() => location.reload(), 3000);
+
+    } catch (error) {
+        console.error('[FROST-SIGN] Error broadcasting:', error);
+        btn.disabled = false;
+        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7z"/></svg> Broadcast to Network';
+        resultDiv.innerHTML = `<div class="signing-result signing-result--error"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${error.message}</div>`;
+    }
+}
+
+// Auto-refresh when in signing state (poll for status changes)
+if (escrowStatus === 'round_robin_signing') {
+    console.log('[FROST-SIGN] In signing state, starting status polling...');
+    setInterval(async () => {
+        try {
+            const status = await getSigningData();
+            // If it's now our turn, refresh the page
+            if (status.signing && status.signing.is_my_turn) {
+                const currentDisplay = document.getElementById('current-signer-display');
+                if (currentDisplay && !currentDisplay.textContent.includes('YOU')) {
+                    console.log('[FROST-SIGN] It is now our turn! Refreshing...');
+                    location.reload();
+                }
+            }
+        } catch (e) {
+            console.log('[FROST-SIGN] Poll error (ignoring):', e.message);
+        }
+    }, 5000); // Poll every 5 seconds
+}
+</script>
+
+<!-- FROST DKG Manager -->
+<script type="module" src="/static/js/frost-escrow.js"></script>
+<script type="module">
+    // Initialize FROST DKG after page load
+    import('/static/js/frost-escrow.js').then(() => {
+        if (typeof initFrostEscrow === 'function') {
+            console.log('[FROST] Calling initFrostEscrow...');
+            initFrostEscrow().then(manager => {
+                if (manager) {
+                    console.log('[FROST] Manager created, starting DKG...');
+                    manager.autoProgressDkg();
+                }
+            });
+        }
+    }).catch(e => console.error('[FROST] Failed to load frost-escrow.js:', e));
+</script>
+{% endblock %}

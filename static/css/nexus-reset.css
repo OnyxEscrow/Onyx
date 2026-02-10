@@ -1,0 +1,481 @@
+/* ==========================================
+   NEXUS - CSS RESET & BASE STYLES
+   Modern CSS reset + base typography
+   ========================================== */
+
+/* ===== MODERN CSS RESET ===== */
+
+/* Box sizing */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Remove default margins */
+* {
+  margin: 0;
+  padding: 0;
+}
+
+/* Improve text rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Remove list styles */
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+}
+
+/* Set core root defaults */
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
+/* Set core body defaults */
+html,
+body {
+  height: 100%;
+  font-family: var(--nexus-font-mono);
+  background-color: var(--nexus-bg);
+  color: var(--nexus-fg);
+  line-height: var(--nexus-leading-normal);
+  font-size: var(--nexus-text-sm);
+}
+
+/* Make images easier to work with */
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+/* Inherit fonts for inputs and buttons */
+input,
+button,
+textarea,
+select {
+  font: inherit;
+}
+
+/* Remove all animations and transitions for people that prefer not to see them */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===== BASE TYPOGRAPHY ===== */
+
+/* Headings - All UPPERCASE and BOLD (Nexus style) */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: var(--nexus-weight-black);
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-tighter);
+  line-height: var(--nexus-leading-tight);
+  color: var(--nexus-fg);
+}
+
+h1 {
+  font-size: var(--nexus-text-6xl);
+  margin-bottom: var(--nexus-space-6);
+}
+
+h2 {
+  font-size: var(--nexus-text-4xl);
+  margin-bottom: var(--nexus-space-5);
+}
+
+h3 {
+  font-size: var(--nexus-text-2xl);
+  margin-bottom: var(--nexus-space-4);
+}
+
+h4 {
+  font-size: var(--nexus-text-xl);
+  margin-bottom: var(--nexus-space-3);
+}
+
+h5 {
+  font-size: var(--nexus-text-lg);
+  margin-bottom: var(--nexus-space-2);
+}
+
+h6 {
+  font-size: var(--nexus-text-base);
+  margin-bottom: var(--nexus-space-2);
+}
+
+/* Paragraphs */
+p {
+  margin-bottom: var(--nexus-space-4);
+  color: var(--nexus-muted-fg);
+}
+
+/* Links */
+a {
+  color: var(--nexus-primary);
+  text-decoration: none;
+  transition: color var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+a:hover {
+  color: var(--nexus-accent);
+  text-decoration: underline;
+}
+
+a:focus-visible {
+  outline: 2px solid var(--nexus-ring);
+  outline-offset: 2px;
+  border-radius: var(--nexus-radius-sm);
+}
+
+/* Code */
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--nexus-font-mono);
+  font-size: 0.9em;
+}
+
+code {
+  background-color: var(--nexus-muted);
+  padding: var(--nexus-space-1) var(--nexus-space-2);
+  border-radius: var(--nexus-radius-sm);
+  color: var(--nexus-accent);
+}
+
+pre {
+  background-color: var(--nexus-card);
+  padding: var(--nexus-space-4);
+  border-radius: var(--nexus-radius-md);
+  overflow-x: auto;
+  border: 1px solid var(--nexus-border);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Blockquotes */
+blockquote {
+  border-left: 4px solid var(--nexus-primary);
+  padding-left: var(--nexus-space-4);
+  margin-left: 0;
+  margin-bottom: var(--nexus-space-4);
+  font-style: italic;
+  color: var(--nexus-muted-fg);
+}
+
+/* HR */
+hr {
+  border: none;
+  border-top: 1px solid var(--nexus-border);
+  margin: var(--nexus-space-8) 0;
+}
+
+/* ===== FORM ELEMENTS RESET ===== */
+
+/* Inputs, textareas, selects */
+input,
+textarea,
+select {
+  background-color: var(--nexus-input);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-md);
+  padding: var(--nexus-space-2) var(--nexus-space-3);
+  color: var(--nexus-fg);
+  width: 100%;
+  transition: border-color var(--nexus-transition-base) var(--nexus-ease-out),
+              box-shadow var(--nexus-transition-base) var(--nexus-ease-out);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--nexus-ring);
+  box-shadow: 0 0 0 3px rgba(255, 26, 92, 0.1);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--nexus-muted-fg);
+  opacity: 0.7;
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Checkboxes and radios */
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  cursor: pointer;
+}
+
+/* Buttons */
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Remove number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ===== UTILITY CLASSES ===== */
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip link (keyboard navigation) */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--nexus-primary);
+  color: var(--nexus-primary-fg);
+  padding: var(--nexus-space-2) var(--nexus-space-4);
+  text-decoration: none;
+  z-index: var(--nexus-z-modal);
+  font-weight: var(--nexus-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--nexus-tracking-wide);
+  font-size: var(--nexus-text-sm);
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: var(--nexus-container-max);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--nexus-container-padding);
+  padding-right: var(--nexus-container-padding);
+}
+
+/* Text utilities */
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.lowercase {
+  text-transform: lowercase;
+}
+
+.capitalize {
+  text-transform: capitalize;
+}
+
+/* Font weight utilities */
+.font-normal {
+  font-weight: var(--nexus-weight-normal);
+}
+
+.font-medium {
+  font-weight: var(--nexus-weight-medium);
+}
+
+.font-semibold {
+  font-weight: var(--nexus-weight-semibold);
+}
+
+.font-bold {
+  font-weight: var(--nexus-weight-bold);
+}
+
+.font-black {
+  font-weight: var(--nexus-weight-black);
+}
+
+/* Spacing utilities (margin, padding) */
+.m-0 { margin: 0; }
+.mt-0 { margin-top: 0; }
+.mb-0 { margin-bottom: 0; }
+.ml-0 { margin-left: 0; }
+.mr-0 { margin-right: 0; }
+
+.p-0 { padding: 0; }
+.pt-0 { padding-top: 0; }
+.pb-0 { padding-bottom: 0; }
+.pl-0 { padding-left: 0; }
+.pr-0 { padding-right: 0; }
+
+/* Display utilities */
+.hidden {
+  display: none;
+}
+
+.block {
+  display: block;
+}
+
+.inline-block {
+  display: inline-block;
+}
+
+.flex {
+  display: flex;
+}
+
+.inline-flex {
+  display: inline-flex;
+}
+
+.grid {
+  display: grid;
+}
+
+/* Flex utilities */
+.flex-col {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.items-start {
+  align-items: flex-start;
+}
+
+.items-end {
+  align-items: flex-end;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.justify-around {
+  justify-content: space-around;
+}
+
+.justify-start {
+  justify-content: flex-start;
+}
+
+.justify-end {
+  justify-content: flex-end;
+}
+
+/* Gap utilities */
+.gap-1 { gap: var(--nexus-space-1); }
+.gap-2 { gap: var(--nexus-space-2); }
+.gap-3 { gap: var(--nexus-space-3); }
+.gap-4 { gap: var(--nexus-space-4); }
+.gap-6 { gap: var(--nexus-space-6); }
+.gap-8 { gap: var(--nexus-space-8); }
+
+/* Width/Height utilities */
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+
+/* Position utilities */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+
+/* Opacity utilities */
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+.opacity-100 { opacity: 1; }
+
+/* Pointer events */
+.pointer-events-none { pointer-events: none; }
+.pointer-events-auto { pointer-events: auto; }
+
+/* Cursor */
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+
+/* User select */
+.select-none { user-select: none; }
+.select-text { user-select: text; }
+.select-all { user-select: all; }

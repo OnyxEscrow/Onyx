@@ -1,0 +1,511 @@
+{#
+    Multisig 3-Key Visualization Component
+
+    Displays the status of all 3 participants in a 2-of-3 multisig escrow.
+    Shows which keys are registered, synced, and ready for signing.
+
+    Usage:
+    set escrow = escrow
+    set user_role = "buyer"
+    include "components/multisig-keys-visual.html"
+
+    Props (via Tera context):
+    - escrow: Escrow object with buyer_registered, vendor_registered, arbiter_registered, frost_dkg_complete
+    - user_role: Current user's role ("buyer", "vendor", "arbiter")
+#}
+
+<div class="multisig-keys-visual" id="multisig-keys-visual">
+    <!-- Header -->
+    <div class="keys-header">
+        <span class="keys-title">Escrow Security Status</span>
+        <span class="keys-subtitle" id="keys-status-text">Initializing...</span>
+    </div>
+
+    <!-- 3-Key Display -->
+    <div class="keys-container">
+        <!-- Buyer Key -->
+        <div class="key-item {% if user_role == 'buyer' %}key-item-self{% endif %}"
+            id="key-buyer"
+            data-registered="{{ escrow.buyer_registered | default(value=false) }}"
+            data-role="buyer">
+            <div class="key-icon-container">
+                <div class="key-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                    </svg>
+                </div>
+                <div class="key-status-dot" id="key-buyer-status"></div>
+            </div>
+            <div class="key-label">
+                {% if user_role == 'buyer' %}
+                <span class="key-you-badge">YOU</span>
+                {% endif %}
+                <span>Buyer</span>
+            </div>
+        </div>
+
+        <!-- Connection Line 1 -->
+        <div class="key-connector" id="connector-1">
+            <div class="connector-line"></div>
+        </div>
+
+        <!-- Vendor Key -->
+        <div class="key-item {% if user_role == 'vendor' %}key-item-self{% endif %}"
+            id="key-vendor"
+            data-registered="{{ escrow.vendor_registered | default(value=false) }}"
+            data-role="vendor">
+            <div class="key-icon-container">
+                <div class="key-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                    </svg>
+                </div>
+                <div class="key-status-dot" id="key-vendor-status"></div>
+            </div>
+            <div class="key-label">
+                {% if user_role == 'vendor' %}
+                <span class="key-you-badge">YOU</span>
+                {% endif %}
+                <span>Vendor</span>
+            </div>
+        </div>
+
+        <!-- Connection Line 2 -->
+        <div class="key-connector" id="connector-2">
+            <div class="connector-line"></div>
+        </div>
+
+        <!-- Arbiter Key -->
+        <div class="key-item {% if user_role == 'arbiter' %}key-item-self{% endif %}"
+            id="key-arbiter"
+            data-registered="{{ escrow.arbiter_registered | default(value=false) }}"
+            data-role="arbiter">
+            <div class="key-icon-container">
+                <div class="key-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+                    </svg>
+                </div>
+                <div class="key-status-dot" id="key-arbiter-status"></div>
+            </div>
+            <div class="key-label">
+                {% if user_role == 'arbiter' %}
+                <span class="key-you-badge">YOU</span>
+                {% endif %}
+                <span>Arbiter</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Message -->
+    <div class="keys-message" id="keys-message">
+        <div class="keys-message-icon" id="keys-message-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+            </svg>
+        </div>
+        <span id="keys-message-text">Checking participant status...</span>
+    </div>
+
+    <!-- Technical Details Toggle -->
+    <button class="keys-details-toggle" onclick="toggleKeysDetails()">
+        <span>View Technical Details</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="toggle-icon">
+            <path d="m6 9 6 6 6-6"/>
+        </svg>
+    </button>
+
+    <!-- Technical Details (Hidden by default) -->
+    <div class="keys-details" id="keys-details" style="display: none;">
+        <div class="keys-detail-row">
+            <span class="keys-detail-label">DKG Phase</span>
+            <span class="keys-detail-value" id="detail-dkg-phase">{{ escrow.multisig_phase | default(value="unknown") }}</span>
+        </div>
+        <div class="keys-detail-row">
+            <span class="keys-detail-label">FROST Enabled</span>
+            <span class="keys-detail-value" id="detail-frost-enabled">{{ escrow.frost_enabled | default(value=false) }}</span>
+        </div>
+        <div class="keys-detail-row">
+            <span class="keys-detail-label">Threshold</span>
+            <span class="keys-detail-value">2-of-3</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.multisig-keys-visual {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.keys-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.keys-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.keys-subtitle {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+}
+
+.keys-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 20px;
+}
+
+.key-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.key-item-self {
+    background: rgba(212, 175, 55, 0.05);
+    border: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.key-icon-container {
+    position: relative;
+}
+
+.key-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+.key-item.registered .key-icon {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+}
+
+.key-item.pending .key-icon {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.3);
+    color: #eab308;
+}
+
+.key-item.failed .key-icon {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+}
+
+.key-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid #0a0a0a;
+    transition: all 0.3s ease;
+}
+
+.key-item.registered .key-status-dot {
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.key-item.pending .key-status-dot {
+    background: #eab308;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.key-item.failed .key-status-dot {
+    background: #ef4444;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+.key-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.key-you-badge {
+    font-size: 0.6rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(212, 175, 55, 0.2);
+    color: #D4AF37;
+    font-weight: 600;
+}
+
+.key-connector {
+    width: 32px;
+    height: 2px;
+    position: relative;
+}
+
+.connector-line {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    transition: background 0.3s ease;
+}
+
+.key-connector.connected .connector-line {
+    background: rgba(34, 197, 94, 0.4);
+}
+
+.keys-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 12px;
+}
+
+.keys-message-icon {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.keys-message.success .keys-message-icon {
+    color: #22c55e;
+}
+
+.keys-message.warning .keys-message-icon {
+    color: #eab308;
+}
+
+#keys-message-text {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.keys-details-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.keys-details-toggle:hover {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.keys-details-toggle .toggle-icon {
+    transition: transform 0.2s ease;
+}
+
+.keys-details-toggle.expanded .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.keys-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.keys-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.keys-detail-label {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.keys-detail-value {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+</style>
+
+<script>
+(function() {
+    function initMultisigKeysVisual() {
+        const visual = document.getElementById('multisig-keys-visual');
+        if (!visual) return;
+
+        // Get participant data from data attributes or Tera context
+        const buyerKey = document.getElementById('key-buyer');
+        const vendorKey = document.getElementById('key-vendor');
+        const arbiterKey = document.getElementById('key-arbiter');
+
+        // Check registration status
+        const buyerRegistered = buyerKey?.dataset.registered === 'true';
+        const vendorRegistered = vendorKey?.dataset.registered === 'true';
+        const arbiterRegistered = arbiterKey?.dataset.registered === 'true';
+
+        // Update key states
+        updateKeyState(buyerKey, buyerRegistered);
+        updateKeyState(vendorKey, vendorRegistered);
+        updateKeyState(arbiterKey, arbiterRegistered);
+
+        // Update connectors
+        const connector1 = document.getElementById('connector-1');
+        const connector2 = document.getElementById('connector-2');
+
+        if (buyerRegistered && vendorRegistered && connector1) {
+            connector1.classList.add('connected');
+        }
+        if (vendorRegistered && arbiterRegistered && connector2) {
+            connector2.classList.add('connected');
+        }
+
+        // Update status message
+        updateStatusMessage(buyerRegistered, vendorRegistered, arbiterRegistered);
+
+        // Update subtitle
+        const registeredCount = [buyerRegistered, vendorRegistered, arbiterRegistered].filter(Boolean).length;
+        const subtitle = document.getElementById('keys-status-text');
+        if (subtitle) {
+            subtitle.textContent = `${registeredCount} of 3 participants ready`;
+        }
+    }
+
+    function updateKeyState(keyElement, isRegistered) {
+        if (!keyElement) return;
+
+        keyElement.classList.remove('registered', 'pending', 'failed');
+
+        if (isRegistered) {
+            keyElement.classList.add('registered');
+        } else {
+            keyElement.classList.add('pending');
+        }
+    }
+
+    function updateStatusMessage(buyer, vendor, arbiter) {
+        const messageContainer = document.getElementById('keys-message');
+        const messageIcon = document.getElementById('keys-message-icon');
+        const messageText = document.getElementById('keys-message-text');
+
+        if (!messageContainer || !messageText) return;
+
+        const all = buyer && vendor && arbiter;
+        const any = buyer || vendor || arbiter;
+
+        messageContainer.classList.remove('success', 'warning');
+
+        if (all) {
+            messageContainer.classList.add('success');
+            messageIcon.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6 9 17l-5-5"/>
+                </svg>
+            `;
+            messageText.textContent = 'Vault ready! 2 of 3 signatures required for transactions.';
+        } else if (any) {
+            messageContainer.classList.add('warning');
+            const pending = [];
+            if (!buyer) pending.push('Buyer');
+            if (!vendor) pending.push('Vendor');
+            if (!arbiter) pending.push('Arbiter');
+
+            messageText.textContent = `Waiting for ${pending.join(' and ')} to complete setup.`;
+        } else {
+            messageText.textContent = 'Waiting for all participants to register their wallets.';
+        }
+    }
+
+    // Toggle technical details
+    window.toggleKeysDetails = function() {
+        const details = document.getElementById('keys-details');
+        const toggle = document.querySelector('.keys-details-toggle');
+
+        if (!details || !toggle) return;
+
+        const isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        toggle.classList.toggle('expanded', isHidden);
+    };
+
+    // Update from external data (WebSocket, etc.)
+    window.updateMultisigKeysVisual = function(data) {
+        const buyerKey = document.getElementById('key-buyer');
+        const vendorKey = document.getElementById('key-vendor');
+        const arbiterKey = document.getElementById('key-arbiter');
+
+        if (data.buyer_registered !== undefined && buyerKey) {
+            buyerKey.dataset.registered = data.buyer_registered.toString();
+        }
+        if (data.vendor_registered !== undefined && vendorKey) {
+            vendorKey.dataset.registered = data.vendor_registered.toString();
+        }
+        if (data.arbiter_registered !== undefined && arbiterKey) {
+            arbiterKey.dataset.registered = data.arbiter_registered.toString();
+        }
+
+        initMultisigKeysVisual();
+    };
+
+    // Initialize on DOM ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initMultisigKeysVisual);
+    } else {
+        initMultisigKeysVisual();
+    }
+
+    // Listen for participant registration events
+    window.addEventListener('participantRegistered', function(e) {
+        if (e.detail) {
+            updateMultisigKeysVisual(e.detail);
+        }
+    });
+})();
+</script>

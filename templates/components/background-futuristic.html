@@ -1,0 +1,151 @@
+<!-- Futuristic Tech Background with Dynamic Network Mesh -->
+<div id="futuristic-bg" class="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#0B0C0F]">
+    <!-- 1. Deep Dark Base (Global) -->
+    <div class="absolute inset-0 bg-[#0B0C0F]"></div>
+
+    <!-- 2. Warm Copper Zone (Horizontal Motion Blur Effect) -->
+    <!-- Stretched horizontally (scale-x) and blurred to create motion effect -->
+    <div
+        class="absolute top-[30%] left-[-10%] w-[80vw] h-[40vh] bg-gradient-to-r from-transparent via-[#D47A52] to-transparent opacity-[0.15] blur-[40px] mix-blend-screen transform scale-x-150 -skew-x-12">
+    </div>
+
+    <!-- Secondary Copper Streak for depth -->
+    <div
+        class="absolute top-[40%] left-[10%] w-[60vw] h-[10vh] bg-[#D47A52] opacity-[0.1] blur-[20px] mix-blend-screen transform scale-x-150">
+    </div>
+
+    <!-- 3. Azure Zone (Right Side) -->
+    <!-- Soft, clean azure glow -->
+    <div
+        class="absolute top-[-10%] right-[-10%] w-[60vw] h-[80vh] bg-gradient-to-bl from-[#3A7FA5] via-[#3A7FA5]/50 to-transparent opacity-[0.15] blur-[100px] mix-blend-screen">
+    </div>
+
+    <!-- 4. Dynamic Canvas Network -->
+    <canvas id="network-canvas" class="absolute inset-0 z-10 pointer-events-none mix-blend-screen"></canvas>
+
+    <!-- 5. Cinematic Vignette & Grain -->
+    <div class="absolute inset-0 bg-[url('/static/img/noise.png')] opacity-[0.03] mix-blend-overlay"></div>
+
+    <!-- Left Vignette (Dark Charcoal fade) -->
+    <div class="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-[#0B0C0F] to-transparent pointer-events-none">
+    </div>
+
+    <!-- Bottom Shadow -->
+    <div
+        class="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#0B0C0F] to-transparent pointer-events-none">
+    </div>
+</div>
+
+<style>
+    #aurora-container {
+        display: none !important;
+    }
+</style>
+
+<script>
+    (function () {
+        const canvas = document.getElementById('network-canvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        let width, height;
+        let particles = [];
+
+        // Configuration matching the React component
+        const particleCount = 60;
+        const connectionDistance = 250;
+        const mouseDistance = 300;
+
+        let mouseX = -1000;
+        let mouseY = -1000;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            initParticles(); // Re-init on resize to distribute evenly
+        }
+
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    vx: (Math.random() - 0.5) * 0.3, // Very slow drift
+                    vy: (Math.random() - 0.5) * 0.3,
+                    size: Math.random() * 2 + 1,
+                });
+            }
+        }
+
+        function handleMouseMove(e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+
+            particles.forEach((p, i) => {
+                // Move
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Bounce off edges
+                if (p.x < 0 || p.x > width) p.vx *= -1;
+                if (p.y < 0 || p.y > height) p.vy *= -1;
+
+                // Draw Dot
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                // Twinkle effect: 0.1 + random * 0.1
+                ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + Math.random() * 0.1})`;
+                ctx.fill();
+
+                // Connect to other particles
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < connectionDistance) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.12 * (1 - dist / connectionDistance)})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+
+                // Connect to Mouse
+                const dx = p.x - mouseX;
+                const dy = p.y - mouseY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < mouseDistance) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 * (1 - dist / mouseDistance)})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(mouseX, mouseY);
+                    ctx.stroke();
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        window.addEventListener('resize', resize);
+        window.addEventListener('mousemove', handleMouseMove);
+
+        resize(); // Sets width/height and inits particles
+        requestAnimationFrame(animate);
+    })();
+</script>

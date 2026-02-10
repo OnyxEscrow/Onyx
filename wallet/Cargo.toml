@@ -1,0 +1,27 @@
+[package]
+name = "monero-marketplace-wallet"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Monero wallet integration and multisig functionality"
+
+[dependencies]
+monero-marketplace-common = { path = "../common" }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+futures = { workspace = true }
+tracing = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+uuid = { version = "1.0", features = ["v4"] }
+url = "2.5"  # TM-004: URL parsing pour validation stricte
+
+[dev-dependencies]
+tokio-test = { workspace = true }
+proptest = "1.4"  # Property-based testing for crypto operations

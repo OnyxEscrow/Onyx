@@ -1,0 +1,728 @@
+{% extends "base-aura.html" %}
+
+{% block title %}Secure Checkout - FROST MARKET{% endblock %}
+
+{% block content %}
+{% include "components/topbar-aura.html" %}
+
+<div class="min-h-screen pt-24 pb-32">
+    <div class="w-full max-w-6xl mx-auto px-4 md:px-8 animate-reveal">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <a href="/cart" class="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    Back to Cart
+                </a>
+                <h1 class="text-4xl md:text-5xl font-light text-white tracking-wide">
+                    Secure <span class="text-cyan-400">Checkout</span>
+                </h1>
+            </div>
+        </div>
+
+        <!-- Security Features Bar -->
+        <div class="flex flex-wrap gap-4 mb-10 p-4 bg-white/5 rounded-2xl border border-white/10">
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+                <i data-lucide="shield-check" class="w-4 h-4 text-cyan-400"></i>
+                <span>Non-custodial</span>
+            </div>
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+                <i data-lucide="users" class="w-4 h-4 text-cyan-400"></i>
+                <span>2-of-3 Multisig</span>
+            </div>
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+                <i data-lucide="eye-off" class="w-4 h-4 text-cyan-400"></i>
+                <span>Monero Privacy</span>
+            </div>
+        </div>
+
+        <!-- Step Indicator -->
+        <div class="bg-white/5 px-6 py-5 rounded-2xl border border-white/10 mb-8">
+            <div class="flex items-center justify-center gap-2 md:gap-4" id="checkout-stepper">
+                <!-- Step 1 -->
+                <div class="checkout-stepper-step flex items-center gap-2 active" data-step-id="shipping">
+                    <div class="checkout-stepper-step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-gradient-to-r from-purple-600 to-cyan-600 text-white">
+                        <span>1</span>
+                    </div>
+                    <span class="checkout-stepper-step-label hidden md:inline text-sm text-white">Shipping</span>
+                </div>
+                <div class="h-px w-8 md:w-16 bg-white/10 checkout-stepper-line"></div>
+
+                <!-- Step 2 -->
+                <div class="checkout-stepper-step flex items-center gap-2" data-step-id="escrow">
+                    <div class="checkout-stepper-step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-white/10 text-gray-500">
+                        <span>2</span>
+                    </div>
+                    <span class="checkout-stepper-step-label hidden md:inline text-sm text-gray-500">Escrow</span>
+                </div>
+                <div class="h-px w-8 md:w-16 bg-white/10 checkout-stepper-line"></div>
+
+                <!-- Step 3 -->
+                <div class="checkout-stepper-step flex items-center gap-2" data-step-id="payment">
+                    <div class="checkout-stepper-step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-white/10 text-gray-500">
+                        <span>3</span>
+                    </div>
+                    <span class="checkout-stepper-step-label hidden md:inline text-sm text-gray-500">Payment</span>
+                </div>
+                <div class="h-px w-8 md:w-16 bg-white/10 checkout-stepper-line"></div>
+
+                <!-- Step 4 -->
+                <div class="checkout-stepper-step flex items-center gap-2" data-step-id="confirmation">
+                    <div class="checkout-stepper-step-indicator w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-white/10 text-gray-500">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                    </div>
+                    <span class="checkout-stepper-step-label hidden md:inline text-sm text-gray-500">Done</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden Data for JavaScript -->
+        <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+        {% if order %}
+        <input type="hidden" id="order-id" value="{{ order.id }}">
+        {% endif %}
+        {% if escrow %}
+        <input type="hidden" id="escrow-id" value="{{ escrow.id }}">
+        <input type="hidden" id="escrow-status" value="{{ escrow.status }}">
+        {% endif %}
+        <input type="hidden" id="checkout-mode" value="{{ checkout_mode | default(value='cart') }}">
+
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <!-- Main Content -->
+            <div class="flex-1 space-y-6">
+
+                <!-- Step 1: Shipping Address -->
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden" id="shipping-address-form" data-step-content="shipping">
+                    <div class="p-6 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full bg-cyan-500/10">
+                                <i data-lucide="map-pin" class="w-5 h-5 text-cyan-400"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl text-white font-light">Encrypted Delivery</h2>
+                                <p class="text-sm text-gray-500">Your address is encrypted with AES-256-GCM</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-5">
+                        <!-- Security Warning -->
+                        <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="alert-triangle" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+                                <div class="text-sm text-orange-400/80">
+                                    <strong class="text-orange-400">Security Notice:</strong> Do not use your real name. Use PGP encryption for drop locations when possible.
+                                </div>
+                            </div>
+                        </div>
+
+                        <form id="shipping-form" class="space-y-5">
+                            <div>
+                                <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Private Note / PGP Block</label>
+                                <textarea id="shipping-notes" name="shipping_notes" rows="6"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-cyan-500/50 transition-colors resize-none"
+                                    placeholder="-----BEGIN PGP MESSAGE-----&#10;..."></textarea>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Address</label>
+                                    <input type="text" id="street-address" name="street_address"
+                                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="123 Example Street">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">City</label>
+                                    <input type="text" id="city" name="city"
+                                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="City">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Postal Code</label>
+                                    <input type="text" id="postal-code" name="postal_code"
+                                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="10001">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-gray-500 uppercase tracking-wider block mb-2">Country</label>
+                                    <input type="text" id="country" name="country"
+                                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="Country">
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <input type="checkbox" id="burn-after-read" class="accent-cyan-500 w-4 h-4 rounded">
+                                <label for="burn-after-read" class="text-sm text-gray-400">Burn this message after vendor reads it</label>
+                            </div>
+
+                            <!-- Payment Method Selection -->
+                            <div class="mt-6 pt-6 border-t border-white/10">
+                                <label class="text-xs text-gray-500 uppercase tracking-wider block mb-4">Payment Method</label>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- XMR Option -->
+                                    <label class="payment-method-option relative cursor-pointer group">
+                                        <input type="radio" name="payment_method" value="xmr" class="peer sr-only" checked>
+                                        <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5
+                                                    peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10
+                                                    hover:border-white/20 transition-all duration-200">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                                    <img src="/static/img/monero-logo.svg" alt="XMR" class="w-6 h-6">
+                                                </div>
+                                                <div class="flex-1">
+                                                    <p class="text-white font-medium">Monero (XMR)</p>
+                                                    <p class="text-xs text-gray-500">Direct payment • Instant</p>
+                                                </div>
+                                                <div class="w-5 h-5 rounded-full border-2 border-white/20 peer-checked:border-cyan-500 peer-checked:bg-cyan-500 flex items-center justify-center">
+                                                    <i data-lucide="check" class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="absolute -top-2 -right-2 px-2 py-0.5 bg-green-500/20 border border-green-500/30 rounded-full text-[10px] text-green-400 uppercase tracking-wider">
+                                            Recommended
+                                        </div>
+                                    </label>
+
+                                    <!-- BTC Option -->
+                                    <label class="payment-method-option relative cursor-pointer group">
+                                        <input type="radio" name="payment_method" value="btc_onchain" class="peer sr-only">
+                                        <div class="p-4 rounded-xl border-2 border-white/10 bg-white/5
+                                                    peer-checked:border-orange-500 peer-checked:bg-orange-500/10
+                                                    hover:border-white/20 transition-all duration-200">
+                                            <div class="flex items-center gap-3">
+                                                <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                                    <img src="/static/img/bitcoin-logo.svg" alt="BTC" class="w-6 h-6 text-orange-400">
+                                                </div>
+                                                <div class="flex-1">
+                                                    <p class="text-white font-medium">Bitcoin (BTC)</p>
+                                                    <p class="text-xs text-gray-500">Via atomic swap • ~15-30 min</p>
+                                                </div>
+                                                <div class="w-5 h-5 rounded-full border-2 border-white/20 flex items-center justify-center">
+                                                    <i data-lucide="check" class="w-3 h-3 text-white opacity-0"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Swap Info Banner (shown when crypto swap selected) -->
+                                <div id="btc-info-banner" class="hidden mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                                    <div class="flex items-start gap-3">
+                                        <i data-lucide="info" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+                                        <div class="text-sm text-orange-400/80">
+                                            <strong class="text-orange-400">Crypto → XMR Swap:</strong> Your crypto will be automatically converted to XMR via a decentralized swap service.
+                                            A small swap fee (~0.5-1%) applies. The escrow will be funded once the swap completes.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Coin Selector (shown when swap selected) -->
+                                <div id="coin-selector-section" class="hidden mt-4">
+                                    <label class="text-xs text-gray-500 uppercase tracking-wider block mb-3">Select Coin to Pay With</label>
+                                    <div id="coin-selector" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                                        <!-- Coins rendered dynamically by swap-checkout.js -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="submit-shipping-btn"
+                                class="group relative w-full rounded-xl p-[1px] overflow-hidden shadow-lg shadow-cyan-900/20 active:scale-[0.99] transition-transform duration-200 mt-4">
+                                <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#06b6d4_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <div class="relative w-full py-4 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 h-full transition-colors">
+                                    Proceed to Payment
+                                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                                </div>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Step 2: Escrow Initialization -->
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden" id="escrow-init" data-step-content="escrow" style="display: none;">
+                    <div class="p-6 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full bg-purple-500/10">
+                                <i data-lucide="lock" class="w-5 h-5 text-purple-400"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl text-white font-light">Multisig Escrow Setup</h2>
+                                <p class="text-sm text-gray-500">Creating 2-of-3 multisig wallet (You + Vendor + Arbiter)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <!-- Progress Bar -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <span id="progress-status-text" class="text-gray-400">Initializing...</span>
+                                <span id="progress-percentage" class="text-cyan-400 font-mono">0%</span>
+                            </div>
+                            <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                                <div id="progress-bar-fill" class="h-full bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span id="progress-elapsed">Elapsed: 0s</span>
+                                <span id="progress-eta">ETA: ~2 min</span>
+                            </div>
+                        </div>
+
+                        <!-- Typewriter Effect -->
+                        <div class="bg-black/30 rounded-xl p-4 font-mono text-sm text-green-400/80 min-h-[100px]">
+                            <span id="multisig-typewriter"></span>
+                            <span class="animate-pulse">|</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Payment Instructions -->
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden" id="payment-instructions" data-step-content="payment" style="display: none;">
+                    <div class="p-6 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full bg-orange-500/10">
+                                <i data-lucide="send" class="w-5 h-5 text-orange-400"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl text-white font-light">Monero Payment</h2>
+                                <p class="text-sm text-gray-500">Send the exact amount to the multisig escrow address</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <!-- Amount Display -->
+                        <div class="bg-white/5 rounded-2xl p-6 border border-white/10">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-gray-400">Total Due</span>
+                                <span id="amount-xmr" class="text-3xl font-mono text-cyan-400" data-amount="{% if escrow %}{{ escrow.amount }}{% else %}0{% endif %}">
+                                    {% if escrow %}{{ escrow.amount }}{% else %}0{% endif %} XMR
+                                </span>
+                            </div>
+                            <div class="w-full h-px bg-white/10"></div>
+                            <p id="amount-atomic" class="text-xs text-gray-500 mt-3 text-right">
+                                ({% if escrow %}{{ escrow.amount }}{% else %}0{% endif %} piconeros)
+                            </p>
+                        </div>
+
+                        <!-- QR Code -->
+                        <div class="flex justify-center my-6">
+                            <div class="bg-white p-3 rounded-2xl shadow-lg" id="qrcode">
+                                <!-- QR code generated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Address Input -->
+                        <div class="space-y-2">
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block">Multisig Escrow Address</label>
+                            <div class="relative group">
+                                <input type="text" id="multisig-address" readonly
+                                    value="{% if escrow and escrow.multisig_address %}{{ escrow.multisig_address }}{% else %}Generating address...{% endif %}"
+                                    class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-gray-300 font-mono text-xs focus:outline-none cursor-pointer hover:bg-white/5 transition-colors pr-20">
+                                <button type="button" id="copy-address-btn"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs text-cyan-400 bg-cyan-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-cyan-500/20"
+                                    {% if not escrow or not escrow.multisig_address %}disabled{% endif %}>
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="shield" class="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5"></i>
+                                <div class="text-sm text-cyan-400/80">
+                                    <strong class="text-cyan-400">100% Non-Custodial:</strong> Pay from ANY Monero wallet you control. The server NEVER has custody of your funds.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Warning -->
+                        <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="alert-circle" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+                                <div class="text-sm text-orange-400/80">
+                                    <strong class="text-orange-400">Important:</strong> Send EXACTLY the amount shown. A different amount will delay your order processing.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Fund Button -->
+                        <button type="button" id="fund-escrow-btn"
+                            class="group relative w-full rounded-xl p-[1px] overflow-hidden shadow-lg active:scale-[0.99] transition-transform duration-200">
+                            <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#f97316_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div class="relative w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 h-full transition-colors">
+                                I've Sent the XMR
+                            </div>
+                        </button>
+                        <p class="text-xs text-gray-500 text-center">Click after sending payment from your Monero wallet</p>
+
+                        <!-- Payment Status -->
+                        <div id="payment-status" class="hidden bg-white/5 rounded-2xl p-6 border border-white/10">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                                    <i data-lucide="loader-2" class="w-6 h-6 text-cyan-400 animate-spin"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-white font-medium">Awaiting payment</p>
+                                    <p class="text-sm text-gray-400">We're monitoring the blockchain...</p>
+                                </div>
+                            </div>
+                            <div class="mt-4 space-y-2">
+                                <div class="h-2 bg-white/5 rounded-full overflow-hidden">
+                                    <div id="confirmations-progress" class="h-full bg-gradient-to-r from-cyan-600 to-green-500 rounded-full transition-all duration-500" style="width: 0%;"></div>
+                                </div>
+                                <p class="text-xs text-gray-500 text-center">
+                                    <span id="confirmations-count">0</span>/10 confirmations
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3b: BTC Payment Instructions -->
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden" id="btc-payment-instructions" data-step-content="btc-payment" style="display: none;">
+                    <div class="p-6 border-b border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="p-2 rounded-full bg-orange-500/10">
+                                <svg class="w-5 h-5 text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <text x="8" y="16" font-size="10" font-weight="bold" fill="currentColor">₿</text>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl text-white font-light">Bitcoin Payment</h2>
+                                <p class="text-sm text-gray-500">Send BTC to complete your order via atomic swap</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <!-- Swap Quote Info -->
+                        <div class="bg-white/5 rounded-2xl p-6 border border-white/10">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-gray-400">Amount to Send</span>
+                                <span id="btc-amount" class="text-3xl font-mono text-orange-400">0.00000000 BTC</span>
+                            </div>
+                            <div class="w-full h-px bg-white/10"></div>
+                            <div class="flex justify-between items-center mt-3 text-sm">
+                                <span class="text-gray-500">You will receive</span>
+                                <span id="btc-xmr-amount" class="text-cyan-400 font-mono">0.00 XMR</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2 text-xs text-gray-500">
+                                <span>Exchange Rate</span>
+                                <span id="btc-exchange-rate">1 BTC = --- XMR</span>
+                            </div>
+                            <div class="flex justify-between items-center mt-2 text-xs text-gray-500">
+                                <span>Swap Fee</span>
+                                <span id="btc-swap-fee">~0.5-1%</span>
+                            </div>
+                        </div>
+
+                        <!-- QR Code -->
+                        <div class="flex justify-center my-6">
+                            <div class="bg-white p-3 rounded-2xl shadow-lg" id="btc-qrcode">
+                                <!-- QR code generated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- BTC Address Input -->
+                        <div class="space-y-2">
+                            <label class="text-xs text-gray-500 uppercase tracking-wider block">Bitcoin Deposit Address</label>
+                            <div class="relative group">
+                                <input type="text" id="btc-deposit-address" readonly
+                                    value="Generating address..."
+                                    class="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-gray-300 font-mono text-xs focus:outline-none cursor-pointer hover:bg-white/5 transition-colors pr-20">
+                                <button type="button" id="copy-btc-address-btn"
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 text-xs text-orange-400 bg-orange-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-orange-500/20">
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Timer -->
+                        <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="clock" class="w-4 h-4 text-orange-400"></i>
+                                <span class="text-sm text-gray-400">Quote expires in</span>
+                            </div>
+                            <span id="btc-quote-timer" class="font-mono text-orange-400">30:00</span>
+                        </div>
+
+                        <!-- Swap Status -->
+                        <div id="btc-swap-status" class="hidden">
+                            <div class="p-4 bg-cyan-500/10 border border-cyan-500/20 rounded-xl">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                                        <i data-lucide="loader-2" class="w-5 h-5 text-cyan-400 animate-spin" id="btc-status-icon"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p id="btc-status-title" class="text-white font-medium">Awaiting BTC deposit</p>
+                                        <p id="btc-status-subtitle" class="text-sm text-gray-400">Send the exact amount shown above</p>
+                                    </div>
+                                </div>
+
+                                <!-- Progress Steps -->
+                                <div class="mt-4 space-y-2">
+                                    <div class="flex items-center gap-3 text-sm" id="btc-step-deposit">
+                                        <div class="w-6 h-6 rounded-full border-2 border-gray-600 flex items-center justify-center">
+                                            <span class="text-xs text-gray-500">1</span>
+                                        </div>
+                                        <span class="text-gray-500">BTC deposit detected</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-sm" id="btc-step-confirm">
+                                        <div class="w-6 h-6 rounded-full border-2 border-gray-600 flex items-center justify-center">
+                                            <span class="text-xs text-gray-500">2</span>
+                                        </div>
+                                        <span class="text-gray-500">Confirmations (0/1)</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-sm" id="btc-step-swap">
+                                        <div class="w-6 h-6 rounded-full border-2 border-gray-600 flex items-center justify-center">
+                                            <span class="text-xs text-gray-500">3</span>
+                                        </div>
+                                        <span class="text-gray-500">Swap executing</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 text-sm" id="btc-step-complete">
+                                        <div class="w-6 h-6 rounded-full border-2 border-gray-600 flex items-center justify-center">
+                                            <span class="text-xs text-gray-500">4</span>
+                                        </div>
+                                        <span class="text-gray-500">Escrow funded</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Important Notice -->
+                        <div class="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="alert-circle" class="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5"></i>
+                                <div class="text-sm text-orange-400/80">
+                                    <strong class="text-orange-400">Important:</strong> Send EXACTLY the BTC amount shown.
+                                    The swap will automatically convert to XMR and fund your escrow.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- I've Sent Button -->
+                        <button type="button" id="btc-sent-btn"
+                            class="group relative w-full rounded-xl p-[1px] overflow-hidden shadow-lg active:scale-[0.99] transition-transform duration-200">
+                            <div class="absolute inset-[-100%] animate-spin-slow bg-[conic-gradient(from_90deg_at_50%_50%,#00000000_50%,#f97316_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <div class="relative w-full py-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 text-white font-bold rounded-xl flex items-center justify-center gap-2 h-full transition-colors">
+                                I've Sent the BTC
+                            </div>
+                        </button>
+                        <p class="text-xs text-gray-500 text-center">Click after sending payment from your Bitcoin wallet</p>
+                    </div>
+                </div>
+
+                <!-- Step 4: Confirmation -->
+                <div class="bg-[#0F1115]/60 backdrop-blur-md border border-white/10 rounded-3xl overflow-hidden" id="payment-confirmed" data-step-content="confirmation" style="display: none;">
+                    <div class="p-8 md:p-12 flex flex-col items-center text-center">
+                        <!-- Success Icon -->
+                        <div class="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center mb-6 border border-green-500/30">
+                            <i data-lucide="badge-check" class="w-12 h-12 text-green-400"></i>
+                        </div>
+
+                        <h2 class="text-3xl font-light text-white mb-3">Transaction Confirmed</h2>
+                        <p class="text-gray-400 max-w-md mb-8">Funds received. Escrow activated. Vendor notified via encrypted channel.</p>
+
+                        <!-- Next Steps -->
+                        <div class="w-full max-w-md bg-white/5 rounded-2xl p-6 border border-white/10 mb-8 text-left">
+                            <h3 class="text-sm font-medium text-white mb-4 flex items-center gap-2">
+                                <i data-lucide="list-checks" class="w-4 h-4 text-cyan-400"></i>
+                                What happens next
+                            </h3>
+                            <ol class="space-y-3 text-sm text-gray-400">
+                                <li class="flex items-start gap-3">
+                                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">1</span>
+                                    <span>The vendor prepares your order</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">2</span>
+                                    <span>You'll receive a notification when shipped</span>
+                                </li>
+                                <li class="flex items-start gap-3">
+                                    <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">3</span>
+                                    <span>Confirm receipt to release funds from escrow</span>
+                                </li>
+                            </ol>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                            <a href="{% if order %}/orders/{{ order.id }}{% else %}/orders{% endif %}"
+                                class="flex-1 py-3 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                <i data-lucide="package" class="w-4 h-4"></i>
+                                View My Order
+                            </a>
+                            <a href="/listings"
+                                class="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white rounded-xl flex items-center justify-center transition-colors">
+                                Continue Shopping
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Summary Sidebar -->
+            <div class="w-full lg:w-96 shrink-0">
+                <div class="sticky top-32 bg-[#0F1115]/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+                    <h2 class="text-xl font-light text-white mb-6">Order Summary</h2>
+
+                    <!-- Items -->
+                    <div class="space-y-4 mb-6">
+                        {% if listing %}
+                        <!-- Single Listing Mode (Buy Now) -->
+                        <div class="flex gap-4">
+                            <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-900 flex-shrink-0">
+                                {% if listing.images_ipfs_cids %}
+                                {% set images = listing.images_ipfs_cids | json_decode %}
+                                {% if images and images | length > 0 %}
+                                <img src="/api/listings/{{ listing.id }}/images/{{ images[0] }}" alt="{{ listing.title }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <i data-lucide="package" class="w-6 h-6 text-gray-700"></i>
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <i data-lucide="package" class="w-6 h-6 text-gray-700"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white text-sm font-medium truncate">{{ listing.title }}</p>
+                                <p class="text-gray-500 text-xs">Qty: 1</p>
+                            </div>
+                        </div>
+                        {% elif cart and cart.items %}
+                        <!-- Cart Mode -->
+                        {% for item in cart.items %}
+                        <div class="flex gap-4">
+                            <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-900 flex-shrink-0">
+                                {% if item.image_cid %}
+                                <img src="/api/listings/{{ item.listing_id }}/images/{{ item.image_cid }}" alt="{{ item.title }}" class="w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <i data-lucide="package" class="w-6 h-6 text-gray-700"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white text-sm font-medium truncate">{{ item.title }}</p>
+                                <p class="text-gray-500 text-xs">Qty: {{ item.quantity }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% elif order %}
+                        <!-- Order Mode -->
+                        <div class="flex gap-4">
+                            <div class="w-16 h-16 rounded-xl overflow-hidden bg-gray-900 flex-shrink-0 flex items-center justify-center">
+                                <i data-lucide="package" class="w-6 h-6 text-gray-700"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-white text-sm font-medium">Order #{{ order.id | truncate(length=8, end="...") }}</p>
+                                <p class="text-gray-500 text-xs">Qty: 1</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="w-full h-px bg-white/10 mb-6"></div>
+
+                    <!-- Price Breakdown -->
+                    <div class="space-y-4 mb-6">
+                        <div class="flex justify-between items-center text-gray-400">
+                            <span>Subtotal</span>
+                            <span class="text-white font-mono">
+                                {% if cart %}{{ cart_total_xmr }}{% elif order %}{{ order.total_xmr }}{% else %}0{% endif %} XMR
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-400">
+                            <span>Escrow Fee</span>
+                            <span class="text-white font-mono text-sm">~0.0002 XMR</span>
+                        </div>
+                        <div class="flex justify-between items-center text-gray-400">
+                            <span>Network Fee</span>
+                            <span class="text-white font-mono text-sm">~0.0001 XMR</span>
+                        </div>
+                    </div>
+
+                    <div class="w-full h-px bg-white/10 mb-6"></div>
+
+                    <!-- Total -->
+                    <div class="flex justify-between items-center mb-8">
+                        <span class="text-lg text-white font-medium">Total</span>
+                        <span id="total-xmr" class="text-2xl text-cyan-400 font-mono font-light">
+                            {% if cart %}{{ cart_total_xmr }}{% elif order %}{{ order.total_xmr }}{% else %}0{% endif %} XMR
+                        </span>
+                    </div>
+
+                    <!-- Security Features -->
+                    <div class="space-y-3">
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <img src="/static/img/monero-logo.svg" alt="Monero" class="w-4 h-4 opacity-50">
+                            <span>Monero (XMR) only</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <i data-lucide="shield" class="w-4 h-4"></i>
+                            <span>2-of-3 Multisig Escrow</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <i data-lucide="lock" class="w-4 h-4"></i>
+                            <span>Non-custodial (your keys)</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-gray-500">
+                            <i data-lucide="eye-off" class="w-4 h-4"></i>
+                            <span>Total anonymity via Tor</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "components/navigation-aura.html" %}
+
+<!-- QR Code Library (local copy - CDN blocked by CSP) -->
+<script src="/static/js/qrcode.min.js"></script>
+
+<!-- Checkout Scripts -->
+<script src="/static/js/checkout-stepper.js"></script>
+<script src="/static/js/checkout.js?v=0.67.0"></script>
+<script src="/static/js/swap-checkout.js?v=0.1.0"></script>
+<script src="/static/js/checkout-init.js"></script>
+
+<script nonce="{{ csp_nonce }}">
+// Copy address functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const copyBtn = document.getElementById('copy-address-btn');
+    const addressInput = document.getElementById('multisig-address');
+
+    if (copyBtn && addressInput) {
+        copyBtn.addEventListener('click', function() {
+            navigator.clipboard.writeText(addressInput.value).then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('text-green-400', 'bg-green-500/10');
+                copyBtn.classList.remove('text-cyan-400', 'bg-cyan-500/10');
+                setTimeout(() => {
+                    copyBtn.textContent = originalText;
+                    copyBtn.classList.remove('text-green-400', 'bg-green-500/10');
+                    copyBtn.classList.add('text-cyan-400', 'bg-cyan-500/10');
+                }, 2000);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

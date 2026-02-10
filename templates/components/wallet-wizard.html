@@ -1,0 +1,144 @@
+<!-- Unified Wallet Wizard Component (v0.9.0)
+     Single entry point for ALL wallet operations:
+     - Create new wallet
+     - Restore from seed
+     - Backup verification (quiz)
+     - Escrow participation (PKI now computed in WASM)
+-->
+<div id="wallet-wizard-modal" class="fixed inset-0 z-50 hidden">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="walletWizard.close()"></div>
+
+  <!-- Modal Content -->
+  <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg">
+    <div class="bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 rounded-2xl border border-purple-500/30 shadow-2xl shadow-purple-500/10 backdrop-blur-xl p-6">
+
+      <!-- Header with Step Indicator -->
+      <div class="flex justify-between items-center mb-6">
+        <h2 id="wizard-title" class="text-xl font-bold text-white">Wallet Setup</h2>
+        <button onclick="walletWizard.close()" class="text-gray-400 hover:text-white transition-colors">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Step Indicators -->
+      <div class="flex justify-center gap-2 mb-6" id="wizard-steps">
+        <div class="step-dot w-3 h-3 rounded-full bg-purple-500" data-step="1"></div>
+        <div class="step-dot w-3 h-3 rounded-full bg-gray-600" data-step="2"></div>
+        <div class="step-dot w-3 h-3 rounded-full bg-gray-600" data-step="3"></div>
+        <div class="step-dot w-3 h-3 rounded-full bg-gray-600" data-step="4"></div>
+      </div>
+
+      <!-- Step 1: Create or Restore -->
+      <div id="wizard-step-1" class="wizard-step">
+        <p class="text-gray-300 text-center mb-6">
+          Your wallet keys never leave your browser. Only you can access your funds.
+        </p>
+
+        <div class="space-y-4">
+          <button id="btn-create-wallet" onclick="walletWizard.createNewWallet()"
+                  class="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-xl font-semibold text-white transition-all transform hover:scale-[1.02] flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+            Create New Wallet
+          </button>
+
+          <button id="btn-restore-wallet" onclick="walletWizard.showRestoreForm()"
+                  class="w-full py-4 px-6 bg-gray-700/50 hover:bg-gray-700 border border-gray-600 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-3">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+            </svg>
+            Restore from Seed
+          </button>
+        </div>
+
+        <!-- Restore Form (hidden by default) -->
+        <div id="restore-form" class="hidden mt-6">
+          <label class="block text-gray-300 mb-2">Enter your 25-word seed phrase:</label>
+          <textarea id="restore-seed-input" rows="4"
+                    class="w-full px-4 py-3 bg-gray-800/50 border border-gray-600 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
+                    placeholder="word1 word2 word3 ..."></textarea>
+          <button onclick="walletWizard.restoreWallet()"
+                  class="w-full mt-4 py-3 px-6 bg-green-600 hover:bg-green-500 rounded-xl font-semibold text-white transition-all">
+            Restore Wallet
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Backup Seed -->
+      <div id="wizard-step-2" class="wizard-step hidden">
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <svg class="w-6 h-6 text-yellow-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+              <p class="text-yellow-500 font-semibold">Write this down and store safely!</p>
+              <p class="text-yellow-500/80 text-sm mt-1">This is the ONLY way to recover your funds. Never share it.</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="seed-display" class="bg-gray-800/50 border border-gray-600 rounded-xl p-4 font-mono text-sm text-white break-all select-all"></div>
+
+        <button onclick="walletWizard.goToStep(3)"
+                class="w-full mt-6 py-3 px-6 bg-purple-600 hover:bg-purple-500 rounded-xl font-semibold text-white transition-all">
+          I've Written It Down
+        </button>
+      </div>
+
+      <!-- Step 3: Backup Quiz -->
+      <div id="wizard-step-3" class="wizard-step hidden">
+        <p class="text-gray-300 text-center mb-6">
+          Verify you've backed up your seed by entering the requested words:
+        </p>
+
+        <div id="quiz-container" class="space-y-4">
+          <!-- Quiz fields generated dynamically -->
+        </div>
+
+        <div id="quiz-error" class="hidden mt-4 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm text-center"></div>
+
+        <button onclick="walletWizard.verifyQuiz()"
+                class="w-full mt-6 py-3 px-6 bg-green-600 hover:bg-green-500 rounded-xl font-semibold text-white transition-all">
+          Verify Backup
+        </button>
+      </div>
+
+      <!-- Step 4: Ready -->
+      <div id="wizard-step-4" class="wizard-step hidden">
+        <div class="text-center">
+          <div class="w-20 h-20 mx-auto mb-6 bg-green-500/20 rounded-full flex items-center justify-center">
+            <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          <h3 class="text-2xl font-bold text-white mb-2">Wallet Ready!</h3>
+          <p class="text-gray-400 mb-6">Your wallet is set up and ready for escrow transactions.</p>
+
+          <div id="wallet-address-display" class="bg-gray-800/50 border border-gray-600 rounded-xl p-4 mb-6">
+            <p class="text-gray-400 text-sm mb-1">Your Address:</p>
+            <p id="wallet-address" class="font-mono text-sm text-purple-400 break-all"></p>
+          </div>
+
+          <button onclick="walletWizard.close()"
+                  class="w-full py-3 px-6 bg-purple-600 hover:bg-purple-500 rounded-xl font-semibold text-white transition-all">
+            Continue
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="wizard-loading" class="hidden absolute inset-0 bg-gray-900/90 rounded-2xl flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p id="loading-message" class="text-gray-300">Processing...</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

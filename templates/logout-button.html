@@ -1,0 +1,30 @@
+<!-- Floating Logout Button (visible when logged in) -->
+{% if logged_in %}
+<div style="position: fixed; bottom: 2rem; right: 2rem; z-index: 100;">
+    <form method="POST" action="/logout" id="logout-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" style="
+            background-color: var(--color-accent);
+            color: #000000;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 150ms;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        " onmouseover="this.style.opacity='0.85'; this.style.transform='translateY(-2px)'" onmouseout="this.style.opacity='1'; this.style.transform='translateY(0)'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" x2="9" y1="12" y2="12"/>
+            </svg>
+            Logout
+        </button>
+    </form>
+</div>
+{% endif %}

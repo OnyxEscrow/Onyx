@@ -1,0 +1,126 @@
+/**
+ * Checkout Stepper Component - ALWAYS HORIZONTAL
+ * Compact design that stays horizontal on all screen sizes
+ */
+
+.checkout-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 100%;
+    margin: 0 auto 2rem;
+    padding: 1rem;
+    position: relative;
+}
+
+/* Connector line */
+.checkout-stepper::before {
+    content: '';
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    z-index: 0;
+}
+
+/* Individual Step */
+.checkout-stepper-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    flex: 1;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+/* Step Indicator (Circle) */
+.checkout-stepper-step-indicator {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 600;
+    position: relative;
+    z-index: 2;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Step Label */
+.checkout-stepper-step-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.6);
+    transition: color 0.3s ease;
+    white-space: nowrap;
+    text-align: center;
+}
+
+/* Active Step */
+.checkout-stepper-step.active .checkout-stepper-step-indicator {
+    background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+    border-color: #8b5cf6;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.3);
+    transform: scale(1.05);
+}
+
+.checkout-stepper-step.active .checkout-stepper-step-label {
+    color: #8b5cf6;
+    font-weight: 600;
+}
+
+/* Completed Step */
+.checkout-stepper-step.completed .checkout-stepper-step-indicator {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+    color: #fff;
+}
+
+.checkout-stepper-step.completed .checkout-stepper-step-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Mobile: Keep horizontal but smaller */
+@media (max-width: 768px) {
+    .checkout-stepper {
+        padding: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .checkout-stepper-step-indicator {
+        width: 36px;
+        height: 36px;
+        font-size: 0.875rem;
+    }
+
+    .checkout-stepper-step-label {
+        font-size: 0.65rem;
+    }
+}
+
+/* Very small screens: Ultra compact but still horizontal */
+@media (max-width: 480px) {
+    .checkout-stepper {
+        padding: 0.25rem;
+    }
+
+    .checkout-stepper-step-indicator {
+        width: 32px;
+        height: 32px;
+        font-size: 0.75rem;
+    }
+
+    .checkout-stepper-step-label {
+        font-size: 0.6rem;
+    }
+}

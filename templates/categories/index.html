@@ -1,0 +1,174 @@
+{% extends "base-nexus.html" %}
+
+{% block title %}{{ page_title }} - FROST MARKET{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Categories Page Styles */
+.categories-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--nexus-space-8, 2rem) var(--nexus-space-4, 1rem);
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: var(--nexus-space-12, 3rem);
+}
+
+.page-header h1 {
+    font-size: var(--nexus-text-4xl, 2.5rem);
+    font-weight: var(--nexus-weight-bold, 700);
+    margin-bottom: var(--nexus-space-2, 0.5rem);
+    background: linear-gradient(135deg, var(--nexus-fg, #fff) 0%, var(--nexus-primary, #ff1a5c) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.page-header p {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--nexus-text-lg, 1.125rem);
+}
+
+/* Categories Grid */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--nexus-space-6, 1.5rem);
+}
+
+/* Category Card */
+.category-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--nexus-space-8, 2rem) var(--nexus-space-6, 1.5rem);
+    background: var(--nexus-card, rgba(255,255,255,0.05));
+    border: 1px solid var(--nexus-border, rgba(255,255,255,0.1));
+    border-radius: var(--nexus-radius-xl, 1.5rem);
+    text-decoration: none;
+    color: var(--nexus-fg, #fff);
+    transition: all var(--nexus-transition-base, 300ms) var(--nexus-ease-out, cubic-bezier(0.4, 0, 0.2, 1));
+    text-align: center;
+}
+
+.category-card:hover {
+    border-color: var(--nexus-primary, #ff1a5c);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(255, 26, 92, 0.15);
+}
+
+.category-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nexus-primary-alpha, rgba(255, 26, 92, 0.1));
+    border-radius: var(--nexus-radius-lg, 1rem);
+    margin-bottom: var(--nexus-space-4, 1rem);
+    transition: background var(--nexus-transition-base, 300ms);
+}
+
+.category-card:hover .category-icon {
+    background: var(--nexus-primary, #ff1a5c);
+}
+
+.category-icon svg {
+    width: 32px;
+    height: 32px;
+    color: var(--nexus-primary, #ff1a5c);
+    transition: color var(--nexus-transition-base, 300ms);
+}
+
+.category-card:hover .category-icon svg {
+    color: var(--nexus-bg, #0a0a0a);
+}
+
+.category-card h2 {
+    font-size: var(--nexus-text-xl, 1.25rem);
+    font-weight: var(--nexus-weight-semibold, 600);
+    margin-bottom: var(--nexus-space-2, 0.5rem);
+}
+
+.category-card p {
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    font-size: var(--nexus-text-sm, 0.875rem);
+    margin-bottom: var(--nexus-space-4, 1rem);
+    line-height: 1.5;
+}
+
+.category-count {
+    display: inline-block;
+    padding: var(--nexus-space-1, 0.25rem) var(--nexus-space-3, 0.75rem);
+    background: var(--nexus-bg, #0a0a0a);
+    border-radius: var(--nexus-radius-full, 9999px);
+    font-size: var(--nexus-text-xs, 0.75rem);
+    color: var(--nexus-muted-fg, rgba(255,255,255,0.6));
+    font-family: var(--nexus-font-mono, 'JetBrains Mono', monospace);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .page-header h1 {
+        font-size: var(--nexus-text-3xl, 2rem);
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="categories-page">
+    <header class="page-header">
+        <h1>Browse Categories</h1>
+        <p>Find exactly what you're looking for</p>
+    </header>
+
+    <div class="categories-grid">
+        {% for cat in categories %}
+        <a href="/categories/{{ cat.slug }}" class="category-card">
+            <div class="category-icon">
+                {% if cat.icon == "download" %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                {% elif cat.icon == "package" %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16.5 9.4 7.55 4.24"/>
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                    <polyline points="3.29 7 12 12 20.71 7"/>
+                    <line x1="12" y1="22" x2="12" y2="12"/>
+                </svg>
+                {% elif cat.icon == "briefcase" %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+                {% elif cat.icon == "code" %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="16 18 22 12 16 6"/>
+                    <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                {% else %}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <path d="M12 17h.01"/>
+                </svg>
+                {% endif %}
+            </div>
+            <h2>{{ cat.name }}</h2>
+            <p>{{ cat.description }}</p>
+            <span class="category-count">{{ cat.count }} listing{% if cat.count != 1 %}s{% endif %}</span>
+        </a>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

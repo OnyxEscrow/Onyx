@@ -1,0 +1,373 @@
+{% extends "base-industrial.html" %}
+
+{% block title %}GENERATE IDENTITY — FROST MARKET{% endblock %}
+
+{% block marquee %}
+{# Minimal marquee for register - just status indicator #}
+<div class="marquee-bar" style="justify-content: center; display: flex; align-items: center;">
+    <div class="marquee-item" style="padding: 0;">
+        <span class="marquee-item__dot"></span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); letter-spacing: 0.2em;">
+            TOR_CIRCUIT_ACTIVE // ENCRYPTED_CHANNEL
+        </span>
+    </div>
+</div>
+{% endblock %}
+
+{% block header %}
+{# Simplified header for register - just logo #}
+<header class="header-industrial" style="justify-content: center;">
+    <a href="/" class="logo-industrial">
+        <div class="logo-industrial__icon">
+            <span class="logo-industrial__dot"></span>
+        </div>
+        <div class="logo-industrial__brand">
+            <span class="logo-industrial__text">FROST MARKET</span>
+            <span class="logo-industrial__subtitle">Protocol v3</span>
+        </div>
+    </a>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="auth-industrial">
+    <div class="auth-industrial__container">
+        {# Decorative Corner Accents #}
+        <div class="auth-industrial__corner auth-industrial__corner--tl"></div>
+        <div class="auth-industrial__corner auth-industrial__corner--tr"></div>
+        <div class="auth-industrial__corner auth-industrial__corner--bl"></div>
+        <div class="auth-industrial__corner auth-industrial__corner--br"></div>
+
+        {# Header Section #}
+        <div class="auth-industrial__header">
+            <div class="auth-industrial__status">
+                <span class="auth-industrial__status-dot"></span>
+                <span class="auth-industrial__status-text">IDENTITY_GENERATOR</span>
+            </div>
+            <h1 class="auth-industrial__title">NEW IDENTITY</h1>
+            <p class="auth-industrial__subtitle">No email or personal info required</p>
+        </div>
+
+        {# Error Message #}
+        {% if error %}
+        <div class="auth-industrial__error">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        {# Registration Form #}
+        <form action="/api/auth/register" method="post" class="auth-industrial__form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            {# Role Selection #}
+            <div class="auth-industrial__field">
+                <label class="auth-industrial__label">
+                    <span class="auth-industrial__label-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    <span>SELECT_ROLE</span>
+                </label>
+                <div class="auth-industrial__role-grid">
+                    <label class="auth-industrial__role-option" id="role-option-buyer">
+                        <input type="radio" name="role" value="buyer" id="role-buyer" checked>
+                        <div class="auth-industrial__role-card auth-industrial__role-card--active" id="role-buyer-card">
+                            <div class="auth-industrial__role-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                                    <line x1="3" y1="6" x2="21" y2="6"/>
+                                    <path d="M16 10a4 4 0 0 1-8 0"/>
+                                </svg>
+                            </div>
+                            <div class="auth-industrial__role-info">
+                                <span class="auth-industrial__role-name">BUYER</span>
+                                <span class="auth-industrial__role-desc">Anonymous purchases</span>
+                            </div>
+                        </div>
+                    </label>
+                    <label class="auth-industrial__role-option" id="role-option-vendor">
+                        <input type="radio" name="role" value="vendor" id="role-vendor">
+                        <div class="auth-industrial__role-card" id="role-vendor-card">
+                            <div class="auth-industrial__role-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                                </svg>
+                            </div>
+                            <div class="auth-industrial__role-info">
+                                <span class="auth-industrial__role-name">VENDOR</span>
+                                <span class="auth-industrial__role-desc">Sell products</span>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            {# Vendor Requirements (shown when vendor selected) #}
+            <div class="auth-industrial__vendor-requirements" id="vendor-requirements">
+                <div class="auth-industrial__vendor-requirements-header">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--nexus-gold)" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    <span>VENDOR REQUIREMENTS</span>
+                </div>
+                <p class="auth-industrial__vendor-requirements-intro">
+                    As a vendor, you agree to participate in our non-custodial escrow system:
+                </p>
+
+                <label class="auth-industrial__checkbox-label">
+                    <input type="checkbox" name="accept_escrow" id="accept-escrow" class="auth-industrial__checkbox">
+                    <span class="auth-industrial__checkbox-mark"></span>
+                    <span class="auth-industrial__checkbox-text">
+                        I will participate in <strong>2-of-3 multisig escrow</strong> for all transactions
+                        <span class="auth-industrial__checkbox-hint">Your keys stay in your browser - truly non-custodial</span>
+                    </span>
+                </label>
+
+                <label class="auth-industrial__checkbox-label">
+                    <input type="checkbox" name="accept_fee" id="accept-fee" class="auth-industrial__checkbox">
+                    <span class="auth-industrial__checkbox-mark"></span>
+                    <span class="auth-industrial__checkbox-text">
+                        I accept the <strong>5% marketplace fee</strong> on completed sales
+                        <span class="auth-industrial__checkbox-hint">Deducted automatically when funds are released</span>
+                    </span>
+                </label>
+
+                <label class="auth-industrial__checkbox-label">
+                    <input type="checkbox" name="accept_terms" id="accept-terms" class="auth-industrial__checkbox">
+                    <span class="auth-industrial__checkbox-mark"></span>
+                    <span class="auth-industrial__checkbox-text">
+                        I agree to the <a href="/terms/vendor" target="_blank" class="auth-industrial__checkbox-link">Vendor Terms of Service</a>
+                        <span class="auth-industrial__checkbox-hint">Includes dispute resolution and prohibited items</span>
+                    </span>
+                </label>
+
+                <details class="education-expandable education-expandable--escrow" style="margin-top: 1rem;">
+                    <summary>How does vendor escrow work?</summary>
+                    <div class="education-expandable__content">
+                        <p>When a buyer purchases your product:</p>
+                        <ul>
+                            <li><strong>Buyer funds escrow</strong> - XMR locked in 2-of-3 multisig</li>
+                            <li><strong>You ship the order</strong> - Mark as shipped to initiate release</li>
+                            <li><strong>Buyer confirms receipt</strong> - Funds released to your wallet</li>
+                            <li><strong>If dispute</strong> - Arbiter helps resolve fairly</li>
+                        </ul>
+                        <p>Your private keys never leave your browser. This is truly non-custodial.</p>
+                    </div>
+                </details>
+            </div>
+
+            {# Username Field #}
+            <div class="auth-industrial__field">
+                <label class="auth-industrial__label" for="username">
+                    <span class="auth-industrial__label-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                    <span>CHOOSE_ALIAS</span>
+                </label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    class="auth-industrial__input"
+                    placeholder="Enter unique alias..."
+                    required
+                    autocomplete="username"
+                    spellcheck="false"
+                    minlength="3"
+                    maxlength="32"
+                >
+            </div>
+
+            {# Password Field #}
+            <div class="auth-industrial__field">
+                <label class="auth-industrial__label" for="password">
+                    <span class="auth-industrial__label-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                    </span>
+                    <span>CREATE_PASSPHRASE</span>
+                </label>
+                <div class="auth-industrial__input-wrapper">
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        class="auth-industrial__input"
+                        placeholder="Create strong passphrase..."
+                        required
+                        autocomplete="new-password"
+                        minlength="8"
+                    >
+                    <button type="button" class="auth-industrial__toggle-password" id="toggle-password-btn" aria-label="Toggle password visibility">
+                        <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {# Confirm Password Field #}
+            <div class="auth-industrial__field">
+                <label class="auth-industrial__label" for="confirm_password">
+                    <span class="auth-industrial__label-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                    </span>
+                    <span>CONFIRM_PASSPHRASE</span>
+                </label>
+                <div class="auth-industrial__input-wrapper">
+                    <input
+                        type="password"
+                        id="confirm_password"
+                        name="confirm_password"
+                        class="auth-industrial__input"
+                        placeholder="Repeat passphrase..."
+                        required
+                        autocomplete="new-password"
+                    >
+                    <button type="button" class="auth-industrial__toggle-password" id="toggle-confirm-password-btn" aria-label="Toggle password visibility">
+                        <svg class="eye-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        <svg class="eye-closed" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                            <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {# Submit Button #}
+            <button type="submit" class="auth-industrial__submit">
+                <span class="auth-industrial__submit-text">GENERATE IDENTITY</span>
+                <span class="auth-industrial__submit-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+                        <path d="M12 16v-4"/>
+                        <path d="M12 8h.01"/>
+                    </svg>
+                </span>
+            </button>
+        </form>
+
+        {# Divider #}
+        <div class="auth-industrial__divider">
+            <span>OR</span>
+        </div>
+
+        {# Login Link #}
+        <div class="auth-industrial__alt-action">
+            <span class="auth-industrial__alt-text">Already have an identity?</span>
+            <a href="/login" class="auth-industrial__alt-link">
+                AUTHENTICATE
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="7" y1="17" x2="17" y2="7"/>
+                    <polyline points="7 7 17 7 17 17"/>
+                </svg>
+            </a>
+        </div>
+
+        {# Security Notice #}
+        <div class="auth-industrial__security-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            <span>Zero-knowledge proof // No personal data stored</span>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block footer %}
+{# Minimal footer for register #}
+<footer style="position: fixed; bottom: 0; left: 0; right: 0; padding: 16px; text-align: center; background: transparent; z-index: 10;">
+    <span style="font-family: var(--font-mono); font-size: 10px; color: var(--color-text-dim); letter-spacing: 0.2em;">
+        FROST MARKET PROTOCOL v3.0 // MONERO_ONLY // NON_CUSTODIAL
+    </span>
+</footer>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function() {
+    // Role selection elements
+    const buyerCard = document.getElementById('role-buyer-card');
+    const vendorCard = document.getElementById('role-vendor-card');
+    const buyerInput = document.getElementById('role-buyer');
+    const vendorInput = document.getElementById('role-vendor');
+    const vendorRequirements = document.getElementById('vendor-requirements');
+    const vendorCheckboxes = vendorRequirements.querySelectorAll('input[type="checkbox"]');
+
+    function selectRole(role) {
+        if (role === 'buyer') {
+            buyerInput.checked = true;
+            buyerCard.classList.add('auth-industrial__role-card--active');
+            vendorCard.classList.remove('auth-industrial__role-card--active');
+            vendorRequirements.classList.remove('is-visible');
+            vendorCheckboxes.forEach(cb => cb.required = false);
+        } else {
+            vendorInput.checked = true;
+            vendorCard.classList.add('auth-industrial__role-card--active');
+            buyerCard.classList.remove('auth-industrial__role-card--active');
+            vendorRequirements.classList.add('is-visible');
+            vendorCheckboxes.forEach(cb => cb.required = true);
+        }
+    }
+
+    function togglePassword(fieldId) {
+        const input = document.getElementById(fieldId);
+        const wrapper = input.closest('.auth-industrial__input-wrapper');
+        const eyeOpen = wrapper.querySelector('.eye-open');
+        const eyeClosed = wrapper.querySelector('.eye-closed');
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            eyeOpen.style.display = 'none';
+            eyeClosed.style.display = 'block';
+        } else {
+            input.type = 'password';
+            eyeOpen.style.display = 'block';
+            eyeClosed.style.display = 'none';
+        }
+    }
+
+    // Event listeners for role selection
+    document.getElementById('role-option-buyer').addEventListener('click', function() {
+        selectRole('buyer');
+    });
+    document.getElementById('role-option-vendor').addEventListener('click', function() {
+        selectRole('vendor');
+    });
+
+    // Event listeners for password toggle
+    document.getElementById('toggle-password-btn').addEventListener('click', function() {
+        togglePassword('password');
+    });
+    document.getElementById('toggle-confirm-password-btn').addEventListener('click', function() {
+        togglePassword('confirm_password');
+    });
+});
+</script>
+{% endblock %}

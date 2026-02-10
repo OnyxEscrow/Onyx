@@ -1,0 +1,265 @@
+{#
+  NEXUS ORDER TIMELINE COMPONENT
+
+  Usage:
+    {% include "partials/nexus/organisms/order-timeline.html" %}
+
+  Parameters:
+    - order_id (required): Order ID
+    - current_status (required): Current order status
+    - events (required): Array of timeline events with:
+        - status: Order status (pending|funded|shipped|completed|disputed)
+        - timestamp: Event timestamp (ISO format)
+        - description: Event description
+        - actor: Optional actor name
+    - class (optional): Additional CSS classes
+#}
+
+{# Status order for timeline #}
+{% set status_order = ["pending", "funded", "shipped", "completed"] %}
+
+{# Build CSS classes #}
+{% set css_classes = "nexus-order-timeline" %}
+{% if class %}
+  {% set css_classes = css_classes ~ " " ~ class %}
+{% endif %}
+
+<div class="{{ css_classes }}">
+  {# Timeline Header #}
+  <div class="nexus-timeline-header">
+    <h3 class="nexus-timeline-title">Order Timeline</h3>
+    <div class="nexus-timeline-order-id">
+      Order #{{ order_id }}
+      {% include "partials/nexus/atoms/badge.html" %}
+    </div>
+  </div>
+
+  {# Timeline Events #}
+  <div class="nexus-timeline-events">
+    {% for event in events %}
+      {% set is_current = event.status == current_status %}
+      {% set is_completed = loop.index < events | length %}
+
+      <div class="nexus-timeline-event {% if is_current %}nexus-timeline-event-current{% endif %}">
+        {# Timeline Marker #}
+        <div class="nexus-timeline-marker-wrapper">
+          <div class="nexus-timeline-marker nexus-timeline-marker-{{ event.status }}">
+            {% if event.status == "pending" %}⏳
+            {% elif event.status == "funded" %}💰
+            {% elif event.status == "shipped" %}📦
+            {% elif event.status == "completed" %}✅
+            {% elif event.status == "disputed" %}⚠️
+            {% endif %}
+          </div>
+          {% if not loop.last %}
+            <div class="nexus-timeline-line {% if is_completed %}nexus-timeline-line-completed{% endif %}"></div>
+          {% endif %}
+        </div>
+
+        {# Event Content #}
+        <div class="nexus-timeline-content">
+          <div class="nexus-timeline-event-header">
+            <span class="nexus-timeline-event-status">{{ event.status | capitalize }}</span>
+            <span class="nexus-timeline-event-time">{{ event.timestamp | date(format="%Y-%m-%d %H:%M") }}</span>
+          </div>
+          <p class="nexus-timeline-event-description">{{ event.description }}</p>
+          {% if event.actor %}
+            <p class="nexus-timeline-event-actor">by {{ event.actor }}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+/* Base Timeline */
+.nexus-order-timeline {
+  background-color: var(--nexus-card);
+  border: 1px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-lg);
+  padding: var(--nexus-space-6);
+}
+
+/* Timeline Header */
+.nexus-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--nexus-space-6);
+  padding-bottom: var(--nexus-space-4);
+  border-bottom: 1px solid var(--nexus-border);
+}
+
+.nexus-timeline-title {
+  font-size: var(--nexus-text-xl);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-fg);
+  margin: 0;
+}
+
+.nexus-timeline-order-id {
+  display: flex;
+  align-items: center;
+  gap: var(--nexus-space-2);
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+}
+
+/* Timeline Events */
+.nexus-timeline-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nexus-space-1);
+}
+
+/* Timeline Event */
+.nexus-timeline-event {
+  display: flex;
+  gap: var(--nexus-space-4);
+  position: relative;
+}
+
+.nexus-timeline-event-current {
+  animation: nexus-timeline-pulse 2s ease-in-out infinite;
+}
+
+@keyframes nexus-timeline-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Timeline Marker Wrapper */
+.nexus-timeline-marker-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Timeline Marker */
+.nexus-timeline-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--nexus-text-xl);
+  background-color: var(--nexus-muted);
+  border: 2px solid var(--nexus-border);
+  border-radius: var(--nexus-radius-full);
+  z-index: 1;
+}
+
+.nexus-timeline-marker-pending {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-color: var(--nexus-status-pending);
+}
+
+.nexus-timeline-marker-funded {
+  background-color: rgba(59, 130, 246, 0.1);
+  border-color: var(--nexus-status-funded);
+}
+
+.nexus-timeline-marker-shipped {
+  background-color: rgba(168, 85, 247, 0.1);
+  border-color: var(--nexus-status-shipped);
+}
+
+.nexus-timeline-marker-completed {
+  background-color: rgba(34, 197, 94, 0.1);
+  border-color: var(--nexus-status-completed);
+}
+
+.nexus-timeline-marker-disputed {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--nexus-status-disputed);
+}
+
+/* Timeline Line */
+.nexus-timeline-line {
+  flex: 1;
+  width: 2px;
+  min-height: 2rem;
+  background-color: var(--nexus-border);
+  margin-top: var(--nexus-space-1);
+}
+
+.nexus-timeline-line-completed {
+  background: linear-gradient(
+    to bottom,
+    var(--nexus-primary) 0%,
+    var(--nexus-border) 100%
+  );
+}
+
+/* Timeline Content */
+.nexus-timeline-content {
+  flex: 1;
+  padding: var(--nexus-space-3) 0;
+}
+
+.nexus-timeline-event-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--nexus-space-2);
+}
+
+.nexus-timeline-event-status {
+  font-size: var(--nexus-text-base);
+  font-weight: var(--nexus-weight-bold);
+  color: var(--nexus-fg);
+  text-transform: capitalize;
+}
+
+.nexus-timeline-event-time {
+  font-size: var(--nexus-text-xs);
+  color: var(--nexus-muted-fg);
+  font-family: var(--nexus-font-mono);
+}
+
+.nexus-timeline-event-description {
+  font-size: var(--nexus-text-sm);
+  color: var(--nexus-muted-fg);
+  line-height: var(--nexus-leading-relaxed);
+  margin: 0;
+}
+
+.nexus-timeline-event-actor {
+  font-size: var(--nexus-text-xs);
+  color: var(--nexus-muted-fg);
+  font-style: italic;
+  margin: var(--nexus-space-1) 0 0 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nexus-order-timeline {
+    padding: var(--nexus-space-4);
+  }
+
+  .nexus-timeline-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--nexus-space-2);
+  }
+
+  .nexus-timeline-marker {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: var(--nexus-text-lg);
+  }
+
+  .nexus-timeline-event-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--nexus-space-1);
+  }
+}
+</style>

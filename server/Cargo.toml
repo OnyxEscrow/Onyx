@@ -1,0 +1,204 @@
+[package]
+name = "server"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = []
+debug-endpoints = []
+
+[dependencies]
+actix-web = "4.4"
+actix-cors = "0.7"
+actix-session = { version = "0.9", features = ["cookie-session"] }
+actix-web-actors = "4.3"
+actix = "0.13"
+actix-governor = "0.5"
+actix-files = "0.6"
+actix-multipart = "0.6"
+tokio = { version = "1.35", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+uuid = { version = "1.6", features = ["v4", "serde"] }
+diesel = { version = "2.1.0", features = ["sqlite", "r2d2", "chrono", "returning_clauses_for_sqlite_3_35", "128-column-tables"] }
+diesel_migrations = { version = "2.1.0", features = ["sqlite"] }
+libsqlite3-sys = { version = "0.27", features = ["bundled-sqlcipher"] }
+rusqlite = { version = "0.30", features = ["bundled-sqlcipher"] }
+dotenvy = "0.15"
+chrono = { version = "0.4", features = ["serde"] }
+aes-gcm = "0.10"
+base64 = "0.22"
+anyhow = "1.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# OPS-001: Error tracking (Sentry)
+sentry = { version = "0.32", features = ["backtrace", "contexts", "panic"] }
+sentry-tracing = "0.32"
+
+# OPS-002: Distributed tracing (Jaeger via OpenTelemetry)
+opentelemetry = "0.21"
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.14", features = ["tonic"] }
+tracing-opentelemetry = "0.22"
+argon2 = { version = "0.5.0", features = ["std"] }
+rand = "0.8"
+rand_distr = "0.4"
+rand_core = { version = "0.6", features = ["std"] }
+validator = { version = "0.16", features = ["derive"] }
+zxcvbn = "3"  # Password strength estimation
+url = "2.5"
+thiserror = "1.0"
+async-trait = "0.1"
+futures-util = "0.3"
+time = "0.3"
+monero-marketplace-common = { path = "../common" }
+monero-marketplace-wallet = { path = "../wallet" }
+nexus-types = { path = "../nexus-types" }
+nexus-crypto-core = { path = "../nexus-crypto-core" }
+hmac = "0.12"
+tera = "1.19"
+lazy_static = "1.4"
+prometheus = "0.13"
+reqwest = { version = "0.11", features = ["json", "multipart", "stream", "socks", "cookies", "blocking"] }
+
+infer = "0.15"
+
+# Reputation system
+reputation-common = { path = "../reputation/common" }
+reputation-crypto = { path = "../reputation/crypto" }
+ed25519-dalek = "2.1"
+curve25519-dalek = "4.0"
+frost-ed25519 = { version = "2.2", default-features = false, features = ["serialization"] }
+sha2 = "0.10"
+sha3 = "0.10"           # Keccak256 for Monero mask derivation
+
+# TM-003: Challenge-Response cryptography
+blake2 = "0.10"
+
+# Shamir Secret Sharing for DB key protection (TM-002)
+sharks = "0.5"
+hex = "0.4"
+once_cell = "1.19"
+base58-monero = { version = "2.0", features = ["check"] }    # Monero address encoding/decoding
+
+# Monero transaction building with Bulletproofs+ (RCT v6)
+monero-bulletproofs-mirror = "0.1.0"
+monero-primitives-mirror = "0.1.0"
+monero-serai-mirror = { version = "0.1.5-alpha", default-features = false }
+
+# v0.15.0: Correct hash_to_point implementation for CLSAG verification
+# Uses Monero's ge_fromfe_frombytes_vartime algorithm (Elligator-like field-to-curve mapping)
+monero-generators-mirror = { version = "0.4", default-features = false }
+
+# Phase 6: Non-custodial wallet seed management
+bip39 = "2.0"           # BIP39 mnemonic generation (12-word seeds)
+hkdf = "0.12"           # HKDF-SHA256 for deterministic key derivation
+pbkdf2 = "0.12"         # PBKDF2-SHA256 for password-based key derivation
+zeroize = { version = "1.7", features = ["derive"] }  # Secure memory clearing
+dashmap = "5.5"         # Concurrent connection tracking
+
+# Redis for session/challenge stores (production-ready)
+redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
+deadpool-redis = "0.14"
+
+# Arbiter Watchdog encryption (v0.70.0)
+chacha20poly1305 = "0.10"
+secrecy = "0.8"
+getrandom = "0.2"
+postcard = { version = "1.0", features = ["alloc"] }
+
+[[bin]]
+name = "arbiter_watchdog"
+path = "src/bin/arbiter_watchdog.rs"
+
+[[bin]]
+name = "apply_api_keys_migration"
+path = "src/bin/apply_api_keys_migration.rs"
+
+[[bin]]
+name = "split_key"
+path = "src/bin/split_key.rs"
+
+[[bin]]
+name = "reconstruct_key"
+path = "src/bin/reconstruct_key.rs"
+
+[[bin]]
+name = "apply_migration"
+path = "src/bin/apply_migration.rs"
+
+[[bin]]
+name = "update_mask"
+path = "src/bin/update_mask.rs"
+
+[[bin]]
+name = "read_escrow"
+path = "src/bin/read_escrow.rs"
+
+[[bin]]
+name = "fix_escrow"
+path = "src/bin/fix_escrow.rs"
+
+[[bin]]
+name = "apply_partial_key_migration"
+path = "src/bin/apply_partial_key_migration.rs"
+
+[[bin]]
+name = "verify_commitment"
+path = "src/bin/verify_commitment.rs"
+
+[[bin]]
+name = "debug_signing_flow"
+path = "src/bin/debug_signing_flow.rs"
+
+[[bin]]
+name = "clsag_test_vectors"
+path = "src/bin/clsag_test_vectors.rs"
+
+[[bin]]
+name = "test_frost_flow"
+path = "src/bin/test_frost_flow.rs"
+
+[[bin]]
+name = "compute_tx_key"
+path = "src/bin/compute_tx_key.rs"
+
+[[bin]]
+name = "verify_platform_output"
+path = "src/bin/verify_platform_output.rs"
+
+[[bin]]
+name = "canonical_tx_key"
+path = "src/bin/canonical_tx_key.rs"
+
+[[bin]]
+name = "verify_derivation"
+path = "src/bin/verify_derivation.rs"
+
+[[bin]]
+name = "check_old_platform"
+path = "src/bin/check_old_platform.rs"
+
+[[bin]]
+name = "verify_encrypted_amount"
+path = "src/bin/verify_encrypted_amount.rs"
+
+[[bin]]
+name = "apply_arbiter_watchdog_migration"
+path = "src/bin/apply_arbiter_watchdog_migration.rs"
+
+[[bin]]
+name = "migrate"
+path = "src/bin/migrate.rs"
+
+[[bin]]
+name = "init_db"
+path = "src/bin/init_db.rs"
+
+[dev-dependencies]
+tokio = { version = "1.35", features = ["macros", "rt-multi-thread"] }
+dotenvy = "0.15"
+tempfile = "3.8"
+rand_chacha = "0.3"  # For deterministic RNG in offline E2E tests
