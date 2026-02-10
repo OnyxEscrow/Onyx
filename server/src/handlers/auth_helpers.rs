@@ -21,9 +21,7 @@ pub enum AuthIdentity {
         scopes: Vec<String>,
     },
     /// Authenticated via browser session cookie.
-    Session {
-        user_id: String,
-    },
+    Session { user_id: String },
 }
 
 impl AuthIdentity {

@@ -27,30 +27,60 @@ async fn test_mock_swap_success_flow_isolated() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
-    assert!(!quote.provider_order_id.is_empty(), "Order ID should be set");
+    assert!(
+        !quote.provider_order_id.is_empty(),
+        "Order ID should be set"
+    );
     assert!(quote.to_amount_atomic > 0, "XMR amount should be positive");
-    assert!(!quote.deposit_address.is_empty(), "BTC address should be set");
-    assert!(quote.from_amount_sats() == 100_000, "BTC amount should match request");
+    assert!(
+        !quote.deposit_address.is_empty(),
+        "BTC address should be set"
+    );
+    assert!(
+        quote.from_amount_sats() == 100_000,
+        "BTC amount should match request"
+    );
 
     // Step 2: Simulate status progression
     let order_id = &quote.provider_order_id;
 
-    let status1 = provider.check_status(order_id).await.expect("Status check 1");
+    let status1 = provider
+        .check_status(order_id)
+        .await
+        .expect("Status check 1");
     assert_eq!(status1.status, SwapStatus::DepositDetected);
 
-    let status2 = provider.check_status(order_id).await.expect("Status check 2");
+    let status2 = provider
+        .check_status(order_id)
+        .await
+        .expect("Status check 2");
     assert_eq!(status2.status, SwapStatus::DepositConfirmed);
 
-    let status3 = provider.check_status(order_id).await.expect("Status check 3");
+    let status3 = provider
+        .check_status(order_id)
+        .await
+        .expect("Status check 3");
     assert_eq!(status3.status, SwapStatus::Swapping);
 
-    let status4 = provider.check_status(order_id).await.expect("Status check 4");
+    let status4 = provider
+        .check_status(order_id)
+        .await
+        .expect("Status check 4");
     assert_eq!(status4.status, SwapStatus::SwapComplete);
-    assert!(status4.xmr_tx_hash.is_some(), "XMR tx hash should be set on completion");
+    assert!(
+        status4.xmr_tx_hash.is_some(),
+        "XMR tx hash should be set on completion"
+    );
 
-    let status5 = provider.check_status(order_id).await.expect("Status check 5");
+    let status5 = provider
+        .check_status(order_id)
+        .await
+        .expect("Status check 5");
     assert_eq!(status5.status, SwapStatus::Completed);
 }
 
@@ -95,7 +125,10 @@ async fn test_exchange_rate_calculation() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // 0.01 BTC at 0.007 BTC/XMR = ~1.43 XMR (minus 0.5% fee)
     // Expected: 1.43 * 0.995 * 1e12 = ~1.42e12 piconeros
@@ -138,8 +171,14 @@ async fn test_multiple_concurrent_quotes() {
     // All should succeed with unique order IDs
     let mut order_ids = std::collections::HashSet::new();
     for handle in handles {
-        let quote = handle.await.expect("Task should complete").expect("Quote should succeed");
-        assert!(!order_ids.contains(&quote.provider_order_id), "Order IDs should be unique");
+        let quote = handle
+            .await
+            .expect("Task should complete")
+            .expect("Quote should succeed");
+        assert!(
+            !order_ids.contains(&quote.provider_order_id),
+            "Order IDs should be unique"
+        );
         order_ids.insert(quote.provider_order_id);
     }
 
@@ -154,14 +193,20 @@ async fn test_multiple_concurrent_quotes() {
 async fn test_provider_availability() {
     // Available provider
     let available = MockSwapProvider::success();
-    assert!(available.is_available().await, "Success provider should be available");
+    assert!(
+        available.is_available().await,
+        "Success provider should be available"
+    );
 
     // Unavailable provider (QuoteError scenario)
     let unavailable = MockSwapProvider::with_config(MockSwapConfig {
         scenario: MockScenario::QuoteError,
         ..Default::default()
     });
-    assert!(!unavailable.is_available().await, "QuoteError provider should not be available");
+    assert!(
+        !unavailable.is_available().await,
+        "QuoteError provider should not be available"
+    );
 }
 
 #[tokio::test]
@@ -186,7 +231,10 @@ async fn test_provider_limits() {
     };
 
     let provider = MockSwapProvider::with_config(config);
-    let limits = provider.get_limits().await.expect("Limits should be available");
+    let limits = provider
+        .get_limits()
+        .await
+        .expect("Limits should be available");
 
     assert_eq!(limits.min_btc_sats, 50_000);
     assert_eq!(limits.max_btc_sats, 50_000_000);
@@ -212,20 +260,38 @@ async fn test_slow_swap_many_checks() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // With checks_until_complete=5, we need at least 5 status checks
     // before transitioning to SwapComplete
-    let mut status = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let mut status = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     let mut check_count = 1;
 
     while status.status != SwapStatus::Completed && check_count < 20 {
-        status = provider.check_status(&quote.provider_order_id).await.unwrap();
+        status = provider
+            .check_status(&quote.provider_order_id)
+            .await
+            .unwrap();
         check_count += 1;
     }
 
-    assert!(check_count >= 5, "Slow swap should require at least {} checks, got {}", 5, check_count);
-    assert_eq!(status.status, SwapStatus::Completed, "Should eventually complete");
+    assert!(
+        check_count >= 5,
+        "Slow swap should require at least {} checks, got {}",
+        5,
+        check_count
+    );
+    assert_eq!(
+        status.status,
+        SwapStatus::Completed,
+        "Should eventually complete"
+    );
 }
 
 // =============================================================================
@@ -254,9 +320,20 @@ async fn test_deterministic_behavior() {
     let quote2 = provider2.get_quote(&request).await.expect("Quote 2");
 
     // Amounts should be identical (deterministic calculation)
-    assert_eq!(quote1.to_amount_atomic, quote2.to_amount_atomic, "XMR amounts should match");
-    assert_eq!(quote1.from_amount_sats(), quote2.from_amount_sats(), "BTC amounts should match");
-    assert_eq!(quote1.rate_btc_per_xmr(), quote2.rate_btc_per_xmr(), "Exchange rates should match");
+    assert_eq!(
+        quote1.to_amount_atomic, quote2.to_amount_atomic,
+        "XMR amounts should match"
+    );
+    assert_eq!(
+        quote1.from_amount_sats(),
+        quote2.from_amount_sats(),
+        "BTC amounts should match"
+    );
+    assert_eq!(
+        quote1.rate_btc_per_xmr(),
+        quote2.rate_btc_per_xmr(),
+        "Exchange rates should match"
+    );
 }
 
 // =============================================================================

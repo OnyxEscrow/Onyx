@@ -74,10 +74,7 @@ pub struct NewDbMultisigParticipant {
 
 impl DbMultisigSession {
     /// Load session by escrow_id
-    pub fn find_by_escrow(
-        conn: &mut SqliteConnection,
-        escrow_id_val: &str,
-    ) -> QueryResult<Self> {
+    pub fn find_by_escrow(conn: &mut SqliteConnection, escrow_id_val: &str) -> QueryResult<Self> {
         multisig_sessions::table
             .filter(multisig_sessions::escrow_id.eq(escrow_id_val))
             .first(conn)

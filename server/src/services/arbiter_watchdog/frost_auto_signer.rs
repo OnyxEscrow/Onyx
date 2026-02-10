@@ -8,8 +8,7 @@ use diesel::prelude::*;
 use frost_ed25519::{
     keys::KeyPackage,
     round1::{self, SigningCommitments},
-    round2,
-    Identifier, SigningPackage,
+    round2, Identifier, SigningPackage,
 };
 use tracing::info;
 
@@ -58,7 +57,8 @@ impl FrostAutoSigner {
         let partial_sig = self.compute_partial_signature(escrow_id, &escrow).await?;
 
         // Store the partial signature
-        self.store_partial_signature(escrow_id, &partial_sig).await?;
+        self.store_partial_signature(escrow_id, &partial_sig)
+            .await?;
 
         info!(
             escrow_id = %escrow_id,
@@ -91,7 +91,8 @@ impl FrostAutoSigner {
         let partial_sig = self.compute_partial_signature(escrow_id, &escrow).await?;
 
         // Store the partial signature
-        self.store_partial_signature(escrow_id, &partial_sig).await?;
+        self.store_partial_signature(escrow_id, &partial_sig)
+            .await?;
 
         info!(
             escrow_id = %escrow_id,
@@ -118,7 +119,9 @@ impl FrostAutoSigner {
     /// Validate escrow state for release
     fn validate_release_state(&self, escrow: &Escrow) -> Result<()> {
         // For dispute-resolved releases, skip normal party consent checks
-        if escrow.status == "disputed" && escrow.dispute_signing_pair.as_deref() == Some("arbiter_vendor") {
+        if escrow.status == "disputed"
+            && escrow.dispute_signing_pair.as_deref() == Some("arbiter_vendor")
+        {
             // Arbiter decided in favor of vendor — skip buyer_release_requested check
             if escrow.vendor_payout_address.is_none() {
                 return Err(anyhow::anyhow!("Vendor payout address not set"));
@@ -146,7 +149,9 @@ impl FrostAutoSigner {
 
         // Must not be disputed (unless arbiter already decided via dispute_signing_pair)
         if escrow.status == "disputed" && escrow.dispute_signing_pair.is_none() {
-            return Err(anyhow::anyhow!("Cannot auto-sign disputed escrow without arbiter decision"));
+            return Err(anyhow::anyhow!(
+                "Cannot auto-sign disputed escrow without arbiter decision"
+            ));
         }
 
         // Must not already have arbiter signature
@@ -160,7 +165,9 @@ impl FrostAutoSigner {
     /// Validate escrow state for refund
     fn validate_refund_state(&self, escrow: &Escrow) -> Result<()> {
         // For dispute-resolved refunds, skip normal party consent checks
-        if escrow.status == "disputed" && escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer") {
+        if escrow.status == "disputed"
+            && escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer")
+        {
             // Arbiter decided in favor of buyer — skip vendor_refund_requested check
             if escrow.buyer_refund_address.is_none() {
                 return Err(anyhow::anyhow!("Buyer refund address not set"));
@@ -188,7 +195,9 @@ impl FrostAutoSigner {
 
         // Must not be disputed (unless arbiter already decided via dispute_signing_pair)
         if escrow.status == "disputed" && escrow.dispute_signing_pair.is_none() {
-            return Err(anyhow::anyhow!("Cannot auto-sign disputed escrow without arbiter decision"));
+            return Err(anyhow::anyhow!(
+                "Cannot auto-sign disputed escrow without arbiter decision"
+            ));
         }
 
         // Must not already have arbiter signature
@@ -211,13 +220,14 @@ impl FrostAutoSigner {
             .ok_or_else(|| anyhow::anyhow!("Arbiter key_package not found in vault"))?;
 
         // 2. Deserialize key_package
-        let key_package_bytes = hex::decode(&key_package_hex)
-            .context("Failed to decode key_package hex")?;
+        let key_package_bytes =
+            hex::decode(&key_package_hex).context("Failed to decode key_package hex")?;
         let key_package: KeyPackage = postcard::from_bytes(&key_package_bytes)
             .context("Failed to deserialize key_package")?;
 
         // 3. Get the message to sign (tx_prefix_hash from signing session)
-        let message = self.get_signing_message(escrow)
+        let message = self
+            .get_signing_message(escrow)
             .context("Failed to get signing message")?;
 
         // 4. Generate signing nonces (Round 1)
@@ -246,19 +256,20 @@ impl FrostAutoSigner {
 
         // For now, we'll use a placeholder approach
         // In production, this would fetch from signing_sessions table or escrow.ring_data_json
-        let ring_data = escrow.ring_data_json.as_ref()
+        let ring_data = escrow
+            .ring_data_json
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("ring_data_json not set - signing not prepared"))?;
 
         // Parse ring_data to extract tx_prefix_hash
-        let parsed: serde_json::Value = serde_json::from_str(ring_data)
-            .context("Failed to parse ring_data_json")?;
+        let parsed: serde_json::Value =
+            serde_json::from_str(ring_data).context("Failed to parse ring_data_json")?;
 
         let tx_prefix_hash = parsed["tx_prefix_hash"]
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("tx_prefix_hash not found in ring_data"))?;
 
-        hex::decode(tx_prefix_hash)
-            .context("Failed to decode tx_prefix_hash")
+        hex::decode(tx_prefix_hash).context("Failed to decode tx_prefix_hash")
     }
 
     /// Build FROST signing package from escrow state
@@ -272,22 +283,26 @@ impl FrostAutoSigner {
         // In FROST 2-of-3, we need exactly 2 signers including ourselves
 
         // Arbiter is identifier 3 in our scheme
-        let arbiter_id = Identifier::try_from(3u16)
-            .context("Failed to create arbiter identifier")?;
+        let arbiter_id =
+            Identifier::try_from(3u16).context("Failed to create arbiter identifier")?;
 
         // Determine other signer and their identifier
         let (other_id, other_commitments_hex) = if escrow.vendor_signature.is_some() {
             // Vendor signed first (identifier 2)
-            let vendor_id = Identifier::try_from(2u16)
-                .context("Failed to create vendor identifier")?;
-            let commitments = escrow.vendor_nonce_commitment.as_ref()
+            let vendor_id =
+                Identifier::try_from(2u16).context("Failed to create vendor identifier")?;
+            let commitments = escrow
+                .vendor_nonce_commitment
+                .as_ref()
                 .ok_or_else(|| anyhow::anyhow!("Vendor nonce commitment not found"))?;
             (vendor_id, commitments.clone())
         } else if escrow.buyer_signature.is_some() {
             // Buyer signed first (identifier 1)
-            let buyer_id = Identifier::try_from(1u16)
-                .context("Failed to create buyer identifier")?;
-            let commitments = escrow.buyer_nonce_commitment.as_ref()
+            let buyer_id =
+                Identifier::try_from(1u16).context("Failed to create buyer identifier")?;
+            let commitments = escrow
+                .buyer_nonce_commitment
+                .as_ref()
                 .ok_or_else(|| anyhow::anyhow!("Buyer nonce commitment not found"))?;
             (buyer_id, commitments.clone())
         } else {

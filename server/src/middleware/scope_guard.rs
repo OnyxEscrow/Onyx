@@ -84,9 +84,7 @@ where
             let has_scope = {
                 let extensions = req.extensions();
                 match extensions.get::<ApiKeyContext>() {
-                    Some(ctx) => {
-                        ctx.scopes.iter().any(|s| s == "*" || s == &required_scope)
-                    }
+                    Some(ctx) => ctx.scopes.iter().any(|s| s == "*" || s == &required_scope),
                     None => {
                         // No API key context means no authentication was applied upstream.
                         // This is a configuration error; deny by default.
@@ -101,12 +99,10 @@ where
                     "API key missing required scope"
                 );
                 return Ok(req
-                    .into_response(
-                        HttpResponse::Forbidden().json(serde_json::json!({
-                            "error": "Insufficient permissions",
-                            "message": format!("API key requires scope '{}'", required_scope)
-                        })),
-                    )
+                    .into_response(HttpResponse::Forbidden().json(serde_json::json!({
+                        "error": "Insufficient permissions",
+                        "message": format!("API key requires scope '{}'", required_scope)
+                    })))
                     .map_into_right_body());
             }
 

@@ -48,7 +48,11 @@ async fn main() -> Result<()> {
         match response {
             Ok(resp) => {
                 let json: serde_json::Value = resp.json().await?;
-                if let Some(key) = json.get("result").and_then(|r| r.get("key")).and_then(|k| k.as_str()) {
+                if let Some(key) = json
+                    .get("result")
+                    .and_then(|r| r.get("key"))
+                    .and_then(|k| k.as_str())
+                {
                     println!("{} ({}) spend key: {}", name, port, key);
 
                     // Parse as point
@@ -88,8 +92,14 @@ async fn main() -> Result<()> {
 
     // Compute sum of vendor + buyer spend keys
     if spend_pubs.len() >= 2 {
-        let vendor_pub = spend_pubs.iter().find(|(n, _)| *n == "Vendor").map(|(_, p)| p);
-        let buyer_pub = spend_pubs.iter().find(|(n, _)| *n == "Buyer").map(|(_, p)| p);
+        let vendor_pub = spend_pubs
+            .iter()
+            .find(|(n, _)| *n == "Vendor")
+            .map(|(_, p)| p);
+        let buyer_pub = spend_pubs
+            .iter()
+            .find(|(n, _)| *n == "Buyer")
+            .map(|(_, p)| p);
 
         if let (Some(v), Some(b)) = (vendor_pub, buyer_pub) {
             let sum = v + b;
@@ -107,10 +117,15 @@ async fn main() -> Result<()> {
     if spend_pubs.len() >= 3 {
         println!("\n--- All Pairwise Sums ---\n");
         for i in 0..spend_pubs.len() {
-            for j in (i+1)..spend_pubs.len() {
+            for j in (i + 1)..spend_pubs.len() {
                 let sum = spend_pubs[i].1 + spend_pubs[j].1;
                 let sum_hex = hex::encode(sum.compress().as_bytes());
-                println!("{} + {} = {}", spend_pubs[i].0, spend_pubs[j].0, &sum_hex[..16]);
+                println!(
+                    "{} + {} = {}",
+                    spend_pubs[i].0,
+                    spend_pubs[j].0,
+                    &sum_hex[..16]
+                );
             }
         }
     }

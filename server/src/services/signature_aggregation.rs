@@ -60,10 +60,7 @@ pub struct AggregatedClsagSignature {
 }
 
 /// Parse a partial signature from JSON-stored format
-pub fn parse_partial_signature(
-    signature_json: &str,
-    role: &str,
-) -> Result<PartialClsagSignature> {
+pub fn parse_partial_signature(signature_json: &str, role: &str) -> Result<PartialClsagSignature> {
     #[derive(serde::Deserialize)]
     struct StoredSignature {
         signature: SignatureInner,
@@ -81,12 +78,11 @@ pub fn parse_partial_signature(
         c1: String,
     }
 
-    let stored: StoredSignature = serde_json::from_str(signature_json)
-        .context("Failed to parse signature JSON")?;
+    let stored: StoredSignature =
+        serde_json::from_str(signature_json).context("Failed to parse signature JSON")?;
 
     // Parse D point
-    let d_bytes = hex::decode(&stored.signature.d)
-        .context("Failed to decode D point hex")?;
+    let d_bytes = hex::decode(&stored.signature.d).context("Failed to decode D point hex")?;
     if d_bytes.len() != 32 {
         anyhow::bail!("D point must be 32 bytes, got {}", d_bytes.len());
     }
@@ -94,8 +90,7 @@ pub fn parse_partial_signature(
     d.copy_from_slice(&d_bytes);
 
     // Parse c1 scalar
-    let c1_bytes = hex::decode(&stored.signature.c1)
-        .context("Failed to decode c1 hex")?;
+    let c1_bytes = hex::decode(&stored.signature.c1).context("Failed to decode c1 hex")?;
     if c1_bytes.len() != 32 {
         anyhow::bail!("c1 must be 32 bytes, got {}", c1_bytes.len());
     }
@@ -105,8 +100,7 @@ pub fn parse_partial_signature(
     // Parse s values
     let mut s_values = Vec::with_capacity(stored.signature.s.len());
     for (i, s_hex) in stored.signature.s.iter().enumerate() {
-        let s_bytes = hex::decode(s_hex)
-            .context(format!("Failed to decode s[{}] hex", i))?;
+        let s_bytes = hex::decode(s_hex).context(format!("Failed to decode s[{}] hex", i))?;
         if s_bytes.len() != 32 {
             anyhow::bail!("s[{}] must be 32 bytes, got {}", i, s_bytes.len());
         }
@@ -237,8 +231,8 @@ pub fn aggregate_clsag_signatures(
 pub fn compute_d_from_key_image(aggregated_key_image: &str) -> Result<[u8; 32]> {
     use curve25519_dalek::edwards::CompressedEdwardsY;
 
-    let ki_bytes = hex::decode(aggregated_key_image)
-        .context("Failed to decode aggregated key image hex")?;
+    let ki_bytes =
+        hex::decode(aggregated_key_image).context("Failed to decode aggregated key image hex")?;
 
     if ki_bytes.len() != 32 {
         anyhow::bail!(
@@ -274,9 +268,7 @@ pub fn compute_d_from_key_image(aggregated_key_image: &str) -> Result<[u8; 32]> 
 
 /// Convert aggregated signature to JSON format for transaction builder
 pub fn aggregated_to_json(sig: &AggregatedClsagSignature) -> serde_json::Value {
-    let s_hex: Vec<String> = sig.s_values.iter()
-        .map(|s| hex::encode(s))
-        .collect();
+    let s_hex: Vec<String> = sig.s_values.iter().map(|s| hex::encode(s)).collect();
 
     serde_json::json!({
         "D": hex::encode(&sig.d),
@@ -346,19 +338,19 @@ mod tests {
     #[test]
     fn test_aggregate_matching_rings() {
         // Round-Robin: decoys should match, only real input differs
-        let decoy = [1u8; 32];  // Same decoy for both signers
-        let sig1_real = [10u8; 32];  // Signer 1's partial s[1]
-        let sig2_real = [20u8; 32];  // Signer 2's partial s[1]
+        let decoy = [1u8; 32]; // Same decoy for both signers
+        let sig1_real = [10u8; 32]; // Signer 1's partial s[1]
+        let sig2_real = [20u8; 32]; // Signer 2's partial s[1]
 
         let sig1 = PartialClsagSignature {
-            s_values: vec![decoy, sig1_real],  // decoy at [0], real at [1]
+            s_values: vec![decoy, sig1_real], // decoy at [0], real at [1]
             c1: [0u8; 32],
             d: [0u8; 32],
             role: "vendor".to_string(),
         };
 
         let sig2 = PartialClsagSignature {
-            s_values: vec![decoy, sig2_real],  // Same decoy at [0], different real at [1]
+            s_values: vec![decoy, sig2_real], // Same decoy at [0], different real at [1]
             c1: [0u8; 32],
             d: [0u8; 32],
             role: "buyer".to_string(),

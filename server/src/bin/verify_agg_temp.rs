@@ -12,9 +12,15 @@ fn main() {
     let arbiter_bytes: [u8; 32] = hex::decode(arbiter_pki).unwrap().try_into().unwrap();
 
     // Decompress to points
-    let buyer_point = CompressedEdwardsY(buyer_bytes).decompress().expect("buyer decompress");
-    let vendor_point = CompressedEdwardsY(vendor_bytes).decompress().expect("vendor decompress");
-    let arbiter_point = CompressedEdwardsY(arbiter_bytes).decompress().expect("arbiter decompress");
+    let buyer_point = CompressedEdwardsY(buyer_bytes)
+        .decompress()
+        .expect("buyer decompress");
+    let vendor_point = CompressedEdwardsY(vendor_bytes)
+        .decompress()
+        .expect("vendor decompress");
+    let arbiter_point = CompressedEdwardsY(arbiter_bytes)
+        .decompress()
+        .expect("arbiter decompress");
 
     // Test different combinations
     let buyer_vendor = buyer_point + vendor_point;
@@ -31,14 +37,42 @@ fn main() {
     println!("Stored Aggregated: {}", stored_agg);
     println!();
     println!("buyer + vendor:   {}", buyer_vendor_hex);
-    println!("  MATCH? {}", if buyer_vendor_hex == stored_agg { "✅ YES" } else { "❌ NO" });
+    println!(
+        "  MATCH? {}",
+        if buyer_vendor_hex == stored_agg {
+            "✅ YES"
+        } else {
+            "❌ NO"
+        }
+    );
     println!();
     println!("vendor + arbiter: {}", vendor_arbiter_hex);
-    println!("  MATCH? {}", if vendor_arbiter_hex == stored_agg { "✅ YES (BUG!)" } else { "❌ NO" });
+    println!(
+        "  MATCH? {}",
+        if vendor_arbiter_hex == stored_agg {
+            "✅ YES (BUG!)"
+        } else {
+            "❌ NO"
+        }
+    );
     println!();
     println!("buyer + arbiter:  {}", buyer_arbiter_hex);
-    println!("  MATCH? {}", if buyer_arbiter_hex == stored_agg { "✅ YES (BUG!)" } else { "❌ NO" });
+    println!(
+        "  MATCH? {}",
+        if buyer_arbiter_hex == stored_agg {
+            "✅ YES (BUG!)"
+        } else {
+            "❌ NO"
+        }
+    );
     println!();
     println!("all three:        {}", all_three_hex);
-    println!("  MATCH? {}", if all_three_hex == stored_agg { "✅ YES (BUG! All 3 included!)" } else { "❌ NO" });
+    println!(
+        "  MATCH? {}",
+        if all_three_hex == stored_agg {
+            "✅ YES (BUG! All 3 included!)"
+        } else {
+            "❌ NO"
+        }
+    );
 }

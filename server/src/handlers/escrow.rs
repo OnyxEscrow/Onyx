@@ -1,16 +1,19 @@
 //! Escrow-specific API handlers
 
+use crate::db::{db_load_escrow, db_load_escrow_by_str};
 use actix_session::Session;
 use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use crate::db::{db_load_escrow, db_load_escrow_by_str};
+use tracing::{error, info, warn};
 use url::Url;
 use uuid::Uuid;
 use validator::Validate;
-use tracing::{info, error, warn};
 
-use crate::config::{get_configured_network, get_tx_fee, get_platform_wallet_address, get_release_fee_bps, get_refund_fee_bps};
+use crate::config::{
+    get_configured_network, get_platform_wallet_address, get_refund_fee_bps, get_release_fee_bps,
+    get_tx_fee,
+};
 use crate::crypto::address_validation::validate_address_for_network;
 use crate::db::DbPool;
 use crate::logging::sanitize::{sanitize_escrow_id, sanitize_user_id};
@@ -20,7 +23,9 @@ use crate::models::webhook::WebhookEventType;
 use crate::services::escrow::EscrowOrchestrator;
 use crate::services::frost_coordinator::FrostCoordinator;
 use crate::services::messaging::MessagingService;
-use crate::services::webhook_dispatcher::{WebhookDispatcher, build_escrow_payload, emit_webhook_nonblocking};
+use crate::services::webhook_dispatcher::{
+    build_escrow_payload, emit_webhook_nonblocking, WebhookDispatcher,
+};
 
 // ============================================================================
 // NON-CUSTODIAL: Client Wallet Registration
@@ -54,30 +59,26 @@ pub struct RegisterWalletRpcRequest {
 fn validate_client_role(role: &str) -> Result<(), validator::ValidationError> {
     match role.to_lowercase().as_str() {
         "buyer" | "vendor" => Ok(()),
-        "arbiter" => Err(validator::ValidationError::new(
-            "role_not_allowed",
-        )),
+        "arbiter" => Err(validator::ValidationError::new("role_not_allowed")),
         _ => Err(validator::ValidationError::new("invalid_role")),
     }
 }
 
 /// Validate RPC URL: only allow localhost or .onion (no public URLs)
 fn validate_rpc_url(url: &str) -> Result<(), validator::ValidationError> {
-    let parsed = Url::parse(url)
-        .map_err(|_| validator::ValidationError::new("invalid_url"))?;
+    let parsed = Url::parse(url).map_err(|_| validator::ValidationError::new("invalid_url"))?;
 
-    let host = parsed.host_str()
+    let host = parsed
+        .host_str()
         .ok_or_else(|| validator::ValidationError::new("no_host"))?;
 
     // Only allow localhost, 127.x.x.x, or .onion addresses
-    let is_localhost = host.starts_with("127.")
-        || host.eq("localhost")
-        || host.starts_with("::1");
+    let is_localhost = host.starts_with("127.") || host.eq("localhost") || host.starts_with("::1");
     let is_onion = host.ends_with(".onion");
 
     if !is_localhost && !is_onion {
         return Err(validator::ValidationError::new(
-            "rpc_url_must_be_local_or_onion"
+            "rpc_url_must_be_local_or_onion",
         ));
     }
 
@@ -101,12 +102,14 @@ fn validate_edwards_point_hex(hex_key: &str) -> Result<(), String> {
 
     // Validate hex length (32 bytes = 64 hex chars)
     if hex_key.len() != 64 {
-        return Err(format!("Invalid key length: expected 64 hex chars, got {}", hex_key.len()));
+        return Err(format!(
+            "Invalid key length: expected 64 hex chars, got {}",
+            hex_key.len()
+        ));
     }
 
     // Decode hex
-    let bytes = hex::decode(hex_key)
-        .map_err(|e| format!("Invalid hex: {}", e))?;
+    let bytes = hex::decode(hex_key).map_err(|e| format!("Invalid hex: {}", e))?;
 
     // Convert to fixed array
     let mut arr = [0u8; 32];
@@ -114,7 +117,8 @@ fn validate_edwards_point_hex(hex_key: &str) -> Result<(), String> {
 
     // Decompress to verify it's on the curve
     let compressed = CompressedEdwardsY(arr);
-    let decompressed = compressed.decompress()
+    let decompressed = compressed
+        .decompress()
         .ok_or_else(|| "Point not on Edwards curve".to_string())?;
 
     // F5 FIX: Check canonical form (re-compressing gives same bytes)
@@ -285,7 +289,8 @@ pub async fn register_wallet_rpc(
 
             HttpResponse::Ok().json(RegisterWalletRpcResponse {
                 success: true,
-                message: "✅ Wallet RPC registered successfully. You control your private keys.".to_string(),
+                message: "✅ Wallet RPC registered successfully. You control your private keys."
+                    .to_string(),
                 wallet_id: wallet_id.to_string(),
                 wallet_address,
                 role: payload.role.clone(),
@@ -613,14 +618,15 @@ pub async fn release_funds(
     }
 
     // Get authenticated user (must be buyer) (dual-auth: API key or session)
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     let user_id = match user_id_str.parse::<Uuid>() {
         Ok(id) => id,
@@ -693,14 +699,15 @@ pub async fn refund_funds(
     }
 
     // Get authenticated user (must be vendor or arbiter) (dual-auth: API key or session)
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     let user_id = match user_id_str.parse::<Uuid>() {
         Ok(id) => id,
@@ -780,7 +787,10 @@ pub async fn initiate_dispute(
     payload: web::Json<InitiateDisputeRequest>,
     webhook_dispatcher: web::Data<Arc<WebhookDispatcher>>,
 ) -> impl Responder {
-    tracing::info!("[DISPUTE] Received dispute request, reason length: {}", payload.reason.len());
+    tracing::info!(
+        "[DISPUTE] Received dispute request, reason length: {}",
+        payload.reason.len()
+    );
 
     // Validate request
     if let Err(e) = payload.validate() {
@@ -791,14 +801,15 @@ pub async fn initiate_dispute(
     }
 
     // Get authenticated user (dual-auth: API key or session)
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     let user_id = match user_id_str.parse::<Uuid>() {
         Ok(id) => id,
@@ -831,8 +842,8 @@ pub async fn initiate_dispute(
 
     // Update status to disputed + set dispute fields + assign real arbiter UUID
     {
-        use diesel::prelude::*;
         use crate::schema::{escrows, users};
+        use diesel::prelude::*;
 
         let pool_ref = _pool.clone();
         let eid = escrow.id.clone();
@@ -842,16 +853,17 @@ pub async fn initiate_dispute(
             let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
 
             // If arbiter_id is "system_arbiter" or "pending", resolve to real UUID
-            let resolved_arbiter = if current_arbiter == "system_arbiter" || current_arbiter == "pending" {
-                let arbiter_user: Option<crate::models::user::User> = users::table
-                    .filter(users::role.eq("arbiter"))
-                    .first(&mut conn)
-                    .optional()
-                    .unwrap_or(None);
-                arbiter_user.map(|a| a.id).unwrap_or(current_arbiter)
-            } else {
-                current_arbiter
-            };
+            let resolved_arbiter =
+                if current_arbiter == "system_arbiter" || current_arbiter == "pending" {
+                    let arbiter_user: Option<crate::models::user::User> = users::table
+                        .filter(users::role.eq("arbiter"))
+                        .first(&mut conn)
+                        .optional()
+                        .unwrap_or(None);
+                    arbiter_user.map(|a| a.id).unwrap_or(current_arbiter)
+                } else {
+                    current_arbiter
+                };
 
             diesel::update(escrows::table.filter(escrows::id.eq(&eid)))
                 .set((
@@ -863,7 +875,9 @@ pub async fn initiate_dispute(
                 ))
                 .execute(&mut conn)
                 .map_err(|e| format!("{}", e))
-        }).await {
+        })
+        .await
+        {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to update escrow: {}", e)
             }));
@@ -881,11 +895,15 @@ pub async fn initiate_dispute(
     emit_webhook_nonblocking(
         webhook_dispatcher.get_ref().clone(),
         WebhookEventType::EscrowDisputed,
-        build_escrow_payload(&escrow_id_str, "escrow.disputed", serde_json::json!({
-            "initiated_by": user_id_str,
-            "reason": payload.reason,
-            "status": "disputed",
-        })),
+        build_escrow_payload(
+            &escrow_id_str,
+            "escrow.disputed",
+            serde_json::json!({
+                "initiated_by": user_id_str,
+                "reason": payload.reason,
+                "status": "disputed",
+            }),
+        ),
     );
 
     HttpResponse::Ok().json(serde_json::json!({
@@ -941,14 +959,15 @@ pub async fn resolve_dispute(
     }
 
     // Get authenticated user (must be arbiter) (dual-auth: API key or session)
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     let user_id = match user_id_str.parse::<Uuid>() {
         Ok(id) => id,
@@ -976,8 +995,8 @@ pub async fn resolve_dispute(
 
     // Verify user has arbiter role (any arbiter can resolve — FROST shares come from escrow's ring_data_json)
     {
-        use diesel::prelude::*;
         use crate::schema::users;
+        use diesel::prelude::*;
 
         let pool_ref = _pool.clone();
         let uid = user_id.to_string();
@@ -989,7 +1008,9 @@ pub async fn resolve_dispute(
                 .first::<String>(&mut conn)
                 .optional()
                 .map_err(|e| format!("{}", e))
-        }).await {
+        })
+        .await
+        {
             Ok(Ok(Some(role))) => role == "arbiter",
             _ => false,
         };
@@ -1025,14 +1046,21 @@ pub async fn resolve_dispute(
     // 1. Check FROST shares BEFORE changing status (prevent stuck intermediate state)
     let has_shares = {
         let ring_json = escrow.ring_data_json.as_deref().unwrap_or("{}");
-        let ring_data: serde_json::Value = serde_json::from_str(ring_json).unwrap_or_else(|_| serde_json::json!({}));
+        let ring_data: serde_json::Value =
+            serde_json::from_str(ring_json).unwrap_or_else(|_| serde_json::json!({}));
 
-        let arbiter = ring_data.get("arbiter_frost_share")
+        let arbiter = ring_data
+            .get("arbiter_frost_share")
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty());
 
-        let winner_key = if dispute_pair == "arbiter_buyer" { "buyer_frost_share" } else { "vendor_frost_share" };
-        let winner = ring_data.get(winner_key)
+        let winner_key = if dispute_pair == "arbiter_buyer" {
+            "buyer_frost_share"
+        } else {
+            "vendor_frost_share"
+        };
+        let winner = ring_data
+            .get(winner_key)
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty());
 
@@ -1045,8 +1073,8 @@ pub async fn resolve_dispute(
     // 2. Record arbiter decision: set dispute_signing_pair + recipient_address
     //    Status stays "disputed" until broadcast succeeds (state machine correctness)
     {
-        use diesel::prelude::*;
         use crate::schema::escrows;
+        use diesel::prelude::*;
 
         let pool_ref = _pool.clone();
         let eid = escrow_id_str.clone();
@@ -1063,7 +1091,9 @@ pub async fn resolve_dispute(
                 ))
                 .execute(&mut conn)
                 .map_err(|e| format!("{}", e))
-        }).await {
+        })
+        .await
+        {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to update escrow: {}", e)
             }));
@@ -1081,12 +1111,16 @@ pub async fn resolve_dispute(
     // 3. Update status to resolved_buyer/resolved_vendor IMMEDIATELY
     //    This lets the winning party's frontend detect the resolution and auto-submit their FROST share
     {
-        use diesel::prelude::*;
         use crate::schema::escrows;
+        use diesel::prelude::*;
 
         let pool_ref = _pool.clone();
         let eid = escrow_id_str.clone();
-        let resolved_status = if dispute_pair == "arbiter_buyer" { "resolved_buyer" } else { "resolved_vendor" };
+        let resolved_status = if dispute_pair == "arbiter_buyer" {
+            "resolved_buyer"
+        } else {
+            "resolved_vendor"
+        };
 
         if let Err(e) = web::block(move || {
             let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
@@ -1097,7 +1131,9 @@ pub async fn resolve_dispute(
                 ))
                 .execute(&mut conn)
                 .map_err(|e| format!("{}", e))
-        }).await {
+        })
+        .await
+        {
             error!(escrow_id = %escrow_id_str, error = %e, "Failed to update status to resolved");
         }
 
@@ -1123,12 +1159,16 @@ pub async fn resolve_dispute(
 
     // 4. Shares present — update status to resolved and proceed to broadcast
     {
-        use diesel::prelude::*;
         use crate::schema::escrows;
+        use diesel::prelude::*;
 
         let pool_ref = _pool.clone();
         let eid = escrow_id_str.clone();
-        let new_status = if dispute_pair == "arbiter_buyer" { "resolved_buyer" } else { "resolved_vendor" };
+        let new_status = if dispute_pair == "arbiter_buyer" {
+            "resolved_buyer"
+        } else {
+            "resolved_vendor"
+        };
 
         if let Err(e) = web::block(move || {
             let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
@@ -1139,7 +1179,9 @@ pub async fn resolve_dispute(
                 ))
                 .execute(&mut conn)
                 .map_err(|e| format!("{}", e))
-        }).await {
+        })
+        .await
+        {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to update status: {}", e)
             }));
@@ -1162,7 +1204,9 @@ pub async fn resolve_dispute(
     // 4. Call full_offline_broadcast_dispute CLI binary (atomic CLSAG broadcast)
     let cli_path = std::env::current_dir()
         .map(|p| p.join("target/release/full_offline_broadcast_dispute"))
-        .unwrap_or_else(|_| std::path::PathBuf::from("./target/release/full_offline_broadcast_dispute"));
+        .unwrap_or_else(|_| {
+            std::path::PathBuf::from("./target/release/full_offline_broadcast_dispute")
+        });
 
     info!(
         escrow_id = %escrow_id_str,
@@ -1202,35 +1246,41 @@ pub async fn resolve_dispute(
 
         // Update final status + tx_hash in DB
         {
-            use diesel::prelude::*;
             use crate::schema::escrows::dsl::*;
+            use diesel::prelude::*;
 
             let pool_ref = _pool.clone();
             let eid = escrow_id_str.clone();
             let txh = tx_hash.clone();
-            let final_status = if dispute_pair == "arbiter_buyer" { "refunded" } else { "completed" };
+            let final_status = if dispute_pair == "arbiter_buyer" {
+                "refunded"
+            } else {
+                "completed"
+            };
             let _ = web::block(move || {
                 let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
                 diesel::update(escrows.filter(id.eq(&eid)))
-                    .set((
-                        status.eq(final_status),
-                        broadcast_tx_hash.eq(&txh),
-                    ))
+                    .set((status.eq(final_status), broadcast_tx_hash.eq(&txh)))
                     .execute(&mut conn)
                     .map_err(|e| format!("{}", e))
-            }).await;
+            })
+            .await;
         }
 
         // B2B Webhook: EscrowResolved
         emit_webhook_nonblocking(
             webhook_dispatcher.get_ref().clone(),
             WebhookEventType::EscrowResolved,
-            build_escrow_payload(&escrow_id_str, "escrow.resolved", serde_json::json!({
-                "resolution": &payload.resolution,
-                "tx_hash": &tx_hash,
-                "status": "resolved",
-                "method": "cli_dispute_broadcast",
-            })),
+            build_escrow_payload(
+                &escrow_id_str,
+                "escrow.resolved",
+                serde_json::json!({
+                    "resolution": &payload.resolution,
+                    "tx_hash": &tx_hash,
+                    "status": "resolved",
+                    "method": "cli_dispute_broadcast",
+                }),
+            ),
         );
 
         HttpResponse::Ok().json(serde_json::json!({
@@ -1283,8 +1333,8 @@ pub async fn set_dispute_signing_pair(
     path: web::Path<String>,
     payload: web::Json<SetDisputeSigningPairRequest>,
 ) -> impl Responder {
-    use diesel::prelude::*;
     use crate::schema::escrows;
+    use diesel::prelude::*;
 
     // Validate signing_pair value
     let signing_pair = payload.signing_pair.trim();
@@ -1404,14 +1454,15 @@ pub async fn get_escrow(
     path: web::Path<String>,
 ) -> impl Responder {
     // Get authenticated user (dual-auth: API key or session)
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     // Parse escrow_id from path (supports both UUID and esc_ prefixed IDs)
     let escrow_id_str = path.into_inner();
@@ -1787,7 +1838,9 @@ pub async fn request_partial_refund(
     let db_pool = pool.clone();
 
     let db_result = tokio::task::spawn_blocking(move || {
-        let mut conn = db_pool.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut conn = db_pool
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
         Escrow::request_refund(&mut conn, escrow_id_for_db, &refund_addr_clone)
             .map_err(|e| format!("Failed to record refund request: {}", e))
     })
@@ -1845,7 +1898,8 @@ pub async fn request_partial_refund(
                 balance_recoverable_xmr: format!("{:.6}", balance_xmr),
                 refund_address: refund_address.to_string(),
                 requires_arbiter_signature: true,
-                message: "Refund request submitted. Arbiter will process within 48-72 hours.".to_string(),
+                message: "Refund request submitted. Arbiter will process within 48-72 hours."
+                    .to_string(),
             })
         }
         Ok(Err(e)) => {
@@ -1880,11 +1934,10 @@ pub async fn request_partial_refund(
 ///
 /// CRITICAL: This prevents loss of funds from invalid or wrong-network addresses
 fn validate_monero_address(address: &str) -> Result<(), String> {
-    let network = get_configured_network()
-        .map_err(|e| format!("Network configuration error: {}", e))?;
+    let network =
+        get_configured_network().map_err(|e| format!("Network configuration error: {}", e))?;
 
-    validate_address_for_network(address, network)
-        .map_err(|e| format!("{}", e))
+    validate_address_for_network(address, network).map_err(|e| format!("{}", e))
 }
 
 // ============================================================================
@@ -2146,7 +2199,10 @@ pub async fn sign_action(
     let mut escrow = match Escrow::find_by_id(&mut conn, escrow_id.to_string()) {
         Ok(e) => e,
         Err(e) => {
-            tracing::error!("Escrow {} not found", sanitize_escrow_id(&escrow_id.to_string()));
+            tracing::error!(
+                "Escrow {} not found",
+                sanitize_escrow_id(&escrow_id.to_string())
+            );
             return HttpResponse::NotFound().json(serde_json::json!({
                 "error": "Escrow not found"
             }));
@@ -2163,7 +2219,10 @@ pub async fn sign_action(
         let seed_phrase = match &payload.seed_phrase {
             Some(seed) if seed.split_whitespace().count() == 12 => seed.clone(),
             Some(seed) if seed.split_whitespace().count() != 12 => {
-                tracing::warn!("Invalid seed phrase length for WASM escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+                tracing::warn!(
+                    "Invalid seed phrase length for WASM escrow {}",
+                    sanitize_escrow_id(&escrow_id.to_string())
+                );
                 return HttpResponse::BadRequest().json(serde_json::json!({
                     "error": "Invalid seed phrase",
                     "message": "Seed phrase must be exactly 12 words"
@@ -2274,7 +2333,10 @@ pub async fn sign_action(
     let encrypted_seed = match user.encrypted_wallet_seed {
         Some(seed) => seed,
         None => {
-            tracing::error!("User {} has no wallet seed", sanitize_user_id(&user_id.to_string()));
+            tracing::error!(
+                "User {} has no wallet seed",
+                sanitize_user_id(&user_id.to_string())
+            );
             return HttpResponse::BadRequest().json(serde_json::json!({
                 "error": "No wallet seed found. Please create an escrow first to generate your wallet."
             }));
@@ -2284,7 +2346,10 @@ pub async fn sign_action(
     let salt = match user.wallet_seed_salt {
         Some(s) => s,
         None => {
-            tracing::error!("User {} has no seed salt", sanitize_user_id(&user_id.to_string()));
+            tracing::error!(
+                "User {} has no seed salt",
+                sanitize_user_id(&user_id.to_string())
+            );
             return HttpResponse::BadRequest().json(serde_json::json!({
                 "error": "No seed salt found"
             }));
@@ -2465,19 +2530,16 @@ pub async fn send_message(
     };
 
     // Send message
-    let message = match messaging_service.send_message(
-        &mut conn,
-        &escrow_id_str,
-        &user_id,
-        &payload.content,
-    ) {
-        Ok(msg) => msg,
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Failed to send message: {}", e)
-            }))
-        }
-    };
+    let message =
+        match messaging_service.send_message(&mut conn, &escrow_id_str, &user_id, &payload.content)
+        {
+            Ok(msg) => msg,
+            Err(e) => {
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Failed to send message: {}", e)
+                }))
+            }
+        };
 
     // Broadcast WebSocket event to all participants
     let sender_uuid = match Uuid::parse_str(&user_id) {
@@ -2579,7 +2641,9 @@ pub async fn get_messages(
     };
 
     // Mark messages as read (except sender's own messages)
-    if let Err(e) = messaging_service.mark_all_as_read_except_sender(&mut conn, &escrow_id_str, &user_id) {
+    if let Err(e) =
+        messaging_service.mark_all_as_read_except_sender(&mut conn, &escrow_id_str, &user_id)
+    {
         tracing::warn!("Failed to mark messages as read: {}", e);
         // Non-critical error, continue
     }
@@ -2752,7 +2816,7 @@ async fn call_daemon_get_outs(
     // Call daemon via /get_outs endpoint (NOT /json_rpc!)
     // The get_outs method is only available as a direct HTTP endpoint
     let client = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(45))  // v0.43.0: Increased from 10s for bootstrap daemon
+        .timeout(std::time::Duration::from_secs(45)) // v0.43.0: Increased from 10s for bootstrap daemon
         .build()
         .map_err(|e| format!("HTTP client error: {}", e))?;
 
@@ -2901,7 +2965,8 @@ pub async fn prepare_sign(
                     let has_r = v.get("r_public").and_then(|r| r.as_str()).is_some();
                     let has_r_prime = v.get("r_prime_public").and_then(|r| r.as_str()).is_some();
                     if has_r && has_r_prime {
-                        let r_prefix = v.get("r_public")
+                        let r_prefix = v
+                            .get("r_public")
                             .and_then(|r| r.as_str())
                             .map(|s| &s[..std::cmp::min(16, s.len())])
                             .unwrap_or("???");
@@ -2911,7 +2976,7 @@ pub async fn prepare_sign(
                             r_hex_prefix = r_prefix,
                             "Including FULL peer_nonce_public JSON for MuSig2 aggregation"
                         );
-                        Some(nonce_json)  // Return the FULL JSON, not just r_public
+                        Some(nonce_json) // Return the FULL JSON, not just r_public
                     } else {
                         warn!(
                             escrow_id = %escrow_id_str,
@@ -2960,8 +3025,11 @@ pub async fn prepare_sign(
 
     // Check escrow is in correct state for signing
     // v0.67.0: Also accept round_robin_signing (dispute resolution) and ready_to_release
-    if escrow.status != "funded" && escrow.status != "active"
-        && escrow.status != "round_robin_signing" && escrow.status != "ready_to_release" {
+    if escrow.status != "funded"
+        && escrow.status != "active"
+        && escrow.status != "round_robin_signing"
+        && escrow.status != "ready_to_release"
+    {
         return HttpResponse::BadRequest().json(serde_json::json!({
             "error": format!("Escrow must be in signing state, current: {}", escrow.status)
         }));
@@ -2975,12 +3043,16 @@ pub async fn prepare_sign(
             escrow_id = %escrow_id_str,
             "[v0.66.3] Dispute refund: routing funds to buyer_refund_address"
         );
-        escrow.buyer_refund_address.clone()
+        escrow
+            .buyer_refund_address
+            .clone()
             .or(escrow.vendor_payout_address.clone())
             .unwrap_or_else(|| "BUYER_REFUND_ADDRESS_NEEDED".to_string())
     } else {
         // Normal release or dispute resolved for vendor → payout to vendor
-        escrow.vendor_payout_address.clone()
+        escrow
+            .vendor_payout_address
+            .clone()
             .or(escrow.buyer_refund_address.clone())
             .unwrap_or_else(|| "DESTINATION_ADDRESS_NEEDED".to_string())
     };
@@ -3085,10 +3157,10 @@ pub async fn prepare_sign(
         struct ExistingRingData {
             ring_member_indices: Vec<u64>,
             signer_index: u8,
-            ring_public_keys: Vec<String>,   // What's ACTUALLY stored (not "ring")
+            ring_public_keys: Vec<String>, // What's ACTUALLY stored (not "ring")
             ring_commitments: Vec<String>,
             #[serde(default)]
-            tx_prefix_hash: Option<String>,  // For verification
+            tx_prefix_hash: Option<String>, // For verification
             #[serde(default)]
             key_image: Option<String>,
             #[serde(default)]
@@ -3162,7 +3234,8 @@ pub async fn prepare_sign(
 
                 // Reconstruct ring from stored separate arrays
                 // SAFE: lengths validated above
-                let ring: Vec<[String; 2]> = existing_data.ring_public_keys
+                let ring: Vec<[String; 2]> = existing_data
+                    .ring_public_keys
                     .iter()
                     .zip(existing_data.ring_commitments.iter())
                     .map(|(pk, c)| [pk.clone(), c.clone()])
@@ -3179,7 +3252,9 @@ pub async fn prepare_sign(
 
                 // Get commitment_mask from escrow DB field (not from ring_data_json)
                 let commitment_mask = match &escrow.funding_commitment_mask {
-                    Some(mask) if mask.len() == 64 && mask.chars().all(|c| c.is_ascii_hexdigit()) => {
+                    Some(mask)
+                        if mask.len() == 64 && mask.chars().all(|c| c.is_ascii_hexdigit()) =>
+                    {
                         mask.clone()
                     }
                     Some(mask) => {
@@ -3228,9 +3303,10 @@ pub async fn prepare_sign(
                             "No stored tx_prefix_hash found, computing (this may cause mismatch!)"
                         );
                         use crate::services::transaction_builder::{
-                            parse_monero_address, generate_stealth_address_with_view_tag, generate_tx_pubkey,
-                            derive_output_mask, MoneroTransactionBuilder, compute_pedersen_commitment,
-                            compute_balanced_output_commitment_2outputs, encrypt_amount_ecdh,
+                            compute_balanced_output_commitment_2outputs,
+                            compute_pedersen_commitment, derive_output_mask, encrypt_amount_ecdh,
+                            generate_stealth_address_with_view_tag, generate_tx_pubkey,
+                            parse_monero_address, MoneroTransactionBuilder,
                         };
                         use sha3::{Digest, Keccak256};
 
@@ -3254,15 +3330,16 @@ pub async fn prepare_sign(
                             }));
                         }
                         let payout_amount = escrow_amount - fee_atomic;
-                        let (dest_spend_pub, dest_view_pub) = match parse_monero_address(&destination) {
-                            Ok(keys) => keys,
-                            Err(e) => {
-                                error!("Failed to parse destination address: {}", e);
-                                return HttpResponse::BadRequest().json(serde_json::json!({
-                                    "error": format!("Invalid destination address: {}", e)
-                                }));
-                            }
-                        };
+                        let (dest_spend_pub, dest_view_pub) =
+                            match parse_monero_address(&destination) {
+                                Ok(keys) => keys,
+                                Err(e) => {
+                                    error!("Failed to parse destination address: {}", e);
+                                    return HttpResponse::BadRequest().json(serde_json::json!({
+                                        "error": format!("Invalid destination address: {}", e)
+                                    }));
+                                }
+                            };
 
                         let mut tx_secret_hasher = Keccak256::new();
                         tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
@@ -3271,26 +3348,35 @@ pub async fn prepare_sign(
                         let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
                         let tx_pubkey = generate_tx_pubkey(&tx_secret_key);
-                        let (stealth_address, view_tag) = match generate_stealth_address_with_view_tag(&tx_secret_key, &dest_spend_pub, &dest_view_pub, 0) {
-                            Ok(result) => result,
-                            Err(e) => {
-                                error!("Failed to generate stealth address: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
+                        let (stealth_address, view_tag) =
+                            match generate_stealth_address_with_view_tag(
+                                &tx_secret_key,
+                                &dest_spend_pub,
+                                &dest_view_pub,
+                                0,
+                            ) {
+                                Ok(result) => result,
+                                Err(e) => {
+                                    error!("Failed to generate stealth address: {}", e);
+                                    return HttpResponse::InternalServerError().json(serde_json::json!({
                                     "error": format!("Stealth address generation failed: {}", e)
                                 }));
-                            }
-                        };
+                                }
+                            };
 
                         // Derive output mask for Bulletproof+ generation
-                        let output_mask = match derive_output_mask(&tx_secret_key, &dest_view_pub, 0) {
-                            Ok(mask) => mask,
-                            Err(e) => {
-                                error!("Failed to derive output mask: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": format!("Failed to derive output mask: {}", e)
-                                }));
-                            }
-                        };
+                        let output_mask =
+                            match derive_output_mask(&tx_secret_key, &dest_view_pub, 0) {
+                                Ok(mask) => mask,
+                                Err(e) => {
+                                    error!("Failed to derive output mask: {}", e);
+                                    return HttpResponse::InternalServerError().json(
+                                        serde_json::json!({
+                                            "error": format!("Failed to derive output mask: {}", e)
+                                        }),
+                                    );
+                                }
+                            };
 
                         let mut builder = MoneroTransactionBuilder::new();
                         builder.set_fee(fee_atomic);
@@ -3314,50 +3400,75 @@ pub async fn prepare_sign(
                             }
                             _ => {
                                 error!(escrow_id = %escrow_id_str, "Invalid commitment mask hex in fallback path");
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": "Invalid commitment mask format"
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": "Invalid commitment mask format"
+                                    }),
+                                );
                             }
                         };
 
-                        let pseudo_out_fallback = match compute_pedersen_commitment(&mask_bytes_fallback, escrow_amount) {
+                        let pseudo_out_fallback = match compute_pedersen_commitment(
+                            &mask_bytes_fallback,
+                            escrow_amount,
+                        ) {
                             Ok(p) => p,
                             Err(e) => {
                                 error!(escrow_id = %escrow_id_str, "Failed to compute pseudo_out in fallback: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": format!("Failed to compute pseudo_out: {}", e)
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": format!("Failed to compute pseudo_out: {}", e)
+                                    }),
+                                );
                             }
                         };
 
                         // HF16 FIX: Derive dummy mask for output_index=1
-                        let dummy_mask_fallback = match derive_output_mask(&tx_secret_key, &dest_view_pub, 1) {
+                        let dummy_mask_fallback = match derive_output_mask(
+                            &tx_secret_key,
+                            &dest_view_pub,
+                            1,
+                        ) {
                             Ok(mask) => mask,
                             Err(e) => {
                                 error!(escrow_id = %escrow_id_str, "Failed to derive dummy mask in fallback: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": format!("Failed to derive dummy mask: {}", e)
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": format!("Failed to derive dummy mask: {}", e)
+                                    }),
+                                );
                             }
                         };
 
-                        let output_commitment_fallback = match compute_balanced_output_commitment_2outputs(&pseudo_out_fallback, fee_atomic, &dummy_mask_fallback) {
-                            Ok(c) => c,
-                            Err(e) => {
-                                error!(escrow_id = %escrow_id_str, "Failed to compute output_commitment in fallback: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
+                        let output_commitment_fallback =
+                            match compute_balanced_output_commitment_2outputs(
+                                &pseudo_out_fallback,
+                                fee_atomic,
+                                &dummy_mask_fallback,
+                            ) {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    error!(escrow_id = %escrow_id_str, "Failed to compute output_commitment in fallback: {}", e);
+                                    return HttpResponse::InternalServerError().json(serde_json::json!({
                                     "error": format!("Failed to compute output_commitment: {}", e)
                                 }));
-                            }
-                        };
+                                }
+                            };
 
-                        let encrypted_amount_fallback = match encrypt_amount_ecdh(&tx_secret_key, &dest_view_pub, 0, payout_amount) {
+                        let encrypted_amount_fallback = match encrypt_amount_ecdh(
+                            &tx_secret_key,
+                            &dest_view_pub,
+                            0,
+                            payout_amount,
+                        ) {
                             Ok(enc) => enc,
                             Err(e) => {
                                 error!(escrow_id = %escrow_id_str, "Failed to encrypt amount in fallback: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": format!("Failed to encrypt amount: {}", e)
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": format!("Failed to encrypt amount: {}", e)
+                                    }),
+                                );
                             }
                         };
 
@@ -3366,10 +3477,22 @@ pub async fn prepare_sign(
                             "v0.10.6 FIX: Computed REAL values in fallback path"
                         );
 
-                        builder.add_output(stealth_address, output_commitment_fallback, encrypted_amount_fallback, output_mask, payout_amount, view_tag);
+                        builder.add_output(
+                            stealth_address,
+                            output_commitment_fallback,
+                            encrypted_amount_fallback,
+                            output_mask,
+                            payout_amount,
+                            view_tag,
+                        );
 
                         // v0.35.0 FIX: Add dummy output with PRE-COMPUTED mask for commitment balance
-                        if let Err(e) = builder.add_dummy_output_with_mask(&tx_secret_key, &dest_spend_pub, &dest_view_pub, &dummy_mask_fallback) {
+                        if let Err(e) = builder.add_dummy_output_with_mask(
+                            &tx_secret_key,
+                            &dest_spend_pub,
+                            &dest_view_pub,
+                            &dummy_mask_fallback,
+                        ) {
                             error!(escrow_id = %escrow_id_str, "Failed to add dummy output in fallback: {}", e);
                             return HttpResponse::InternalServerError().json(serde_json::json!({
                                 "error": format!("Failed to add dummy output: {}", e)
@@ -3380,9 +3503,11 @@ pub async fn prepare_sign(
                             Ok(hash) => hex::encode(hash),
                             Err(e) => {
                                 error!("Failed to compute tx_prefix_hash: {}", e);
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": format!("Failed to compute tx prefix hash: {}", e)
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": format!("Failed to compute tx prefix hash: {}", e)
+                                    }),
+                                );
                             }
                         }
                     }
@@ -3433,7 +3558,17 @@ pub async fn prepare_sign(
                 // BUG: Timestamps can be stale after escrow reset while signatures are cleared
                 // This caused buyer to get first_signer_c1=null when they should get vendor's c1
                 // =========================================================================
-                let (first_signer_c1, first_signer_s_values, first_signer_d, first_signer_pseudo_out): (Option<String>, Option<Vec<String>>, Option<String>, Option<String>) = {
+                let (
+                    first_signer_c1,
+                    first_signer_s_values,
+                    first_signer_d,
+                    first_signer_pseudo_out,
+                ): (
+                    Option<String>,
+                    Option<Vec<String>>,
+                    Option<String>,
+                    Option<String>,
+                ) = {
                     // v0.14.1 DEBUG: Log signature availability
                     info!(
                         escrow_id = %escrow_id_str,
@@ -3482,7 +3617,7 @@ pub async fn prepare_sign(
                         Some("arbiter") => {
                             // Arbiter was first signer (rare case)
                             info!(escrow_id = %escrow_id_str, "[REUSE PATH v0.14.1] First signer is ARBITER");
-                            escrow.multisig_state_json.as_ref()  // Arbiter signature stored here
+                            escrow.multisig_state_json.as_ref() // Arbiter signature stored here
                         }
                         _ => {
                             // No first_signer_role recorded - fall back to checking which signature EXISTS
@@ -3592,7 +3727,9 @@ pub async fn prepare_sign(
                 // CRITICAL: Frontend expects "inputs" array - wrap ring data in inputs[0]
                 // CRITICAL: Use stored_key_image_for_signing (from ring_data_json) NOT aggregated_ki
                 // The stored key_image was used to compute tx_prefix_hash, so CLSAG must use it too
-                let signing_key_image = stored_key_image_for_signing.as_ref().unwrap_or(&aggregated_ki);
+                let signing_key_image = stored_key_image_for_signing
+                    .as_ref()
+                    .unwrap_or(&aggregated_ki);
 
                 info!(
                     escrow_id = %escrow_id_str,
@@ -3623,7 +3760,8 @@ pub async fn prepare_sign(
                         // This should only happen during migration from old escrows
                         let d_hex = first_signer_d.as_ref().unwrap();
                         let pseudo_out_hex = first_signer_pseudo_out.as_ref().unwrap();
-                        let ring_keys_hex: Vec<String> = ring.iter().map(|r| r[0].clone()).collect();
+                        let ring_keys_hex: Vec<String> =
+                            ring.iter().map(|r| r[0].clone()).collect();
 
                         match crate::services::clsag_verifier::compute_mu_from_hex(
                             &ring_keys_hex,
@@ -3663,7 +3801,9 @@ pub async fn prepare_sign(
 
                 // v0.35.1 FIX: Derive output_mask for pseudo_out balance
                 // This is the SAME derivation as in transaction_builder, ensuring balance equation works
-                use crate::services::transaction_builder::{parse_monero_address, derive_output_mask};
+                use crate::services::transaction_builder::{
+                    derive_output_mask, parse_monero_address,
+                };
                 use sha3::{Digest, Keccak256};
 
                 let (_, dest_view_pub) = match parse_monero_address(&destination) {
@@ -3737,7 +3877,7 @@ pub async fn prepare_sign(
                     } else if user_id.to_string() == escrow.arbiter_id {
                         "arbiter"
                     } else {
-                        ""  // Should never happen - already checked authorization
+                        "" // Should never happen - already checked authorization
                     };
 
                     // Determine other signer's role from first_signer_role or signature presence
@@ -3816,8 +3956,8 @@ pub async fn prepare_sign(
                                     _ => 0u16,
                                 };
                                 let other_idx = match my_role {
-                                    "buyer" => 2u16,   // other is vendor
-                                    "vendor" => 1u16,  // other is buyer
+                                    "buyer" => 2u16,  // other is vendor
+                                    "vendor" => 1u16, // other is buyer
                                     _ => 0u16,
                                 };
 
@@ -4075,7 +4215,10 @@ pub async fn prepare_sign(
     };
 
     // Use the sorted indices for fetching from daemon
-    let sorted_indices: Vec<u64> = sorted_with_original_pos.iter().map(|(idx, _)| *idx).collect();
+    let sorted_indices: Vec<u64> = sorted_with_original_pos
+        .iter()
+        .map(|(idx, _)| *idx)
+        .collect();
 
     info!(
         escrow_id = %escrow_id_str,
@@ -4083,7 +4226,10 @@ pub async fn prepare_sign(
         "After sorting: signer_index={}, offsets={:?}", sorted_signer_index, offsets
     );
 
-    info!("Fetching {} ring members from daemon {}", ring_size, daemon_url);
+    info!(
+        "Fetching {} ring members from daemon {}",
+        ring_size, daemon_url
+    );
 
     // Call daemon to get real output keys using absolute global indices
     let get_outs_result = call_daemon_get_outs(&daemon_url, &sorted_indices).await;
@@ -4102,7 +4248,8 @@ pub async fn prepare_sign(
             }
 
             // Convert daemon response to ring format
-            response.outs
+            response
+                .outs
                 .iter()
                 .map(|out| [out.key.clone(), out.mask.clone()])
                 .collect()
@@ -4235,9 +4382,9 @@ pub async fn prepare_sign(
     // This must match EXACTLY what broadcast_round_robin_transaction() computes
     // =========================================================================
     use crate::services::transaction_builder::{
-        parse_monero_address, generate_stealth_address_with_view_tag, generate_tx_pubkey,
-        derive_output_mask, MoneroTransactionBuilder, compute_pedersen_commitment,
-        encrypt_amount_ecdh,
+        compute_pedersen_commitment, derive_output_mask, encrypt_amount_ecdh,
+        generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address,
+        MoneroTransactionBuilder,
     };
     use sha3::{Digest, Keccak256};
 
@@ -4289,7 +4436,9 @@ pub async fn prepare_sign(
     // platform_fee = escrow_amount * fee_bps / 10000
     // recipient_amount = escrow_amount - platform_fee - tx_fee
     let platform_fee = (escrow_amount * platform_fee_bps) / 10000;
-    let recipient_amount = escrow_amount.saturating_sub(platform_fee).saturating_sub(fee_atomic);
+    let recipient_amount = escrow_amount
+        .saturating_sub(platform_fee)
+        .saturating_sub(fee_atomic);
 
     // Validate amounts
     if recipient_amount == 0 {
@@ -4490,35 +4639,51 @@ pub async fn prepare_sign(
     // v0.70.0: Encrypt amounts for BOTH outputs via ECDH
     // =========================================================================
     // Output 0: Recipient amount (encrypted with recipient's view key)
-    let encrypted_amount = match encrypt_amount_ecdh(&tx_secret_key, &dest_view_pub, 0, recipient_amount) {
-        Ok(enc) => enc,
-        Err(e) => {
-            error!(escrow_id = %escrow_id_str, "Failed to encrypt recipient amount: {}", e);
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Failed to encrypt recipient amount: {}", e)
-            }));
-        }
-    };
+    let encrypted_amount =
+        match encrypt_amount_ecdh(&tx_secret_key, &dest_view_pub, 0, recipient_amount) {
+            Ok(enc) => enc,
+            Err(e) => {
+                error!(escrow_id = %escrow_id_str, "Failed to encrypt recipient amount: {}", e);
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Failed to encrypt recipient amount: {}", e)
+                }));
+            }
+        };
 
     // Output 1: Platform fee (encrypted with PLATFORM's view key - critical!)
-    let platform_encrypted_amount = match encrypt_amount_ecdh(&tx_secret_key, &platform_view_pub, 1, platform_fee) {
-        Ok(enc) => enc,
-        Err(e) => {
-            error!(escrow_id = %escrow_id_str, "Failed to encrypt platform amount: {}", e);
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Failed to encrypt platform amount: {}", e)
-            }));
-        }
-    };
+    let platform_encrypted_amount =
+        match encrypt_amount_ecdh(&tx_secret_key, &platform_view_pub, 1, platform_fee) {
+            Ok(enc) => enc,
+            Err(e) => {
+                error!(escrow_id = %escrow_id_str, "Failed to encrypt platform amount: {}", e);
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Failed to encrypt platform amount: {}", e)
+                }));
+            }
+        };
 
     // =========================================================================
     // v0.70.0: Add BOTH REAL outputs to transaction builder
     // =========================================================================
     // Output 0: Recipient
-    builder.add_output(stealth_address, output_commitment, encrypted_amount, output_mask, recipient_amount, view_tag);
+    builder.add_output(
+        stealth_address,
+        output_commitment,
+        encrypted_amount,
+        output_mask,
+        recipient_amount,
+        view_tag,
+    );
 
     // Output 1: Platform fee (REAL output, NOT dummy!)
-    builder.add_output(platform_stealth_address, platform_commitment, platform_encrypted_amount, platform_mask, platform_fee, platform_view_tag);
+    builder.add_output(
+        platform_stealth_address,
+        platform_commitment,
+        platform_encrypted_amount,
+        platform_mask,
+        platform_fee,
+        platform_view_tag,
+    );
 
     info!(
         escrow_id = %escrow_id_str,
@@ -4750,13 +4915,17 @@ pub async fn prepare_sign(
         let ring_json_clone = ring_data_json.clone();
 
         let save_result = web::block(move || {
-            let mut conn = pool_clone.get().map_err(|e| format!("DB pool error: {}", e))?;
+            let mut conn = pool_clone
+                .get()
+                .map_err(|e| format!("DB pool error: {}", e))?;
             crate::models::escrow::Escrow::update_ring_data_json(
                 &mut conn,
                 escrow_id_clone,
                 &ring_json_clone,
-            ).map_err(|e| format!("Failed to save ring data: {}", e))
-        }).await;
+            )
+            .map_err(|e| format!("Failed to save ring data: {}", e))
+        })
+        .await;
 
         match save_result {
             Ok(Ok(())) => {
@@ -4797,8 +4966,8 @@ pub async fn prepare_sign(
         ring,
         offsets,
         signer_index: sorted_signer_index,
-        commitment_mask: pseudo_out_mask_hex,  // v0.36.0: SUM of output masks (pseudo_out now uses this too)
-        funding_mask: Some(commitment_mask.clone()),  // z for mask_delta = z - pseudo_out_mask
+        commitment_mask: pseudo_out_mask_hex, // v0.36.0: SUM of output masks (pseudo_out now uses this too)
+        funding_mask: Some(commitment_mask.clone()), // z for mask_delta = z - pseudo_out_mask
         commitment_amount: escrow.amount as u64,
     };
 
@@ -5110,9 +5279,11 @@ pub async fn prepare_sign(
                                     pair = %pair,
                                     "[v0.66.3] Invalid dispute_signing_pair value"
                                 );
-                                return HttpResponse::InternalServerError().json(serde_json::json!({
-                                    "error": "Invalid dispute_signing_pair configuration"
-                                }));
+                                return HttpResponse::InternalServerError().json(
+                                    serde_json::json!({
+                                        "error": "Invalid dispute_signing_pair configuration"
+                                    }),
+                                );
                             }
                         }
                     } else {
@@ -5327,9 +5498,14 @@ pub async fn submit_signature(
     {
         let sig_ki = &payload.key_image;
         let escrow_ki = escrow.aggregated_key_image.as_deref().unwrap_or("(none)");
-        let ring_data_ki: Option<String> = escrow.ring_data_json.as_ref()
+        let ring_data_ki: Option<String> = escrow
+            .ring_data_json
+            .as_ref()
             .and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok())
-            .and_then(|v| v.get("key_image").and_then(|ki| ki.as_str().map(String::from)));
+            .and_then(|v| {
+                v.get("key_image")
+                    .and_then(|ki| ki.as_str().map(String::from))
+            });
 
         let all_match = sig_ki == escrow_ki && ring_data_ki.as_deref() == Some(sig_ki.as_str());
 
@@ -5407,7 +5583,7 @@ pub async fn submit_signature(
             let rows_updated = diesel::update(
                 escrows::table
                     .filter(escrows::id.eq(&escrow_id_str))
-                    .filter(escrows::first_signer_role.is_null())
+                    .filter(escrows::first_signer_role.is_null()),
             )
             .set((
                 escrows::first_signer_role.eq(Some("buyer")),
@@ -5437,7 +5613,7 @@ pub async fn submit_signature(
             let rows_updated = diesel::update(
                 escrows::table
                     .filter(escrows::id.eq(&escrow_id_str))
-                    .filter(escrows::first_signer_role.is_null())
+                    .filter(escrows::first_signer_role.is_null()),
             )
             .set((
                 escrows::first_signer_role.eq(Some("vendor")),
@@ -5467,7 +5643,7 @@ pub async fn submit_signature(
             let rows_updated = diesel::update(
                 escrows::table
                     .filter(escrows::id.eq(&escrow_id_str))
-                    .filter(escrows::first_signer_role.is_null())
+                    .filter(escrows::first_signer_role.is_null()),
             )
             .set((
                 escrows::first_signer_role.eq(Some("arbiter")),
@@ -5528,8 +5704,8 @@ pub async fn submit_signature(
         // WASM receives peer_nonce_public from prepare-sign, which checks *_nonce_public fields.
         // This fix aligns the server's check with what WASM actually used.
         let had_r_agg = match user_role {
-            "buyer" => escrow.vendor_nonce_public.is_some(),   // Buyer had vendor's nonce?
-            "vendor" => escrow.buyer_nonce_public.is_some(),   // Vendor had buyer's nonce?
+            "buyer" => escrow.vendor_nonce_public.is_some(), // Buyer had vendor's nonce?
+            "vendor" => escrow.buyer_nonce_public.is_some(), // Vendor had buyer's nonce?
             "arbiter" => {
                 // Arbiter is first signer in dispute - check if any peer nonce exists
                 escrow.vendor_nonce_public.is_some() || escrow.buyer_nonce_public.is_some()
@@ -5612,9 +5788,10 @@ pub async fn submit_signature(
                         ring_data[&share_key] = serde_json::json!(frost_share);
 
                         let updated_ring_json = ring_data.to_string();
-                        let _ = diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id_str)))
-                            .set(escrows::ring_data_json.eq(Some(&updated_ring_json)))
-                            .execute(&mut conn);
+                        let _ =
+                            diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id_str)))
+                                .set(escrows::ring_data_json.eq(Some(&updated_ring_json)))
+                                .execute(&mut conn);
 
                         info!(
                             escrow_id = %escrow_id,
@@ -5678,7 +5855,8 @@ pub async fn submit_signature(
         };
 
         // Check if this is the first signer (role matches the one that was just recorded)
-        let is_first_signer = escrow_for_pki.first_signer_role.as_ref() == Some(&user_role.to_string());
+        let is_first_signer =
+            escrow_for_pki.first_signer_role.as_ref() == Some(&user_role.to_string());
 
         if is_first_signer {
             // =========================================================================
@@ -5786,7 +5964,11 @@ pub async fn submit_signature(
         sig_count += 1;
     }
     // Arbiter signature stored in multisig_state_json when it's a CLSAG signature
-    if updated_escrow.multisig_state_json.as_ref().map_or(false, |s| s.contains("key_image")) {
+    if updated_escrow
+        .multisig_state_json
+        .as_ref()
+        .map_or(false, |s| s.contains("key_image"))
+    {
         sig_count += 1;
     }
 
@@ -5822,15 +6004,21 @@ pub async fn submit_signature(
             {
                 use crate::websocket::{NotifyUser, WsEvent};
 
-                let amount_xmr = format!("{:.6}", updated_escrow.amount as f64 / 1_000_000_000_000.0);
-                let recipient = if updated_escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer") {
-                    "buyer".to_string()
-                } else {
-                    "vendor".to_string()
-                };
+                let amount_xmr =
+                    format!("{:.6}", updated_escrow.amount as f64 / 1_000_000_000_000.0);
+                let recipient =
+                    if updated_escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer") {
+                        "buyer".to_string()
+                    } else {
+                        "vendor".to_string()
+                    };
 
                 // Notify all parties
-                for party_id_str in [&updated_escrow.buyer_id, &updated_escrow.vendor_id, &updated_escrow.arbiter_id] {
+                for party_id_str in [
+                    &updated_escrow.buyer_id,
+                    &updated_escrow.vendor_id,
+                    &updated_escrow.arbiter_id,
+                ] {
                     if let Ok(party_uuid) = Uuid::parse_str(party_id_str) {
                         ws_server.do_send(NotifyUser {
                             user_id: party_uuid,
@@ -5878,7 +6066,11 @@ pub async fn submit_signature(
         use crate::websocket::{NotifyUser, WsEvent};
 
         // Notify all parties about signature progress
-        for party_id_str in [&updated_escrow.buyer_id, &updated_escrow.vendor_id, &updated_escrow.arbiter_id] {
+        for party_id_str in [
+            &updated_escrow.buyer_id,
+            &updated_escrow.vendor_id,
+            &updated_escrow.arbiter_id,
+        ] {
             if let Ok(party_uuid) = Uuid::parse_str(party_id_str) {
                 ws_server.do_send(NotifyUser {
                     user_id: party_uuid,
@@ -5924,18 +6116,24 @@ pub async fn submit_signature(
                 let notification = NewNotification::new(
                     next_id.to_string(),
                     NotificationType::SignatureRequired,
-                    format!("✍️ Your Turn ({} of 3 approvals)", if next_role == "vendor" { 1 } else { 2 }),
+                    format!(
+                        "✍️ Your Turn ({} of 3 approvals)",
+                        if next_role == "vendor" { 1 } else { 2 }
+                    ),
                     format!(
                         "It's your turn to authorize order #{}. Action: {}",
                         &escrow_id.to_string()[..8],
                         action_label
                     ),
                     Some(format!("/escrow/{}", escrow_id)),
-                    Some(serde_json::json!({
-                        "escrow_id": escrow_id.to_string(),
-                        "signer_role": next_role,
-                        "persistent": true
-                    }).to_string()),
+                    Some(
+                        serde_json::json!({
+                            "escrow_id": escrow_id.to_string(),
+                            "signer_role": next_role,
+                            "persistent": true
+                        })
+                        .to_string(),
+                    ),
                 );
 
                 if let Err(e) = Notification::create(notification, &mut conn) {
@@ -6093,10 +6291,12 @@ pub async fn broadcast_transaction(
         if let Some(ref ring_json) = escrow.ring_data_json {
             match serde_json::from_str::<serde_json::Value>(ring_json) {
                 Ok(ring_data) => {
-                    let b_share = ring_data.get("buyer_frost_share")
+                    let b_share = ring_data
+                        .get("buyer_frost_share")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
-                    let v_share = ring_data.get("vendor_frost_share")
+                    let v_share = ring_data
+                        .get("vendor_frost_share")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string());
 
@@ -6105,7 +6305,7 @@ pub async fn broadcast_transaction(
                     }
                     (b_share, v_share)
                 }
-                Err(_) => (None, None)
+                Err(_) => (None, None),
             }
         } else {
             (None, None)
@@ -6169,7 +6369,9 @@ pub async fn broadcast_transaction(
         // Call CLI binary
         let cli_path = std::env::current_dir()
             .map(|p| p.join("target/release/full_offline_broadcast"))
-            .unwrap_or_else(|_| std::path::PathBuf::from("./target/release/full_offline_broadcast"));
+            .unwrap_or_else(|_| {
+                std::path::PathBuf::from("./target/release/full_offline_broadcast")
+            });
 
         let output = match std::process::Command::new(&cli_path)
             .args([
@@ -6214,8 +6416,8 @@ pub async fn broadcast_transaction(
 
             // Update escrow status in database
             {
-                use diesel::prelude::*;
                 use crate::schema::escrows::dsl::*;
+                use diesel::prelude::*;
 
                 let pool_clone = pool.clone();
                 let escrow_id_clone = escrow_id.to_string();
@@ -6223,28 +6425,31 @@ pub async fn broadcast_transaction(
                 let _ = web::block(move || {
                     let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
                     diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
-                        .set((
-                            status.eq("completed"),
-                            broadcast_tx_hash.eq(&tx_hash_clone),
-                        ))
+                        .set((status.eq("completed"), broadcast_tx_hash.eq(&tx_hash_clone)))
                         .execute(&mut conn)
                         .map_err(|e| format!("{}", e))
-                }).await;
+                })
+                .await;
             }
 
             // B2B Webhook: EscrowReleased or EscrowRefunded based on dispute routing
-            let (wh_event_type, wh_event_str) = if escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer") {
-                (WebhookEventType::EscrowRefunded, "escrow.refunded")
-            } else {
-                (WebhookEventType::EscrowReleased, "escrow.released")
-            };
+            let (wh_event_type, wh_event_str) =
+                if escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer") {
+                    (WebhookEventType::EscrowRefunded, "escrow.refunded")
+                } else {
+                    (WebhookEventType::EscrowReleased, "escrow.released")
+                };
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 wh_event_type,
-                build_escrow_payload(&escrow_id.to_string(), wh_event_str, serde_json::json!({
-                    "tx_hash": tx_hash,
-                    "status": "completed",
-                })),
+                build_escrow_payload(
+                    &escrow_id.to_string(),
+                    wh_event_str,
+                    serde_json::json!({
+                        "tx_hash": tx_hash,
+                        "status": "completed",
+                    }),
+                ),
             );
 
             return HttpResponse::Ok().json(serde_json::json!({
@@ -6263,10 +6468,12 @@ pub async fn broadcast_transaction(
 
             // v0.55.0: Detect key mismatch error and provide actionable message
             let (error_type, user_message) = if stderr.contains("Lagrange shares don't match") {
-                ("key_mismatch",
-                 "FROST key mismatch: The signing keys do not match this escrow's address. \
+                (
+                    "key_mismatch",
+                    "FROST key mismatch: The signing keys do not match this escrow's address. \
                   This can happen if browser localStorage was cleared or keys from another \
-                  escrow were used. Use Recovery Shield to restore correct keys.")
+                  escrow were used. Use Recovery Shield to restore correct keys.",
+                )
             } else {
                 ("broadcast_failed", &*stderr)
             };
@@ -6382,10 +6589,9 @@ pub async fn broadcast_transaction(
 
     // Legacy broadcast path (pre-v0.8.0)
     use crate::services::transaction_builder::{
-        MoneroTransactionBuilder, ClientSignature, ClsagSignatureJson,
-        parse_monero_address, generate_stealth_address_with_view_tag, generate_tx_pubkey,
-        compute_balanced_output_commitment_2outputs, encrypt_amount_ecdh, verify_commitment_balance,
-        derive_output_mask,
+        compute_balanced_output_commitment_2outputs, derive_output_mask, encrypt_amount_ecdh,
+        generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address,
+        verify_commitment_balance, ClientSignature, ClsagSignatureJson, MoneroTransactionBuilder,
     };
 
     // Fee from centralized config (default 0.00005 XMR for mainnet)
@@ -6485,14 +6691,20 @@ pub async fn broadcast_transaction(
         // Previous bug: server applied Lagrange AGAIN → λ² on spend shares!
         info!(
             "[v0.50.0] Aggregating 2 signer PKIs with SIMPLE SUM: {}={}..., {}={}...",
-            signer1_role, &signer1_pki[..16.min(signer1_pki.len())],
-            signer2_role, &signer2_pki[..16.min(signer2_pki.len())]
+            signer1_role,
+            &signer1_pki[..16.min(signer1_pki.len())],
+            signer2_role,
+            &signer2_pki[..16.min(signer2_pki.len())]
         );
         match crate::services::key_image_aggregation::aggregate_partial_key_images(
-            &signer1_pki, &signer2_pki
+            &signer1_pki,
+            &signer2_pki,
         ) {
             Ok(ki) => {
-                info!("[v0.50.0] Simple-sum aggregated key image: {}...", &ki[..16.min(ki.len())]);
+                info!(
+                    "[v0.50.0] Simple-sum aggregated key image: {}...",
+                    &ki[..16.min(ki.len())]
+                );
                 ki
             }
             Err(e) => {
@@ -6646,12 +6858,12 @@ pub async fn broadcast_transaction(
             let mut arr = [0u8; 32];
             arr.copy_from_slice(&bytes);
             arr
-        },
+        }
         Ok(bytes) => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Invalid key image length: {} bytes", bytes.len())
             }));
-        },
+        }
         Err(e) => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to decode key image: {}", e)
@@ -6671,13 +6883,13 @@ pub async fn broadcast_transaction(
             let mut arr = [0u8; 32];
             arr.copy_from_slice(&bytes);
             arr
-        },
+        }
         Ok(bytes) => {
             error!("Invalid pseudo_out length: {} bytes", bytes.len());
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Invalid pseudo_out length: {} bytes", bytes.len())
             }));
-        },
+        }
         Err(e) => {
             error!("Failed to decode pseudo_out: {}", e);
             return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -6699,7 +6911,11 @@ pub async fn broadcast_transaction(
 
     // HF16 FIX: Compute balanced output commitment for 2-output TX (real + dummy)
     // Balance: pseudo_out = out0_commitment + dummy_mask*G + fee*H
-    let output_commitment = match compute_balanced_output_commitment_2outputs(&pseudo_out_bytes, fee_atomic, &dummy_mask) {
+    let output_commitment = match compute_balanced_output_commitment_2outputs(
+        &pseudo_out_bytes,
+        fee_atomic,
+        &dummy_mask,
+    ) {
         Ok(commitment) => {
             info!(
                 escrow_id = %escrow_id,
@@ -6709,7 +6925,7 @@ pub async fn broadcast_transaction(
                 "Computed balanced output commitment (2-output)"
             );
             commitment
-        },
+        }
         Err(e) => {
             error!("Failed to compute output commitment: {}", e);
             return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -6724,20 +6940,26 @@ pub async fn broadcast_transaction(
         use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
         use curve25519_dalek::scalar::Scalar;
         let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-        (&*ED25519_BASEPOINT_TABLE * &mask_scalar).compress().to_bytes()
+        (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+            .compress()
+            .to_bytes()
     };
 
     // Verify commitment balance before proceeding (with BOTH outputs)
-    match verify_commitment_balance(&[pseudo_out_bytes], &[output_commitment, dummy_commitment], fee_atomic) {
+    match verify_commitment_balance(
+        &[pseudo_out_bytes],
+        &[output_commitment, dummy_commitment],
+        fee_atomic,
+    ) {
         Ok(true) => {
             info!(escrow_id = %escrow_id, "Commitment balance verified ✓ (out0 + out1 + fee*H)");
-        },
+        }
         Ok(false) => {
             error!(escrow_id = %escrow_id, "Commitment balance FAILED - this should not happen");
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Internal error: commitment balance verification failed"
             }));
-        },
+        }
         Err(e) => {
             error!(escrow_id = %escrow_id, error = %e, "Commitment verification error");
             return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -6766,7 +6988,7 @@ pub async fn broadcast_transaction(
                 "Encrypted amount for recipient privacy"
             );
             enc
-        },
+        }
         Err(e) => {
             error!("Failed to encrypt amount: {}", e);
             return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -6837,10 +7059,22 @@ pub async fn broadcast_transaction(
     }
 
     // Add output with mask and amount for Bulletproof+ generation
-    tx_builder.add_output(stealth_address, output_commitment, encrypted_amount, output_mask, payout_amount, view_tag);
+    tx_builder.add_output(
+        stealth_address,
+        output_commitment,
+        encrypted_amount,
+        output_mask,
+        payout_amount,
+        view_tag,
+    );
 
     // v0.35.0 FIX: Add dummy output with PRE-COMPUTED mask for commitment balance
-    if let Err(e) = tx_builder.add_dummy_output_with_mask(&tx_secret_key, &recipient_spend_pub, &recipient_view_pub, &dummy_mask) {
+    if let Err(e) = tx_builder.add_dummy_output_with_mask(
+        &tx_secret_key,
+        &recipient_spend_pub,
+        &recipient_view_pub,
+        &dummy_mask,
+    ) {
         error!(escrow_id = %escrow_id, "Failed to add dummy output: {}", e);
         return HttpResponse::InternalServerError().json(serde_json::json!({
             "error": format!("Failed to add dummy output: {}", e)
@@ -6945,7 +7179,10 @@ pub async fn broadcast_transaction(
         // SELECTIVE aggregation: only aggregate at signer_index position
         use curve25519_dalek::scalar::Scalar;
 
-        let aggregated_s: Vec<String> = vendor_sig.signature.s.iter()
+        let aggregated_s: Vec<String> = vendor_sig
+            .signature
+            .s
+            .iter()
             .zip(buyer_sig.signature.s.iter())
             .enumerate()
             .map(|(i, (s1_hex, s2_hex))| {
@@ -7195,14 +7432,14 @@ pub async fn broadcast_transaction(
                     response = %response_text,
                     "Failed to parse daemon response"
                 );
-                use sha2::{Sha256, Digest as _};
+                use sha2::{Digest as _, Sha256};
                 let mut hasher = Sha256::new();
                 hasher.update(escrow_id_str.as_bytes());
                 hasher.update(b":parse_error:");
                 hasher.update(chrono::Utc::now().timestamp().to_string().as_bytes());
                 (hex::encode(hasher.finalize()), "parse_error".to_string())
             }
-        },
+        }
         Err(e) => {
             error!(
                 escrow_id = %escrow_id,
@@ -7210,12 +7447,15 @@ pub async fn broadcast_transaction(
                 "Failed to broadcast transaction to daemon"
             );
             // Fallback to simulated hash for testing
-            use sha2::{Sha256, Digest as _};
+            use sha2::{Digest as _, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(escrow_id_str.as_bytes());
             hasher.update(b":network_error:");
             hasher.update(chrono::Utc::now().timestamp().to_string().as_bytes());
-            (hex::encode(hasher.finalize()), format!("network_error:{}", e))
+            (
+                hex::encode(hasher.finalize()),
+                format!("network_error:{}", e),
+            )
         }
     };
 
@@ -7282,10 +7522,7 @@ pub async fn broadcast_transaction(
 
 /// Debug endpoint to view escrow details including view_key
 /// GET /api/debug/escrow/:id
-pub async fn debug_escrow_info(
-    pool: web::Data<DbPool>,
-    path: web::Path<String>,
-) -> impl Responder {
+pub async fn debug_escrow_info(pool: web::Data<DbPool>, path: web::Path<String>) -> impl Responder {
     let escrow_id_str = path.into_inner();
     let escrow_id = match escrow_id_str.parse::<Uuid>() {
         Ok(id) => id,
@@ -7297,25 +7534,21 @@ pub async fn debug_escrow_info(
     };
 
     match db_load_escrow(&pool, escrow_id).await {
-        Ok(escrow) => {
-            HttpResponse::Ok().json(serde_json::json!({
-                "id": escrow.id,
-                "status": escrow.status,
-                "amount": escrow.amount,
-                "multisig_address": escrow.multisig_address,
-                "multisig_view_key": escrow.multisig_view_key,
-                "buyer_id": escrow.buyer_id,
-                "vendor_id": escrow.vendor_id,
-                "order_id": escrow.order_id,
-                "transaction_hash": escrow.transaction_hash,
-                "created_at": escrow.created_at,
-            }))
-        }
-        Err(e) => {
-            HttpResponse::NotFound().json(serde_json::json!({
-                "error": format!("Escrow not found: {}", e)
-            }))
-        }
+        Ok(escrow) => HttpResponse::Ok().json(serde_json::json!({
+            "id": escrow.id,
+            "status": escrow.status,
+            "amount": escrow.amount,
+            "multisig_address": escrow.multisig_address,
+            "multisig_view_key": escrow.multisig_view_key,
+            "buyer_id": escrow.buyer_id,
+            "vendor_id": escrow.vendor_id,
+            "order_id": escrow.order_id,
+            "transaction_hash": escrow.transaction_hash,
+            "created_at": escrow.created_at,
+        })),
+        Err(e) => HttpResponse::NotFound().json(serde_json::json!({
+            "error": format!("Escrow not found: {}", e)
+        })),
     }
 }
 
@@ -7411,7 +7644,11 @@ pub async fn notify_funding(
     }
 
     // Validate hex format for commitment_mask
-    if !payload.commitment_mask.chars().all(|c| c.is_ascii_hexdigit()) {
+    if !payload
+        .commitment_mask
+        .chars()
+        .all(|c| c.is_ascii_hexdigit())
+    {
         return HttpResponse::BadRequest().json(serde_json::json!({
             "error": "Commitment mask must be valid hexadecimal",
             "code": "E_INVALID_MASK_FORMAT"
@@ -7427,15 +7664,16 @@ pub async fn notify_funding(
     }
 
     // Get current user (dual-auth: API key or session)
-    let current_user_id = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated",
-                "code": "E_NOT_AUTHENTICATED"
-            }));
-        }
-    };
+    let current_user_id =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated",
+                    "code": "E_NOT_AUTHENTICATED"
+                }));
+            }
+        };
 
     // Load escrow and verify buyer
     let pool_clone = pool.clone();
@@ -7443,7 +7681,9 @@ pub async fn notify_funding(
     let current_user_clone = current_user_id.clone();
 
     let escrow_result = tokio::task::spawn_blocking(move || {
-        let mut conn = pool_clone.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut conn = pool_clone
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
         Escrow::find_by_id(&mut conn, escrow_id_clone)
             .map_err(|e| format!("Escrow not found: {}", e))
     })
@@ -7490,7 +7730,9 @@ pub async fn notify_funding(
     let global_index = payload.global_index;
 
     let update_result = tokio::task::spawn_blocking(move || {
-        let mut conn = pool_clone.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut conn = pool_clone
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         // Update funding commitment data
         Escrow::update_funding_commitment_data(
@@ -7500,21 +7742,21 @@ pub async fn notify_funding(
             &tx_hash,
             output_index,
             global_index,
-            None,  // output_pubkey not available from this endpoint
-            None,  // tx_pubkey not available from this endpoint (v0.8.2)
+            None, // output_pubkey not available from this endpoint
+            None, // tx_pubkey not available from this endpoint (v0.8.2)
         )
         .map_err(|e| format!("Failed to store commitment data: {}", e))?;
 
         // Update escrow status to 'active'
         // BUG #C6 FIX: Use atomic UPDATE with status check to prevent TOCTOU race
         // Only update if status is still 'created' or 'funded' at write time
-        use diesel::prelude::*;
         use crate::schema::escrows::dsl;
+        use diesel::prelude::*;
 
         let rows_updated = diesel::update(
             dsl::escrows
                 .filter(dsl::id.eq(&escrow_id_str))
-                .filter(dsl::status.eq("created").or(dsl::status.eq("funded")))
+                .filter(dsl::status.eq("created").or(dsl::status.eq("funded"))),
         )
         .set((
             dsl::status.eq("active"),
@@ -7586,8 +7828,12 @@ pub async fn notify_funding(
                     None,
                 );
                 match Notification::create(buyer_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&buyer_id), "[NOTIF] ✅ Buyer notification created"),
-                    Err(e) => tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&buyer_id), error = %e, "[NOTIF] ❌ Failed to create buyer notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&buyer_id), "[NOTIF] ✅ Buyer notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&buyer_id), error = %e, "[NOTIF] ❌ Failed to create buyer notification")
+                    }
                 }
 
                 // 2. VENDOR notification (IT'S YOUR TURN)
@@ -7595,13 +7841,20 @@ pub async fn notify_funding(
                     vendor_id.clone(),
                     NotificationType::EscrowUpdate,
                     "It's Your Turn - Ship Order".to_string(),
-                    format!("Escrow {} funded! Ship the order and mark as shipped.", short_id),
+                    format!(
+                        "Escrow {} funded! Ship the order and mark as shipped.",
+                        short_id
+                    ),
                     Some(link.clone()),
                     None,
                 );
                 match Notification::create(vendor_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&vendor_id), "[NOTIF] ✅ Vendor notification created"),
-                    Err(e) => tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&vendor_id), error = %e, "[NOTIF] ❌ Failed to create vendor notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&vendor_id), "[NOTIF] ✅ Vendor notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&vendor_id), error = %e, "[NOTIF] ❌ Failed to create vendor notification")
+                    }
                 }
 
                 // 3. ARBITER notification
@@ -7609,13 +7862,20 @@ pub async fn notify_funding(
                     arbiter_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Escrow Active - Monitoring".to_string(),
-                    format!("Escrow {} is active. Monitor for potential disputes.", short_id),
+                    format!(
+                        "Escrow {} is active. Monitor for potential disputes.",
+                        short_id
+                    ),
                     Some(link),
                     None,
                 );
                 match Notification::create(arbiter_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&arbiter_id), "[NOTIF] ✅ Arbiter notification created"),
-                    Err(e) => tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&arbiter_id), error = %e, "[NOTIF] ❌ Failed to create arbiter notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&arbiter_id), "[NOTIF] ✅ Arbiter notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %sanitize_escrow_id(&escrow_id_for_log), user_id = %sanitize_user_id(&arbiter_id), error = %e, "[NOTIF] ❌ Failed to create arbiter notification")
+                    }
                 }
             });
 
@@ -7623,10 +7883,14 @@ pub async fn notify_funding(
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 WebhookEventType::EscrowFunded,
-                build_escrow_payload(&escrow_id.to_string(), "escrow.funded", serde_json::json!({
-                    "tx_hash": &payload.tx_hash,
-                    "status": "active",
-                })),
+                build_escrow_payload(
+                    &escrow_id.to_string(),
+                    "escrow.funded",
+                    serde_json::json!({
+                        "tx_hash": &payload.tx_hash,
+                        "status": "active",
+                    }),
+                ),
             );
 
             HttpResponse::Ok().json(FundingNotificationResponse {
@@ -7637,7 +7901,10 @@ pub async fn notify_funding(
             })
         }
         Ok(Err(e)) => {
-            error!("❌ [FUNDING] Failed to process funding notification for {}: {}", escrow_id, e);
+            error!(
+                "❌ [FUNDING] Failed to process funding notification for {}: {}",
+                escrow_id, e
+            );
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": e,
                 "code": "E_UPDATE_FAILED"
@@ -7674,8 +7941,8 @@ pub async fn debug_reset_escrow_status(
     let escrow_id_clone = escrow_id.to_string();
 
     match tokio::task::spawn_blocking(move || {
-        use diesel::prelude::*;
         use crate::schema::escrows::dsl::*;
+        use diesel::prelude::*;
 
         let mut conn = pool_clone.get().map_err(|e| format!("DB error: {}", e))?;
 
@@ -7724,23 +7991,22 @@ pub async fn debug_reset_escrow_status(
     .await
     {
         Ok(Ok(rows)) => {
-            info!("🔧 [DEBUG] Reset escrow {} status to 'funded' and cleared signatures ({} rows)", escrow_id, rows);
+            info!(
+                "🔧 [DEBUG] Reset escrow {} status to 'funded' and cleared signatures ({} rows)",
+                escrow_id, rows
+            );
             HttpResponse::Ok().json(serde_json::json!({
                 "success": true,
                 "message": format!("Escrow {} status reset to 'funded', signatures cleared", escrow_id),
                 "rows_affected": rows
             }))
         }
-        Ok(Err(e)) => {
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": e
-            }))
-        }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Task error: {}", e)
-            }))
-        }
+        Ok(Err(e)) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": e
+        })),
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("Task error: {}", e)
+        })),
     }
 }
 
@@ -7794,10 +8060,9 @@ pub async fn debug_broadcast_transaction(
 
     // Parse signatures from JSON
     use crate::services::transaction_builder::{
-        MoneroTransactionBuilder, ClientSignature, ClsagSignatureJson,
-        parse_monero_address, generate_stealth_address_with_view_tag, generate_tx_pubkey,
-        compute_balanced_output_commitment_2outputs, encrypt_amount_ecdh,
-        derive_output_mask,
+        compute_balanced_output_commitment_2outputs, derive_output_mask, encrypt_amount_ecdh,
+        generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address,
+        ClientSignature, ClsagSignatureJson, MoneroTransactionBuilder,
     };
 
     // Fee from centralized config (default 0.00005 XMR for mainnet)
@@ -7841,15 +8106,20 @@ pub async fn debug_broadcast_transaction(
     // The s-value formula uses x1+x2, so KI must also use x1+x2 for math to work.
     let aggregated_key_image = if let Some(ref agg_ki) = escrow.aggregated_key_image {
         agg_ki.clone()
-    } else if let (Some(ref buyer_pki), Some(ref vendor_pki)) =
-        (&escrow.buyer_partial_key_image, &escrow.vendor_partial_key_image) {
+    } else if let (Some(ref buyer_pki), Some(ref vendor_pki)) = (
+        &escrow.buyer_partial_key_image,
+        &escrow.vendor_partial_key_image,
+    ) {
         // v0.50.0: Simple sum - WASM already applies Lagrange to full x=(d+s)
         // WASM computes PKI_i = λ_i * (d + s_i) * Hp(P), so server just sums
         match crate::services::key_image_aggregation::aggregate_partial_key_images(
-            buyer_pki, vendor_pki
+            buyer_pki, vendor_pki,
         ) {
             Ok(agg) => {
-                info!("[v0.50.0] Simple-sum key image (buyer+vendor): {}...", &agg[..16]);
+                info!(
+                    "[v0.50.0] Simple-sum key image (buyer+vendor): {}...",
+                    &agg[..16]
+                );
                 agg
             }
             Err(e) => {
@@ -7915,7 +8185,7 @@ pub async fn debug_broadcast_transaction(
     // - encrypted_amount can be computed
     // This ensures tx_prefix_hash will match what was signed.
     // =========================================================================
-    use sha3::{Keccak256, Digest};
+    use sha3::{Digest, Keccak256};
 
     // Generate DETERMINISTIC TX secret key - MUST match prepare-sign-data exactly
     let mut tx_secret_hasher = Keccak256::new();
@@ -7982,12 +8252,12 @@ pub async fn debug_broadcast_transaction(
             let mut arr = [0u8; 32];
             arr.copy_from_slice(&bytes);
             arr
-        },
+        }
         Ok(bytes) => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Invalid key image length: {} bytes", bytes.len())
             }));
-        },
+        }
         Err(e) => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to decode key image: {}", e)
@@ -8001,7 +8271,7 @@ pub async fn debug_broadcast_transaction(
             let mut arr = [0u8; 32];
             arr.copy_from_slice(&bytes);
             arr
-        },
+        }
         _ => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Invalid pseudo_out"
@@ -8021,7 +8291,11 @@ pub async fn debug_broadcast_transaction(
     };
 
     // HF16 FIX: Compute balanced output commitment for 2-output TX (real + dummy)
-    let output_commitment = match compute_balanced_output_commitment_2outputs(&pseudo_out_bytes, fee_atomic, &dummy_mask) {
+    let output_commitment = match compute_balanced_output_commitment_2outputs(
+        &pseudo_out_bytes,
+        fee_atomic,
+        &dummy_mask,
+    ) {
         Ok(commitment) => commitment,
         Err(e) => {
             return HttpResponse::InternalServerError().json(serde_json::json!({
@@ -8031,15 +8305,16 @@ pub async fn debug_broadcast_transaction(
     };
 
     // Compute encrypted_amount using deterministic tx_secret_key
-    let encrypted_amount = match encrypt_amount_ecdh(&tx_secret_key, &recipient_view_pub, 0, payout_amount) {
-        Ok(enc) => enc,
-        Err(e) => {
-            error!(escrow_id = %escrow.id, "Failed to encrypt amount: {}", e);
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Amount encryption failed: {}", e)
-            }));
-        }
-    };
+    let encrypted_amount =
+        match encrypt_amount_ecdh(&tx_secret_key, &recipient_view_pub, 0, payout_amount) {
+            Ok(enc) => enc,
+            Err(e) => {
+                error!(escrow_id = %escrow.id, "Failed to encrypt amount: {}", e);
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Amount encryption failed: {}", e)
+                }));
+            }
+        };
 
     // Ring data
     let ring_member_indices: Vec<u64> = match &escrow.ring_data_json {
@@ -8067,10 +8342,22 @@ pub async fn debug_broadcast_transaction(
         }));
     }
 
-    tx_builder.add_output(stealth_address, output_commitment, encrypted_amount, output_mask, payout_amount, view_tag);
+    tx_builder.add_output(
+        stealth_address,
+        output_commitment,
+        encrypted_amount,
+        output_mask,
+        payout_amount,
+        view_tag,
+    );
 
     // v0.35.0 FIX: Add dummy output with PRE-COMPUTED mask for commitment balance
-    if let Err(e) = tx_builder.add_dummy_output_with_mask(&tx_secret_key, &recipient_spend_pub, &recipient_view_pub, &dummy_mask) {
+    if let Err(e) = tx_builder.add_dummy_output_with_mask(
+        &tx_secret_key,
+        &recipient_spend_pub,
+        &recipient_view_pub,
+        &dummy_mask,
+    ) {
         error!(escrow_id = %escrow.id, "Failed to add dummy output: {}", e);
         return HttpResponse::InternalServerError().json(serde_json::json!({
             "error": format!("Failed to add dummy output: {}", e)
@@ -8126,7 +8413,10 @@ pub async fn debug_broadcast_transaction(
     );
 
     // SELECTIVE aggregation: only aggregate at signer_index position
-    let aggregated_s: Vec<String> = vendor_sig.signature.s.iter()
+    let aggregated_s: Vec<String> = vendor_sig
+        .signature
+        .s
+        .iter()
         .zip(buyer_sig.signature.s.iter())
         .enumerate()
         .map(|(i, (s1_hex, s2_hex))| {
@@ -8277,7 +8567,7 @@ pub async fn debug_broadcast_transaction(
         #[serde(default)]
         too_big: bool,
         #[serde(default)]
-        sanity_check_failed: bool,  // v0.14.0: Added for proper error detection
+        sanity_check_failed: bool, // v0.14.0: Added for proper error detection
     }
 
     let send_raw_url = format!("{}/send_raw_transaction", daemon_url);
@@ -8362,11 +8652,9 @@ pub async fn debug_broadcast_transaction(
                 }))
             }
         }
-        Err(e) => {
-            HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Network error: {}", e)
-            }))
-        }
+        Err(e) => HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": format!("Network error: {}", e)
+        })),
     }
 }
 
@@ -8871,7 +9159,7 @@ pub async fn submit_partial_key_image(
                     true
                 }
             }
-            Err(_) => true // If we can't check, try to aggregate anyway
+            Err(_) => true, // If we can't check, try to aggregate anyway
         }
     };
 
@@ -8883,13 +9171,12 @@ pub async fn submit_partial_key_image(
         // Return existing aggregated key image if available
         match Escrow::find_by_id(&mut conn, escrow_id_str.clone()) {
             Ok(e) => Ok(e.aggregated_key_image),
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     };
 
     // Get count of partial key images
-    let pki_count = Escrow::count_partial_key_images(&mut conn, escrow_id_str.clone())
-        .unwrap_or(0);
+    let pki_count = Escrow::count_partial_key_images(&mut conn, escrow_id_str.clone()).unwrap_or(0);
 
     let (aggregated_ki, ready) = match aggregation_result {
         Ok(Some(ki)) => {
@@ -8923,9 +9210,9 @@ pub async fn submit_partial_key_image(
     use diesel::prelude::*;
 
     let new_phase = if ready {
-        "ready_for_initiation"  // Both PKIs present, ready to call /sign/init
+        "ready_for_initiation" // Both PKIs present, ready to call /sign/init
     } else {
-        "pki_submitted"  // First PKI received, waiting for second
+        "pki_submitted" // First PKI received, waiting for second
     };
 
     let update_result = diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id_str)))
@@ -8954,7 +9241,10 @@ pub async fn submit_partial_key_image(
         message: if ready {
             "Partial key image stored. Aggregated key image ready for signing.".to_string()
         } else {
-            format!("Partial key image stored. Waiting for {} more signer(s).", 2 - pki_count)
+            format!(
+                "Partial key image stored. Waiting for {} more signer(s).",
+                2 - pki_count
+            )
         },
         partial_key_images_count: pki_count,
         aggregated_key_image: aggregated_ki,
@@ -9097,9 +9387,16 @@ pub async fn sign_init(
     // v0.43.0 FIX: Extract mu_p/mu_c from partial_tx JSON and store separately
     // These are needed for CLSAG verification during broadcast
     let (mu_p_opt, mu_c_opt): (Option<String>, Option<String>) = {
-        if let Ok(partial_tx_json) = serde_json::from_str::<serde_json::Value>(&payload.partial_tx) {
-            let mu_p = partial_tx_json.get("mu_p").and_then(|v| v.as_str()).map(|s| s.to_string());
-            let mu_c = partial_tx_json.get("mu_c").and_then(|v| v.as_str()).map(|s| s.to_string());
+        if let Ok(partial_tx_json) = serde_json::from_str::<serde_json::Value>(&payload.partial_tx)
+        {
+            let mu_p = partial_tx_json
+                .get("mu_p")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let mu_c = partial_tx_json
+                .get("mu_c")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
             if mu_p.is_some() && mu_c.is_some() {
                 info!(
                     escrow_id = %escrow_id,
@@ -9121,8 +9418,8 @@ pub async fn sign_init(
             escrows::partial_tx_initiator.eq(Some(user_role)),
             escrows::signing_started_at.eq(Some(current_timestamp)),
             escrows::signing_phase.eq(Some("awaiting_completion")),
-            escrows::mu_p.eq(&mu_p_opt),  // v0.43.0: Store for CLSAG verification
-            escrows::mu_c.eq(&mu_c_opt),  // v0.43.0: Store for CLSAG verification
+            escrows::mu_p.eq(&mu_p_opt), // v0.43.0: Store for CLSAG verification
+            escrows::mu_c.eq(&mu_c_opt), // v0.43.0: Store for CLSAG verification
             escrows::updated_at.eq(diesel::dsl::now),
         ))
         .execute(&mut conn);
@@ -9191,18 +9488,16 @@ pub async fn get_escrow_details(
     };
 
     // Get signing phase from DB field (with fallback for legacy escrows)
-    let signing_phase = escrow.signing_phase
-        .clone()
-        .unwrap_or_else(|| {
-            // Fallback logic for legacy escrows without signing_phase set
-            if escrow.partial_tx.is_some() && escrow.completed_clsag.is_none() {
-                "awaiting_completion".to_string()
-            } else if escrow.completed_clsag.is_some() {
-                "ready_to_broadcast".to_string()
-            } else {
-                "awaiting_initiation".to_string()
-            }
-        });
+    let signing_phase = escrow.signing_phase.clone().unwrap_or_else(|| {
+        // Fallback logic for legacy escrows without signing_phase set
+        if escrow.partial_tx.is_some() && escrow.completed_clsag.is_none() {
+            "awaiting_completion".to_string()
+        } else if escrow.completed_clsag.is_some() {
+            "ready_to_broadcast".to_string()
+        } else {
+            "awaiting_initiation".to_string()
+        }
+    });
 
     // Extract multisig_spend_pub_key from address for PKI computation
     let multisig_spend_pub_key = escrow.multisig_address.as_ref().and_then(|addr| {
@@ -9270,13 +9565,16 @@ pub async fn get_escrow_details(
 
     // v0.38.7 FIX: Use escrow.funding_output_index directly (set when funding detected)
     // Fall back to ring_data_json only if column is NULL (legacy data)
-    let funding_output_index = escrow.funding_output_index
+    let funding_output_index = escrow
+        .funding_output_index
         .map(|i| i as u64)
-        .or_else(|| escrow.ring_data_json.as_ref().and_then(|json| {
-            serde_json::from_str::<serde_json::Value>(json)
-                .ok()
-                .and_then(|v| v.get("output_index").and_then(|i| i.as_u64()))
-        }))
+        .or_else(|| {
+            escrow.ring_data_json.as_ref().and_then(|json| {
+                serde_json::from_str::<serde_json::Value>(json)
+                    .ok()
+                    .and_then(|v| v.get("output_index").and_then(|i| i.as_u64()))
+            })
+        })
         .unwrap_or(0);
 
     // v0.34.0 FIX: ALWAYS use escrow.funding_tx_pubkey - it's the ACTUAL funding TX pubkey
@@ -9553,9 +9851,14 @@ pub async fn sign_complete(
 
     // Parse completed_clsag to extract the aggregated key_image from Signer 2's result
     // This is the CORRECT key image for the transaction (aggregated from both signers)
-    let aggregated_key_image_to_store: Option<String> = serde_json::from_str::<serde_json::Value>(&payload.completed_clsag)
-        .ok()
-        .and_then(|v| v.get("key_image").and_then(|k| k.as_str()).map(String::from));
+    let aggregated_key_image_to_store: Option<String> =
+        serde_json::from_str::<serde_json::Value>(&payload.completed_clsag)
+            .ok()
+            .and_then(|v| {
+                v.get("key_image")
+                    .and_then(|k| k.as_str())
+                    .map(String::from)
+            });
 
     // =========================================================================
     // v0.10.6 FIX: Verify KI matches existing, don't blindly overwrite
@@ -9598,7 +9901,11 @@ pub async fn sign_complete(
 
     // Only update aggregated_key_image if we don't already have one, or if they match
     let should_update_ki = escrow.aggregated_key_image.is_none()
-        || escrow.aggregated_key_image.as_ref().map(|ki| ki.is_empty() || ki.chars().all(|c| c == '0')).unwrap_or(true);
+        || escrow
+            .aggregated_key_image
+            .as_ref()
+            .map(|ki| ki.is_empty() || ki.chars().all(|c| c == '0'))
+            .unwrap_or(true);
 
     let update_result = if should_update_ki {
         diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id_str)))
@@ -9650,7 +9957,11 @@ fn aggregate_s_values(hex1: &str, hex2: &str) -> Result<String, String> {
     let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex s2: {}", e))?;
 
     if bytes1.len() != 32 || bytes2.len() != 32 {
-        return Err(format!("Invalid s-value length: {} and {}", bytes1.len(), bytes2.len()));
+        return Err(format!(
+            "Invalid s-value length: {} and {}",
+            bytes1.len(),
+            bytes2.len()
+        ));
     }
 
     let mut arr1 = [0u8; 32];
@@ -9680,7 +9991,11 @@ fn aggregate_d_points(hex1: &str, hex2: &str) -> Result<String, String> {
     let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex D2: {}", e))?;
 
     if bytes1.len() != 32 || bytes2.len() != 32 {
-        return Err(format!("Invalid D point length: {} and {}", bytes1.len(), bytes2.len()));
+        return Err(format!(
+            "Invalid D point length: {} and {}",
+            bytes1.len(),
+            bytes2.len()
+        ));
     }
 
     let mut arr1 = [0u8; 32];
@@ -9691,9 +10006,11 @@ fn aggregate_d_points(hex1: &str, hex2: &str) -> Result<String, String> {
     let compressed1 = CompressedEdwardsY(arr1);
     let compressed2 = CompressedEdwardsY(arr2);
 
-    let point1 = compressed1.decompress()
+    let point1 = compressed1
+        .decompress()
         .ok_or_else(|| "D1 is not a valid Edwards point".to_string())?;
-    let point2 = compressed2.decompress()
+    let point2 = compressed2
+        .decompress()
         .ok_or_else(|| "D2 is not a valid Edwards point".to_string())?;
 
     let sum = point1 + point2;
@@ -9712,9 +10029,9 @@ async fn broadcast_round_robin_transaction(
     _user_id: Uuid,
 ) -> HttpResponse {
     use crate::services::transaction_builder::{
-        parse_monero_address, generate_stealth_address_with_view_tag, generate_tx_pubkey,
-        compute_balanced_output_commitment_2outputs, encrypt_amount_ecdh, derive_output_mask,
-        MoneroTransactionBuilder, ClsagSignatureJson, ClientSignature,
+        compute_balanced_output_commitment_2outputs, derive_output_mask, encrypt_amount_ecdh,
+        generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address,
+        ClientSignature, ClsagSignatureJson, MoneroTransactionBuilder,
     };
     use sha3::{Digest, Keccak256};
 
@@ -9741,11 +10058,15 @@ async fn broadcast_round_robin_transaction(
     // 1. PARSE SIGNATURES - Support BOTH old (buyer/vendor_signature) and new (completed_clsag/partial_tx)
     // =========================================================================
     // First try the new Round-Robin fields, then fall back to legacy buyer/vendor signatures
-    let (completed_clsag, partial_tx): (serde_json::Value, serde_json::Value) =
-        if escrow.completed_clsag.is_some() && escrow.partial_tx.is_some() {
-            // New Round-Robin mode: use completed_clsag and partial_tx
-            info!(escrow_id = %escrow.id, "Using completed_clsag/partial_tx fields (Round-Robin v2)");
-            let clsag: serde_json::Value = match serde_json::from_str(escrow.completed_clsag.as_ref().unwrap()) {
+    let (completed_clsag, partial_tx): (serde_json::Value, serde_json::Value) = if escrow
+        .completed_clsag
+        .is_some()
+        && escrow.partial_tx.is_some()
+    {
+        // New Round-Robin mode: use completed_clsag and partial_tx
+        info!(escrow_id = %escrow.id, "Using completed_clsag/partial_tx fields (Round-Robin v2)");
+        let clsag: serde_json::Value =
+            match serde_json::from_str(escrow.completed_clsag.as_ref().unwrap()) {
                 Ok(v) => v,
                 Err(e) => {
                     error!("Failed to parse completed_clsag: {}", e);
@@ -9754,22 +10075,24 @@ async fn broadcast_round_robin_transaction(
                     }));
                 }
             };
-            let ptx: serde_json::Value = match serde_json::from_str(escrow.partial_tx.as_ref().unwrap()) {
-                Ok(v) => v,
-                Err(e) => {
-                    error!("Failed to parse partial_tx: {}", e);
-                    return HttpResponse::InternalServerError().json(serde_json::json!({
-                        "error": format!("Invalid partial_tx format: {}", e)
-                    }));
-                }
-            };
-            (clsag, ptx)
-        } else if escrow.buyer_signature.is_some() && escrow.vendor_signature.is_some() {
-            // Legacy mode: use buyer_signature and vendor_signature
-            // We need to aggregate their s-values for the final signature
-            info!(escrow_id = %escrow.id, "Using buyer_signature/vendor_signature fields (Legacy Round-Robin)");
+        let ptx: serde_json::Value = match serde_json::from_str(escrow.partial_tx.as_ref().unwrap())
+        {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Failed to parse partial_tx: {}", e);
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Invalid partial_tx format: {}", e)
+                }));
+            }
+        };
+        (clsag, ptx)
+    } else if escrow.buyer_signature.is_some() && escrow.vendor_signature.is_some() {
+        // Legacy mode: use buyer_signature and vendor_signature
+        // We need to aggregate their s-values for the final signature
+        info!(escrow_id = %escrow.id, "Using buyer_signature/vendor_signature fields (Legacy Round-Robin)");
 
-            let buyer_sig: serde_json::Value = match serde_json::from_str(escrow.buyer_signature.as_ref().unwrap()) {
+        let buyer_sig: serde_json::Value =
+            match serde_json::from_str(escrow.buyer_signature.as_ref().unwrap()) {
                 Ok(v) => v,
                 Err(e) => {
                     error!("Failed to parse buyer_signature: {}", e);
@@ -9778,7 +10101,8 @@ async fn broadcast_round_robin_transaction(
                     }));
                 }
             };
-            let vendor_sig: serde_json::Value = match serde_json::from_str(escrow.vendor_signature.as_ref().unwrap()) {
+        let vendor_sig: serde_json::Value =
+            match serde_json::from_str(escrow.vendor_signature.as_ref().unwrap()) {
                 Ok(v) => v,
                 Err(e) => {
                     error!("Failed to parse vendor_signature: {}", e);
@@ -9788,102 +10112,108 @@ async fn broadcast_round_robin_transaction(
                 }
             };
 
-            // v0.9.1: Determine which signature was first using atomically-recorded first_signer_role
-            // This prevents race conditions when both parties sign within the same second
-            let (first_sig, second_sig, first_role) = match escrow.first_signer_role.as_deref() {
-                Some("vendor") => {
-                    info!(escrow_id = %escrow.id, first_signer = "vendor",
+        // v0.9.1: Determine which signature was first using atomically-recorded first_signer_role
+        // This prevents race conditions when both parties sign within the same second
+        let (first_sig, second_sig, first_role) = match escrow.first_signer_role.as_deref() {
+            Some("vendor") => {
+                info!(escrow_id = %escrow.id, first_signer = "vendor",
                           "Using first_signer_role: Vendor signed first, buyer signed second");
-                    (&vendor_sig, &buyer_sig, "vendor")
-                }
-                Some("buyer") => {
-                    info!(escrow_id = %escrow.id, first_signer = "buyer",
+                (&vendor_sig, &buyer_sig, "vendor")
+            }
+            Some("buyer") => {
+                info!(escrow_id = %escrow.id, first_signer = "buyer",
                           "Using first_signer_role: Buyer signed first, vendor signed second");
+                (&buyer_sig, &vendor_sig, "buyer")
+            }
+            Some(other) => {
+                warn!(escrow_id = %escrow.id, first_signer = %other,
+                          "Unexpected first_signer_role '{}', falling back to timestamp comparison", other);
+                // Fallback to timestamp for arbiter or unknown values
+                let vendor_signed_at = escrow.vendor_signed_at.unwrap_or(0);
+                let buyer_signed_at = escrow.buyer_signed_at.unwrap_or(0);
+                if vendor_signed_at <= buyer_signed_at {
+                    (&vendor_sig, &buyer_sig, "vendor")
+                } else {
                     (&buyer_sig, &vendor_sig, "buyer")
                 }
-                Some(other) => {
-                    warn!(escrow_id = %escrow.id, first_signer = %other,
-                          "Unexpected first_signer_role '{}', falling back to timestamp comparison", other);
-                    // Fallback to timestamp for arbiter or unknown values
-                    let vendor_signed_at = escrow.vendor_signed_at.unwrap_or(0);
-                    let buyer_signed_at = escrow.buyer_signed_at.unwrap_or(0);
-                    if vendor_signed_at <= buyer_signed_at {
-                        (&vendor_sig, &buyer_sig, "vendor")
-                    } else {
-                        (&buyer_sig, &vendor_sig, "buyer")
-                    }
-                }
-                None => {
-                    // Legacy escrows without first_signer_role - fall back to timestamp
-                    warn!(escrow_id = %escrow.id,
+            }
+            None => {
+                // Legacy escrows without first_signer_role - fall back to timestamp
+                warn!(escrow_id = %escrow.id,
                           "No first_signer_role set (legacy escrow), falling back to timestamp comparison");
-                    let vendor_signed_at = escrow.vendor_signed_at.unwrap_or(0);
-                    let buyer_signed_at = escrow.buyer_signed_at.unwrap_or(0);
-                    if vendor_signed_at <= buyer_signed_at {
-                        info!(escrow_id = %escrow.id, vendor_ts = vendor_signed_at, buyer_ts = buyer_signed_at,
+                let vendor_signed_at = escrow.vendor_signed_at.unwrap_or(0);
+                let buyer_signed_at = escrow.buyer_signed_at.unwrap_or(0);
+                if vendor_signed_at <= buyer_signed_at {
+                    info!(escrow_id = %escrow.id, vendor_ts = vendor_signed_at, buyer_ts = buyer_signed_at,
                               "Timestamp fallback: Vendor signed first");
-                        (&vendor_sig, &buyer_sig, "vendor")
-                    } else {
-                        info!(escrow_id = %escrow.id, vendor_ts = vendor_signed_at, buyer_ts = buyer_signed_at,
+                    (&vendor_sig, &buyer_sig, "vendor")
+                } else {
+                    info!(escrow_id = %escrow.id, vendor_ts = vendor_signed_at, buyer_ts = buyer_signed_at,
                               "Timestamp fallback: Buyer signed first");
-                        (&buyer_sig, &vendor_sig, "buyer")
+                    (&buyer_sig, &vendor_sig, "buyer")
+                }
+            }
+        };
+
+        // Build partial_tx from first signer (contains c1, D, initial s-values)
+        // Build completed_clsag by aggregating s-values from both
+        // FIX #R5: Use lowercase "d" to match actual JSON key (not uppercase "D")
+        let partial_tx_value = serde_json::json!({
+            "c1": first_sig.get("signature").and_then(|s| s.get("c1")).and_then(|v| v.as_str()).unwrap_or(""),
+            "d": first_sig.get("signature").and_then(|s| s.get("d").or_else(|| s.get("D"))).and_then(|v| v.as_str()).unwrap_or(""),
+            "s_values": first_sig.get("signature").and_then(|s| s.get("s")).cloned().unwrap_or(serde_json::json!([])),
+            "pseudo_out": first_sig.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or(""),
+            "key_image": first_sig.get("key_image").and_then(|v| v.as_str()).unwrap_or("")
+        });
+
+        // =========================================================================
+        // v0.8.6 Round-Robin CLSAG: SELECTIVE s-value aggregation (LEGACY PATH)
+        // =========================================================================
+        // Extract signer_index from ring_data_json for selective aggregation
+        let signer_index: usize = match &escrow.ring_data_json {
+            Some(ring_json) => {
+                #[derive(serde::Deserialize)]
+                struct RingDataForSigner {
+                    signer_index: u8,
+                }
+                match serde_json::from_str::<RingDataForSigner>(ring_json) {
+                    Ok(data) => data.signer_index as usize,
+                    Err(e) => {
+                        error!(
+                            escrow_id = %escrow.id,
+                            error = %e,
+                            "Failed to extract signer_index from ring_data_json, defaulting to 15"
+                        );
+                        15 // Default fallback
                     }
                 }
-            };
+            }
+            None => {
+                warn!(escrow_id = %escrow.id, "No ring_data_json found, defaulting signer_index to 15");
+                15 // Default fallback
+            }
+        };
 
-            // Build partial_tx from first signer (contains c1, D, initial s-values)
-            // Build completed_clsag by aggregating s-values from both
-            // FIX #R5: Use lowercase "d" to match actual JSON key (not uppercase "D")
-            let partial_tx_value = serde_json::json!({
-                "c1": first_sig.get("signature").and_then(|s| s.get("c1")).and_then(|v| v.as_str()).unwrap_or(""),
-                "d": first_sig.get("signature").and_then(|s| s.get("d").or_else(|| s.get("D"))).and_then(|v| v.as_str()).unwrap_or(""),
-                "s_values": first_sig.get("signature").and_then(|s| s.get("s")).cloned().unwrap_or(serde_json::json!([])),
-                "pseudo_out": first_sig.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or(""),
-                "key_image": first_sig.get("key_image").and_then(|v| v.as_str()).unwrap_or("")
-            });
+        info!(
+            escrow_id = %escrow.id,
+            first_signer = first_role,
+            signer_index = signer_index,
+            "Round-Robin v0.8.6: Using SELECTIVE aggregation - only aggregate s[{}]",
+            signer_index
+        );
 
-            // =========================================================================
-            // v0.8.6 Round-Robin CLSAG: SELECTIVE s-value aggregation (LEGACY PATH)
-            // =========================================================================
-            // Extract signer_index from ring_data_json for selective aggregation
-            let signer_index: usize = match &escrow.ring_data_json {
-                Some(ring_json) => {
-                    #[derive(serde::Deserialize)]
-                    struct RingDataForSigner {
-                        signer_index: u8,
-                    }
-                    match serde_json::from_str::<RingDataForSigner>(ring_json) {
-                        Ok(data) => data.signer_index as usize,
-                        Err(e) => {
-                            error!(
-                                escrow_id = %escrow.id,
-                                error = %e,
-                                "Failed to extract signer_index from ring_data_json, defaulting to 15"
-                            );
-                            15 // Default fallback
-                        }
-                    }
-                }
-                None => {
-                    warn!(escrow_id = %escrow.id, "No ring_data_json found, defaulting signer_index to 15");
-                    15 // Default fallback
-                }
-            };
+        // SELECTIVE aggregation: only aggregate at signer_index position
+        let first_s = first_sig
+            .get("signature")
+            .and_then(|s| s.get("s"))
+            .and_then(|v| v.as_array());
+        let second_s = second_sig
+            .get("signature")
+            .and_then(|s| s.get("s"))
+            .and_then(|v| v.as_array());
 
-            info!(
-                escrow_id = %escrow.id,
-                first_signer = first_role,
-                signer_index = signer_index,
-                "Round-Robin v0.8.6: Using SELECTIVE aggregation - only aggregate s[{}]",
-                signer_index
-            );
-
-            // SELECTIVE aggregation: only aggregate at signer_index position
-            let first_s = first_sig.get("signature").and_then(|s| s.get("s")).and_then(|v| v.as_array());
-            let second_s = second_sig.get("signature").and_then(|s| s.get("s")).and_then(|v| v.as_array());
-
-            let aggregated_s: Vec<String> = if let (Some(s1), Some(s2)) = (first_s, second_s) {
-                s1.iter().zip(s2.iter())
+        let aggregated_s: Vec<String> = if let (Some(s1), Some(s2)) = (first_s, second_s) {
+            s1.iter().zip(s2.iter())
                     .enumerate()
                     .map(|(i, (v1, v2))| {
                         let hex1 = v1.as_str().unwrap_or("");
@@ -9935,96 +10265,103 @@ async fn broadcast_round_robin_transaction(
                         }
                     })
                     .collect()
-            } else {
-                // Fallback: use first signer's s-values
-                first_sig.get("signature")
-                    .and_then(|s| s.get("s"))
-                    .and_then(|v| v.as_array())
-                    .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
-                    .unwrap_or_default()
-            };
+        } else {
+            // Fallback: use first signer's s-values
+            first_sig
+                .get("signature")
+                .and_then(|s| s.get("s"))
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default()
+        };
 
-            info!(
-                escrow_id = %escrow.id,
-                s_count = aggregated_s.len(),
-                s0_preview = aggregated_s.get(0).map(|s| &s[..16.min(s.len())]).unwrap_or(""),
-                s15_full = aggregated_s.get(15).map(|s| s.as_str()).unwrap_or(""),
-                "Aggregated {} s-values with SELECTIVE method",
-                aggregated_s.len()
-            );
+        info!(
+            escrow_id = %escrow.id,
+            s_count = aggregated_s.len(),
+            s0_preview = aggregated_s.get(0).map(|s| &s[..16.min(s.len())]).unwrap_or(""),
+            s15_full = aggregated_s.get(15).map(|s| s.as_str()).unwrap_or(""),
+            "Aggregated {} s-values with SELECTIVE method",
+            aggregated_s.len()
+        );
 
-            // =========================================================================
-            // v0.9.3: D POINT HANDLING (CRITICAL FOR CLSAG MULTISIG)
-            // =========================================================================
-            // FIX #R5: Use lowercase "d" (or fallback to uppercase "D") to match actual JSON keys
-            // FIX #R1: If D1 == D2 (same mask used), do NOT aggregate (would double the D point)
-            let d1 = first_sig.get("signature")
-                .and_then(|s| s.get("d").or_else(|| s.get("D")))
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let d2 = second_sig.get("signature")
-                .and_then(|s| s.get("d").or_else(|| s.get("D")))
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
+        // =========================================================================
+        // v0.9.3: D POINT HANDLING (CRITICAL FOR CLSAG MULTISIG)
+        // =========================================================================
+        // FIX #R5: Use lowercase "d" (or fallback to uppercase "D") to match actual JSON keys
+        // FIX #R1: If D1 == D2 (same mask used), do NOT aggregate (would double the D point)
+        let d1 = first_sig
+            .get("signature")
+            .and_then(|s| s.get("d").or_else(|| s.get("D")))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+        let d2 = second_sig
+            .get("signature")
+            .and_then(|s| s.get("d").or_else(|| s.get("D")))
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
 
-            let aggregated_d = if !d1.is_empty() && !d2.is_empty() {
-                // FIX #R1: Check if D points are identical (same mask used by both signers)
-                if d1 == d2 {
-                    // Same mask used by both signers - NO aggregation needed
-                    // Aggregating would produce 2*D which is WRONG
-                    info!(
-                        escrow_id = %escrow.id,
-                        d_point = &d1[..16.min(d1.len())],
-                        "D points IDENTICAL (same mask) - using single D (no aggregation)"
-                    );
-                    d1.to_string()
-                } else {
-                    // Different mask shares - aggregate D1 + D2
-                    match aggregate_d_points(d1, d2) {
-                        Ok(d_agg) => {
-                            info!(
-                                escrow_id = %escrow.id,
-                                d1_preview = &d1[..16.min(d1.len())],
-                                d2_preview = &d2[..16.min(d2.len())],
-                                d_agg_preview = &d_agg[..16.min(d_agg.len())],
-                                "D points DIFFER (split mask) - aggregated: D_final = D_1 + D_2"
-                            );
-                            d_agg
-                        }
-                        Err(e) => {
-                            warn!(
-                                escrow_id = %escrow.id,
-                                error = %e,
-                                "Failed to aggregate D points, using first signer's D"
-                            );
-                            d1.to_string()
-                        }
-                    }
-                }
-            } else {
-                warn!(
+        let aggregated_d = if !d1.is_empty() && !d2.is_empty() {
+            // FIX #R1: Check if D points are identical (same mask used by both signers)
+            if d1 == d2 {
+                // Same mask used by both signers - NO aggregation needed
+                // Aggregating would produce 2*D which is WRONG
+                info!(
                     escrow_id = %escrow.id,
-                    d1_empty = d1.is_empty(),
-                    d2_empty = d2.is_empty(),
-                    "Missing D point from one or both signers!"
+                    d_point = &d1[..16.min(d1.len())],
+                    "D points IDENTICAL (same mask) - using single D (no aggregation)"
                 );
                 d1.to_string()
-            };
-
-            let completed_clsag_value = serde_json::json!({
-                "c1": first_sig.get("signature").and_then(|s| s.get("c1")).and_then(|v| v.as_str()).unwrap_or(""),
-                "d": aggregated_d,
-                "s": aggregated_s,
-                "pseudo_out": first_sig.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or(""),
-                "key_image": first_sig.get("key_image").and_then(|v| v.as_str()).unwrap_or("")
-            });
-
-            (completed_clsag_value, partial_tx_value)
+            } else {
+                // Different mask shares - aggregate D1 + D2
+                match aggregate_d_points(d1, d2) {
+                    Ok(d_agg) => {
+                        info!(
+                            escrow_id = %escrow.id,
+                            d1_preview = &d1[..16.min(d1.len())],
+                            d2_preview = &d2[..16.min(d2.len())],
+                            d_agg_preview = &d_agg[..16.min(d_agg.len())],
+                            "D points DIFFER (split mask) - aggregated: D_final = D_1 + D_2"
+                        );
+                        d_agg
+                    }
+                    Err(e) => {
+                        warn!(
+                            escrow_id = %escrow.id,
+                            error = %e,
+                            "Failed to aggregate D points, using first signer's D"
+                        );
+                        d1.to_string()
+                    }
+                }
+            }
         } else {
-            return HttpResponse::BadRequest().json(serde_json::json!({
+            warn!(
+                escrow_id = %escrow.id,
+                d1_empty = d1.is_empty(),
+                d2_empty = d2.is_empty(),
+                "Missing D point from one or both signers!"
+            );
+            d1.to_string()
+        };
+
+        let completed_clsag_value = serde_json::json!({
+            "c1": first_sig.get("signature").and_then(|s| s.get("c1")).and_then(|v| v.as_str()).unwrap_or(""),
+            "d": aggregated_d,
+            "s": aggregated_s,
+            "pseudo_out": first_sig.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or(""),
+            "key_image": first_sig.get("key_image").and_then(|v| v.as_str()).unwrap_or("")
+        });
+
+        (completed_clsag_value, partial_tx_value)
+    } else {
+        return HttpResponse::BadRequest().json(serde_json::json!({
                 "error": "Missing signatures - need either completed_clsag+partial_tx OR buyer_signature+vendor_signature"
             }));
-        };
+    };
 
     // =====================================================================
     // CHECKPOINT 2: SIGNATURE DATA DIAGNOSTIC
@@ -10075,10 +10412,15 @@ async fn broadcast_round_robin_transaction(
         "[DIAG-4A] completed_clsag structure inspection"
     );
 
-    let s_values: Vec<String> = completed_clsag.get("s")
+    let s_values: Vec<String> = completed_clsag
+        .get("s")
         .or_else(|| completed_clsag.get("s_values"))
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
         .unwrap_or_default();
 
     info!(
@@ -10088,12 +10430,22 @@ async fn broadcast_round_robin_transaction(
         "[DIAG-4B] s_values extraction result"
     );
 
-    let c1 = completed_clsag.get("c1").and_then(|v| v.as_str()).unwrap_or("");
-    let d = completed_clsag.get("d").and_then(|v| v.as_str()).unwrap_or("");
-    let pseudo_out = completed_clsag.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or("");
+    let c1 = completed_clsag
+        .get("c1")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let d = completed_clsag
+        .get("d")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let pseudo_out = completed_clsag
+        .get("pseudo_out")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
 
     // Get key_image from partial_tx (more reliable than completed_clsag)
-    let key_image = partial_tx.get("key_image")
+    let key_image = partial_tx
+        .get("key_image")
         .and_then(|v| v.as_str())
         .or_else(|| completed_clsag.get("key_image").and_then(|v| v.as_str()))
         .unwrap_or("");
@@ -10114,7 +10466,9 @@ async fn broadcast_round_robin_transaction(
     // The aggregated_key_image is set by sign_complete() when Signer 2 completes the signature
     // It contains the properly aggregated key image: KI = pKI_1 + pKI_2
     // The key_image from completed_clsag may contain Signer 1's partial key image (wrong!)
-    let final_key_image = escrow.aggregated_key_image.as_deref()
+    let final_key_image = escrow
+        .aggregated_key_image
+        .as_deref()
         .filter(|ki| !ki.is_empty() && !ki.chars().all(|c| c == '0'))
         .unwrap_or(key_image);
 
@@ -10138,14 +10492,17 @@ async fn broadcast_round_robin_transaction(
     // 5. EXTRACT RING MEMBER INDICES
     // =========================================================================
     // Try both field names for compatibility: "ring_member_indices" (stored format) and "ring_indices" (legacy)
-    let ring_indices: Vec<u64> = ring_data.get("ring_member_indices")
+    let ring_indices: Vec<u64> = ring_data
+        .get("ring_member_indices")
         .or_else(|| ring_data.get("ring_indices"))
         .and_then(|v| v.as_array())
         .map(|arr| arr.iter().filter_map(|v| v.as_u64()).collect())
         .unwrap_or_default();
 
     if ring_indices.is_empty() {
-        error!("No ring indices found in ring_data_json (tried ring_member_indices and ring_indices)");
+        error!(
+            "No ring indices found in ring_data_json (tried ring_member_indices and ring_indices)"
+        );
         return HttpResponse::BadRequest().json(serde_json::json!({
             "error": "Missing ring_member_indices in ring_data"
         }));
@@ -10156,11 +10513,13 @@ async fn broadcast_round_robin_transaction(
     // =========================================================================
     // These values MUST be used during broadcast to ensure tx_prefix_hash matches
     // what was signed. If we recompute, any tiny difference causes signature failure.
-    let stored_tx_prefix_hash = ring_data.get("tx_prefix_hash")
+    let stored_tx_prefix_hash = ring_data
+        .get("tx_prefix_hash")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let stored_stealth_address: Option<[u8; 32]> = ring_data.get("stealth_address")
+    let stored_stealth_address: Option<[u8; 32]> = ring_data
+        .get("stealth_address")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10173,7 +10532,8 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_tx_pubkey: Option<[u8; 32]> = ring_data.get("tx_pubkey")
+    let stored_tx_pubkey: Option<[u8; 32]> = ring_data
+        .get("tx_pubkey")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10190,19 +10550,22 @@ async fn broadcast_round_robin_transaction(
     // This is the key_image that was used to compute tx_prefix_hash during signing.
     // sign_complete() may overwrite escrow.aggregated_key_image with a DIFFERENT value,
     // causing tx_prefix_hash mismatch. We MUST use the stored value for prefix computation.
-    let stored_key_image: Option<String> = ring_data.get("key_image")
+    let stored_key_image: Option<String> = ring_data
+        .get("key_image")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
     // v0.29.0 FIX: Extract view_tag from ring_data_json to avoid recomputation
-    let stored_view_tag: Option<u8> = ring_data.get("view_tag")
+    let stored_view_tag: Option<u8> = ring_data
+        .get("view_tag")
         .and_then(|v| v.as_u64())
         .map(|v| v as u8);
 
     // v0.30.0 FIX: Extract output_commitment from ring_data_json
     // The output_commitment MUST match what was used during prepare_sign to compute tx_prefix_hash.
     // If we recompute it, any difference causes CLSAG verification failure (c_computed != c_expected).
-    let stored_output_commitment: Option<[u8; 32]> = ring_data.get("output_commitment")
+    let stored_output_commitment: Option<[u8; 32]> = ring_data
+        .get("output_commitment")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10216,7 +10579,8 @@ async fn broadcast_round_robin_transaction(
         });
 
     // v0.30.0: Extract stored pseudo_out for consistency check
-    let stored_pseudo_out: Option<[u8; 32]> = ring_data.get("pseudo_out")
+    let stored_pseudo_out: Option<[u8; 32]> = ring_data
+        .get("pseudo_out")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10232,18 +10596,21 @@ async fn broadcast_round_robin_transaction(
     // v0.61.0 FIX: Extract bulletproof_plus_hex from ring_data_json
     // CRITICAL: BP+ uses random blinding factors. Regenerating it causes bp_kv_hash mismatch
     // -> clsag_message differs -> signature was made for different message -> INVALID_INPUT!
-    let stored_bulletproof_plus_hex: Option<String> = ring_data.get("bulletproof_plus_hex")
+    let stored_bulletproof_plus_hex: Option<String> = ring_data
+        .get("bulletproof_plus_hex")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
     // v0.62.0 DIAGNOSTIC: Extract stored clsag_message for comparison
     // This is the AUTHORITATIVE message that was signed by the frontend
-    let stored_clsag_message: Option<String> = ring_data.get("clsag_message")
+    let stored_clsag_message: Option<String> = ring_data
+        .get("clsag_message")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
     // v0.62.0 DIAGNOSTIC: Extract encrypted_amount if stored
-    let stored_encrypted_amount_0: Option<String> = ring_data.get("encrypted_amount_0")
+    let stored_encrypted_amount_0: Option<String> = ring_data
+        .get("encrypted_amount_0")
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
@@ -10251,7 +10618,8 @@ async fn broadcast_round_robin_transaction(
     // v0.70.0: Extract platform fee data from ring_data_json
     // CRITICAL: These values MUST match prepare_sign for tx_prefix consistency
     // =========================================================================
-    let stored_platform_stealth_address: Option<[u8; 32]> = ring_data.get("platform_stealth_address")
+    let stored_platform_stealth_address: Option<[u8; 32]> = ring_data
+        .get("platform_stealth_address")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10264,7 +10632,8 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_platform_commitment: Option<[u8; 32]> = ring_data.get("platform_commitment")
+    let stored_platform_commitment: Option<[u8; 32]> = ring_data
+        .get("platform_commitment")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10277,7 +10646,8 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_platform_encrypted_amount: Option<[u8; 8]> = ring_data.get("platform_encrypted_amount")
+    let stored_platform_encrypted_amount: Option<[u8; 8]> = ring_data
+        .get("platform_encrypted_amount")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10290,11 +10660,13 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_platform_view_tag: Option<u8> = ring_data.get("platform_view_tag")
+    let stored_platform_view_tag: Option<u8> = ring_data
+        .get("platform_view_tag")
         .and_then(|v| v.as_u64())
         .map(|v| v as u8);
 
-    let stored_platform_mask: Option<[u8; 32]> = ring_data.get("platform_mask")
+    let stored_platform_mask: Option<[u8; 32]> = ring_data
+        .get("platform_mask")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10307,7 +10679,8 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_output_mask: Option<[u8; 32]> = ring_data.get("output_mask")
+    let stored_output_mask: Option<[u8; 32]> = ring_data
+        .get("output_mask")
         .and_then(|v| v.as_str())
         .and_then(|s| hex::decode(s).ok())
         .and_then(|v| {
@@ -10320,18 +10693,20 @@ async fn broadcast_round_robin_transaction(
             }
         });
 
-    let stored_recipient_amount: Option<u64> = ring_data.get("recipient_amount")
-        .and_then(|v| v.as_u64());
+    let stored_recipient_amount: Option<u64> =
+        ring_data.get("recipient_amount").and_then(|v| v.as_u64());
 
-    let stored_platform_fee: Option<u64> = ring_data.get("platform_fee")
-        .and_then(|v| v.as_u64());
+    let stored_platform_fee: Option<u64> = ring_data.get("platform_fee").and_then(|v| v.as_u64());
 
-    let stored_is_refund: Option<bool> = ring_data.get("is_refund")
-        .and_then(|v| v.as_bool());
+    let stored_is_refund: Option<bool> = ring_data.get("is_refund").and_then(|v| v.as_bool());
 
     // v0.71.0 DEBUG: Log raw values BEFORE hex decoding to diagnose extraction failures
-    let raw_platform_stealth = ring_data.get("platform_stealth_address").and_then(|v| v.as_str());
-    let raw_platform_commitment = ring_data.get("platform_commitment").and_then(|v| v.as_str());
+    let raw_platform_stealth = ring_data
+        .get("platform_stealth_address")
+        .and_then(|v| v.as_str());
+    let raw_platform_commitment = ring_data
+        .get("platform_commitment")
+        .and_then(|v| v.as_str());
     let raw_platform_fee = ring_data.get("platform_fee");
 
     info!(
@@ -10395,7 +10770,9 @@ async fn broadcast_round_robin_transaction(
     // =========================================================================
     // 6. GET DESTINATION ADDRESS
     // =========================================================================
-    let destination = escrow.vendor_payout_address.as_ref()
+    let destination = escrow
+        .vendor_payout_address
+        .as_ref()
         .or(escrow.buyer_refund_address.as_ref())
         .cloned()
         .unwrap_or_else(|| "UNKNOWN".to_string());
@@ -10462,56 +10839,57 @@ async fn broadcast_round_robin_transaction(
 
     // USE STORED STEALTH_ADDRESS and VIEW_TAG if available (from prepare_sign)
     // v0.29.0 FIX: Also use stored view_tag to avoid any potential mismatch
-    let (stealth_address, view_tag) = if let (Some(stored_addr), Some(stored_vt)) = (stored_stealth_address, stored_view_tag) {
-        info!(
-            escrow_id = %escrow.id,
-            stealth_address = %hex::encode(stored_addr),
-            view_tag = stored_vt,
-            "[v0.29.0] Using STORED stealth_address and view_tag from ring_data_json"
-        );
-        (stored_addr, stored_vt)
-    } else if let Some(stored_addr) = stored_stealth_address {
-        // Fallback: stealth_address stored but view_tag not (older escrows)
-        info!(
-            escrow_id = %escrow.id,
-            stealth_address = %hex::encode(stored_addr),
-            "[v0.29.0] Using stored stealth_address, computing view_tag (legacy fallback)"
-        );
-        let vt = match generate_stealth_address_with_view_tag(
-            &tx_secret_key,
-            &dest_spend_pub,
-            &dest_view_pub,
-            0, // output index
-        ) {
-            Ok((_, vt)) => vt,
-            Err(e) => {
-                error!("Failed to compute view_tag: {}", e);
-                return HttpResponse::InternalServerError().json(serde_json::json!({
-                    "error": format!("View tag computation failed: {}", e)
-                }));
+    let (stealth_address, view_tag) =
+        if let (Some(stored_addr), Some(stored_vt)) = (stored_stealth_address, stored_view_tag) {
+            info!(
+                escrow_id = %escrow.id,
+                stealth_address = %hex::encode(stored_addr),
+                view_tag = stored_vt,
+                "[v0.29.0] Using STORED stealth_address and view_tag from ring_data_json"
+            );
+            (stored_addr, stored_vt)
+        } else if let Some(stored_addr) = stored_stealth_address {
+            // Fallback: stealth_address stored but view_tag not (older escrows)
+            info!(
+                escrow_id = %escrow.id,
+                stealth_address = %hex::encode(stored_addr),
+                "[v0.29.0] Using stored stealth_address, computing view_tag (legacy fallback)"
+            );
+            let vt = match generate_stealth_address_with_view_tag(
+                &tx_secret_key,
+                &dest_spend_pub,
+                &dest_view_pub,
+                0, // output index
+            ) {
+                Ok((_, vt)) => vt,
+                Err(e) => {
+                    error!("Failed to compute view_tag: {}", e);
+                    return HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": format!("View tag computation failed: {}", e)
+                    }));
+                }
+            };
+            (stored_addr, vt)
+        } else {
+            warn!(
+                escrow_id = %escrow.id,
+                "No stored stealth_address, computing from scratch (may cause mismatch)"
+            );
+            match generate_stealth_address_with_view_tag(
+                &tx_secret_key,
+                &dest_spend_pub,
+                &dest_view_pub,
+                0, // output index
+            ) {
+                Ok(result) => result,
+                Err(e) => {
+                    error!("Failed to generate stealth address: {}", e);
+                    return HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": format!("Stealth address generation failed: {}", e)
+                    }));
+                }
             }
         };
-        (stored_addr, vt)
-    } else {
-        warn!(
-            escrow_id = %escrow.id,
-            "No stored stealth_address, computing from scratch (may cause mismatch)"
-        );
-        match generate_stealth_address_with_view_tag(
-            &tx_secret_key,
-            &dest_spend_pub,
-            &dest_view_pub,
-            0, // output index
-        ) {
-            Ok(result) => result,
-            Err(e) => {
-                error!("Failed to generate stealth address: {}", e);
-                return HttpResponse::InternalServerError().json(serde_json::json!({
-                    "error": format!("Stealth address generation failed: {}", e)
-                }));
-            }
-        }
-    };
 
     // =========================================================================
     // v0.35.0 FIX: EXTRACT mask_delta FIRST (needed for BOTH output_mask AND dummy_mask)
@@ -10520,33 +10898,29 @@ async fn broadcast_round_robin_transaction(
     // For commitment balance: dummy_mask = mask_delta (NOT a random derived value!)
     // This ensures: pseudo_out = out0 + dummy + fee*H balances correctly.
     let mask_delta_bytes: [u8; 32] = {
-        let mask_delta_hex = partial_tx
-            .get("mask_delta")
-            .and_then(|v| v.as_str());
+        let mask_delta_hex = partial_tx.get("mask_delta").and_then(|v| v.as_str());
 
         match mask_delta_hex {
-            Some(hex_str) => {
-                match hex::decode(hex_str) {
-                    Ok(bytes) if bytes.len() == 32 => {
-                        let mut arr = [0u8; 32];
-                        arr.copy_from_slice(&bytes);
-                        info!(
-                            escrow_id = %escrow.id,
-                            mask_delta_hex = %hex_str,
-                            mask_delta_first8 = %hex::encode(&arr[..8]),
-                            is_zero = arr.iter().all(|&b| b == 0),
-                            "[v0.35.0] Extracted mask_delta from partial_tx"
-                        );
-                        arr
-                    }
-                    _ => {
-                        error!("Invalid mask_delta hex format: {}", hex_str);
-                        return HttpResponse::BadRequest().json(serde_json::json!({
-                            "error": "Invalid mask_delta format"
-                        }));
-                    }
+            Some(hex_str) => match hex::decode(hex_str) {
+                Ok(bytes) if bytes.len() == 32 => {
+                    let mut arr = [0u8; 32];
+                    arr.copy_from_slice(&bytes);
+                    info!(
+                        escrow_id = %escrow.id,
+                        mask_delta_hex = %hex_str,
+                        mask_delta_first8 = %hex::encode(&arr[..8]),
+                        is_zero = arr.iter().all(|&b| b == 0),
+                        "[v0.35.0] Extracted mask_delta from partial_tx"
+                    );
+                    arr
                 }
-            }
+                _ => {
+                    error!("Invalid mask_delta hex format: {}", hex_str);
+                    return HttpResponse::BadRequest().json(serde_json::json!({
+                        "error": "Invalid mask_delta format"
+                    }));
+                }
+            },
             None => {
                 // v0.35.0: When mask_delta is not provided, default to 0
                 // This is the expected case for v0.35.0 WASM which uses commitment_mask as pseudo_out_mask
@@ -10703,7 +11077,11 @@ async fn broadcast_round_robin_transaction(
             escrow_id = %escrow.id,
             "[v0.35.0] WARNING: No stored output_commitment, computing from signature's pseudo_out"
         );
-        match compute_balanced_output_commitment_2outputs(&pseudo_out_bytes, fee_atomic, &dummy_mask) {
+        match compute_balanced_output_commitment_2outputs(
+            &pseudo_out_bytes,
+            fee_atomic,
+            &dummy_mask,
+        ) {
             Ok(c) => c,
             Err(e) => {
                 error!("Failed to compute output commitment: {}", e);
@@ -10716,7 +11094,8 @@ async fn broadcast_round_robin_transaction(
 
     // v0.30.0: Log comparison between stored and computed for debugging
     if stored_output_commitment.is_some() {
-        let computed_commitment = compute_balanced_output_commitment_2outputs(&pseudo_out_bytes, fee_atomic, &dummy_mask);
+        let computed_commitment =
+            compute_balanced_output_commitment_2outputs(&pseudo_out_bytes, fee_atomic, &dummy_mask);
         if let Ok(computed) = computed_commitment {
             if computed != output_commitment {
                 warn!(
@@ -10747,15 +11126,22 @@ async fn broadcast_round_robin_transaction(
             stored_platform_commitment.unwrap_or_else(|| {
                 // Fallback: compute dummy commitment if platform commitment missing
                 let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-                (&*ED25519_BASEPOINT_TABLE * &mask_scalar).compress().to_bytes()
+                (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+                    .compress()
+                    .to_bytes()
             })
         } else {
             // Legacy: compute dummy_commitment for 2-output verification
             let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-            (&*ED25519_BASEPOINT_TABLE * &mask_scalar).compress().to_bytes()
+            (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+                .compress()
+                .to_bytes()
         };
 
-        let pseudo_out_hex_diag = partial_tx.get("pseudo_out").and_then(|v| v.as_str()).unwrap_or("MISSING");
+        let pseudo_out_hex_diag = partial_tx
+            .get("pseudo_out")
+            .and_then(|v| v.as_str())
+            .unwrap_or("MISSING");
         info!(
             escrow_id = %escrow.id,
             is_platform_fee_tx = is_platform_fee_tx,
@@ -10771,7 +11157,11 @@ async fn broadcast_round_robin_transaction(
         );
 
         // Verify balance using the verification function (with BOTH outputs)
-        let balance_result = verify_commitment_balance(&[pseudo_out_bytes], &[output_commitment, output1_commitment_diag], fee_atomic);
+        let balance_result = verify_commitment_balance(
+            &[pseudo_out_bytes],
+            &[output_commitment, output1_commitment_diag],
+            fee_atomic,
+        );
         info!(
             escrow_id = %escrow.id,
             balance_verified = ?balance_result,
@@ -10803,7 +11193,8 @@ async fn broadcast_round_robin_transaction(
     // CRITICAL FIX: Use stored_key_image from ring_data_json (set during prepare_sign)
     // NOT escrow.aggregated_key_image which may be overwritten by sign_complete().
     // The tx_prefix_hash MUST match what was computed during prepare_sign!
-    let key_image_for_prefix = stored_key_image.as_deref()
+    let key_image_for_prefix = stored_key_image
+        .as_deref()
         .filter(|ki| !ki.is_empty() && !ki.chars().all(|c| c == '0'))
         .unwrap_or(final_key_image);
 
@@ -10871,10 +11262,24 @@ async fn broadcast_round_robin_transaction(
         let out_mask = stored_output_mask.unwrap_or(output_mask);
 
         // Output 0: Recipient
-        builder.add_output(stealth_address, output_commitment, encrypted_amount, out_mask, recip_amt, view_tag);
+        builder.add_output(
+            stealth_address,
+            output_commitment,
+            encrypted_amount,
+            out_mask,
+            recip_amt,
+            view_tag,
+        );
 
         // Output 1: Platform fee (REAL output!)
-        builder.add_output(platform_stealth, platform_comm, platform_enc_amt, platform_m, plat_fee, platform_vt);
+        builder.add_output(
+            platform_stealth,
+            platform_comm,
+            platform_enc_amt,
+            platform_m,
+            plat_fee,
+            platform_vt,
+        );
 
         info!(
             escrow_id = %escrow.id,
@@ -10885,10 +11290,22 @@ async fn broadcast_round_robin_transaction(
         );
     } else {
         // Legacy path: 1 REAL + 1 DUMMY (pre-v0.70.0)
-        builder.add_output(stealth_address, output_commitment, encrypted_amount, output_mask, amount_to_send, view_tag);
+        builder.add_output(
+            stealth_address,
+            output_commitment,
+            encrypted_amount,
+            output_mask,
+            amount_to_send,
+            view_tag,
+        );
 
         // v0.35.0 FIX: Add dummy output with PRE-COMPUTED mask for commitment balance
-        if let Err(e) = builder.add_dummy_output_with_mask(&tx_secret_key, &dest_spend_pub, &dest_view_pub, &dummy_mask) {
+        if let Err(e) = builder.add_dummy_output_with_mask(
+            &tx_secret_key,
+            &dest_spend_pub,
+            &dest_view_pub,
+            &dummy_mask,
+        ) {
             error!(escrow_id = %escrow.id, "Failed to add dummy output: {}", e);
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to add dummy output: {}", e)
@@ -10916,29 +11333,27 @@ async fn broadcast_round_robin_transaction(
     // SOLUTION: Store BP+ during prepare_sign, import it during broadcast.
     if let Some(bp_hex) = &stored_bulletproof_plus_hex {
         match hex::decode(bp_hex) {
-            Ok(bp_bytes) => {
-                match builder.import_bulletproof_bytes(&bp_bytes) {
-                    Ok(_) => {
-                        info!(
-                            escrow_id = %escrow.id,
-                            bp_bytes_len = bp_bytes.len(),
-                            "[v0.61.0] CRITICAL: Imported stored BP+ ({} bytes) - clsag_message will match signing",
-                            bp_bytes.len()
-                        );
-                    }
-                    Err(e) => {
-                        error!(
-                            escrow_id = %escrow.id,
-                            error = %e,
-                            "[v0.61.0] FATAL: Failed to import stored BP+ - transaction will fail!"
-                        );
-                        return HttpResponse::InternalServerError().json(serde_json::json!({
-                            "error": format!("Failed to import stored BulletproofPlus: {}", e),
-                            "fix": "v0.61.0 - BP+ import required for clsag_message consistency"
-                        }));
-                    }
+            Ok(bp_bytes) => match builder.import_bulletproof_bytes(&bp_bytes) {
+                Ok(_) => {
+                    info!(
+                        escrow_id = %escrow.id,
+                        bp_bytes_len = bp_bytes.len(),
+                        "[v0.61.0] CRITICAL: Imported stored BP+ ({} bytes) - clsag_message will match signing",
+                        bp_bytes.len()
+                    );
                 }
-            }
+                Err(e) => {
+                    error!(
+                        escrow_id = %escrow.id,
+                        error = %e,
+                        "[v0.61.0] FATAL: Failed to import stored BP+ - transaction will fail!"
+                    );
+                    return HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": format!("Failed to import stored BulletproofPlus: {}", e),
+                        "fix": "v0.61.0 - BP+ import required for clsag_message consistency"
+                    }));
+                }
+            },
             Err(e) => {
                 error!(
                     escrow_id = %escrow.id,
@@ -10977,11 +11392,13 @@ async fn broadcast_round_robin_transaction(
     {
         // Extract tx_prefix_hash from ring_data_json (set by prepare_sign)
         // This is the AUTHORITATIVE value that was used during signing
-        let ring_data_tx_prefix_hash = stored_tx_prefix_hash.as_deref()
+        let ring_data_tx_prefix_hash = stored_tx_prefix_hash
+            .as_deref()
             .unwrap_or("NOT_FOUND_IN_RING_DATA");
 
         // Also check partial_tx for redundancy
-        let partial_tx_prefix_hash = partial_tx.get("tx_prefix_hash")
+        let partial_tx_prefix_hash = partial_tx
+            .get("tx_prefix_hash")
             .and_then(|v| v.as_str())
             .unwrap_or("NOT_FOUND_IN_PARTIAL_TX");
 
@@ -11228,7 +11645,11 @@ async fn broadcast_round_robin_transaction(
 
         // Log full transaction hex for debugging (first 500 chars)
         let tx_preview = if tx_hex.len() > 500 {
-            format!("{}...(truncated {} chars)", &tx_hex[..500], tx_hex.len() - 500)
+            format!(
+                "{}...(truncated {} chars)",
+                &tx_hex[..500],
+                tx_hex.len() - 500
+            )
         } else {
             tx_hex.clone()
         };
@@ -11253,11 +11674,17 @@ async fn broadcast_round_robin_transaction(
             use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
             use curve25519_dalek::scalar::Scalar;
             let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-            (&*ED25519_BASEPOINT_TABLE * &mask_scalar).compress().to_bytes()
+            (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+                .compress()
+                .to_bytes()
         };
 
         // Verify Pedersen commitment balance with BOTH outputs
-        match verify_commitment_balance(&[pseudo_out_bytes], &[output_commitment, dummy_commitment], fee_atomic) {
+        match verify_commitment_balance(
+            &[pseudo_out_bytes],
+            &[output_commitment, dummy_commitment],
+            fee_atomic,
+        ) {
             Ok(true) => {
                 info!(
                     escrow_id = %escrow.id,
@@ -11301,7 +11728,11 @@ async fn broadcast_round_robin_transaction(
             let _ = writeln!(file, "c1: {}", c1);
             let _ = writeln!(file, "s_values: {:?}", client_sig.signature.s);
             let _ = writeln!(file, "ring_indices: {:?}", ring_indices);
-            let _ = writeln!(file, "output_commitment: {}", hex::encode(output_commitment));
+            let _ = writeln!(
+                file,
+                "output_commitment: {}",
+                hex::encode(output_commitment)
+            );
             let _ = writeln!(file, "fee: {}", fee_atomic);
         }
     }
@@ -11312,17 +11743,27 @@ async fn broadcast_round_robin_transaction(
     // Verify CLSAG signature locally BEFORE sending to daemon to diagnose issues
     // v0.37.0: Use stored mu_p/mu_c from first signer if available
     {
-        use crate::services::clsag_verifier::{verify_clsag_with_mu, log_verification_result};
+        use crate::services::clsag_verifier::{log_verification_result, verify_clsag_with_mu};
 
         // Extract ring_public_keys and ring_commitments from ring_data
-        let ring_public_keys: Vec<String> = ring_data.get("ring_public_keys")
+        let ring_public_keys: Vec<String> = ring_data
+            .get("ring_public_keys")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
 
-        let ring_commitments_hex: Vec<String> = ring_data.get("ring_commitments")
+        let ring_commitments_hex: Vec<String> = ring_data
+            .get("ring_commitments")
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(String::from))
+                    .collect()
+            })
             .unwrap_or_default();
 
         // Parse all values for verification
@@ -11348,17 +11789,22 @@ async fn broadcast_round_robin_transaction(
             };
 
             // Parse ring keys
-            let ring_keys_bytes: Vec<[u8; 32]> = ring_public_keys.iter()
+            let ring_keys_bytes: Vec<[u8; 32]> = ring_public_keys
+                .iter()
                 .filter_map(|s| parse_hex_32(s))
                 .collect();
 
             // Parse ring commitments
-            let ring_commits_bytes: Vec<[u8; 32]> = ring_commitments_hex.iter()
+            let ring_commits_bytes: Vec<[u8; 32]> = ring_commitments_hex
+                .iter()
                 .filter_map(|s| parse_hex_32(s))
                 .collect();
 
             // Parse s_values from client_sig (s_values was moved into it)
-            let s_bytes: Vec<[u8; 32]> = client_sig.signature.s.iter()
+            let s_bytes: Vec<[u8; 32]> = client_sig
+                .signature
+                .s
+                .iter()
                 .filter_map(|s| parse_hex_32(s))
                 .collect();
 
@@ -11387,7 +11833,8 @@ async fn broadcast_round_robin_transaction(
             }
 
             // Get tx_prefix_hash - use stored value if available
-            let tx_prefix_bytes = stored_tx_prefix_hash.as_ref()
+            let tx_prefix_bytes = stored_tx_prefix_hash
+                .as_ref()
                 .and_then(|h| parse_hex_32(h))
                 .or_else(|| builder.compute_prefix_hash().ok());
 
@@ -11397,89 +11844,99 @@ async fn broadcast_round_robin_transaction(
                 && s_bytes.len() == 16;
 
             if clsag_verification_ready {
-                if let (Some(c1_val), Some(d_val), Some(ki_val), Some(pseudo_out_val), Some(tx_prefix_val)) =
-                    (c1_bytes, d_bytes, ki_bytes, pseudo_out_parsed, tx_prefix_bytes)
-                {
-                // v0.37.0: Parse stored mu_p/mu_c from escrow for deterministic verification
-                let stored_mu_p: Option<[u8; 32]> = escrow.mu_p.as_ref()
-                    .and_then(|h| parse_hex_32(h));
-                let stored_mu_c: Option<[u8; 32]> = escrow.mu_c.as_ref()
-                    .and_then(|h| parse_hex_32(h));
+                if let (
+                    Some(c1_val),
+                    Some(d_val),
+                    Some(ki_val),
+                    Some(pseudo_out_val),
+                    Some(tx_prefix_val),
+                ) = (
+                    c1_bytes,
+                    d_bytes,
+                    ki_bytes,
+                    pseudo_out_parsed,
+                    tx_prefix_bytes,
+                ) {
+                    // v0.37.0: Parse stored mu_p/mu_c from escrow for deterministic verification
+                    let stored_mu_p: Option<[u8; 32]> =
+                        escrow.mu_p.as_ref().and_then(|h| parse_hex_32(h));
+                    let stored_mu_c: Option<[u8; 32]> =
+                        escrow.mu_c.as_ref().and_then(|h| parse_hex_32(h));
 
-                if stored_mu_p.is_some() && stored_mu_c.is_some() {
+                    if stored_mu_p.is_some() && stored_mu_c.is_some() {
+                        info!(
+                            escrow_id = %escrow.id,
+                            mu_p_prefix = %escrow.mu_p.as_ref().map(|s| &s[..16.min(s.len())]).unwrap_or("none"),
+                            mu_c_prefix = %escrow.mu_c.as_ref().map(|s| &s[..16.min(s.len())]).unwrap_or("none"),
+                            "[v0.37.0] Using STORED mu_p/mu_c for CLSAG verification"
+                        );
+                    } else {
+                        warn!(
+                            escrow_id = %escrow.id,
+                            "[v0.37.0] No stored mu_p/mu_c - verification will recompute (may differ from signing!)"
+                        );
+                    }
+
+                    // v0.57.0 DIAGNOSTIC: Log ALL verification inputs for debugging
                     info!(
                         escrow_id = %escrow.id,
-                        mu_p_prefix = %escrow.mu_p.as_ref().map(|s| &s[..16.min(s.len())]).unwrap_or("none"),
-                        mu_c_prefix = %escrow.mu_c.as_ref().map(|s| &s[..16.min(s.len())]).unwrap_or("none"),
-                        "[v0.37.0] Using STORED mu_p/mu_c for CLSAG verification"
-                    );
-                } else {
-                    warn!(
-                        escrow_id = %escrow.id,
-                        "[v0.37.0] No stored mu_p/mu_c - verification will recompute (may differ from signing!)"
-                    );
-                }
-
-                // v0.57.0 DIAGNOSTIC: Log ALL verification inputs for debugging
-                info!(
-                    escrow_id = %escrow.id,
-                    s0 = %hex::encode(&s_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                    s_signer = %hex::encode(&s_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
-                    c1_input = %hex::encode(&c1_val),
-                    d_inv8 = %hex::encode(&d_val),
-                    key_image = %hex::encode(&ki_val),
-                    pseudo_out = %hex::encode(&pseudo_out_val),
-                    tx_prefix = %hex::encode(&tx_prefix_val),
-                    ring_key_0 = %hex::encode(&ring_keys_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                    ring_key_15 = %hex::encode(&ring_keys_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
-                    ring_commit_0 = %hex::encode(&ring_commits_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                    ring_commit_15 = %hex::encode(&ring_commits_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
-                    has_stored_mu_p = stored_mu_p.is_some(),
-                    has_stored_mu_c = stored_mu_c.is_some(),
-                    "[v0.57.0 DIAG] CLSAG VERIFICATION INPUTS - compare with test binary output"
-                );
-
-                let verification_result = verify_clsag_with_mu(
-                    &s_bytes,
-                    c1_val,
-                    d_val,
-                    ki_val,
-                    pseudo_out_val,
-                    &ring_keys_bytes,
-                    &ring_commits_bytes,
-                    tx_prefix_val,
-                    stored_mu_p,
-                    stored_mu_c,
-                );
-
-                log_verification_result(&verification_result, &escrow.id);
-
-                // v0.14.0: BLOCK broadcast when verification fails (previously was informational only)
-                // v0.38.0: Security bypass REMOVED - server verification now blocks invalid signatures
-                if !verification_result.valid {
-                    error!(
-                        escrow_id = %escrow.id,
-                        mu_p = %hex::encode(&verification_result.mu_p),
-                        mu_c = %hex::encode(&verification_result.mu_c),
-                        c_computed = %hex::encode(&verification_result.c_computed),
-                        c_expected = %hex::encode(&verification_result.c_expected),
-                        d_point = %d,
-                        key_image = %key_image_for_prefix,
-                        pseudo_out = %pseudo_out,
-                        tx_prefix_hash = ?stored_tx_prefix_hash,
-                        "[CLSAG-VERIFY] Signature verification FAILED - BLOCKING BROADCAST"
+                        s0 = %hex::encode(&s_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        s_signer = %hex::encode(&s_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        c1_input = %hex::encode(&c1_val),
+                        d_inv8 = %hex::encode(&d_val),
+                        key_image = %hex::encode(&ki_val),
+                        pseudo_out = %hex::encode(&pseudo_out_val),
+                        tx_prefix = %hex::encode(&tx_prefix_val),
+                        ring_key_0 = %hex::encode(&ring_keys_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        ring_key_15 = %hex::encode(&ring_keys_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        ring_commit_0 = %hex::encode(&ring_commits_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        ring_commit_15 = %hex::encode(&ring_commits_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        has_stored_mu_p = stored_mu_p.is_some(),
+                        has_stored_mu_c = stored_mu_c.is_some(),
+                        "[v0.57.0 DIAG] CLSAG VERIFICATION INPUTS - compare with test binary output"
                     );
 
-                    return HttpResponse::BadRequest().json(serde_json::json!({
-                        "error": "CLSAG signature verification failed - transaction rejected",
-                        "code": "CLSAG_VERIFY_FAILED"
-                    }));
-                } else {
-                    info!(
-                        escrow_id = %escrow.id,
-                        "[CLSAG-VERIFY] Signature verification PASSED - proceeding to broadcast"
+                    let verification_result = verify_clsag_with_mu(
+                        &s_bytes,
+                        c1_val,
+                        d_val,
+                        ki_val,
+                        pseudo_out_val,
+                        &ring_keys_bytes,
+                        &ring_commits_bytes,
+                        tx_prefix_val,
+                        stored_mu_p,
+                        stored_mu_c,
                     );
-                }
+
+                    log_verification_result(&verification_result, &escrow.id);
+
+                    // v0.14.0: BLOCK broadcast when verification fails (previously was informational only)
+                    // v0.38.0: Security bypass REMOVED - server verification now blocks invalid signatures
+                    if !verification_result.valid {
+                        error!(
+                            escrow_id = %escrow.id,
+                            mu_p = %hex::encode(&verification_result.mu_p),
+                            mu_c = %hex::encode(&verification_result.mu_c),
+                            c_computed = %hex::encode(&verification_result.c_computed),
+                            c_expected = %hex::encode(&verification_result.c_expected),
+                            d_point = %d,
+                            key_image = %key_image_for_prefix,
+                            pseudo_out = %pseudo_out,
+                            tx_prefix_hash = ?stored_tx_prefix_hash,
+                            "[CLSAG-VERIFY] Signature verification FAILED - BLOCKING BROADCAST"
+                        );
+
+                        return HttpResponse::BadRequest().json(serde_json::json!({
+                            "error": "CLSAG signature verification failed - transaction rejected",
+                            "code": "CLSAG_VERIFY_FAILED"
+                        }));
+                    } else {
+                        info!(
+                            escrow_id = %escrow.id,
+                            "[CLSAG-VERIFY] Signature verification PASSED - proceeding to broadcast"
+                        );
+                    }
                 } else {
                     // C5 FIX: Handle case when hex parsing failed for c1/d/ki/pseudo_out/tx_prefix
                     warn!(
@@ -11517,8 +11974,8 @@ async fn broadcast_round_robin_transaction(
     // =========================================================================
     // 13. BROADCAST TO DAEMON
     // =========================================================================
-    let daemon_url = std::env::var("MONERO_DAEMON_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:38081".to_string());
+    let daemon_url =
+        std::env::var("MONERO_DAEMON_URL").unwrap_or_else(|_| "http://127.0.0.1:38081".to_string());
 
     let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
@@ -11743,7 +12200,8 @@ async fn broadcast_round_robin_transaction(
             ))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))
-    }).await;
+    })
+    .await;
 
     match update_result {
         Ok(Ok(_)) => {
@@ -11859,7 +12317,7 @@ pub struct SubmitNonceCommitmentRequest {
     pub commitment_hash: String,
     pub r_public: String,
     pub r_prime_public: String,
-    pub role: String,  // "vendor" or "buyer"
+    pub role: String, // "vendor" or "buyer"
 }
 
 /// POST /api/v2/escrow/:id/submit-nonce-commitment
@@ -11982,7 +12440,7 @@ pub async fn submit_nonce_commitment(
         // Compute expected commitment: H("MUSIG2_NONCE_COMMITMENT" || r || r')
         // MUST match WASM client (crypto.rs:820-825): Keccak256 with domain separator
         let mut hasher = Keccak256::new();
-        hasher.update(b"MUSIG2_NONCE_COMMITMENT");  // Domain separator (critical!)
+        hasher.update(b"MUSIG2_NONCE_COMMITMENT"); // Domain separator (critical!)
         hasher.update(&r_public_bytes);
         hasher.update(&r_prime_public_bytes);
         let computed_hash = hasher.finalize();
@@ -12024,7 +12482,8 @@ pub async fn submit_nonce_commitment(
     let nonce_json = serde_json::json!({
         "r_public": req.r_public,
         "r_prime_public": req.r_prime_public,
-    }).to_string();
+    })
+    .to_string();
 
     info!(
         escrow_id = %escrow_id_str,
@@ -12039,7 +12498,7 @@ pub async fn submit_nonce_commitment(
         diesel::update(
             escrows::table
                 .filter(escrows::id.eq(&escrow_id_str))
-                .filter(escrows::vendor_nonce_public.is_null())  // ATOMIC: only if NULL
+                .filter(escrows::vendor_nonce_public.is_null()), // ATOMIC: only if NULL
         )
         .set((
             escrows::vendor_nonce_commitment.eq(&req.commitment_hash),
@@ -12051,7 +12510,7 @@ pub async fn submit_nonce_commitment(
         diesel::update(
             escrows::table
                 .filter(escrows::id.eq(&escrow_id_str))
-                .filter(escrows::buyer_nonce_public.is_null())  // ATOMIC: only if NULL
+                .filter(escrows::buyer_nonce_public.is_null()), // ATOMIC: only if NULL
         )
         .set((
             escrows::buyer_nonce_commitment.eq(&req.commitment_hash),
@@ -12097,7 +12556,10 @@ pub async fn submit_nonce_commitment(
         let locked_r_public: Option<String> = locked_nonce.and_then(|json_str| {
             serde_json::from_str::<serde_json::Value>(&json_str)
                 .ok()
-                .and_then(|v| v.get("r_public").and_then(|r| r.as_str().map(|s| s.to_string())))
+                .and_then(|v| {
+                    v.get("r_public")
+                        .and_then(|r| r.as_str().map(|s| s.to_string()))
+                })
         });
 
         info!(
@@ -12145,27 +12607,25 @@ pub async fn submit_nonce_commitment(
         // Aggregate nonces using curve25519_dalek
         use curve25519_dalek::edwards::CompressedEdwardsY;
 
-        let vendor_nonce: serde_json::Value = match serde_json::from_str(
-            escrow_updated.vendor_nonce_public.as_ref().unwrap()
-        ) {
-            Ok(v) => v,
-            Err(e) => {
-                return HttpResponse::InternalServerError().json(serde_json::json!({
-                    "error": format!("Invalid vendor nonce JSON: {}", e)
-                }))
-            }
-        };
+        let vendor_nonce: serde_json::Value =
+            match serde_json::from_str(escrow_updated.vendor_nonce_public.as_ref().unwrap()) {
+                Ok(v) => v,
+                Err(e) => {
+                    return HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": format!("Invalid vendor nonce JSON: {}", e)
+                    }))
+                }
+            };
 
-        let buyer_nonce: serde_json::Value = match serde_json::from_str(
-            escrow_updated.buyer_nonce_public.as_ref().unwrap()
-        ) {
-            Ok(v) => v,
-            Err(e) => {
-                return HttpResponse::InternalServerError().json(serde_json::json!({
-                    "error": format!("Invalid buyer nonce JSON: {}", e)
-                }))
-            }
-        };
+        let buyer_nonce: serde_json::Value =
+            match serde_json::from_str(escrow_updated.buyer_nonce_public.as_ref().unwrap()) {
+                Ok(v) => v,
+                Err(e) => {
+                    return HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": format!("Invalid buyer nonce JSON: {}", e)
+                    }))
+                }
+            };
 
         // Point addition: R_agg = R_vendor + R_buyer
         // v0.9.1: Proper error handling to prevent DoS via malformed input
@@ -12305,7 +12765,8 @@ pub async fn submit_nonce_commitment(
         let aggregated_json = serde_json::json!({
             "r_agg": r_agg_hex,
             "r_prime_agg": r_prime_agg_hex,
-        }).to_string();
+        })
+        .to_string();
 
         if let Err(e) = diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id_str)))
             .set((
@@ -12397,7 +12858,10 @@ pub async fn initiate_round_robin_signing(
 ) -> impl Responder {
     let user_id_str = match session.get::<String>("user_id") {
         Ok(Some(id)) => id,
-        _ => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Not authenticated"})),
+        _ => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"error": "Not authenticated"}))
+        }
     };
 
     if let Err(errors) = payload.validate() {
@@ -12406,12 +12870,19 @@ pub async fn initiate_round_robin_signing(
 
     let escrow_id_str = path.into_inner();
 
-    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id_str).unwrap_or_default()).await {
+    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id_str).unwrap_or_default())
+        .await
+    {
         Ok(e) => e,
-        Err(e) => return HttpResponse::NotFound().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::NotFound().json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
-    if user_id_str != escrow.buyer_id && user_id_str != escrow.vendor_id && user_id_str != escrow.arbiter_id {
+    if user_id_str != escrow.buyer_id
+        && user_id_str != escrow.vendor_id
+        && user_id_str != escrow.arbiter_id
+    {
         return HttpResponse::Forbidden().json(serde_json::json!({"error": "Not authorized"}));
     }
 
@@ -12424,7 +12895,10 @@ pub async fn initiate_round_robin_signing(
 
     let mut conn = match pool.get() {
         Ok(c) => c,
-        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
     match RoundRobinCoordinator::initialize(
@@ -12463,17 +12937,28 @@ pub async fn submit_multisig_txset(
 ) -> impl Responder {
     let user_id_str = match session.get::<String>("user_id") {
         Ok(Some(id)) => id,
-        _ => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Not authenticated"})),
+        _ => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"error": "Not authenticated"}))
+        }
     };
 
     let escrow_id_str = path.into_inner();
 
     let mut conn = match pool.get() {
         Ok(c) => c,
-        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
-    match RoundRobinCoordinator::submit_multisig_txset(&mut conn, &escrow_id_str, &user_id_str, &payload.multisig_txset) {
+    match RoundRobinCoordinator::submit_multisig_txset(
+        &mut conn,
+        &escrow_id_str,
+        &user_id_str,
+        &payload.multisig_txset,
+    ) {
         Ok(next_signer) => {
             info!(escrow_id = %escrow_id_str, "[ROUND-ROBIN-NC] Txset submitted");
             HttpResponse::Ok().json(serde_json::json!({
@@ -12500,17 +12985,28 @@ pub async fn submit_round_robin_signature(
 ) -> impl Responder {
     let user_id_str = match session.get::<String>("user_id") {
         Ok(Some(id)) => id,
-        _ => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Not authenticated"})),
+        _ => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"error": "Not authenticated"}))
+        }
     };
 
     let escrow_id_str = path.into_inner();
 
     let mut conn = match pool.get() {
         Ok(c) => c,
-        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
-    match RoundRobinCoordinator::submit_partial_signature(&mut conn, &escrow_id_str, &user_id_str, &payload.partial_signed_txset) {
+    match RoundRobinCoordinator::submit_partial_signature(
+        &mut conn,
+        &escrow_id_str,
+        &user_id_str,
+        &payload.partial_signed_txset,
+    ) {
         Ok(next_signer) => {
             info!(escrow_id = %escrow_id_str, "[ROUND-ROBIN-NC] Partial sig submitted");
             HttpResponse::Ok().json(serde_json::json!({
@@ -12537,17 +13033,28 @@ pub async fn confirm_round_robin_broadcast(
 ) -> impl Responder {
     let user_id_str = match session.get::<String>("user_id") {
         Ok(Some(id)) => id,
-        _ => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Not authenticated"})),
+        _ => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"error": "Not authenticated"}))
+        }
     };
 
     let escrow_id_str = path.into_inner();
 
     let mut conn = match pool.get() {
         Ok(c) => c,
-        Err(e) => return HttpResponse::InternalServerError().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
-    match RoundRobinCoordinator::confirm_broadcast(&mut conn, &escrow_id_str, &user_id_str, &payload.tx_hash) {
+    match RoundRobinCoordinator::confirm_broadcast(
+        &mut conn,
+        &escrow_id_str,
+        &user_id_str,
+        &payload.tx_hash,
+    ) {
         Ok(()) => {
             info!(escrow_id = %escrow_id_str, tx_hash = %payload.tx_hash, "[ROUND-ROBIN-NC] ✅ Broadcast confirmed!");
             HttpResponse::Ok().json(serde_json::json!({
@@ -12570,17 +13077,27 @@ pub async fn get_round_robin_status(
 ) -> impl Responder {
     let user_id_str = match session.get::<String>("user_id") {
         Ok(Some(id)) => id,
-        _ => return HttpResponse::Unauthorized().json(serde_json::json!({"error": "Not authenticated"})),
+        _ => {
+            return HttpResponse::Unauthorized()
+                .json(serde_json::json!({"error": "Not authenticated"}))
+        }
     };
 
     let escrow_id_str = path.into_inner();
 
-    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id_str).unwrap_or_default()).await {
+    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id_str).unwrap_or_default())
+        .await
+    {
         Ok(e) => e,
-        Err(e) => return HttpResponse::NotFound().json(serde_json::json!({"error": format!("{}", e)})),
+        Err(e) => {
+            return HttpResponse::NotFound().json(serde_json::json!({"error": format!("{}", e)}))
+        }
     };
 
-    if user_id_str != escrow.buyer_id && user_id_str != escrow.vendor_id && user_id_str != escrow.arbiter_id {
+    if user_id_str != escrow.buyer_id
+        && user_id_str != escrow.vendor_id
+        && user_id_str != escrow.arbiter_id
+    {
         return HttpResponse::Forbidden().json(serde_json::json!({"error": "Not authorized"}));
     }
 
@@ -12657,7 +13174,8 @@ pub async fn broadcast_via_cli(
     );
 
     // Load escrow to get payout address AND ring_data_json for shares
-    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id).unwrap_or_default()).await {
+    let escrow = match db_load_escrow(&pool, Uuid::parse_str(&escrow_id).unwrap_or_default()).await
+    {
         Ok(e) => e,
         Err(e) => {
             error!(escrow_id = %escrow_id, error = %e, "Failed to load escrow");
@@ -12678,7 +13196,8 @@ pub async fn broadcast_via_cli(
                 match serde_json::from_str::<serde_json::Value>(ring_json) {
                     Ok(ring_data) => {
                         if b_share.is_none() {
-                            b_share = ring_data.get("buyer_frost_share")
+                            b_share = ring_data
+                                .get("buyer_frost_share")
                                 .and_then(|v| v.as_str())
                                 .map(|s| s.to_string());
                             info!(
@@ -12688,7 +13207,8 @@ pub async fn broadcast_via_cli(
                             );
                         }
                         if v_share.is_none() {
-                            v_share = ring_data.get("vendor_frost_share")
+                            v_share = ring_data
+                                .get("vendor_frost_share")
                                 .and_then(|v| v.as_str())
                                 .map(|s| s.to_string());
                             info!(
@@ -12757,12 +13277,14 @@ pub async fn broadcast_via_cli(
             escrow_id = %escrow_id,
             "[v0.66.3] CLI broadcast: routing to buyer_refund_address (dispute refund)"
         );
-        escrow.buyer_refund_address
+        escrow
+            .buyer_refund_address
             .as_ref()
             .cloned()
             .unwrap_or_else(|| "".to_string())
     } else {
-        escrow.vendor_payout_address
+        escrow
+            .vendor_payout_address
             .as_ref()
             .or(escrow.buyer_refund_address.as_ref())
             .cloned()
@@ -12844,8 +13366,8 @@ pub async fn broadcast_via_cli(
 
         // Update escrow status
         {
-            use diesel::prelude::*;
             use crate::schema::escrows::dsl::*;
+            use diesel::prelude::*;
 
             let pool_clone = pool.clone();
             let escrow_id_clone = escrow_id.clone();
@@ -12853,13 +13375,11 @@ pub async fn broadcast_via_cli(
             let _ = web::block(move || {
                 let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
                 diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
-                    .set((
-                        status.eq("completed"),
-                        broadcast_tx_hash.eq(&tx_hash_clone),
-                    ))
+                    .set((status.eq("completed"), broadcast_tx_hash.eq(&tx_hash_clone)))
                     .execute(&mut conn)
                     .map_err(|e| format!("{}", e))
-            }).await;
+            })
+            .await;
         }
 
         // === BROADCAST NOTIFICATIONS: Success ===
@@ -12907,9 +13427,13 @@ pub async fn broadcast_via_cli(
 
             let escrow_uuid = Uuid::parse_str(&escrow_id).unwrap_or_default();
             let error_msg = if is_key_mismatch {
-                "Key mismatch: FROST shares don't match escrow address. Use Recovery Shield.".to_string()
+                "Key mismatch: FROST shares don't match escrow address. Use Recovery Shield."
+                    .to_string()
             } else {
-                format!("CLI exit code: {:?}. Check logs for details.", output.status.code())
+                format!(
+                    "CLI exit code: {:?}. Check logs for details.",
+                    output.status.code()
+                )
             };
 
             // Notify all parties about failed broadcast
@@ -12929,9 +13453,11 @@ pub async fn broadcast_via_cli(
         }
 
         let (error_type, user_message) = if is_key_mismatch {
-            ("key_mismatch",
-             "FROST key mismatch: The signing keys do not match this escrow's address. \
-              Use Recovery Shield to restore correct keys.")
+            (
+                "key_mismatch",
+                "FROST key mismatch: The signing keys do not match this escrow's address. \
+              Use Recovery Shield to restore correct keys.",
+            )
         } else {
             ("broadcast_failed", &*stderr)
         };
@@ -12970,14 +13496,15 @@ pub async fn broadcast_dispute_cli(
     );
 
     // Authenticate the caller
-    let user_id_str = match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
-        Ok(identity) => identity.user_id().to_string(),
-        Err(_) => {
-            return HttpResponse::Unauthorized().json(serde_json::json!({
-                "error": "Not authenticated"
-            }));
-        }
-    };
+    let user_id_str =
+        match crate::handlers::auth_helpers::get_authenticated_identity(&req, &session) {
+            Ok(identity) => identity.user_id().to_string(),
+            Err(_) => {
+                return HttpResponse::Unauthorized().json(serde_json::json!({
+                    "error": "Not authenticated"
+                }));
+            }
+        };
 
     // Load escrow by string ID (supports esc_ prefix format)
     let mut escrow = match crate::db::db_load_escrow_by_str(&pool, &escrow_id).await {
@@ -13052,7 +13579,8 @@ pub async fn broadcast_dispute_cli(
         );
 
         // Get or create ring_data_json
-        let mut ring_data: serde_json::Value = escrow.ring_data_json
+        let mut ring_data: serde_json::Value = escrow
+            .ring_data_json
             .as_ref()
             .and_then(|s| serde_json::from_str(s).ok())
             .unwrap_or_else(|| serde_json::json!({}));
@@ -13080,11 +13608,15 @@ pub async fn broadcast_dispute_cli(
             if let Err(e) = web::block(move || {
                 use diesel::prelude::*;
                 let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
-                diesel::update(crate::schema::escrows::table.filter(crate::schema::escrows::id.eq(&eid)))
-                    .set(crate::schema::escrows::ring_data_json.eq(rj))
-                    .execute(&mut conn)
-                    .map_err(|e| format!("{}", e))
-            }).await {
+                diesel::update(
+                    crate::schema::escrows::table.filter(crate::schema::escrows::id.eq(&eid)),
+                )
+                .set(crate::schema::escrows::ring_data_json.eq(rj))
+                .execute(&mut conn)
+                .map_err(|e| format!("{}", e))
+            })
+            .await
+            {
                 error!(escrow_id = %escrow_id, error = %e, "Failed to store FROST share");
                 return HttpResponse::InternalServerError().json(serde_json::json!({
                     "error": "Failed to store FROST share"
@@ -13138,12 +13670,18 @@ pub async fn broadcast_dispute_cli(
             Err(_) => serde_json::json!({}),
         };
 
-        let arbiter = ring_data.get("arbiter_frost_share")
+        let arbiter = ring_data
+            .get("arbiter_frost_share")
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
-        let winner_key = if winner_role == "buyer" { "buyer_frost_share" } else { "vendor_frost_share" };
-        let winner = ring_data.get(winner_key)
+        let winner_key = if winner_role == "buyer" {
+            "buyer_frost_share"
+        } else {
+            "vendor_frost_share"
+        };
+        let winner = ring_data
+            .get(winner_key)
             .and_then(|v| v.as_str())
             .map(|s| s.to_string());
 
@@ -13185,11 +13723,13 @@ pub async fn broadcast_dispute_cli(
 
     // Get payout address based on winner
     let payout_address = match winner_role {
-        "buyer" => escrow.buyer_refund_address
+        "buyer" => escrow
+            .buyer_refund_address
             .as_ref()
             .cloned()
             .unwrap_or_default(),
-        "vendor" => escrow.vendor_payout_address
+        "vendor" => escrow
+            .vendor_payout_address
             .as_ref()
             .cloned()
             .unwrap_or_default(),
@@ -13213,7 +13753,9 @@ pub async fn broadcast_dispute_cli(
     // This binary uses correct Lagrange coefficients for arbiter+buyer or arbiter+vendor pairs
     let cli_path = std::env::current_dir()
         .map(|p| p.join("target/release/full_offline_broadcast_dispute"))
-        .unwrap_or_else(|_| std::path::PathBuf::from("./target/release/full_offline_broadcast_dispute"));
+        .unwrap_or_else(|_| {
+            std::path::PathBuf::from("./target/release/full_offline_broadcast_dispute")
+        });
 
     info!(
         escrow_id = %escrow_id,
@@ -13228,7 +13770,7 @@ pub async fn broadcast_dispute_cli(
             &arbiter_share,
             &winner_share,
             &payout_address,
-            &dispute_pair,      // NEW: Pass signing_pair for correct Lagrange coefficients
+            &dispute_pair, // NEW: Pass signing_pair for correct Lagrange coefficients
             "--broadcast",
         ])
         .output()
@@ -13274,13 +13816,17 @@ pub async fn broadcast_dispute_cli(
 
         // Update escrow status
         {
-            use diesel::prelude::*;
             use crate::schema::escrows::dsl::*;
+            use diesel::prelude::*;
 
             let pool_clone = pool.clone();
             let escrow_id_clone = escrow_id.clone();
             let tx_hash_clone = tx_hash.clone();
-            let final_status = if winner_role == "buyer" { "refunded" } else { "completed" };
+            let final_status = if winner_role == "buyer" {
+                "refunded"
+            } else {
+                "completed"
+            };
             let _ = web::block(move || {
                 let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
                 diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
@@ -13290,7 +13836,8 @@ pub async fn broadcast_dispute_cli(
                     ))
                     .execute(&mut conn)
                     .map_err(|e| format!("{}", e))
-            }).await;
+            })
+            .await;
         }
 
         HttpResponse::Ok().json(serde_json::json!({

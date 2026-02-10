@@ -67,14 +67,14 @@ pub struct TimeoutConfig {
 impl Default for TimeoutConfig {
     fn default() -> Self {
         Self {
-            multisig_setup_timeout_secs: 3600,           // 1 hour
-            funding_timeout_secs: 86400,                 // 24 hours
+            multisig_setup_timeout_secs: 3600,            // 1 hour
+            funding_timeout_secs: 86400,                  // 24 hours
             transaction_confirmation_timeout_secs: 21600, // 6 hours
-            dispute_resolution_timeout_secs: 604800,     // 7 days
-            shipping_timeout_secs: 1209600,              // 14 days
-            poll_interval_secs: 60,                      // 1 minute
-            warning_threshold_secs: 3600,                // 1 hour
-            grace_period_secs: 172800,                   // 48 hours (v0.68.0)
+            dispute_resolution_timeout_secs: 604800,      // 7 days
+            shipping_timeout_secs: 1209600,               // 14 days
+            poll_interval_secs: 60,                       // 1 minute
+            warning_threshold_secs: 3600,                 // 1 hour
+            grace_period_secs: 172800,                    // 48 hours (v0.68.0)
         }
     }
 }
@@ -101,12 +101,10 @@ impl TimeoutConfig {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(86400),
-            transaction_confirmation_timeout_secs: std::env::var(
-                "TIMEOUT_TX_CONFIRMATION_SECS",
-            )
-            .ok()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(21600),
+            transaction_confirmation_timeout_secs: std::env::var("TIMEOUT_TX_CONFIRMATION_SECS")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(21600),
             dispute_resolution_timeout_secs: std::env::var("TIMEOUT_DISPUTE_RESOLUTION_SECS")
                 .ok()
                 .and_then(|s| s.parse().ok())
@@ -144,9 +142,9 @@ impl TimeoutConfig {
             "shipped_pending" | "awaiting_shipment" => {
                 Some(Duration::from_secs(self.shipping_timeout_secs))
             }
-            "releasing" | "refunding" => {
-                Some(Duration::from_secs(self.transaction_confirmation_timeout_secs))
-            }
+            "releasing" | "refunding" => Some(Duration::from_secs(
+                self.transaction_confirmation_timeout_secs,
+            )),
             "disputed" => Some(Duration::from_secs(self.dispute_resolution_timeout_secs)),
             // Terminal states have no timeout
             "completed" | "refunded" | "cancelled" | "cancelled_recoverable" | "expired" => None,

@@ -71,42 +71,28 @@ pub struct TimeoutTracker {
 }
 
 impl TimeoutTracker {
-    pub fn new(
-        escrow_id: String,
-        timeout_type: TimeoutType,
-        started_at: u64,
-    ) -> Self {
+    pub fn new(escrow_id: String, timeout_type: TimeoutType, started_at: u64) -> Self {
         let (deadline, grace_period_ends, action) = match timeout_type {
-            TimeoutType::MultisigSetup => (
-                started_at + MULTISIG_TIMEOUT,
-                None,
-                TimeoutAction::Cancel,
-            ),
-            TimeoutType::Funding => (
-                started_at + FUNDING_TIMEOUT,
-                None,
-                TimeoutAction::Expire,
-            ),
+            TimeoutType::MultisigSetup => {
+                (started_at + MULTISIG_TIMEOUT, None, TimeoutAction::Cancel)
+            }
+            TimeoutType::Funding => (started_at + FUNDING_TIMEOUT, None, TimeoutAction::Expire),
             TimeoutType::Delivery => (
                 started_at + DELIVERY_TIMEOUT,
                 Some(started_at + DELIVERY_TIMEOUT + GRACE_PERIOD),
                 TimeoutAction::Escalate,
             ),
-            TimeoutType::ReleaseConfirmation => (
-                started_at + GRACE_PERIOD,
-                None,
-                TimeoutAction::AutoRelease,
-            ),
+            TimeoutType::ReleaseConfirmation => {
+                (started_at + GRACE_PERIOD, None, TimeoutAction::AutoRelease)
+            }
             TimeoutType::DisputeResolution => (
                 started_at + DISPUTE_TIMEOUT,
                 Some(started_at + DISPUTE_TIMEOUT + GRACE_PERIOD),
                 TimeoutAction::AutoRefund,
             ),
-            TimeoutType::SigningCompletion => (
-                started_at + 24 * HOUR,
-                None,
-                TimeoutAction::Escalate,
-            ),
+            TimeoutType::SigningCompletion => {
+                (started_at + 24 * HOUR, None, TimeoutAction::Escalate)
+            }
         };
 
         Self {
@@ -139,7 +125,9 @@ impl TimeoutTracker {
             }
         }
 
-        TimeoutStatus::Expired { action: self.action }
+        TimeoutStatus::Expired {
+            action: self.action,
+        }
     }
 
     /// Trigger the timeout action
@@ -201,11 +189,7 @@ pub enum TimeoutError {
 
 #[test]
 fn test_timeout_not_expired_before_deadline() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     // Check before deadline
     let status = tracker.check(1000 + 3 * DAY);
@@ -214,24 +198,21 @@ fn test_timeout_not_expired_before_deadline() {
 
 #[test]
 fn test_timeout_expired_after_deadline() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     // Check after deadline (7 days + 1 second)
     let status = tracker.check(1000 + FUNDING_TIMEOUT + 1);
-    assert!(matches!(status, TimeoutStatus::Expired { action: TimeoutAction::Expire }));
+    assert!(matches!(
+        status,
+        TimeoutStatus::Expired {
+            action: TimeoutAction::Expire
+        }
+    ));
 }
 
 #[test]
 fn test_time_remaining_calculation() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     let remaining = tracker.time_remaining(1000 + 3 * DAY);
     assert_eq!(remaining, Some(FUNDING_TIMEOUT - 3 * DAY));
@@ -246,11 +227,7 @@ fn test_time_remaining_calculation() {
 
 #[test]
 fn test_delivery_has_grace_period() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     // Just after deadline but within grace
     let status = tracker.check(1000 + DELIVERY_TIMEOUT + 1 * HOUR);
@@ -263,34 +240,36 @@ fn test_delivery_has_grace_period() {
 
 #[test]
 fn test_delivery_expired_after_grace() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     // After grace period
     let status = tracker.check(1000 + DELIVERY_TIMEOUT + GRACE_PERIOD + 1);
 
     assert!(
-        matches!(status, TimeoutStatus::Expired { action: TimeoutAction::Escalate }),
+        matches!(
+            status,
+            TimeoutStatus::Expired {
+                action: TimeoutAction::Escalate
+            }
+        ),
         "Should escalate after grace period"
     );
 }
 
 #[test]
 fn test_funding_no_grace_period() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     // Immediately after deadline
     let status = tracker.check(1000 + FUNDING_TIMEOUT + 1);
 
     // Should expire directly, no grace
-    assert!(matches!(status, TimeoutStatus::Expired { action: TimeoutAction::Expire }));
+    assert!(matches!(
+        status,
+        TimeoutStatus::Expired {
+            action: TimeoutAction::Expire
+        }
+    ));
 }
 
 // ============================================================================
@@ -299,11 +278,7 @@ fn test_funding_no_grace_period() {
 
 #[test]
 fn test_multisig_setup_timeout() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::MultisigSetup,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::MultisigSetup, 1000);
 
     assert_eq!(tracker.deadline, 1000 + MULTISIG_TIMEOUT);
     assert_eq!(tracker.action, TimeoutAction::Cancel);
@@ -333,7 +308,10 @@ fn test_dispute_resolution_timeout() {
 
     // 7 day resolution + 48h grace
     assert_eq!(tracker.deadline, 1000 + DISPUTE_TIMEOUT);
-    assert_eq!(tracker.grace_period_ends, Some(1000 + DISPUTE_TIMEOUT + GRACE_PERIOD));
+    assert_eq!(
+        tracker.grace_period_ends,
+        Some(1000 + DISPUTE_TIMEOUT + GRACE_PERIOD)
+    );
     assert_eq!(tracker.action, TimeoutAction::AutoRefund);
 }
 
@@ -356,11 +334,7 @@ fn test_signing_completion_timeout() {
 
 #[test]
 fn test_trigger_timeout() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     let action = tracker.trigger();
     assert_eq!(action, Ok(TimeoutAction::Expire));
@@ -369,11 +343,7 @@ fn test_trigger_timeout() {
 
 #[test]
 fn test_cannot_trigger_twice() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     tracker.trigger().unwrap();
     let result = tracker.trigger();
@@ -383,11 +353,7 @@ fn test_cannot_trigger_twice() {
 
 #[test]
 fn test_check_after_trigger() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     tracker.trigger().unwrap();
     let status = tracker.check(1000 + FUNDING_TIMEOUT + 1);
@@ -401,11 +367,7 @@ fn test_check_after_trigger() {
 
 #[test]
 fn test_extend_deadline() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     let original_deadline = tracker.deadline;
     let original_grace = tracker.grace_period_ends.unwrap();
@@ -418,11 +380,7 @@ fn test_extend_deadline() {
 
 #[test]
 fn test_cannot_extend_after_trigger() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     tracker.trigger().unwrap();
     let result = tracker.extend(2 * DAY);
@@ -432,15 +390,14 @@ fn test_cannot_extend_after_trigger() {
 
 #[test]
 fn test_extend_brings_back_from_expired() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     // Currently expired
     let check_time = 1000 + FUNDING_TIMEOUT + 1 * HOUR;
-    assert!(matches!(tracker.check(check_time), TimeoutStatus::Expired { .. }));
+    assert!(matches!(
+        tracker.check(check_time),
+        TimeoutStatus::Expired { .. }
+    ));
 
     // Extend by 2 hours
     tracker.extend(2 * HOUR).unwrap();
@@ -456,11 +413,7 @@ fn test_extend_brings_back_from_expired() {
 
 #[test]
 fn test_cancel_timeout() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     tracker.cancel();
 
@@ -470,11 +423,7 @@ fn test_cancel_timeout() {
 
 #[test]
 fn test_cancelled_shows_triggered() {
-    let mut tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let mut tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     tracker.cancel();
     let status = tracker.check(1000 + FUNDING_TIMEOUT + 1);
@@ -488,22 +437,24 @@ fn test_cancelled_shows_triggered() {
 
 #[test]
 fn test_48h_grace_exact_boundary() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     let deadline = 1000 + DELIVERY_TIMEOUT;
     let grace_end = deadline + GRACE_PERIOD;
 
     // Exactly at deadline
     let status_at_deadline = tracker.check(deadline);
-    assert!(matches!(status_at_deadline, TimeoutStatus::InGracePeriod { .. }));
+    assert!(matches!(
+        status_at_deadline,
+        TimeoutStatus::InGracePeriod { .. }
+    ));
 
     // 1 second before grace ends
     let status_before_grace_end = tracker.check(grace_end - 1);
-    assert!(matches!(status_before_grace_end, TimeoutStatus::InGracePeriod { .. }));
+    assert!(matches!(
+        status_before_grace_end,
+        TimeoutStatus::InGracePeriod { .. }
+    ));
 
     // Exactly at grace end
     let status_at_grace_end = tracker.check(grace_end);
@@ -512,11 +463,7 @@ fn test_48h_grace_exact_boundary() {
 
 #[test]
 fn test_grace_remaining_decreases() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Delivery,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Delivery, 1000);
 
     let deadline = 1000 + DELIVERY_TIMEOUT;
 
@@ -549,7 +496,12 @@ fn test_auto_release_after_48h() {
 
     // After 48 hours
     let status = tracker.check(1000 + GRACE_PERIOD + 1);
-    assert!(matches!(status, TimeoutStatus::Expired { action: TimeoutAction::AutoRelease }));
+    assert!(matches!(
+        status,
+        TimeoutStatus::Expired {
+            action: TimeoutAction::AutoRelease
+        }
+    ));
 
     let action = tracker.trigger().unwrap();
     assert_eq!(action, TimeoutAction::AutoRelease);
@@ -565,7 +517,12 @@ fn test_auto_refund_on_dispute_timeout() {
 
     // After dispute timeout + grace
     let status = tracker.check(1000 + DISPUTE_TIMEOUT + GRACE_PERIOD + 1);
-    assert!(matches!(status, TimeoutStatus::Expired { action: TimeoutAction::AutoRefund }));
+    assert!(matches!(
+        status,
+        TimeoutStatus::Expired {
+            action: TimeoutAction::AutoRefund
+        }
+    ));
 
     let action = tracker.trigger().unwrap();
     assert_eq!(action, TimeoutAction::AutoRefund);
@@ -577,11 +534,7 @@ fn test_auto_refund_on_dispute_timeout() {
 
 #[test]
 fn test_timeout_at_exactly_start() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        1000,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 1000);
 
     // Check at start time
     let status = tracker.check(1000);
@@ -594,11 +547,7 @@ fn test_timeout_at_exactly_start() {
 
 #[test]
 fn test_timeout_with_zero_start() {
-    let tracker = TimeoutTracker::new(
-        "escrow_001".to_string(),
-        TimeoutType::Funding,
-        0,
-    );
+    let tracker = TimeoutTracker::new("escrow_001".to_string(), TimeoutType::Funding, 0);
 
     // Should work with epoch start
     let status = tracker.check(FUNDING_TIMEOUT - 1);

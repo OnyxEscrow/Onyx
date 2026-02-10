@@ -1,7 +1,7 @@
-use actix_web::{web, HttpResponse, post};
-use serde::{Deserialize, Serialize};
-use monero_marketplace_common::MONERO_RPC_URL;
 use crate::wallet_manager::WalletManager;
+use actix_web::{post, web, HttpResponse};
+use monero_marketplace_common::MONERO_RPC_URL;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -35,17 +35,18 @@ pub async fn validate_address(
 
     // Call RPC to validate
     match validate_with_rpc(address).await {
-        Ok((is_valid, network)) => {
-            Ok(HttpResponse::Ok().json(AddressValidationResponse {
-                is_valid,
-                message: if is_valid {
-                    format!("Valid Monero address ({})", network.clone().unwrap_or("unknown".to_string()))
-                } else {
-                    "Address failed RPC validation".to_string()
-                },
-                network,
-            }))
-        }
+        Ok((is_valid, network)) => Ok(HttpResponse::Ok().json(AddressValidationResponse {
+            is_valid,
+            message: if is_valid {
+                format!(
+                    "Valid Monero address ({})",
+                    network.clone().unwrap_or("unknown".to_string())
+                )
+            } else {
+                "Address failed RPC validation".to_string()
+            },
+            network,
+        })),
         Err(e) => {
             tracing::warn!("RPC validation error: {}", e);
             Ok(HttpResponse::InternalServerError().json(serde_json::json!({
@@ -62,9 +63,9 @@ fn is_valid_address_format(address: &str) -> bool {
         return false;
     }
 
-    address.chars().all(|c| {
-        matches!(c, '1'..='9' | 'A'..='H' | 'J'..='N' | 'P'..='Z' | 'a'..='k' | 'm'..='z')
-    })
+    address
+        .chars()
+        .all(|c| matches!(c, '1'..='9' | 'A'..='H' | 'J'..='N' | 'P'..='Z' | 'a'..='k' | 'm'..='z'))
 }
 
 /// Validate address using actual Monero RPC
@@ -91,30 +92,28 @@ async fn validate_with_rpc(address: &str) -> Result<(bool, Option<String>), Stri
         .send()
         .await
     {
-        Ok(resp) => {
-            match resp.json::<Value>().await {
-                Ok(body) => {
-                    if let Some(result) = body.get("result") {
-                        let is_valid = result
-                            .get("valid")
-                            .and_then(|v| v.as_bool())
-                            .unwrap_or(false);
+        Ok(resp) => match resp.json::<Value>().await {
+            Ok(body) => {
+                if let Some(result) = body.get("result") {
+                    let is_valid = result
+                        .get("valid")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
 
-                        let network = result
-                            .get("nettype")
-                            .and_then(|v| v.as_str())
-                            .map(|s| s.to_string());
+                    let network = result
+                        .get("nettype")
+                        .and_then(|v| v.as_str())
+                        .map(|s| s.to_string());
 
-                        Ok((is_valid, network))
-                    } else if let Some(error) = body.get("error") {
-                        Err(format!("RPC error: {:?}", error))
-                    } else {
-                        Err("Invalid RPC response format".to_string())
-                    }
+                    Ok((is_valid, network))
+                } else if let Some(error) = body.get("error") {
+                    Err(format!("RPC error: {:?}", error))
+                } else {
+                    Err("Invalid RPC response format".to_string())
                 }
-                Err(e) => Err(format!("JSON parse error: {}", e)),
             }
-        }
+            Err(e) => Err(format!("JSON parse error: {}", e)),
+        },
         Err(e) => Err(format!("HTTP error: {}", e)),
     }
 }

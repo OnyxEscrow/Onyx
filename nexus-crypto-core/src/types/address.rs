@@ -252,9 +252,18 @@ mod tests {
 
     #[test]
     fn test_network_from_str() {
-        assert_eq!(MoneroNetwork::from_str("mainnet"), Some(MoneroNetwork::Mainnet));
-        assert_eq!(MoneroNetwork::from_str("STAGENET"), Some(MoneroNetwork::Stagenet));
-        assert_eq!(MoneroNetwork::from_str("test"), Some(MoneroNetwork::Testnet));
+        assert_eq!(
+            MoneroNetwork::from_str("mainnet"),
+            Some(MoneroNetwork::Mainnet)
+        );
+        assert_eq!(
+            MoneroNetwork::from_str("STAGENET"),
+            Some(MoneroNetwork::Stagenet)
+        );
+        assert_eq!(
+            MoneroNetwork::from_str("test"),
+            Some(MoneroNetwork::Testnet)
+        );
         assert_eq!(MoneroNetwork::from_str("invalid"), None);
     }
 

@@ -85,7 +85,9 @@ impl CircuitBreaker {
                         // Transition to half-open
                         *self.state.write().await = CircuitState::HalfOpen;
                         self.success_count.store(0, Ordering::SeqCst);
-                        tracing::info!("Circuit breaker transitioning to HALF-OPEN (timeout elapsed)");
+                        tracing::info!(
+                            "Circuit breaker transitioning to HALF-OPEN (timeout elapsed)"
+                        );
                         return true;
                     }
                 }

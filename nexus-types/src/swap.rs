@@ -42,8 +42,8 @@ impl SwapProvider {
     pub fn fee_percent(&self) -> f64 {
         match self {
             SwapProvider::FixedFloat => 0.5,
-            SwapProvider::Trocador => 0.5,  // Varies by underlying exchange
-            SwapProvider::Atomic => 0.0,    // Network fees only
+            SwapProvider::Trocador => 0.5, // Varies by underlying exchange
+            SwapProvider::Atomic => 0.0,   // Network fees only
         }
     }
 
@@ -52,7 +52,7 @@ impl SwapProvider {
         match self {
             SwapProvider::FixedFloat => 15,
             SwapProvider::Trocador => 20,
-            SwapProvider::Atomic => 30,  // Atomic swaps take longer
+            SwapProvider::Atomic => 30, // Atomic swaps take longer
         }
     }
 }

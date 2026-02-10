@@ -66,13 +66,15 @@ impl EscrowMonitor {
                 .filter(
                     // Normal flow: signing_round >= 1 (at least one party signed)
                     // Dispute flow: dispute_signing_pair set (arbiter decided, skip signing_round check)
-                    escrows::signing_round.ge(1)
-                        .or(escrows::dispute_signing_pair.is_not_null())
+                    escrows::signing_round
+                        .ge(1)
+                        .or(escrows::dispute_signing_pair.is_not_null()),
                 )
                 .filter(
                     // Non-disputed escrows OR disputed with arbiter decision recorded
-                    escrows::status.ne("disputed")
-                        .or(escrows::dispute_signing_pair.is_not_null())
+                    escrows::status
+                        .ne("disputed")
+                        .or(escrows::dispute_signing_pair.is_not_null()),
                 )
                 .load(&mut conn)
                 .context("Failed to query pending escrows")?;
@@ -83,7 +85,10 @@ impl EscrowMonitor {
         .context("Task join error")??;
 
         if !escrows.is_empty() {
-            debug!(count = escrows.len(), "Found escrows awaiting arbiter action");
+            debug!(
+                count = escrows.len(),
+                "Found escrows awaiting arbiter action"
+            );
         }
 
         Ok(escrows)
@@ -116,10 +121,10 @@ impl EscrowMonitor {
                     escrows::buyer_release_requested
                         .eq(true)
                         .and(escrows::vendor_signature.is_not_null())
-                    // Refund case: vendor approved refund AND buyer has signed
-                    .or(escrows::vendor_refund_requested
-                        .eq(true)
-                        .and(escrows::buyer_signature.is_not_null()))
+                        // Refund case: vendor approved refund AND buyer has signed
+                        .or(escrows::vendor_refund_requested
+                            .eq(true)
+                            .and(escrows::buyer_signature.is_not_null())),
                 )
                 .load(&mut conn)
                 .context("Failed to query auto-signable escrows")?;
@@ -130,7 +135,10 @@ impl EscrowMonitor {
         .context("Task join error")??;
 
         if !escrows.is_empty() {
-            info!(count = escrows.len(), "Found escrows eligible for auto-signing");
+            info!(
+                count = escrows.len(),
+                "Found escrows eligible for auto-signing"
+            );
         }
 
         Ok(escrows)
@@ -159,7 +167,10 @@ impl EscrowMonitor {
         .context("Task join error")??;
 
         if !escrows.is_empty() {
-            info!(count = escrows.len(), "Found disputed escrows needing human arbiter");
+            info!(
+                count = escrows.len(),
+                "Found disputed escrows needing human arbiter"
+            );
         }
 
         Ok(escrows)

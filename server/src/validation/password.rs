@@ -82,7 +82,9 @@ pub fn validate_password_strength(password: &str, user_inputs: &[&str]) -> Passw
     let is_valid = score >= MIN_PASSWORD_SCORE;
 
     if !is_valid && feedback_messages.is_empty() {
-        feedback_messages.push("Password is too weak. Try adding numbers, symbols, or making it longer.".to_string());
+        feedback_messages.push(
+            "Password is too weak. Try adding numbers, symbols, or making it longer.".to_string(),
+        );
     }
 
     PasswordValidation {

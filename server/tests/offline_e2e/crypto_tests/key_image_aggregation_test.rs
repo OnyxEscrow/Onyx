@@ -15,8 +15,8 @@ use curve25519_dalek::{
 };
 
 use crate::mock_infrastructure::{
+    test_fixtures::{hex_to_point, point_to_hex, KeyImageFixture, KeyImageInvalidType},
     DeterministicRng,
-    test_fixtures::{KeyImageFixture, KeyImageInvalidType, hex_to_point, point_to_hex},
 };
 
 // ============================================================================
@@ -29,10 +29,16 @@ fn aggregate_simple(pki1_hex: &str, pki2_hex: &str) -> Result<String, String> {
     let pki2_bytes = hex::decode(pki2_hex).map_err(|e| format!("Failed to decode pki2: {}", e))?;
 
     if pki1_bytes.len() != 32 {
-        return Err(format!("Invalid pki1 length: expected 32, got {}", pki1_bytes.len()));
+        return Err(format!(
+            "Invalid pki1 length: expected 32, got {}",
+            pki1_bytes.len()
+        ));
     }
     if pki2_bytes.len() != 32 {
-        return Err(format!("Invalid pki2 length: expected 32, got {}", pki2_bytes.len()));
+        return Err(format!(
+            "Invalid pki2 length: expected 32, got {}",
+            pki2_bytes.len()
+        ));
     }
 
     let mut pki1_arr = [0u8; 32];
@@ -212,18 +218,10 @@ fn test_lagrange_coefficients_buyer_vendor() {
     let lambda_vendor = buyer_idx * (buyer_idx - vendor_idx).invert();
 
     // λ_buyer should be 2
-    assert_eq!(
-        lambda_buyer,
-        Scalar::from(2u64),
-        "λ_buyer should be 2"
-    );
+    assert_eq!(lambda_buyer, Scalar::from(2u64), "λ_buyer should be 2");
 
     // λ_vendor should be -1 (which is l-1 in scalar field)
-    assert_eq!(
-        lambda_vendor,
-        -Scalar::ONE,
-        "λ_vendor should be -1"
-    );
+    assert_eq!(lambda_vendor, -Scalar::ONE, "λ_vendor should be -1");
 }
 
 #[test]
@@ -263,11 +261,7 @@ fn test_lagrange_coefficients_vendor_arbiter() {
     let lambda_vendor = arbiter_idx * (arbiter_idx - vendor_idx).invert();
     let lambda_arbiter = vendor_idx * (vendor_idx - arbiter_idx).invert();
 
-    assert_eq!(
-        lambda_vendor,
-        Scalar::from(3u64),
-        "λ_vendor should be 3"
-    );
+    assert_eq!(lambda_vendor, Scalar::from(3u64), "λ_vendor should be 3");
 
     assert_eq!(
         lambda_arbiter,
@@ -294,7 +288,10 @@ fn test_lagrange_not_commutative() {
     // λ₁(idx1=2, idx2=1)*P2 + λ₂(idx1=2, idx2=1)*P1
     // which are mathematically equivalent
 
-    assert_eq!(result1, result2, "Lagrange sum should give same result for same pair");
+    assert_eq!(
+        result1, result2,
+        "Lagrange sum should give same result for same pair"
+    );
 }
 
 #[test]
@@ -303,7 +300,8 @@ fn test_lagrange_vs_simple_different() {
     let fixture = KeyImageFixture::generate(&mut rng);
 
     let simple = aggregate_simple(&fixture.buyer_pki, &fixture.vendor_pki).unwrap();
-    let lagrange = aggregate_with_roles(&fixture.buyer_pki, &fixture.vendor_pki, "buyer", "vendor").unwrap();
+    let lagrange =
+        aggregate_with_roles(&fixture.buyer_pki, &fixture.vendor_pki, "buyer", "vendor").unwrap();
 
     assert_ne!(
         simple, lagrange,
@@ -408,8 +406,8 @@ fn test_key_reconstruction_math() {
     let pki2 = x2 * hp;
 
     // Lagrange coefficients for indices 1, 2
-    let lambda1 = Scalar::from(2u64);      // λ₁ = 2
-    let lambda2 = -Scalar::ONE;             // λ₂ = -1
+    let lambda1 = Scalar::from(2u64); // λ₁ = 2
+    let lambda2 = -Scalar::ONE; // λ₂ = -1
 
     // Reconstructed secret: x = λ₁*x₁ + λ₂*x₂ = 2*x1 - x2
     let x_reconstructed = lambda1 * x1 + lambda2 * x2;
@@ -431,8 +429,8 @@ fn test_lagrange_sum_property() {
     // The Lagrange polynomial passes through both points
     // and λ₁ + λ₂ = 1 when evaluating at x=0
 
-    let lambda1 = Scalar::from(2u64);      // λ₁ = 2/(2-1) = 2
-    let lambda2 = -Scalar::ONE;             // λ₂ = 1/(1-2) = -1
+    let lambda1 = Scalar::from(2u64); // λ₁ = 2/(2-1) = 2
+    let lambda2 = -Scalar::ONE; // λ₂ = 1/(1-2) = -1
 
     // λ₁ + λ₂ = 2 + (-1) = 1
     assert_eq!(

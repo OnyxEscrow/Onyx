@@ -114,7 +114,10 @@ impl MultisigPhase {
         match self {
             Self::NotStarted => "Multisig setup not started".to_string(),
             Self::Preparing { completed } => {
-                format!("Preparing multisig ({}/3 participants ready)", completed.len())
+                format!(
+                    "Preparing multisig ({}/3 participants ready)",
+                    completed.len()
+                )
             }
             Self::Exchanging { round, infos } => {
                 format!(
@@ -268,11 +271,7 @@ mod tests {
         rpc_urls.insert("vendor".to_string(), "http://127.0.0.1:18083".to_string());
         rpc_urls.insert("arbiter".to_string(), "http://127.0.0.1:18084".to_string());
 
-        let snapshot = MultisigSnapshot::new(
-            MultisigPhase::NotStarted,
-            wallet_ids,
-            rpc_urls,
-        );
+        let snapshot = MultisigSnapshot::new(MultisigPhase::NotStarted, wallet_ids, rpc_urls);
 
         assert!(snapshot.validate().is_ok());
     }
@@ -285,11 +284,7 @@ mod tests {
 
         let rpc_urls = HashMap::new();
 
-        let snapshot = MultisigSnapshot::new(
-            MultisigPhase::NotStarted,
-            wallet_ids,
-            rpc_urls,
-        );
+        let snapshot = MultisigSnapshot::new(MultisigPhase::NotStarted, wallet_ids, rpc_urls);
 
         assert!(snapshot.validate().is_err());
     }
@@ -309,10 +304,7 @@ mod tests {
         .is_terminal());
 
         assert!(!MultisigPhase::NotStarted.is_terminal());
-        assert!(!MultisigPhase::Preparing {
-            completed: vec![]
-        }
-        .is_terminal());
+        assert!(!MultisigPhase::Preparing { completed: vec![] }.is_terminal());
     }
 
     #[test]

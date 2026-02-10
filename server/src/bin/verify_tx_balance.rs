@@ -46,7 +46,8 @@ fn main() {
 
     // Skip inputs
     for _ in 0..input_count {
-        let input_type = tx[pos]; pos += 1;
+        let input_type = tx[pos];
+        pos += 1;
         if input_type == 0x02 {
             let _amount = read_varint(&tx, &mut pos);
             let key_offset_count = read_varint(&tx, &mut pos);
@@ -63,7 +64,8 @@ fn main() {
     // Skip outputs
     for _ in 0..output_count {
         let _amount = read_varint(&tx, &mut pos);
-        let output_type = tx[pos]; pos += 1;
+        let output_type = tx[pos];
+        pos += 1;
         if output_type == 0x03 {
             pos += 33; // key + view_tag
         } else if output_type == 0x02 {
@@ -78,7 +80,8 @@ fn main() {
     println!("Prefix ends at: {}", prefix_end);
 
     // Parse RCT base
-    let rct_type = tx[pos]; pos += 1;
+    let rct_type = tx[pos];
+    pos += 1;
     println!("RCT type: {}", rct_type);
 
     let fee = read_varint(&tx, &mut pos);
@@ -88,35 +91,49 @@ fn main() {
     let ecdh_start = pos;
     pos += (output_count as usize) * 8;
     let ecdh_end = pos;
-    println!("ecdhInfo: {} bytes at positions {}-{}", ecdh_end - ecdh_start, ecdh_start, ecdh_end);
+    println!(
+        "ecdhInfo: {} bytes at positions {}-{}",
+        ecdh_end - ecdh_start,
+        ecdh_start,
+        ecdh_end
+    );
 
     // outPk (32 bytes per output)
     let outpk_start = pos;
     let mut out_pk: Vec<EdwardsPoint> = Vec::new();
     for i in 0..output_count {
-        let pk_bytes = &tx[pos..pos+32];
+        let pk_bytes = &tx[pos..pos + 32];
         let pk = bytes_to_point(pk_bytes).expect(&format!("Invalid outPk[{}]", i));
         out_pk.push(pk);
         println!("outPk[{}] at {}: {}", i, pos, hex::encode(pk_bytes));
         pos += 32;
     }
     let outpk_end = pos;
-    println!("outPk: {} bytes at positions {}-{}", outpk_end - outpk_start, outpk_start, outpk_end);
+    println!(
+        "outPk: {} bytes at positions {}-{}",
+        outpk_end - outpk_start,
+        outpk_start,
+        outpk_end
+    );
 
     // Skip to pseudo_out (at end of TX)
     let pseudo_out_pos = tx.len() - 32;
-    let pseudo_out_bytes = &tx[pseudo_out_pos..pseudo_out_pos+32];
+    let pseudo_out_bytes = &tx[pseudo_out_pos..pseudo_out_pos + 32];
     let pseudo_out = bytes_to_point(pseudo_out_bytes).expect("Invalid pseudo_out");
-    println!("\npseudo_out at {}: {}", pseudo_out_pos, hex::encode(pseudo_out_bytes));
+    println!(
+        "\npseudo_out at {}: {}",
+        pseudo_out_pos,
+        hex::encode(pseudo_out_bytes)
+    );
 
     // H generator (from Monero)
     let h_bytes: [u8; 32] = [
-        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-        0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-        0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-        0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0,
+        0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
+        0x1f, 0x94,
     ];
-    let h_point = CompressedEdwardsY(h_bytes).decompress()
+    let h_point = CompressedEdwardsY(h_bytes)
+        .decompress()
         .expect("Invalid H point");
 
     // Compute: expected_pseudo = sum(outPk) + fee * H
@@ -129,10 +146,22 @@ fn main() {
     let expected_pseudo = sum_outpk + fee_h;
 
     println!("\n=== Balance Check ===");
-    println!("sum(outPk):        {}", hex::encode(sum_outpk.compress().as_bytes()));
-    println!("fee * H:           {}", hex::encode(fee_h.compress().as_bytes()));
-    println!("Expected pseudo:   {}", hex::encode(expected_pseudo.compress().as_bytes()));
-    println!("Actual pseudo_out: {}", hex::encode(pseudo_out.compress().as_bytes()));
+    println!(
+        "sum(outPk):        {}",
+        hex::encode(sum_outpk.compress().as_bytes())
+    );
+    println!(
+        "fee * H:           {}",
+        hex::encode(fee_h.compress().as_bytes())
+    );
+    println!(
+        "Expected pseudo:   {}",
+        hex::encode(expected_pseudo.compress().as_bytes())
+    );
+    println!(
+        "Actual pseudo_out: {}",
+        hex::encode(pseudo_out.compress().as_bytes())
+    );
 
     if expected_pseudo.compress() == pseudo_out.compress() {
         println!("\n✅ Commitment balance VERIFIED!");
@@ -147,10 +176,11 @@ fn main() {
 
     // Check if outPk are valid points (not identity)
     for (i, pk) in out_pk.iter().enumerate() {
-        let is_identity = pk.compress().as_bytes() == &[
-            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ];
+        let is_identity = pk.compress().as_bytes()
+            == &[
+                1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0,
+            ];
         if is_identity {
             println!("⚠️  outPk[{}] is identity point!", i);
         } else {
@@ -159,10 +189,11 @@ fn main() {
     }
 
     // Check if pseudo_out is valid
-    let pseudo_is_identity = pseudo_out.compress().as_bytes() == &[
-        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    ];
+    let pseudo_is_identity = pseudo_out.compress().as_bytes()
+        == &[
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0,
+        ];
     if pseudo_is_identity {
         println!("⚠️  pseudo_out is identity point!");
     } else {

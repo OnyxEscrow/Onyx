@@ -69,7 +69,11 @@ fn hash_to_point(data: &[u8]) -> EdwardsPoint {
 }
 
 /// Compute Hs = H(8*a*R || output_index) - the key derivation scalar
-fn compute_derivation_scalar(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index: u64) -> Scalar {
+fn compute_derivation_scalar(
+    view_key: &Scalar,
+    tx_pubkey: &EdwardsPoint,
+    output_index: u64,
+) -> Scalar {
     // 8*a*R (ECDH with cofactor)
     let shared_secret = (view_key * tx_pubkey).mul_by_cofactor();
     let shared_secret_bytes = shared_secret.compress().to_bytes();
@@ -151,12 +155,26 @@ fn main() {
     let computed_tag_0 = compute_view_tag(&view_key, &tx_pubkey, 0);
     let computed_tag_1 = compute_view_tag(&view_key, &tx_pubkey, 1);
 
-    println!("Output 0: stored_tag=0x{:02x}, computed_tag=0x{:02x} {}",
-        OUTPUT_0_VIEW_TAG, computed_tag_0,
-        if OUTPUT_0_VIEW_TAG == computed_tag_0 { "✅ MATCH" } else { "❌ NO MATCH" });
-    println!("Output 1: stored_tag=0x{:02x}, computed_tag=0x{:02x} {}",
-        OUTPUT_1_VIEW_TAG, computed_tag_1,
-        if OUTPUT_1_VIEW_TAG == computed_tag_1 { "✅ MATCH" } else { "❌ NO MATCH" });
+    println!(
+        "Output 0: stored_tag=0x{:02x}, computed_tag=0x{:02x} {}",
+        OUTPUT_0_VIEW_TAG,
+        computed_tag_0,
+        if OUTPUT_0_VIEW_TAG == computed_tag_0 {
+            "✅ MATCH"
+        } else {
+            "❌ NO MATCH"
+        }
+    );
+    println!(
+        "Output 1: stored_tag=0x{:02x}, computed_tag=0x{:02x} {}",
+        OUTPUT_1_VIEW_TAG,
+        computed_tag_1,
+        if OUTPUT_1_VIEW_TAG == computed_tag_1 {
+            "✅ MATCH"
+        } else {
+            "❌ NO MATCH"
+        }
+    );
 
     // Determine which output is ours
     let (our_output_index, our_output_key) = if OUTPUT_0_VIEW_TAG == computed_tag_0 {
@@ -169,22 +187,29 @@ fn main() {
     };
 
     println!();
-    println!("→ Our output is OUTPUT {} (P = {}...)",
+    println!(
+        "→ Our output is OUTPUT {} (P = {}...)",
         our_output_index,
-        &hex::encode(our_output_key.compress().to_bytes())[..16]);
+        &hex::encode(our_output_key.compress().to_bytes())[..16]
+    );
 
     println!();
     println!("=== STEP 2: Compute derivation scalar Hs ===");
     println!();
 
     let hs = compute_derivation_scalar(&view_key, &tx_pubkey, our_output_index);
-    println!("Hs = H(8aR || {}) = {}...",
+    println!(
+        "Hs = H(8aR || {}) = {}...",
         our_output_index,
-        &hex::encode(hs.to_bytes())[..16]);
+        &hex::encode(hs.to_bytes())[..16]
+    );
 
     // Verify: P = Hs*G + B (we don't have B, but we can check Hs*G)
     let hs_point = &hs * ED25519_BASEPOINT_TABLE;
-    println!("Hs*G = {}...", &hex::encode(hs_point.compress().to_bytes())[..16]);
+    println!(
+        "Hs*G = {}...",
+        &hex::encode(hs_point.compress().to_bytes())[..16]
+    );
 
     println!();
     println!("=== STEP 3: Compute Hp(P) - hash to point of output key ===");
@@ -192,7 +217,10 @@ fn main() {
 
     let output_key_bytes = our_output_key.compress().to_bytes();
     let hp_p = hash_to_point(&output_key_bytes);
-    println!("Hp(P) = {}...", &hex::encode(hp_p.compress().to_bytes())[..16]);
+    println!(
+        "Hp(P) = {}...",
+        &hex::encode(hp_p.compress().to_bytes())[..16]
+    );
 
     println!();
     println!("=== STEP 4: Verify PKI computation ===");
@@ -248,9 +276,11 @@ fn main() {
 
     let sum = lambda_buyer + lambda_vendor;
     let sum_is_one = sum == Scalar::ONE;
-    println!("λ_buyer + λ_vendor = {} {}",
+    println!(
+        "λ_buyer + λ_vendor = {} {}",
         hex::encode(sum.to_bytes()),
-        if sum_is_one { "= 1 ✅" } else { "≠ 1 ❌" });
+        if sum_is_one { "= 1 ✅" } else { "≠ 1 ❌" }
+    );
 
     println!();
     println!("╔══════════════════════════════════════════════════════════════╗");

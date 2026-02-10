@@ -191,11 +191,17 @@ impl SyncProxyService {
     pub fn new(monero_rpc_url: String, daemon_rpc_url: String) -> Result<Self> {
         // Validate localhost only for both URLs
         if !monero_rpc_url.contains("127.0.0.1") && !monero_rpc_url.contains("localhost") {
-            anyhow::bail!("Monero wallet RPC must be localhost only. Got: {}", monero_rpc_url);
+            anyhow::bail!(
+                "Monero wallet RPC must be localhost only. Got: {}",
+                monero_rpc_url
+            );
         }
 
         if !daemon_rpc_url.contains("127.0.0.1") && !daemon_rpc_url.contains("localhost") {
-            anyhow::bail!("Monero daemon RPC must be localhost only. Got: {}", daemon_rpc_url);
+            anyhow::bail!(
+                "Monero daemon RPC must be localhost only. Got: {}",
+                daemon_rpc_url
+            );
         }
 
         let client = reqwest::Client::builder()
@@ -251,15 +257,20 @@ impl SyncProxyService {
         );
 
         // Generate unique wallet name for this scan session
-        let wallet_name = format!("temp_view_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
+        let wallet_name = format!(
+            "temp_view_{}",
+            uuid::Uuid::new_v4().to_string().replace('-', "")
+        );
 
         // CRITICAL: Ensure cleanup happens even on error
-        let scan_result = self.scan_with_temp_wallet(
-            &wallet_name,
-            &request.view_key_pub,
-            &request.spend_key_pub,
-            request.start_height,
-        ).await;
+        let scan_result = self
+            .scan_with_temp_wallet(
+                &wallet_name,
+                &request.view_key_pub,
+                &request.spend_key_pub,
+                request.start_height,
+            )
+            .await;
 
         // Always attempt to close wallet (best effort cleanup)
         if let Err(e) = self.close_wallet(&wallet_name).await {
@@ -378,22 +389,27 @@ impl SyncProxyService {
             .json(&rpc_request)
             .send()
             .await
-            .map_err(|e| SyncProxyError::DaemonNotConnected(format!("Cannot reach daemon: {}", e)))?;
+            .map_err(|e| {
+                SyncProxyError::DaemonNotConnected(format!("Cannot reach daemon: {}", e))
+            })?;
 
-        let rpc_response: RpcResponse = response
-            .json()
-            .await
-            .map_err(|e| SyncProxyError::DaemonNotConnected(format!("Invalid daemon response: {}", e)))?;
+        let rpc_response: RpcResponse = response.json().await.map_err(|e| {
+            SyncProxyError::DaemonNotConnected(format!("Invalid daemon response: {}", e))
+        })?;
 
         if let Some(error) = rpc_response.error {
-            return Err(SyncProxyError::DaemonNotConnected(format!("Daemon error: {}", error.message)));
+            return Err(SyncProxyError::DaemonNotConnected(format!(
+                "Daemon error: {}",
+                error.message
+            )));
         }
 
-        let result = rpc_response
-            .result
-            .ok_or_else(|| SyncProxyError::DaemonNotConnected("Missing get_info result".to_string()))?;
+        let result = rpc_response.result.ok_or_else(|| {
+            SyncProxyError::DaemonNotConnected("Missing get_info result".to_string())
+        })?;
 
-        let total_connections = result.incoming_connections_count + result.outgoing_connections_count;
+        let total_connections =
+            result.incoming_connections_count + result.outgoing_connections_count;
 
         if total_connections == 0 {
             return Err(SyncProxyError::DaemonNotConnected(
@@ -656,9 +672,7 @@ impl SyncProxyService {
             .map(|&index| OutputRequest { amount: 0, index }) // amount=0 for RCT
             .collect();
 
-        let result: OutsResult = self
-            .call_daemon_rpc("get_outs", Params { outputs })
-            .await?;
+        let result: OutsResult = self.call_daemon_rpc("get_outs", Params { outputs }).await?;
 
         let decoys = result
             .outs
@@ -761,7 +775,8 @@ impl SyncProxyService {
             restore_height,
         };
 
-        self.call_wallet_rpc::<_, ()>("generate_from_keys", params).await?;
+        self.call_wallet_rpc::<_, ()>("generate_from_keys", params)
+            .await?;
 
         tracing::info!("Created view-only wallet: {}", wallet_name);
         Ok(())
@@ -822,9 +837,12 @@ impl SyncProxyService {
         }
 
         let result: TransfersResult = self
-            .call_wallet_rpc("incoming_transfers", Params {
-                transfer_type: "all".to_string(),
-            })
+            .call_wallet_rpc(
+                "incoming_transfers",
+                Params {
+                    transfer_type: "all".to_string(),
+                },
+            )
             .await?;
 
         Ok(result.transfers.unwrap_or_default())
@@ -856,9 +874,12 @@ impl SyncProxyService {
             filename: String,
         }
 
-        self.call_wallet_rpc::<_, ()>("open_wallet", Params {
-            filename: wallet_name.to_string(),
-        })
+        self.call_wallet_rpc::<_, ()>(
+            "open_wallet",
+            Params {
+                filename: wallet_name.to_string(),
+            },
+        )
         .await?;
 
         Ok(())
@@ -871,7 +892,8 @@ impl SyncProxyService {
         #[derive(Serialize)]
         struct EmptyParams {}
 
-        self.call_wallet_rpc::<_, ()>("close_wallet", EmptyParams {}).await?;
+        self.call_wallet_rpc::<_, ()>("close_wallet", EmptyParams {})
+            .await?;
 
         tracing::info!("Closed wallet");
         Ok(())
@@ -940,7 +962,9 @@ impl SyncProxyService {
 
         for transfer in transfers {
             // Select decoys for this output
-            let decoys = self.select_decoys(transfer.amount, transfer.global_index).await?;
+            let decoys = self
+                .select_decoys(transfer.amount, transfer.global_index)
+                .await?;
 
             outputs.push(OutputInfo {
                 tx_hash: transfer.tx_hash,

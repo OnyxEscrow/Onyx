@@ -1,11 +1,11 @@
-use actix_web::{web, HttpResponse, post, get};
+use crate::config::get_configured_network;
+use crate::crypto::address_validation::validate_address_for_network;
+use crate::db::DbPool;
+use crate::models::wallet::{NewWallet, Wallet};
+use actix_web::{get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use uuid::Uuid;
-use crate::config::get_configured_network;
-use crate::crypto::address_validation::validate_address_for_network;
-use crate::models::wallet::{Wallet, NewWallet};
-use crate::db::DbPool;
 
 /// Request body for wallet registration
 #[derive(Serialize, Deserialize, Clone)]
@@ -67,8 +67,7 @@ pub async fn get_wallet_status(
 
     // Query for user's wallets
     let wallets = web::block(move || {
-        let mut conn = pool.get()
-            .map_err(|e| format!("DB connection: {}", e))?;
+        let mut conn = pool.get().map_err(|e| format!("DB connection: {}", e))?;
         Wallet::find_by_user_id(&mut conn, user_id.clone())
             .map_err(|e| format!("Query wallets: {}", e))
     })
@@ -77,10 +76,12 @@ pub async fn get_wallet_status(
         eprintln!("Blocking error: {}", e);
         actix_web::error::ErrorInternalServerError("Internal server error")
     })
-    .and_then(|result| result.map_err(|e| {
-        eprintln!("Database error: {}", e);
-        actix_web::error::ErrorInternalServerError("Database error")
-    }))?;
+    .and_then(|result| {
+        result.map_err(|e| {
+            eprintln!("Database error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })
+    })?;
 
     if wallets.is_empty() {
         Ok(HttpResponse::Ok().json(WalletStatusResponse {
@@ -175,7 +176,7 @@ pub async fn register_wallet(
         }
         None => {
             // Calculate SHA256 hash of address
-            use sha2::{Sha256, Digest};
+            use sha2::{Digest, Sha256};
             let mut hasher = Sha256::new();
             hasher.update(req.address.as_bytes());
             format!("{:x}", hasher.finalize())
@@ -188,7 +189,8 @@ pub async fn register_wallet(
     let pool_clone = pool.clone();
 
     let address_exists = web::block(move || {
-        let mut conn = pool_clone.get()
+        let mut conn = pool_clone
+            .get()
             .map_err(|e| format!("DB connection: {}", e))?;
         Wallet::address_exists(&mut conn, &address_clone)
             .map_err(|e| format!("Check address: {}", e))
@@ -198,10 +200,12 @@ pub async fn register_wallet(
         eprintln!("Blocking error: {}", e);
         actix_web::error::ErrorInternalServerError("Internal server error")
     })
-    .and_then(|result| result.map_err(|e| {
-        eprintln!("Database error: {}", e);
-        actix_web::error::ErrorInternalServerError("Database error")
-    }))?;
+    .and_then(|result| {
+        result.map_err(|e| {
+            eprintln!("Database error: {}", e);
+            actix_web::error::ErrorInternalServerError("Database error")
+        })
+    })?;
 
     if address_exists {
         return Ok(HttpResponse::Conflict().json(serde_json::json!({
@@ -227,22 +231,25 @@ pub async fn register_wallet(
     };
 
     let _wallet_result = web::block(move || {
-        let mut conn = pool.get()
-            .map_err(|e| format!("DB connection: {}", e))?;
-        Wallet::create(&mut conn, new_wallet)
-            .map_err(|e| format!("Create wallet: {}", e))
+        let mut conn = pool.get().map_err(|e| format!("DB connection: {}", e))?;
+        Wallet::create(&mut conn, new_wallet).map_err(|e| format!("Create wallet: {}", e))
     })
     .await
     .map_err(|e| {
         eprintln!("Blocking error: {}", e);
         actix_web::error::ErrorInternalServerError("Internal server error")
     })
-    .and_then(|result| result.map_err(|e| {
-        eprintln!("Database error: {}", e);
-        actix_web::error::ErrorInternalServerError("Failed to register wallet")
-    }))?;
+    .and_then(|result| {
+        result.map_err(|e| {
+            eprintln!("Database error: {}", e);
+            actix_web::error::ErrorInternalServerError("Failed to register wallet")
+        })
+    })?;
 
-    info!("Wallet registered successfully: {} (id: {})", address, wallet_id);
+    info!(
+        "Wallet registered successfully: {} (id: {})",
+        address, wallet_id
+    );
 
     Ok(HttpResponse::Created().json(WalletRegistrationResponse {
         status: "registered".to_string(),
@@ -260,11 +267,10 @@ pub async fn register_wallet(
 ///
 /// CRITICAL: This prevents loss of funds from invalid or wrong-network addresses
 fn validate_monero_address(address: &str) -> Result<(), String> {
-    let network = get_configured_network()
-        .map_err(|e| format!("Network configuration error: {}", e))?;
+    let network =
+        get_configured_network().map_err(|e| format!("Network configuration error: {}", e))?;
 
-    validate_address_for_network(address, network)
-        .map_err(|e| format!("{}", e))
+    validate_address_for_network(address, network).map_err(|e| format!("{}", e))
 }
 
 /// Validate hex public key format (should be 64 chars = 32 bytes)
@@ -293,6 +299,8 @@ mod tests {
         assert!(!is_valid_hex_key(&long_key));
 
         // Invalid hex characters
-        assert!(!is_valid_hex_key("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"));
+        assert!(!is_valid_hex_key(
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+        ));
     }
 }

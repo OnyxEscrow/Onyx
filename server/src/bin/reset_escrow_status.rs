@@ -24,7 +24,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -58,7 +61,7 @@ fn main() -> Result<()> {
     // v0.26.0: Also clear ring_data_json to prevent stale key_image issues
     diesel::update(escrows::table.filter(escrows::id.eq(escrow_id)))
         .set((
-            escrows::status.eq("created"),  // Back to created state for monitoring
+            escrows::status.eq("created"), // Back to created state for monitoring
             escrows::buyer_signature.eq::<Option<String>>(None),
             escrows::vendor_signature.eq::<Option<String>>(None),
             escrows::buyer_partial_key_image.eq::<Option<String>>(None),
@@ -70,7 +73,10 @@ fn main() -> Result<()> {
         .execute(&mut conn)
         .context("Failed to update escrow")?;
 
-    println!("✅ Escrow {} reset to 'funded' state (signatures cleared)", escrow_id);
+    println!(
+        "✅ Escrow {} reset to 'funded' state (signatures cleared)",
+        escrow_id
+    );
 
     // Verify
     let result: Vec<(String, String)> = escrows::table

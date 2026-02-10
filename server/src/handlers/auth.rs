@@ -29,15 +29,17 @@ use crate::middleware::csrf::validate_csrf_token;
 use crate::middleware::registration_rate_limit::{
     check_registration_rate_limit, record_registration_attempt, RegistrationRateLimitStorage,
 };
-use crate::models::login_attempt::{LoginAttempt, AttemptType, MAX_FAILED_ATTEMPTS, LOCKOUT_DURATION_SECS};
+use crate::models::login_attempt::{
+    AttemptType, LoginAttempt, LOCKOUT_DURATION_SECS, MAX_FAILED_ATTEMPTS,
+};
 use crate::models::user::{NewUser, User};
-use crate::validation::password::{validate_password_strength, format_validation_error};
+use crate::validation::password::{format_validation_error, validate_password_strength};
 
 /// Helper function to check if request is from HTMX
 /// Note: Actix-web normalizes headers to lowercase, so we check "hx-request" not "HX-Request"
 fn is_htmx_request(req: &HttpRequest) -> bool {
     req.headers()
-        .get("hx-request")  // lowercase to match what browsers actually send
+        .get("hx-request") // lowercase to match what browsers actually send
         .and_then(|v| v.to_str().ok())
         .map(|v| v == "true")
         .unwrap_or(false)
@@ -80,11 +82,10 @@ pub struct RegisterRequest {
 ///
 /// CRITICAL: This prevents loss of funds from invalid or wrong-network addresses
 fn validate_monero_address(addr: &str) -> Result<(), String> {
-    let network = get_configured_network()
-        .map_err(|e| format!("Network configuration error: {}", e))?;
+    let network =
+        get_configured_network().map_err(|e| format!("Network configuration error: {}", e))?;
 
-    validate_address_for_network(addr, network)
-        .map_err(|e| format!("{}", e))
+    validate_address_for_network(addr, network).map_err(|e| format!("{}", e))
 }
 
 #[post("/register")]
@@ -166,9 +167,15 @@ pub async fn register(
     if let Some(ref addr) = req.wallet_address {
         if let Err(e) = validate_monero_address(addr) {
             return if is_htmx {
-                Ok(htmx_error_response(&format!("Invalid Monero address: {}", e)))
+                Ok(htmx_error_response(&format!(
+                    "Invalid Monero address: {}",
+                    e
+                )))
             } else {
-                Err(ApiError::BadRequest(format!("Invalid Monero address: {}", e)))
+                Err(ApiError::BadRequest(format!(
+                    "Invalid Monero address: {}",
+                    e
+                )))
             };
         }
     }
@@ -202,7 +209,7 @@ pub async fn register(
     let mut conn = pool.get().map_err(|e| ApiError::Internal(e.to_string()))?;
     let new_user = NewUser {
         id: Uuid::new_v4().to_string(),
-        username: req.username.to_lowercase(),  // Store lowercase for case-insensitive login
+        username: req.username.to_lowercase(), // Store lowercase for case-insensitive login
         password_hash,
         wallet_address: req.wallet_address.clone(),
         wallet_id: None,
@@ -340,17 +347,16 @@ pub async fn login_json(
         .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     let username_for_lockout = username.clone();
-    let lockout_result = web::block(move || {
-        LoginAttempt::is_locked_out(&mut conn, &username_for_lockout)
-    })
-    .await
-    .context("Lockout check failed")
-    .map_err(|e| ApiError::Internal(e.to_string()))?;
+    let lockout_result =
+        web::block(move || LoginAttempt::is_locked_out(&mut conn, &username_for_lockout))
+            .await
+            .context("Lockout check failed")
+            .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     if let Ok(is_locked) = lockout_result {
         if is_locked {
             return Err(ApiError::TooManyRequests(
-                "Account temporarily locked due to too many failed attempts".to_string()
+                "Account temporarily locked due to too many failed attempts".to_string(),
             ));
         }
     }
@@ -379,8 +385,14 @@ pub async fn login_json(
             let username_for_record = username.clone();
             let ip_for_record = client_ip.clone();
             let _ = web::block(move || {
-                LoginAttempt::record(&mut conn, &username_for_record, ip_for_record.as_deref(), AttemptType::Failed)
-            }).await;
+                LoginAttempt::record(
+                    &mut conn,
+                    &username_for_record,
+                    ip_for_record.as_deref(),
+                    AttemptType::Failed,
+                )
+            })
+            .await;
 
             return Err(ApiError::Unauthorized("Invalid credentials".to_string()));
         }
@@ -390,7 +402,10 @@ pub async fn login_json(
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|_| ApiError::Internal("Invalid password hash".to_string()))?;
 
-    if Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_err() {
+    if Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_err()
+    {
         // Record failed attempt
         let mut conn = pool
             .get()
@@ -400,8 +415,14 @@ pub async fn login_json(
         let username_for_record = username.clone();
         let ip_for_record = client_ip.clone();
         let _ = web::block(move || {
-            LoginAttempt::record(&mut conn, &username_for_record, ip_for_record.as_deref(), AttemptType::Failed)
-        }).await;
+            LoginAttempt::record(
+                &mut conn,
+                &username_for_record,
+                ip_for_record.as_deref(),
+                AttemptType::Failed,
+            )
+        })
+        .await;
 
         return Err(ApiError::Unauthorized("Invalid credentials".to_string()));
     }
@@ -415,15 +436,24 @@ pub async fn login_json(
     let username_for_record = username.clone();
     let ip_for_record = client_ip.clone();
     let _ = web::block(move || {
-        LoginAttempt::record(&mut conn, &username_for_record, ip_for_record.as_deref(), AttemptType::Success)
-    }).await;
+        LoginAttempt::record(
+            &mut conn,
+            &username_for_record,
+            ip_for_record.as_deref(),
+            AttemptType::Success,
+        )
+    })
+    .await;
 
     // Set session
-    session.insert("user_id", &user.id)
+    session
+        .insert("user_id", &user.id)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
-    session.insert("username", &user.username)
+    session
+        .insert("username", &user.username)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
-    session.insert("role", &user.role)
+    session
+        .insert("role", &user.role)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     info!(username = %user.username, role = %user.role, "User logged in via JSON API");
@@ -471,14 +501,16 @@ pub async fn register_json(
     // Validate password strength
     let pwd_validation = validate_password_strength(&req.password, &[&req.username]);
     if !pwd_validation.is_valid {
-        return Err(ApiError::BadRequest(format_validation_error(&pwd_validation)));
+        return Err(ApiError::BadRequest(format_validation_error(
+            &pwd_validation,
+        )));
     }
 
     // Validate wallet address if provided
     if let Some(ref addr) = req.wallet_address {
         if !addr.is_empty() {
-            let network = get_configured_network()
-                .map_err(|e| ApiError::Internal(e.to_string()))?;
+            let network =
+                get_configured_network().map_err(|e| ApiError::Internal(e.to_string()))?;
             validate_address_for_network(addr, network)
                 .map_err(|e| ApiError::BadRequest(format!("Invalid wallet address: {}", e)))?;
         }
@@ -530,11 +562,14 @@ pub async fn register_json(
     record_registration_attempt(&rate_limiter, &client_ip);
 
     // Set session
-    session.insert("user_id", &user.id)
+    session
+        .insert("user_id", &user.id)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
-    session.insert("username", &user.username)
+    session
+        .insert("username", &user.username)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
-    session.insert("role", &user.role)
+    session
+        .insert("role", &user.role)
         .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     info!(username = %user.username, role = %user.role, "User registered via JSON API");
@@ -578,7 +613,7 @@ pub async fn login(
         };
     }
 
-    let username = req.username.to_lowercase();  // Normalize to lowercase for case-insensitive login
+    let username = req.username.to_lowercase(); // Normalize to lowercase for case-insensitive login
     let password = req.password.clone();
 
     // Extract IP for logging (never log full IP, just for tracking)
@@ -594,12 +629,11 @@ pub async fn login(
         .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     let username_for_lockout = username.clone();
-    let lockout_result = web::block(move || {
-        LoginAttempt::is_locked_out(&mut conn, &username_for_lockout)
-    })
-    .await
-    .context("Lockout check failed")
-    .map_err(|e| ApiError::Internal(e.to_string()))?;
+    let lockout_result =
+        web::block(move || LoginAttempt::is_locked_out(&mut conn, &username_for_lockout))
+            .await
+            .context("Lockout check failed")
+            .map_err(|e| ApiError::Internal(e.to_string()))?;
 
     if let Ok(is_locked) = lockout_result {
         if is_locked {
@@ -734,13 +768,12 @@ pub async fn login(
             .map_err(|e| ApiError::Internal(e.to_string()))?;
 
         let username_for_count = username.clone();
-        let failed_count = web::block(move || {
-            LoginAttempt::count_recent_failed(&mut conn2, &username_for_count)
-        })
-        .await
-        .ok()
-        .and_then(|r| r.ok())
-        .unwrap_or(0);
+        let failed_count =
+            web::block(move || LoginAttempt::count_recent_failed(&mut conn2, &username_for_count))
+                .await
+                .ok()
+                .and_then(|r| r.ok())
+                .unwrap_or(0);
 
         let remaining_attempts = MAX_FAILED_ATTEMPTS - failed_count;
 
@@ -755,7 +788,8 @@ pub async fn login(
         let error_msg = if remaining_attempts <= 0 {
             "Account locked due to too many failed attempts. Try again in 15 minutes.".to_string()
         } else if remaining_attempts <= 2 {
-            format!("Invalid credentials. {} attempt{} remaining before lockout.",
+            format!(
+                "Invalid credentials. {} attempt{} remaining before lockout.",
                 remaining_attempts,
                 if remaining_attempts == 1 { "" } else { "s" }
             )
@@ -910,8 +944,8 @@ pub async fn update_wallet_address(
     http_req: HttpRequest,
     session: Session,
 ) -> Result<HttpResponse, ApiError> {
-    use diesel::prelude::*;
     use crate::schema::users;
+    use diesel::prelude::*;
 
     let is_htmx = is_htmx_request(&http_req);
 
@@ -939,9 +973,15 @@ pub async fn update_wallet_address(
     // Validate wallet address with full checksum verification
     if let Err(e) = validate_monero_address(&req.wallet_address) {
         return if is_htmx {
-            Ok(htmx_error_response(&format!("Invalid Monero address: {}", e)))
+            Ok(htmx_error_response(&format!(
+                "Invalid Monero address: {}",
+                e
+            )))
         } else {
-            Err(ApiError::BadRequest(format!("Invalid Monero address: {}", e)))
+            Err(ApiError::BadRequest(format!(
+                "Invalid Monero address: {}",
+                e
+            )))
         };
     }
 
@@ -962,12 +1002,16 @@ pub async fn update_wallet_address(
 
         info!("DEBUG: Rows affected by UPDATE: {}", rows_affected);
         Ok(rows_affected)
-    }).await;
+    })
+    .await;
 
     match update_result {
         Ok(Ok(rows_affected)) => {
             if rows_affected == 0 {
-                error!("CRITICAL: UPDATE affected 0 rows! User ID not found: {}", user_id);
+                error!(
+                    "CRITICAL: UPDATE affected 0 rows! User ID not found: {}",
+                    user_id
+                );
                 return if is_htmx {
                     Ok(htmx_error_response("User not found in database"))
                 } else {
@@ -1010,11 +1054,10 @@ pub async fn update_wallet_address(
                             💡 Tip: This address will be used to receive payments from completed orders
                         </p>
                     </div>"#,
-                    wallet_addr_for_display,
-                    wallet_addr_for_display
+                    wallet_addr_for_display, wallet_addr_for_display
                 );
                 Ok(HttpResponse::Ok().content_type("text/html").body(html))
-            } else{
+            } else {
                 Ok(HttpResponse::Ok().json(serde_json::json!({
                     "message": "Wallet address updated successfully"
                 })))
@@ -1025,7 +1068,9 @@ pub async fn update_wallet_address(
             if is_htmx {
                 Ok(htmx_error_response("Failed to update wallet address"))
             } else {
-                Err(ApiError::Internal("Failed to update wallet address".to_string()))
+                Err(ApiError::Internal(
+                    "Failed to update wallet address".to_string(),
+                ))
             }
         }
         Err(e) => {
@@ -1113,9 +1158,11 @@ pub async fn recover_account(
     req: web::Json<RecoveryRequest>,
     session: Session,
 ) -> Result<HttpResponse, ApiError> {
-    use diesel::prelude::*;
+    use crate::crypto::encryption::{
+        derive_key_from_password, encrypt_bytes, generate_random_salt,
+    };
     use crate::schema::users;
-    use crate::crypto::encryption::{derive_key_from_password, encrypt_bytes, generate_random_salt};
+    use diesel::prelude::*;
 
     // Validate CSRF token
     if !validate_csrf_token(&session, &req.csrf_token) {
@@ -1180,7 +1227,9 @@ pub async fn recover_account(
                 user_id = %user.id,
                 "Recovery attempt for user without backup seed"
             );
-            return Err(ApiError::BadRequest("Account recovery not available. No recovery phrase was set up.".to_string()));
+            return Err(ApiError::BadRequest(
+                "Account recovery not available. No recovery phrase was set up.".to_string(),
+            ));
         }
     };
 
@@ -1190,7 +1239,9 @@ pub async fn recover_account(
             user_id = %user.id,
             "Recovery attempt with incorrect phrase"
         );
-        return Err(ApiError::BadRequest("Invalid username or recovery phrase".to_string()));
+        return Err(ApiError::BadRequest(
+            "Invalid username or recovery phrase".to_string(),
+        ));
     }
 
     info!(
@@ -1323,7 +1374,9 @@ pub async fn test_login(
 
     // Validate UUID format
     if uuid::Uuid::parse_str(&body.user_id).is_err() {
-        return Err(ApiError::BadRequest("Invalid user_id UUID format".to_string()));
+        return Err(ApiError::BadRequest(
+            "Invalid user_id UUID format".to_string(),
+        ));
     }
 
     // Validate role

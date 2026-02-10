@@ -95,8 +95,8 @@ pub async fn export_dispute(
         .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?;
 
     let escrow = web::block(move || {
-        use diesel::prelude::*;
         use crate::schema::escrows::dsl::*;
+        use diesel::prelude::*;
 
         escrows
             .filter(id.eq(escrow_id.to_string()))
@@ -117,8 +117,14 @@ pub async fn export_dispute(
     }
 
     // Parse dispute details from multisig_state_json
-    let dispute_data: serde_json::Value = serde_json::from_str(&escrow.multisig_state_json.unwrap_or_else(|| "{}".to_string()))
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("Failed to parse multisig state: {}", e)))?;
+    let dispute_data: serde_json::Value = serde_json::from_str(
+        &escrow
+            .multisig_state_json
+            .unwrap_or_else(|| "{}".to_string()),
+    )
+    .map_err(|e| {
+        actix_web::error::ErrorInternalServerError(format!("Failed to parse multisig state: {}", e))
+    })?;
 
     // Extract dispute information (may be stored in different format)
     // For now, use placeholders - this needs to be integrated with actual dispute data storage
@@ -161,21 +167,20 @@ pub async fn export_dispute(
         buyer_claim: buyer_claim.clone(),
         vendor_response: vendor_response.clone(),
         dispute_opened_at: escrow.updated_at.and_utc().timestamp(),
-        evidence_file_count: dispute_data["dispute"]["evidence_count"].as_u64().unwrap_or(0) as usize,
+        evidence_file_count: dispute_data["dispute"]["evidence_count"]
+            .as_u64()
+            .unwrap_or(0) as usize,
         partial_tx_hex,
         nonce: nonce.clone(),
     };
 
     // Serialize to JSON
-    let dispute_json = dispute_request
-        .to_json()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("JSON serialization failed: {}", e)))?;
+    let dispute_json = dispute_request.to_json().map_err(|e| {
+        actix_web::error::ErrorInternalServerError(format!("JSON serialization failed: {}", e))
+    })?;
 
     // Calculate amount in XMR (amount is i64, convert to f64)
-    let amount_xmr = format!(
-        "{:.12}",
-        escrow.amount as f64 / 1_000_000_000_000.0
-    );
+    let amount_xmr = format!("{:.12}", escrow.amount as f64 / 1_000_000_000_000.0);
 
     // Create response
     let response = DisputeExportResponse {
@@ -229,9 +234,9 @@ pub async fn import_arbiter_decision(
         .map_err(|e| actix_web::error::ErrorBadRequest(format!("Invalid decision JSON: {}", e)))?;
 
     // Validate decision structure
-    decision
-        .validate()
-        .map_err(|e| actix_web::error::ErrorBadRequest(format!("Decision validation failed: {}", e)))?;
+    decision.validate().map_err(|e| {
+        actix_web::error::ErrorBadRequest(format!("Decision validation failed: {}", e))
+    })?;
 
     // Verify escrow ID matches
     if decision.escrow_id != escrow_id {
@@ -244,27 +249,26 @@ pub async fn import_arbiter_decision(
     // Retrieve arbiter public key from environment configuration
     // This is the Ed25519 public key (hex-encoded) of the offline arbiter wallet
     // Generated during arbiter setup: see docs/ARBITER-SETUP.md
-    let arbiter_pubkey = std::env::var("ARBITER_PUBKEY")
-        .map_err(|_| {
-            actix_web::error::ErrorInternalServerError(
-                "ARBITER_PUBKEY not configured. \
+    let arbiter_pubkey = std::env::var("ARBITER_PUBKEY").map_err(|_| {
+        actix_web::error::ErrorInternalServerError(
+            "ARBITER_PUBKEY not configured. \
                  Set it in .env file (hex-encoded Ed25519 public key). \
                  Example: ARBITER_PUBKEY=a1b2c3d4e5f6...7890 \
-                 Generate with: ./scripts/airgap/generate-arbiter-keypair.sh"
-            )
-        })?;
+                 Generate with: ./scripts/airgap/generate-arbiter-keypair.sh",
+        )
+    })?;
 
     // Validate pubkey format (must be 64 hex chars = 32 bytes)
     if arbiter_pubkey.len() != 64 || !arbiter_pubkey.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err(actix_web::error::ErrorInternalServerError(
-            "ARBITER_PUBKEY malformed. Must be 64 hex characters (32-byte Ed25519 public key)."
+            "ARBITER_PUBKEY malformed. Must be 64 hex characters (32-byte Ed25519 public key).",
         ));
     }
 
     // Verify arbiter signature
-    decision
-        .verify_signature(&arbiter_pubkey)
-        .map_err(|e| actix_web::error::ErrorForbidden(format!("Signature verification failed: {}", e)))?;
+    decision.verify_signature(&arbiter_pubkey).map_err(|e| {
+        actix_web::error::ErrorForbidden(format!("Signature verification failed: {}", e))
+    })?;
 
     // Fetch escrow
     let mut conn = pool
@@ -272,8 +276,8 @@ pub async fn import_arbiter_decision(
         .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?;
 
     let escrow = web::block(move || {
-        use diesel::prelude::*;
         use crate::schema::escrows::dsl::*;
+        use diesel::prelude::*;
 
         escrows
             .filter(id.eq(escrow_id.to_string()))
@@ -323,17 +327,21 @@ pub async fn import_arbiter_decision(
     let escrow_id_str = escrow_id.to_string();
     let new_status_clone = new_status.to_string();
 
-    let mut conn = pool.get()
+    let mut conn = pool
+        .get()
         .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB pool error: {}", e)))?;
 
     let _updated_escrow = web::block(move || {
-        use diesel::prelude::*;
         use crate::schema::escrows::dsl::*;
+        use diesel::prelude::*;
 
         // Update escrow status and store signed transaction hex
         let mut state_json: serde_json::Value = serde_json::from_str(
-            &escrow.multisig_state_json.unwrap_or_else(|| "{}".to_string())
-        ).unwrap_or_else(|_| serde_json::json!({}));
+            &escrow
+                .multisig_state_json
+                .unwrap_or_else(|| "{}".to_string()),
+        )
+        .unwrap_or_else(|_| serde_json::json!({}));
 
         // Add arbiter decision to state
         state_json["arbiter_decision"] = serde_json::json!({
@@ -354,7 +362,8 @@ pub async fn import_arbiter_decision(
             ))
             .execute(&mut conn)?;
 
-        escrows.filter(id.eq(escrow_id.to_string()))
+        escrows
+            .filter(id.eq(escrow_id.to_string()))
             .first::<Escrow>(&mut conn)
     })
     .await
@@ -421,32 +430,31 @@ pub async fn generate_dispute_qr(
 
     // Reuse export logic to get DisputeRequest
     // (For production, extract to shared function)
-    let export_response = export_dispute(
-        web::Path::from(escrow_id),
-        pool,
-        session,
-    )
-    .await?;
+    let export_response = export_dispute(web::Path::from(escrow_id), pool, session).await?;
 
     // Parse dispute_json back to DisputeRequest
     let dispute_json = match export_response.into_body() {
-        actix_web::body::MessageBody::Bytes(bytes) => {
-            String::from_utf8(bytes.to_vec())
-                .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse response"))?
+        actix_web::body::MessageBody::Bytes(bytes) => String::from_utf8(bytes.to_vec())
+            .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to parse response"))?,
+        _ => {
+            return Err(actix_web::error::ErrorInternalServerError(
+                "Unexpected response type",
+            ))
         }
-        _ => return Err(actix_web::error::ErrorInternalServerError("Unexpected response type")),
     };
 
-    let export_data: DisputeExportResponse = serde_json::from_str(&dispute_json)
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("JSON parse error: {}", e)))?;
+    let export_data: DisputeExportResponse = serde_json::from_str(&dispute_json).map_err(|e| {
+        actix_web::error::ErrorInternalServerError(format!("JSON parse error: {}", e))
+    })?;
 
-    let dispute_request = DisputeRequest::from_json(&export_data.dispute_json)
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("Failed to parse dispute: {}", e)))?;
+    let dispute_request = DisputeRequest::from_json(&export_data.dispute_json).map_err(|e| {
+        actix_web::error::ErrorInternalServerError(format!("Failed to parse dispute: {}", e))
+    })?;
 
     // Generate QR code data URI
-    let qr_data_uri = dispute_request
-        .to_qr_data_uri()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("QR generation failed: {}", e)))?;
+    let qr_data_uri = dispute_request.to_qr_data_uri().map_err(|e| {
+        actix_web::error::ErrorInternalServerError(format!("QR generation failed: {}", e))
+    })?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "qr_data_uri": qr_data_uri

@@ -2,12 +2,12 @@
 //!
 //! Safely restores database from backup with verification.
 
-use anyhow::{Context, Result, bail};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use anyhow::{bail, Context, Result};
 use std::env;
 use std::fs;
 use std::io::{self, Write};
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 const DB_PATH: &str = "marketplace.db";
 const BACKUP_DIR: &str = "./backups";
@@ -18,8 +18,7 @@ fn main() -> Result<()> {
 
     // Load encryption key
     dotenvy::dotenv().ok();
-    let encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY not set")?;
+    let encryption_key = env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set")?;
 
     let backup_dir = PathBuf::from(BACKUP_DIR);
     if !backup_dir.exists() {
@@ -50,8 +49,7 @@ fn main() -> Result<()> {
     let mut input = String::new();
     io::stdin().read_line(&mut input)?;
 
-    let selection: usize = input.trim().parse()
-        .context("Invalid selection")?;
+    let selection: usize = input.trim().parse().context("Invalid selection")?;
 
     if selection == 0 || selection > backups.len() {
         bail!("Selection out of range");
@@ -149,18 +147,20 @@ fn restore_database(backup_path: &Path, key: &str) -> Result<()> {
 
     // Backup current database
     if db_path.exists() {
-        let backup_current = db_path.with_extension(
-            format!("pre_restore.{}.backup", chrono::Utc::now().timestamp())
+        let backup_current = db_path.with_extension(format!(
+            "pre_restore.{}.backup",
+            chrono::Utc::now().timestamp()
+        ));
+        println!(
+            "1️⃣ Backing up current database to {}",
+            backup_current.display()
         );
-        println!("1️⃣ Backing up current database to {}", backup_current.display());
-        fs::copy(&db_path, &backup_current)
-            .context("Failed to backup current database")?;
+        fs::copy(&db_path, &backup_current).context("Failed to backup current database")?;
     }
 
     // Copy backup to main location
     println!("2️⃣ Copying backup to {}", db_path.display());
-    fs::copy(backup_path, &db_path)
-        .context("Failed to copy backup")?;
+    fs::copy(backup_path, &db_path).context("Failed to copy backup")?;
 
     // Clean WAL/SHM files
     println!("3️⃣ Cleaning WAL/SHM files...");

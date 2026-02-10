@@ -9,8 +9,8 @@ use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
 use sha3::{Digest, Keccak256};
 
-use crate::types::errors::{CryptoError, CryptoResult};
 use super::utils::encode_varint;
+use crate::types::errors::{CryptoError, CryptoResult};
 
 /// Derive the commitment mask from view key and tx_pub_key
 ///
@@ -132,10 +132,7 @@ pub fn derive_commitment_mask(
 /// # Returns
 ///
 /// The 32-byte derivation point (compressed Edwards Y)
-pub fn compute_derivation(
-    view_key_priv_hex: &str,
-    tx_pub_key_hex: &str,
-) -> CryptoResult<[u8; 32]> {
+pub fn compute_derivation(view_key_priv_hex: &str, tx_pub_key_hex: &str) -> CryptoResult<[u8; 32]> {
     // Parse view key
     let view_key_bytes = hex::decode(view_key_priv_hex)
         .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {}", e)))?;
@@ -233,7 +230,10 @@ mod tests {
         let mask_0 = derive_commitment_mask(view_key, tx_pub_key, 0).unwrap();
         let mask_1 = derive_commitment_mask(view_key, tx_pub_key, 1).unwrap();
 
-        assert_ne!(mask_0, mask_1, "Different output indices should produce different masks");
+        assert_ne!(
+            mask_0, mask_1,
+            "Different output indices should produce different masks"
+        );
     }
 
     #[test]

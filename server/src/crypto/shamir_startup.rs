@@ -76,9 +76,10 @@ pub fn reconstruct_key_interactive() -> Result<String> {
         let input = input.trim();
 
         // Decode share from base64
-        let share_bytes = BASE64
-            .decode(input)
-            .context(format!("Failed to decode share {} as base64. Expected format: AQHvR2xhc3Ntb3JwaGlzbQ==", i))?;
+        let share_bytes = BASE64.decode(input).context(format!(
+            "Failed to decode share {} as base64. Expected format: AQHvR2xhc3Ntb3JwaGlzbQ==",
+            i
+        ))?;
 
         if share_bytes.len() != 33 {
             anyhow::bail!(
@@ -95,11 +96,12 @@ pub fn reconstruct_key_interactive() -> Result<String> {
     println!("\n🔄 Reconstructing 256-bit DB encryption key...");
 
     // Reconstruct key from shares
-    let key_bytes = reconstruct_key(&shares)
-        .context("Failed to reconstruct key. Possible causes:\n  \
+    let key_bytes = reconstruct_key(&shares).context(
+        "Failed to reconstruct key. Possible causes:\n  \
                  - Shares are from different key splits\n  \
                  - Shares are corrupted\n  \
-                 - Wrong shares provided")?;
+                 - Wrong shares provided",
+    )?;
 
     if key_bytes.len() != 32 {
         anyhow::bail!(
@@ -111,7 +113,10 @@ pub fn reconstruct_key_interactive() -> Result<String> {
     // Convert to hex string for SQLCipher
     let key_hex = hex::encode(&key_bytes);
 
-    println!("✅ Key reconstructed successfully ({} bytes)", key_bytes.len());
+    println!(
+        "✅ Key reconstructed successfully ({} bytes)",
+        key_bytes.len()
+    );
     println!("🚀 Starting server with reconstructed encryption key...\n");
 
     Ok(key_hex)

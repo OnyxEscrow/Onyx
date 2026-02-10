@@ -63,7 +63,7 @@ fn main() {
             }
 
             // Key image (32 bytes)
-            let ki = &tx[pos..pos+32];
+            let ki = &tx[pos..pos + 32];
             pos += 32;
             println!("    Key image: {}", hex::encode(ki));
         }
@@ -83,7 +83,7 @@ fn main() {
 
         if output_type == 0x03 {
             // txout_to_tagged_key: 32 byte key + 1 byte view_tag
-            let key = &tx[pos..pos+32];
+            let key = &tx[pos..pos + 32];
             pos += 32;
             let view_tag = tx[pos];
             pos += 1;
@@ -97,7 +97,7 @@ fn main() {
     println!("Extra length: {} (at pos {})", extra_len, pos);
 
     // Extra bytes
-    let extra = &tx[pos..pos+extra_len as usize];
+    let extra = &tx[pos..pos + extra_len as usize];
     pos += extra_len as usize;
     println!("Extra: {}", hex::encode(extra));
 

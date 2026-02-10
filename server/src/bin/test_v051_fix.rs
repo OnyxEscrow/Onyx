@@ -30,7 +30,8 @@ const TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c013175fb5
 const OUTPUT_INDEX: u64 = 1;
 
 // Expected values (from verification)
-const EXPECTED_ONE_TIME_PUBKEY: &str = "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
+const EXPECTED_ONE_TIME_PUBKEY: &str =
+    "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
 const EXPECTED_KEY_IMAGE: &str = "8ffbfb305308f35ac4bba545fc33257fc9d91f031959529a48bb7e8ef81d75ff";
 
 // Funding mask (z) from escrow
@@ -234,11 +235,17 @@ fn main() {
     println!("\n=== STEP 2: Lagrange Coefficients ===");
 
     // Buyer = index 1, Vendor = index 2
-    let lambda_buyer = compute_lagrange_coefficient(1, 2);  // λ_1 = 2/(2-1) = 2
+    let lambda_buyer = compute_lagrange_coefficient(1, 2); // λ_1 = 2/(2-1) = 2
     let lambda_vendor = compute_lagrange_coefficient(2, 1); // λ_2 = 1/(1-2) = -1
 
-    println!("λ_buyer (index 1):  {} (expected: 2)", hex::encode(lambda_buyer.to_bytes()));
-    println!("λ_vendor (index 2): {} (expected: -1 mod L)", hex::encode(lambda_vendor.to_bytes()));
+    println!(
+        "λ_buyer (index 1):  {} (expected: 2)",
+        hex::encode(lambda_buyer.to_bytes())
+    );
+    println!(
+        "λ_vendor (index 2): {} (expected: -1 mod L)",
+        hex::encode(lambda_vendor.to_bytes())
+    );
 
     // Verify λ values
     let two = Scalar::from(2u64);
@@ -272,8 +279,14 @@ fn main() {
     // Assuming buyer is first signer:
     let x_total_bug = lambda_buyer * (derivation + b_buyer) + lambda_vendor * b_vendor;
 
-    println!("x_total (v0.51.0 CORRECT): {}", hex::encode(x_total_correct.to_bytes()));
-    println!("x_total (v0.50.0 BUG):     {}", hex::encode(x_total_bug.to_bytes()));
+    println!(
+        "x_total (v0.51.0 CORRECT): {}",
+        hex::encode(x_total_correct.to_bytes())
+    );
+    println!(
+        "x_total (v0.50.0 BUG):     {}",
+        hex::encode(x_total_bug.to_bytes())
+    );
 
     if x_total_correct != x_total_bug {
         println!("\n⚠️  BUG CONFIRMED: x_total values differ!");
@@ -291,8 +304,14 @@ fn main() {
     let p_computed_bug = &x_total_bug * ED25519_BASEPOINT_TABLE;
     let p_expected = hex_to_point(EXPECTED_ONE_TIME_PUBKEY).expect("Invalid expected pubkey");
 
-    println!("P from x_total (CORRECT): {}", hex::encode(p_computed_correct.compress().to_bytes()));
-    println!("P from x_total (BUG):     {}", hex::encode(p_computed_bug.compress().to_bytes()));
+    println!(
+        "P from x_total (CORRECT): {}",
+        hex::encode(p_computed_correct.compress().to_bytes())
+    );
+    println!(
+        "P from x_total (BUG):     {}",
+        hex::encode(p_computed_bug.compress().to_bytes())
+    );
     println!("P expected:               {}", EXPECTED_ONE_TIME_PUBKEY);
 
     if p_computed_correct == p_expected {
@@ -318,8 +337,14 @@ fn main() {
     let ki_correct = x_total_correct * hp_p;
     let ki_bug = x_total_bug * hp_p;
 
-    println!("Key Image (CORRECT): {}", hex::encode(ki_correct.compress().to_bytes()));
-    println!("Key Image (BUG):     {}", hex::encode(ki_bug.compress().to_bytes()));
+    println!(
+        "Key Image (CORRECT): {}",
+        hex::encode(ki_correct.compress().to_bytes())
+    );
+    println!(
+        "Key Image (BUG):     {}",
+        hex::encode(ki_bug.compress().to_bytes())
+    );
     println!("Key Image expected:  {}", EXPECTED_KEY_IMAGE);
 
     if hex::encode(ki_correct.compress().to_bytes()) == EXPECTED_KEY_IMAGE {
@@ -340,15 +365,24 @@ fn main() {
 
     println!("funding_mask (z):    {}", FUNDING_MASK);
     println!("pseudo_out_mask:     {}", PSEUDO_OUT_MASK);
-    println!("mask_delta (z-pom):  {}", hex::encode(mask_delta.to_bytes()));
+    println!(
+        "mask_delta (z-pom):  {}",
+        hex::encode(mask_delta.to_bytes())
+    );
 
     // D point computation
     let d_point = mask_delta * hp_p;
     let inv8 = Scalar::from(8u64).invert();
     let d_inv8 = d_point * inv8;
 
-    println!("D = mask_delta * Hp(P): {}", hex::encode(d_point.compress().to_bytes()));
-    println!("D_inv8 = D / 8:         {}", hex::encode(d_inv8.compress().to_bytes()));
+    println!(
+        "D = mask_delta * Hp(P): {}",
+        hex::encode(d_point.compress().to_bytes())
+    );
+    println!(
+        "D_inv8 = D / 8:         {}",
+        hex::encode(d_inv8.compress().to_bytes())
+    );
 
     // For a full test, we'd need to:
     // 1. Parse all ring members
@@ -391,9 +425,18 @@ fn main() {
 
     println!("\n=== STEP 8: L Point Verification ===");
     println!("L = s*G + c_p*P");
-    println!("Expected: α*G = {}", hex::encode(alpha_g.compress().to_bytes()));
-    println!("L (CORRECT):   {}", hex::encode(l_correct.compress().to_bytes()));
-    println!("L (BUG):       {}", hex::encode(l_bug.compress().to_bytes()));
+    println!(
+        "Expected: α*G = {}",
+        hex::encode(alpha_g.compress().to_bytes())
+    );
+    println!(
+        "L (CORRECT):   {}",
+        hex::encode(l_correct.compress().to_bytes())
+    );
+    println!(
+        "L (BUG):       {}",
+        hex::encode(l_bug.compress().to_bytes())
+    );
 
     if l_correct == alpha_g {
         println!("\n✅ L point MATCHES with CORRECT formula!");
@@ -408,9 +451,18 @@ fn main() {
 
     println!("\n=== STEP 9: R Point Verification ===");
     println!("R = s*Hp + c_p*KI");
-    println!("Expected: α*Hp = {}", hex::encode(alpha_hp.compress().to_bytes()));
-    println!("R (CORRECT):    {}", hex::encode(r_correct.compress().to_bytes()));
-    println!("R (BUG):        {}", hex::encode(r_bug.compress().to_bytes()));
+    println!(
+        "Expected: α*Hp = {}",
+        hex::encode(alpha_hp.compress().to_bytes())
+    );
+    println!(
+        "R (CORRECT):    {}",
+        hex::encode(r_correct.compress().to_bytes())
+    );
+    println!(
+        "R (BUG):        {}",
+        hex::encode(r_bug.compress().to_bytes())
+    );
 
     if r_correct == alpha_hp {
         println!("\n✅ R point MATCHES with CORRECT formula!");
@@ -430,10 +482,22 @@ fn main() {
     let l_ok = l_correct == alpha_g;
     let r_ok = r_correct == alpha_hp;
 
-    println!("x_total * G == P:       {}", if pubkey_ok { "✅ PASS" } else { "❌ FAIL" });
-    println!("Key Image matches:      {}", if ki_ok { "✅ PASS" } else { "❌ FAIL" });
-    println!("L = s*G + c_p*P == α*G: {}", if l_ok { "✅ PASS" } else { "❌ FAIL" });
-    println!("R = s*Hp + c_p*KI == α*Hp: {}", if r_ok { "✅ PASS" } else { "❌ FAIL" });
+    println!(
+        "x_total * G == P:       {}",
+        if pubkey_ok { "✅ PASS" } else { "❌ FAIL" }
+    );
+    println!(
+        "Key Image matches:      {}",
+        if ki_ok { "✅ PASS" } else { "❌ FAIL" }
+    );
+    println!(
+        "L = s*G + c_p*P == α*G: {}",
+        if l_ok { "✅ PASS" } else { "❌ FAIL" }
+    );
+    println!(
+        "R = s*Hp + c_p*KI == α*Hp: {}",
+        if r_ok { "✅ PASS" } else { "❌ FAIL" }
+    );
 
     if pubkey_ok && ki_ok && l_ok && r_ok {
         println!("\n🎉 ALL TESTS PASSED! v0.51.0 fix is CORRECT.");

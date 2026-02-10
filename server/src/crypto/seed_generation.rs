@@ -186,7 +186,10 @@ pub fn derive_escrow_wallet_seed(
 ) -> Result<Vec<u8>> {
     // Validate role
     if !matches!(role, "buyer" | "seller" | "arbiter") {
-        anyhow::bail!("Invalid role: {}. Must be 'buyer', 'seller', or 'arbiter'", role);
+        anyhow::bail!(
+            "Invalid role: {}. Must be 'buyer', 'seller', or 'arbiter'",
+            role
+        );
     }
 
     // Domain-separated info string
@@ -271,7 +274,10 @@ mod tests {
         let mnemonic = mnemonic_from_entropy(&entropy)?;
 
         let word_count = mnemonic.split_whitespace().count();
-        assert_eq!(word_count, 12, "12-word mnemonic expected for 128-bit entropy");
+        assert_eq!(
+            word_count, 12,
+            "12-word mnemonic expected for 128-bit entropy"
+        );
 
         // Verify all words are in BIP39 wordlist
         for word in mnemonic.split_whitespace() {
@@ -308,9 +314,18 @@ mod tests {
         let seller_seed = derive_escrow_wallet_seed(&master_seed, escrow_id, "seller")?;
         let arbiter_seed = derive_escrow_wallet_seed(&master_seed, escrow_id, "arbiter")?;
 
-        assert_ne!(buyer_seed, seller_seed, "Different roles must have different seeds");
-        assert_ne!(seller_seed, arbiter_seed, "Different roles must have different seeds");
-        assert_ne!(buyer_seed, arbiter_seed, "Different roles must have different seeds");
+        assert_ne!(
+            buyer_seed, seller_seed,
+            "Different roles must have different seeds"
+        );
+        assert_ne!(
+            seller_seed, arbiter_seed,
+            "Different roles must have different seeds"
+        );
+        assert_ne!(
+            buyer_seed, arbiter_seed,
+            "Different roles must have different seeds"
+        );
 
         Ok(())
     }

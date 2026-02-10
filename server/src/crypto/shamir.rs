@@ -111,10 +111,7 @@ pub fn split_key(secret: &[u8], share_count: u8, threshold: u8) -> Result<Vec<Ve
         .collect::<Vec<Share>>();
 
     // Convert shares to byte vectors for storage
-    let share_bytes: Vec<Vec<u8>> = dealer
-        .iter()
-        .map(|share| Vec::from(share))
-        .collect();
+    let share_bytes: Vec<Vec<u8>> = dealer.iter().map(|share| Vec::from(share)).collect();
 
     tracing::info!(
         "Successfully split 256-bit key into {} shares (threshold: {})",
@@ -188,8 +185,7 @@ pub fn reconstruct_key(shares: &[Vec<u8>]) -> Result<Vec<u8>> {
         .map(|bytes| Share::try_from(bytes.as_slice()))
         .collect();
 
-    let shark_shares = shark_shares
-        .map_err(|e| anyhow::anyhow!("Invalid share format: {}", e))?;
+    let shark_shares = shark_shares.map_err(|e| anyhow::anyhow!("Invalid share format: {}", e))?;
 
     // Initialize Sharks (threshold doesn't matter for reconstruction)
     let sharks = Sharks(2); // Minimum valid threshold

@@ -15,8 +15,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===================================\n");
 
     let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
-    let encryption_key = env::var("DATABASE_ENCRYPTION_KEY")
-        .expect("DATABASE_ENCRYPTION_KEY must be set in .env");
+    let encryption_key =
+        env::var("DATABASE_ENCRYPTION_KEY").expect("DATABASE_ENCRYPTION_KEY must be set in .env");
 
     println!("📁 Database: {}", database_url);
 
@@ -25,10 +25,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = pool.get()?;
 
     // Check if secure_messages table already exists
-    let tables: Vec<TableName> = sql_query(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='secure_messages'"
-    )
-    .load(&mut conn)?;
+    let tables: Vec<TableName> =
+        sql_query("SELECT name FROM sqlite_master WHERE type='table' AND name='secure_messages'")
+            .load(&mut conn)?;
 
     if !tables.is_empty() {
         println!("⚠️  secure_messages table already exists! Migration was already applied.");
@@ -50,7 +49,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             is_active INTEGER NOT NULL DEFAULT 1,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-        )"
+        )",
     )
     .execute(&mut conn)?;
 
@@ -77,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             is_deleted_by_recipient INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
             FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
-        )"
+        )",
     )
     .execute(&mut conn)?;
 
@@ -85,8 +84,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .execute(&mut conn)?;
     sql_query("CREATE INDEX idx_secure_messages_recipient ON secure_messages(recipient_id, created_at DESC)")
         .execute(&mut conn)?;
-    sql_query("CREATE INDEX idx_secure_messages_sender ON secure_messages(sender_id, created_at DESC)")
-        .execute(&mut conn)?;
+    sql_query(
+        "CREATE INDEX idx_secure_messages_sender ON secure_messages(sender_id, created_at DESC)",
+    )
+    .execute(&mut conn)?;
     sql_query("CREATE INDEX idx_secure_messages_expires ON secure_messages(expires_at) WHERE expires_at IS NOT NULL")
         .execute(&mut conn)?;
     println!("   ✅ secure_messages table created");
@@ -98,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             message_id TEXT PRIMARY KEY NOT NULL,
             read_at TEXT NOT NULL DEFAULT (datetime('now')),
             FOREIGN KEY (message_id) REFERENCES secure_messages(id) ON DELETE CASCADE
-        )"
+        )",
     )
     .execute(&mut conn)?;
     println!("   ✅ message_read_receipts table created");

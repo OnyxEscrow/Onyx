@@ -14,9 +14,10 @@ const VIEW_KEY_PRIV: &str = "f2fcd78c14a49e707e4a7f4dfc24f5cfbfddfff5f94837bcddd
 const GROUP_PUBKEY: &str = "8fe544aed04ac3a92dff7d2fb076689b83db5d8eba175bf8853e123b2f0e0fef";
 const VENDOR_SHARE: &str = "7dfcdfcaafbe5b7abbb69237954839f30172c31d91bbfe57357542bfd504b60e";
 const BUYER_SHARE: &str = "916e1d306297b252a49d616846bc1e22276ea3d535280bdde3f8d8123541b70b";
-const OUTPUT_INDEX: u32 = 1;  // FROST test uses index 1
+const OUTPUT_INDEX: u32 = 1; // FROST test uses index 1
 const EXPECTED_TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c013175fb5612009da9";
-const EXPECTED_ONE_TIME_PUBKEY: &str = "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
+const EXPECTED_ONE_TIME_PUBKEY: &str =
+    "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
 
 // From last test run
 const TX_KEY_IMAGE: &str = "8ffbfb305308f35ac4bba545fc33257fc9d91f031959529a48bb7e8ef81d75ff";
@@ -74,8 +75,14 @@ fn main() {
     println!("TX_SECRET_KEY (32 bytes?): {} chars", TX_SECRET_KEY.len());
     println!("VIEW_KEY_PRIV (32 bytes?): {} chars", VIEW_KEY_PRIV.len());
     println!("GROUP_PUBKEY (32 bytes?): {} chars", GROUP_PUBKEY.len());
-    println!("EXPECTED_TX_PUBKEY (32 bytes?): {} chars", EXPECTED_TX_PUBKEY.len());
-    println!("EXPECTED_ONE_TIME_PUBKEY (32 bytes?): {} chars", EXPECTED_ONE_TIME_PUBKEY.len());
+    println!(
+        "EXPECTED_TX_PUBKEY (32 bytes?): {} chars",
+        EXPECTED_TX_PUBKEY.len()
+    );
+    println!(
+        "EXPECTED_ONE_TIME_PUBKEY (32 bytes?): {} chars",
+        EXPECTED_ONE_TIME_PUBKEY.len()
+    );
     println!();
 
     // Step 1: Compute derivation
@@ -95,7 +102,14 @@ fn main() {
     let one_time_pubkey_hex = hex::encode(one_time_pubkey.compress().as_bytes());
     println!("Computed one-time pubkey: {}", one_time_pubkey_hex);
     println!("Expected one-time pubkey: {}", EXPECTED_ONE_TIME_PUBKEY);
-    println!("Match: {}", if one_time_pubkey_hex == EXPECTED_ONE_TIME_PUBKEY { "✅" } else { "❌" });
+    println!(
+        "Match: {}",
+        if one_time_pubkey_hex == EXPECTED_ONE_TIME_PUBKEY {
+            "✅"
+        } else {
+            "❌"
+        }
+    );
     println!();
 
     // Step 3: Compute Hp(P) using monero_generators_mirror
@@ -112,22 +126,32 @@ fn main() {
     let lambda_vendor = -Scalar::ONE;
     let lambda_buyer = Scalar::from(2u64);
 
-    let x_vendor_weighted = lambda_vendor * vendor_share;  // -1 * s_vendor
-    let x_buyer_weighted = lambda_buyer * buyer_share;     // 2 * s_buyer
+    let x_vendor_weighted = lambda_vendor * vendor_share; // -1 * s_vendor
+    let x_buyer_weighted = lambda_buyer * buyer_share; // 2 * s_buyer
 
     // VENDOR includes derivation, BUYER does not
     let x_eff_vendor = derivation + x_vendor_weighted;
     let x_eff_buyer = x_buyer_weighted;
 
     let x_total = x_eff_vendor + x_eff_buyer;
-    println!("x_total (d + 2*buyer - vendor): {}", hex::encode(x_total.as_bytes()));
+    println!(
+        "x_total (d + 2*buyer - vendor): {}",
+        hex::encode(x_total.as_bytes())
+    );
 
     // Step 5: Compute expected KI = x_total * Hp(P)
     let expected_ki = x_total * hp_p;
     let expected_ki_hex = hex::encode(expected_ki.compress().as_bytes());
     println!("\nExpected Key Image: {}", expected_ki_hex);
     println!("TX Key Image:       {}", TX_KEY_IMAGE);
-    println!("Match: {}", if expected_ki_hex == TX_KEY_IMAGE { "✅" } else { "❌" });
+    println!(
+        "Match: {}",
+        if expected_ki_hex == TX_KEY_IMAGE {
+            "✅"
+        } else {
+            "❌"
+        }
+    );
 
     // Step 6: Also verify by computing x from the tx_secret_key
     // In Monero, one-time output secret = d + b where b is spend key
@@ -138,7 +162,10 @@ fn main() {
 
     // The full output secret should be: x = d + tx_secret_key
     let full_secret = derivation + tx_secret;
-    println!("Full secret (d + tx_secret): {}", hex::encode(full_secret.as_bytes()));
+    println!(
+        "Full secret (d + tx_secret): {}",
+        hex::encode(full_secret.as_bytes())
+    );
 
     // Key image from full secret
     let ki_from_full = full_secret * hp_p;
@@ -147,8 +174,14 @@ fn main() {
 
     // Compare x_total to full_secret
     println!("\n=== COMPARING RECONSTRUCTED VS FULL SECRET ===");
-    println!("x_total (reconstructed):     {}", hex::encode(x_total.as_bytes()));
-    println!("full_secret (d+tx_secret):   {}", hex::encode(full_secret.as_bytes()));
+    println!(
+        "x_total (reconstructed):     {}",
+        hex::encode(x_total.as_bytes())
+    );
+    println!(
+        "full_secret (d+tx_secret):   {}",
+        hex::encode(full_secret.as_bytes())
+    );
 
     if x_total == full_secret {
         println!("Match: ✅ Lagrange reconstruction is CORRECT");
@@ -160,8 +193,14 @@ fn main() {
 
         // Check if tx_secret_key = 2*buyer - vendor (should be the reconstructed group secret)
         let reconstructed_group_secret = x_buyer_weighted + x_vendor_weighted;
-        println!("\nReconstructed group secret (2*buyer - vendor): {}", hex::encode(reconstructed_group_secret.as_bytes()));
-        println!("TX_SECRET_KEY:                                  {}", TX_SECRET_KEY);
+        println!(
+            "\nReconstructed group secret (2*buyer - vendor): {}",
+            hex::encode(reconstructed_group_secret.as_bytes())
+        );
+        println!(
+            "TX_SECRET_KEY:                                  {}",
+            TX_SECRET_KEY
+        );
         if hex::encode(reconstructed_group_secret.as_bytes()) == TX_SECRET_KEY.to_lowercase() {
             println!("Match: ✅ Group secret reconstruction is CORRECT");
         } else {

@@ -68,7 +68,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -86,7 +89,8 @@ fn main() -> Result<()> {
         "51cbf336-6c09-4f94-a64f-ed4d25a91dba"
     };
 
-    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY").unwrap_or_default();
 
     println!("Connecting to database: {}", database_url);
@@ -175,15 +179,18 @@ fn main() -> Result<()> {
 
         // Also delete frost_signing_state row (will be recreated on next prepare_sign)
         let fss_deleted = diesel::delete(
-            frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id))
+            frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
         )
-            .execute(&mut conn)
-            .context("Failed to delete frost_signing_state")?;
+        .execute(&mut conn)
+        .context("Failed to delete frost_signing_state")?;
 
         if fss_deleted > 0 {
             println!("✅ frost_signing_state row deleted (will be recreated on prepare_sign)");
         } else {
-            println!("⚠️ No frost_signing_state row found for escrow_id: {}", escrow_id);
+            println!(
+                "⚠️ No frost_signing_state row found for escrow_id: {}",
+                escrow_id
+            );
         }
     } else {
         println!("⚠️ No escrow found with ID: {}", escrow_id);

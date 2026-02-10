@@ -62,8 +62,7 @@ async fn main() -> Result<()> {
     }
 
     // Load configuration
-    let config = WatchdogConfig::from_env()
-        .context("Failed to load watchdog configuration")?;
+    let config = WatchdogConfig::from_env().context("Failed to load watchdog configuration")?;
 
     info!(
         poll_interval_secs = config.poll_interval.as_secs(),
@@ -76,18 +75,16 @@ async fn main() -> Result<()> {
     );
 
     // Initialize database pool
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
-    let db_encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY environment variable required")?;
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
+    let db_encryption_key =
+        env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY environment variable required")?;
 
-    let db_pool = create_pool(&database_url, &db_encryption_key)
-        .context("Failed to create database pool")?;
+    let db_pool =
+        create_pool(&database_url, &db_encryption_key).context("Failed to create database pool")?;
     info!("Database pool initialized");
 
     // Initialize Redis pool
-    let redis_pool = init_redis_pool()
-        .context("Failed to initialize Redis pool")?;
+    let redis_pool = init_redis_pool().context("Failed to initialize Redis pool")?;
     info!("Redis pool initialized");
 
     // Create watchdog instance

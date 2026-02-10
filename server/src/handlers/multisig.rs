@@ -3,12 +3,12 @@
 //! Exposes the DbMultisigCoordinator via REST endpoints for remote clients.
 //! Supports WASM/CLI clients coordinating multisig setup without exposing RPC.
 
-use actix_web::{web, HttpResponse, post, get};
+use actix_web::{get, post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::coordination::{
-    DbMultisigCoordinator, MultisigCoordinator, MultisigCoordinationError, MultisigStage,
+    DbMultisigCoordinator, MultisigCoordinationError, MultisigCoordinator, MultisigStage,
     ParticipantType,
 };
 
@@ -26,10 +26,10 @@ pub struct InitSessionRequest {
 /// Participant in multisig session
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ParticipantDto {
-    pub role: String, // "buyer", "vendor", "arbiter"
-    pub participant_type: String, // "local_managed" or "remote"
+    pub role: String,              // "buyer", "vendor", "arbiter"
+    pub participant_type: String,  // "local_managed" or "remote"
     pub wallet_id: Option<String>, // For LocalManaged
-    pub user_id: Option<String>, // For Remote
+    pub user_id: Option<String>,   // For Remote
 }
 
 /// Request to submit multisig info (Round 1 or 2)
@@ -290,9 +290,7 @@ pub async fn submit_multisig_info(
         .as_ref()
         .check_progress(escrow_id)
         .await
-        .map_err(|_| {
-            actix_web::error::ErrorInternalServerError("Failed to check progress")
-        })?;
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to check progress"))?;
 
     Ok(HttpResponse::Ok().json(SubmitInfoResponse {
         success: true,
@@ -380,9 +378,7 @@ pub async fn get_peer_info(
         .as_ref()
         .check_progress(escrow_id)
         .await
-        .map_err(|_| {
-            actix_web::error::ErrorInternalServerError("Failed to check progress")
-        })?;
+        .map_err(|_| actix_web::error::ErrorInternalServerError("Failed to check progress"))?;
 
     Ok(HttpResponse::Ok().json(PeerInfoResponse {
         count: peer_infos.len(),

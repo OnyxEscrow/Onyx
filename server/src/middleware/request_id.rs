@@ -83,8 +83,9 @@ where
             // Attach header to response.
             res.headers_mut().insert(
                 actix_web::http::header::HeaderName::from_static("x-request-id"),
-                actix_web::http::header::HeaderValue::from_str(&request_id)
-                    .unwrap_or_else(|_| actix_web::http::header::HeaderValue::from_static("unknown")),
+                actix_web::http::header::HeaderValue::from_str(&request_id).unwrap_or_else(|_| {
+                    actix_web::http::header::HeaderValue::from_static("unknown")
+                }),
             );
 
             Ok(res)

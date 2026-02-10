@@ -443,11 +443,7 @@ fn test_precision_not_lost() {
         let xmr = atomic_to_xmr(atomic);
         let back = xmr_to_atomic(xmr).unwrap();
 
-        assert_eq!(
-            atomic, back,
-            "Precision lost for {} atomic units",
-            atomic
-        );
+        assert_eq!(atomic, back, "Precision lost for {} atomic units", atomic);
     }
 }
 
@@ -455,13 +451,13 @@ fn test_precision_not_lost() {
 fn test_common_amounts_precision() {
     // Common amounts in marketplace
     let amounts_xmr = [
-        0.001,   // Minimum practical
-        0.01,    // 10 milliXMR
-        0.1,     // 100 milliXMR
-        1.0,     // 1 XMR
-        10.0,    // 10 XMR
-        100.0,   // 100 XMR
-        1000.0,  // 1000 XMR
+        0.001,  // Minimum practical
+        0.01,   // 10 milliXMR
+        0.1,    // 100 milliXMR
+        1.0,    // 1 XMR
+        10.0,   // 10 XMR
+        100.0,  // 100 XMR
+        1000.0, // 1000 XMR
     ];
 
     for &xmr in &amounts_xmr {

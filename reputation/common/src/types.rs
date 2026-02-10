@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 /// Avis signé cryptographiquement par un acheteur
 ///
@@ -35,7 +35,7 @@ pub struct SignedReview {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VendorReputation {
     /// Version du format (pour compatibilité future)
-    pub format_version: String,  // "1.0"
+    pub format_version: String, // "1.0"
 
     /// Clé publique du vendeur
     pub vendor_pubkey: String,
@@ -187,7 +187,7 @@ mod tests {
         let mut review = SignedReview {
             txid: "abc".to_string(),
             rating: 5,
-            comment: Some("x".repeat(501)),  // 501 chars
+            comment: Some("x".repeat(501)), // 501 chars
             timestamp: Utc::now(),
             buyer_pubkey: "pub".to_string(),
             signature: "sig".to_string(),

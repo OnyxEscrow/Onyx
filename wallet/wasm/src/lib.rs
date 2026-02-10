@@ -1,65 +1,60 @@
-pub mod core;         // nexus-crypto-core re-exports for gradual migration
+pub mod clsag_debug; // Debug instrumentation for CLSAG
+pub mod core; // nexus-crypto-core re-exports for gradual migration
 pub mod crypto;
-pub mod encrypted_relay;  // Phase 2: End-to-end encrypted relay for non-custodial signing
+pub mod encrypted_relay; // Phase 2: End-to-end encrypted relay for non-custodial signing
+pub mod frost_dkg;
 pub mod multisig_coordinator;
-pub mod round_robin;  // Round-robin CLSAG signing for 2-of-3 multisig (v0.8.0)
-pub mod clsag_debug;  // Debug instrumentation for CLSAG
-pub mod frost_dkg;    // FROST DKG (RFC 9591) for 2-of-3 threshold CLSAG (v0.12.0)
+pub mod round_robin; // Round-robin CLSAG signing for 2-of-3 multisig (v0.8.0) // FROST DKG (RFC 9591) for 2-of-3 threshold CLSAG (v0.12.0)
 
 #[cfg(test)]
-mod test_vectors;     // CLSAG test vector validation (audit module)
+mod test_vectors; // CLSAG test vector validation (audit module)
 
 // Re-export crypto functions for JavaScript
 pub use crypto::{
-    generate_monero_wallet,
-    restore_wallet_from_seed,
-    prepare_multisig_wasm,
-    make_multisig_wasm,
-    sign_multisig_tx_wasm,
     // New CLSAG signing functions (monero-clsag-mirror)
     compute_key_image,
-    compute_partial_key_image,  // For multisig key image aggregation
-    sign_clsag_wasm,            // For single-signer
-    sign_clsag_partial_wasm,    // For 2-of-3 multisig (DEPRECATED - use round_robin)
-    generate_nonce_commitment,  // MuSig2-style nonce generation (v0.9.0)
+    compute_partial_key_image, // For multisig key image aggregation
+    generate_monero_wallet,
+    generate_nonce_commitment, // MuSig2-style nonce generation (v0.9.0)
+    make_multisig_wasm,
+    prepare_multisig_wasm,
+    restore_wallet_from_seed,
+    sign_clsag_partial_wasm, // For 2-of-3 multisig (DEPRECATED - use round_robin)
+    sign_clsag_wasm,         // For single-signer
+    sign_multisig_tx_wasm,
     SignInputData,
 };
 
 // Re-export round-robin signing functions (v0.8.0 - correct approach)
 pub use round_robin::{
-    create_partial_tx_wasm,     // Signer 1: Create partial TX
-    complete_partial_tx_wasm,   // Signer 2: Complete signature
-    verify_clsag_wasm,          // Verify CLSAG locally before broadcast (v0.8.1)
-    dump_clsag_params_wasm,     // Dump params for external verification (v0.8.1)
-    PartialTx,
-    CompletedClsag,
+    complete_partial_tx_wasm, // Signer 2: Complete signature
+    create_partial_tx_wasm,   // Signer 1: Create partial TX
+    dump_clsag_params_wasm,   // Dump params for external verification (v0.8.1)
+    verify_clsag_wasm,        // Verify CLSAG locally before broadcast (v0.8.1)
     ClsagVerificationResult,
+    CompletedClsag,
+    PartialTx,
 };
 
 // Re-export FROST DKG functions (v0.12.0 - RFC 9591 threshold CLSAG)
 pub use frost_dkg::{
+    frost_compute_lagrange_coefficient, // Compute λ_i for threshold signing
+    frost_derive_address,               // Derive Monero address from group_pubkey (v0.45.0)
     frost_dkg_part1,                    // DKG Round 1: Generate commitment
     frost_dkg_part2,                    // DKG Round 2: Compute secret shares
     frost_dkg_part3,                    // DKG Round 3: Finalize KeyPackage
     frost_extract_secret_share,         // Extract scalar from KeyPackage for CLSAG
-    frost_compute_lagrange_coefficient, // Compute λ_i for threshold signing
     frost_role_to_index,                // Convert role string to participant index
-    frost_derive_address,               // Derive Monero address from group_pubkey (v0.45.0)
+    DkgFinalResult,
     DkgRound1Result,
     DkgRound2Result,
-    DkgFinalResult,
     FrostAddressResult,
 };
 
 // Re-export encrypted relay functions (Phase 2 - 100% non-custodial)
 pub use encrypted_relay::{
-    generate_ephemeral_keypair,
-    encrypt_partial_signature,
-    decrypt_partial_signature,
-    create_encrypted_partial_for_relay,
-    EphemeralKeypair,
-    EncryptedPartialResult,
-    DecryptedPartialResult,
+    create_encrypted_partial_for_relay, decrypt_partial_signature, encrypt_partial_signature,
+    generate_ephemeral_keypair, DecryptedPartialResult, EncryptedPartialResult, EphemeralKeypair,
     PartialSignatureData,
 };
 
@@ -72,9 +67,9 @@ use wasm_bindgen::prelude::*;
 use zeroize::Zeroize;
 
 /// Network byte for Monero addresses
-pub const MAINNET_ADDRESS_BYTE: u8 = 18;   // Mainnet addresses start with '4'
-pub const TESTNET_ADDRESS_BYTE: u8 = 53;   // Testnet addresses start with '9'
-pub const STAGENET_ADDRESS_BYTE: u8 = 24;  // Stagenet addresses start with '5'
+pub const MAINNET_ADDRESS_BYTE: u8 = 18; // Mainnet addresses start with '4'
+pub const TESTNET_ADDRESS_BYTE: u8 = 53; // Testnet addresses start with '9'
+pub const STAGENET_ADDRESS_BYTE: u8 = 24; // Stagenet addresses start with '5'
 
 /// Parse network string to network byte
 /// Accepts: "mainnet", "stagenet", "testnet" (case insensitive)
@@ -83,7 +78,10 @@ pub fn network_string_to_byte(network: &str) -> Result<u8, String> {
         "mainnet" | "main" => Ok(MAINNET_ADDRESS_BYTE),
         "stagenet" | "stage" => Ok(STAGENET_ADDRESS_BYTE),
         "testnet" | "test" => Ok(TESTNET_ADDRESS_BYTE),
-        _ => Err(format!("Unknown network: {}. Use 'mainnet', 'stagenet', or 'testnet'", network)),
+        _ => Err(format!(
+            "Unknown network: {}. Use 'mainnet', 'stagenet', or 'testnet'",
+            network
+        )),
     }
 }
 
@@ -106,11 +104,10 @@ pub struct WalletResult {
 #[wasm_bindgen]
 pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
     let network_str = network.as_deref().unwrap_or("mainnet");
-    let network_byte = network_string_to_byte(network_str)
-        .map_err(|e| JsValue::from_str(&e))?;
+    let network_byte = network_string_to_byte(network_str).map_err(|e| JsValue::from_str(&e))?;
     // Generate 128-bit entropy for 12-word mnemonic
     // Uses getrandom with js feature -> crypto.getRandomValues()
-    let mut entropy = [0u8; 16];  // 16 bytes = 128 bits = 12 words
+    let mut entropy = [0u8; 16]; // 16 bytes = 128 bits = 12 words
     getrandom::getrandom(&mut entropy)
         .map_err(|e| JsValue::from_str(&format!("Failed to generate entropy: {}", e)))?;
 
@@ -125,7 +122,7 @@ pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
     let mut entropy_extended = [0u8; 32];
     let mut hasher = Sha256::new();
     hasher.update(entropy);
-    hasher.update(b"monero_spend_key");  // Domain separation
+    hasher.update(b"monero_spend_key"); // Domain separation
     let extended: [u8; 32] = hasher.finalize().into();
     entropy_extended.copy_from_slice(&extended);
 
@@ -157,8 +154,9 @@ pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
     let spend_key_priv_hex = hex::encode(spend_key_bytes_reduced);
 
     // Generate Monero address with specified network
-    let address_string = generate_monero_address_with_network(&spend_pub_bytes, &view_pub_bytes, network_byte)
-        .map_err(|e| JsValue::from_str(&format!("Address generation failed: {}", e)))?;
+    let address_string =
+        generate_monero_address_with_network(&spend_pub_bytes, &view_pub_bytes, network_byte)
+            .map_err(|e| JsValue::from_str(&format!("Address generation failed: {}", e)))?;
 
     // Compute address hash (SHA256 for server verification)
     let mut address_hasher = Sha256::new();
@@ -215,7 +213,10 @@ pub fn generate_monero_address_with_network(
 /// Generate Monero address (defaults to mainnet for production safety)
 ///
 /// **DEPRECATED**: Use `generate_monero_address_with_network()` with explicit network byte.
-pub fn generate_monero_address(spend_pub: &[u8; 32], view_pub: &[u8; 32]) -> Result<String, String> {
+pub fn generate_monero_address(
+    spend_pub: &[u8; 32],
+    view_pub: &[u8; 32],
+) -> Result<String, String> {
     // Default to mainnet for production safety
     generate_monero_address_with_network(spend_pub, view_pub, MAINNET_ADDRESS_BYTE)
 }
@@ -233,8 +234,8 @@ mod tests {
         let result = generate_wallet(None).expect("Wallet generation failed");
 
         // Deserialize back to Rust for validation
-        let wallet: WalletResult = serde_wasm_bindgen::from_value(result)
-            .expect("Failed to deserialize");
+        let wallet: WalletResult =
+            serde_wasm_bindgen::from_value(result).expect("Failed to deserialize");
 
         // Validate seed format (12 words separated by spaces)
         let words: Vec<&str> = wallet.seed.split_whitespace().collect();
@@ -282,10 +283,11 @@ mod tests {
     #[wasm_bindgen_test]
     fn test_generate_wallet_stagenet() {
         // Test with explicit stagenet
-        let result = generate_wallet(Some("stagenet".to_string())).expect("Wallet generation failed");
+        let result =
+            generate_wallet(Some("stagenet".to_string())).expect("Wallet generation failed");
 
-        let wallet: WalletResult = serde_wasm_bindgen::from_value(result)
-            .expect("Failed to deserialize");
+        let wallet: WalletResult =
+            serde_wasm_bindgen::from_value(result).expect("Failed to deserialize");
 
         // Validate stagenet address format (starts with '5')
         assert!(
@@ -328,11 +330,14 @@ mod tests {
         let view_pub = [0u8; 32];
 
         // Test mainnet (default)
-        let address = generate_monero_address(&spend_pub, &view_pub)
-            .expect("Address generation failed");
+        let address =
+            generate_monero_address(&spend_pub, &view_pub).expect("Address generation failed");
 
         // Should start with '4' for mainnet (default)
-        assert!(address.starts_with('4'), "Mainnet address should start with 4");
+        assert!(
+            address.starts_with('4'),
+            "Mainnet address should start with 4"
+        );
 
         // Should be valid Base58 with checksum
         let decoded = base58_monero::decode_check(&address)
@@ -340,12 +345,19 @@ mod tests {
 
         // Decoded should be 65 bytes: 1 network + 32 spend + 32 view
         assert_eq!(decoded.len(), 65, "Decoded address should be 65 bytes");
-        assert_eq!(decoded[0], MAINNET_ADDRESS_BYTE, "First byte should be mainnet byte");
+        assert_eq!(
+            decoded[0], MAINNET_ADDRESS_BYTE,
+            "First byte should be mainnet byte"
+        );
 
         // Test stagenet explicitly
-        let stagenet_address = generate_monero_address_with_network(&spend_pub, &view_pub, STAGENET_ADDRESS_BYTE)
-            .expect("Stagenet address generation failed");
-        assert!(stagenet_address.starts_with('5'), "Stagenet address should start with 5");
+        let stagenet_address =
+            generate_monero_address_with_network(&spend_pub, &view_pub, STAGENET_ADDRESS_BYTE)
+                .expect("Stagenet address generation failed");
+        assert!(
+            stagenet_address.starts_with('5'),
+            "Stagenet address should start with 5"
+        );
     }
 
     #[test]
@@ -354,8 +366,8 @@ mod tests {
         let spend_pub = [1u8; 32];
         let view_pub = [2u8; 32];
 
-        let address = generate_monero_address(&spend_pub, &view_pub)
-            .expect("Address generation failed");
+        let address =
+            generate_monero_address(&spend_pub, &view_pub).expect("Address generation failed");
 
         assert_eq!(address.len(), 95, "Monero address should be 95 characters");
     }

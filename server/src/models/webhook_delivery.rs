@@ -299,10 +299,7 @@ impl WebhookDelivery {
     }
 
     /// Get delivery statistics for a webhook
-    pub fn get_stats(
-        hook_id: &str,
-        conn: &mut SqliteConnection,
-    ) -> Result<WebhookDeliveryStats> {
+    pub fn get_stats(hook_id: &str, conn: &mut SqliteConnection) -> Result<WebhookDeliveryStats> {
         use crate::schema::webhook_deliveries::dsl::*;
 
         let total: i64 = webhook_deliveries
@@ -366,16 +363,19 @@ mod tests {
         assert_eq!(DeliveryStatus::from_str("pending"), DeliveryStatus::Pending);
         assert_eq!(DeliveryStatus::from_str("success"), DeliveryStatus::Success);
         assert_eq!(DeliveryStatus::from_str("failed"), DeliveryStatus::Failed);
-        assert_eq!(DeliveryStatus::from_str("retrying"), DeliveryStatus::Retrying);
+        assert_eq!(
+            DeliveryStatus::from_str("retrying"),
+            DeliveryStatus::Retrying
+        );
         assert_eq!(DeliveryStatus::from_str("unknown"), DeliveryStatus::Pending);
     }
 
     #[test]
     fn test_retry_delays() {
-        assert_eq!(RETRY_DELAYS[0], 60);      // 1 min
-        assert_eq!(RETRY_DELAYS[1], 300);     // 5 min
-        assert_eq!(RETRY_DELAYS[2], 900);     // 15 min
-        assert_eq!(RETRY_DELAYS[3], 3600);    // 1 hour
-        assert_eq!(RETRY_DELAYS[4], 7200);    // 2 hours
+        assert_eq!(RETRY_DELAYS[0], 60); // 1 min
+        assert_eq!(RETRY_DELAYS[1], 300); // 5 min
+        assert_eq!(RETRY_DELAYS[2], 900); // 15 min
+        assert_eq!(RETRY_DELAYS[3], 3600); // 1 hour
+        assert_eq!(RETRY_DELAYS[4], 7200); // 2 hours
     }
 }

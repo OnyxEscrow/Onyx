@@ -312,7 +312,10 @@ impl MoneroRpcClient {
     /// - MoneroError::RpcError - Wallet already exists or other RPC error
     /// - MoneroError::InvalidResponse - Invalid response format
     pub async fn create_wallet(&self, filename: &str, password: &str) -> Result<(), MoneroError> {
-        let _permit = self.semaphore.acquire().await
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|_| MoneroError::NetworkError("Semaphore closed".to_string()))?;
 
         let _guard = self.rpc_lock.lock().await;
@@ -330,7 +333,8 @@ impl MoneroRpcClient {
             params: Some(params),
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/json_rpc", self.url))
             .json(&request)
             .send()
@@ -369,7 +373,10 @@ impl MoneroRpcClient {
     /// - MoneroError::RpcError - Wallet not found or wrong password
     /// - MoneroError::InvalidResponse - Invalid response format
     pub async fn open_wallet(&self, filename: &str, password: &str) -> Result<(), MoneroError> {
-        let _permit = self.semaphore.acquire().await
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|_| MoneroError::NetworkError("Semaphore closed".to_string()))?;
 
         let _guard = self.rpc_lock.lock().await;
@@ -386,7 +393,8 @@ impl MoneroRpcClient {
             params: Some(params),
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/json_rpc", self.url))
             .json(&request)
             .send()
@@ -421,7 +429,10 @@ impl MoneroRpcClient {
     /// - MoneroError::RpcError - No wallet open or RPC error
     /// - MoneroError::InvalidResponse - Invalid response format
     pub async fn close_wallet(&self) -> Result<(), MoneroError> {
-        let _permit = self.semaphore.acquire().await
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|_| MoneroError::NetworkError("Semaphore closed".to_string()))?;
 
         let _guard = self.rpc_lock.lock().await;
@@ -433,7 +444,8 @@ impl MoneroRpcClient {
             params: None,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/json_rpc", self.url))
             .json(&request)
             .send()
@@ -522,18 +534,22 @@ impl MoneroRpcClient {
     ) -> Result<String, MoneroError> {
         // Validate seed format (must be 64 hex chars = 32 bytes)
         if seed.len() != 64 {
-            return Err(MoneroError::InvalidResponse(
-                format!("Seed must be 64 hex characters (32 bytes), got {}", seed.len())
-            ));
+            return Err(MoneroError::InvalidResponse(format!(
+                "Seed must be 64 hex characters (32 bytes), got {}",
+                seed.len()
+            )));
         }
 
         if !seed.chars().all(|c| c.is_ascii_hexdigit()) {
             return Err(MoneroError::InvalidResponse(
-                "Seed must contain only hexadecimal characters".to_string()
+                "Seed must contain only hexadecimal characters".to_string(),
             ));
         }
 
-        let _permit = self.semaphore.acquire().await
+        let _permit = self
+            .semaphore
+            .acquire()
+            .await
             .map_err(|_| MoneroError::NetworkError("Semaphore closed".to_string()))?;
 
         let _guard = self.rpc_lock.lock().await;
@@ -554,7 +570,8 @@ impl MoneroRpcClient {
             params: Some(params),
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(format!("{}/json_rpc", self.url))
             .json(&request)
             .send()
@@ -579,7 +596,8 @@ impl MoneroRpcClient {
             )));
         }
 
-        let result = rpc_response.result
+        let result = rpc_response
+            .result
             .ok_or_else(|| MoneroError::InvalidResponse("Missing result".to_string()))?;
 
         // Extract wallet address from result
@@ -592,7 +610,7 @@ impl MoneroRpcClient {
         tracing::info!(
             "Restored deterministic wallet '{}' with address: {}...",
             filename,
-            &address[..8]  // Log only first 8 chars for privacy
+            &address[..8] // Log only first 8 chars for privacy
         );
 
         Ok(address)
@@ -674,7 +692,10 @@ impl MoneroRpcClient {
             .ok_or_else(|| MoneroError::InvalidResponse("Missing result field".to_string()))?;
 
         // DEBUG: Log length only (no cryptographic content)
-        tracing::info!("🔍 RPC returned multisig_info: {} chars", result.multisig_info.len());
+        tracing::info!(
+            "🔍 RPC returned multisig_info: {} chars",
+            result.multisig_info.len()
+        );
 
         // VALIDATION STRICTE: multisig_info
         validate_multisig_info(&result.multisig_info)?;
@@ -915,7 +936,10 @@ impl MoneroRpcClient {
         //
         // Each call MUST succeed on first attempt or fail permanently.
 
-        tracing::info!("🔍 exchange_multisig_keys called with {} infos (NO RETRY)", multisig_info.len());
+        tracing::info!(
+            "🔍 exchange_multisig_keys called with {} infos (NO RETRY)",
+            multisig_info.len()
+        );
 
         let result = self.exchange_multisig_keys_inner(multisig_info).await?;
 
@@ -923,7 +947,7 @@ impl MoneroRpcClient {
             "✅ exchange_multisig_keys SUCCESS: multisig_info={} bytes, address=[{}...{}]",
             result.multisig_info.len(),
             &result.address[..2], // Network prefix only
-            &result.address[result.address.len().saturating_sub(3)..] // Last 3 chars
+            &result.address[result.address.len().saturating_sub(3)..]  // Last 3 chars
         );
 
         Ok(result)
@@ -1024,7 +1048,8 @@ impl MoneroRpcClient {
             // Si une adresse est retournée, valider qu'elle est valide
             if !result.address.starts_with('4')
                 && !result.address.starts_with('5')
-                && !result.address.starts_with('9') // Testnet multisig addresses can start with 9
+                && !result.address.starts_with('9')
+            // Testnet multisig addresses can start with 9
             {
                 tracing::warn!(
                     "Unexpected multisig address prefix: {}, len={}",
@@ -1552,33 +1577,31 @@ impl MoneroRpcClient {
         // v0.47.0: Changed from .unwrap_or() to .ok_or_else() for proper error handling
         let tx_data_hex = result["tx_blob"]
             .as_str()
-            .ok_or_else(|| MoneroError::InvalidResponse("Missing tx_blob in transfer response".into()))?
+            .ok_or_else(|| {
+                MoneroError::InvalidResponse("Missing tx_blob in transfer response".into())
+            })?
             .to_string();
 
         let tx_hash = result["tx_hash"]
             .as_str()
-            .ok_or_else(|| MoneroError::InvalidResponse("Missing tx_hash in transfer response".into()))?
+            .ok_or_else(|| {
+                MoneroError::InvalidResponse("Missing tx_hash in transfer response".into())
+            })?
             .to_string();
 
         // tx_key can be empty in some RPC responses (multisig mode)
-        let tx_key = result["tx_key"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let tx_key = result["tx_key"].as_str().unwrap_or("").to_string();
 
-        let amount = result["amount"]
-            .as_u64()
-            .ok_or_else(|| MoneroError::InvalidResponse("Missing amount in transfer response".into()))?;
+        let amount = result["amount"].as_u64().ok_or_else(|| {
+            MoneroError::InvalidResponse("Missing amount in transfer response".into())
+        })?;
 
-        let fee = result["fee"]
-            .as_u64()
-            .ok_or_else(|| MoneroError::InvalidResponse("Missing fee in transfer response".into()))?;
+        let fee = result["fee"].as_u64().ok_or_else(|| {
+            MoneroError::InvalidResponse("Missing fee in transfer response".into())
+        })?;
 
         // multisig_txset may be absent for non-multisig transfers
-        let multisig_txset = result["multisig_txset"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let multisig_txset = result["multisig_txset"].as_str().unwrap_or("").to_string();
 
         Ok(CreateTransactionResult {
             tx_data_hex,
@@ -1658,7 +1681,9 @@ impl MoneroRpcClient {
         // v0.47.0: Changed from .unwrap_or() to .ok_or_else() - empty tx_data breaks escrow
         let tx_data_hex = result["tx_data_hex"]
             .as_str()
-            .ok_or_else(|| MoneroError::InvalidResponse("Missing tx_data_hex in sign_multisig response".into()))?
+            .ok_or_else(|| {
+                MoneroError::InvalidResponse("Missing tx_data_hex in sign_multisig response".into())
+            })?
             .to_string();
 
         Ok(SignMultisigResult {
@@ -1806,9 +1831,10 @@ impl MoneroRpcClient {
 fn validate_multisig_info(info: &str) -> Result<(), MoneroError> {
     // Doit commencer par MultisigV1 ou MultisigxV2 (nouveau format depuis Monero v0.18+)
     if !info.starts_with("MultisigV1") && !info.starts_with("MultisigxV2") {
-        return Err(MoneroError::InvalidResponse(
-            format!("Invalid multisig_info prefix (got: {:?})", info.chars().take(20).collect::<String>()),
-        ));
+        return Err(MoneroError::InvalidResponse(format!(
+            "Invalid multisig_info prefix (got: {:?})",
+            info.chars().take(20).collect::<String>()
+        )));
     }
 
     // Longueur attendue (base64)

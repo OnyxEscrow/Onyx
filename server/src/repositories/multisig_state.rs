@@ -233,7 +233,10 @@ impl MultisigStateRepository {
             let json = match json_opt {
                 Some(j) => j,
                 None => {
-                    warn!(escrow_id, "⚠️ Skipping escrow with NULL multisig_state_json");
+                    warn!(
+                        escrow_id,
+                        "⚠️ Skipping escrow with NULL multisig_state_json"
+                    );
                     continue;
                 }
             };
@@ -354,14 +357,12 @@ impl MultisigStateRepository {
 
     /// Encrypt snapshot JSON data
     fn encrypt_snapshot_data(&self, plaintext: &str) -> Result<Vec<u8>> {
-        encrypt_field(plaintext, &self.encryption_key)
-            .context("Failed to encrypt snapshot data")
+        encrypt_field(plaintext, &self.encryption_key).context("Failed to encrypt snapshot data")
     }
 
     /// Decrypt snapshot JSON data
     fn decrypt_snapshot_data(&self, ciphertext: &[u8]) -> Result<String> {
-        decrypt_field(ciphertext, &self.encryption_key)
-            .context("Failed to decrypt snapshot data")
+        decrypt_field(ciphertext, &self.encryption_key).context("Failed to decrypt snapshot data")
     }
 
     /// Parse and decrypt a snapshot JSON string
@@ -389,17 +390,15 @@ mod tests {
 
         // Field-level encryption key (32 bytes for AES-256-GCM)
         let encryption_key: Vec<u8> = vec![
-            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
-            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
-            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
-            0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+            0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b,
+            0x1c, 0x1d, 0x1e, 0x1f,
         ];
 
         // SQLCipher DB key (separate from field encryption)
         let db_key = "test_db_key_for_sqlcipher_only!";
 
-        let pool = create_pool(&test_db, db_key)
-            .expect("Failed to create test pool");
+        let pool = create_pool(&test_db, db_key).expect("Failed to create test pool");
 
         // Run migrations
         // (In real tests, use diesel_migrations::run_pending_migrations)

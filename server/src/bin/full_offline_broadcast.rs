@@ -11,7 +11,7 @@
 //!
 //! Usage: cargo run --release --bin full_offline_broadcast <escrow_id> <buyer_share_hex> <vendor_share_hex> <payout_address> [--broadcast]
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
@@ -23,14 +23,13 @@ use sha3::{Digest, Keccak256};
 use std::env;
 
 // Platform fee configuration (validated at startup)
-use server::config::{get_platform_wallet_address, get_release_fee_bps, get_refund_fee_bps};
+use server::config::{get_platform_wallet_address, get_refund_fee_bps, get_release_fee_bps};
 
 // Import transaction builder
 use server::services::transaction_builder::{
-    MoneroTransactionBuilder, ClsagSignatureJson, ClientSignature, BuildResult,
-    parse_monero_address, generate_stealth_address_with_view_tag,
-    generate_tx_pubkey, encrypt_amount_ecdh, derive_output_mask,
-    compute_pedersen_commitment,
+    compute_pedersen_commitment, derive_output_mask, encrypt_amount_ecdh,
+    generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address, BuildResult,
+    ClientSignature, ClsagSignatureJson, MoneroTransactionBuilder,
 };
 
 // Import ring selection with Gamma distribution (Monero-compliant)
@@ -42,16 +41,15 @@ use server::services::ring_selection::RingSelector;
 const RING_SIZE: usize = 16;
 
 fn get_daemon_url() -> String {
-    std::env::var("MONERO_get_daemon_url()")
-        .unwrap_or_else(|_| {
-            // Fallback based on MONERO_NETWORK
-            let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
-            match network.as_str() {
-                "mainnet" => "http://127.0.0.1:18081".to_string(),
-                "testnet" => "http://127.0.0.1:28081".to_string(),
-                _ => "http://127.0.0.1:38081".to_string(), // stagenet default
-            }
-        })
+    std::env::var("MONERO_get_daemon_url()").unwrap_or_else(|_| {
+        // Fallback based on MONERO_NETWORK
+        let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
+        match network.as_str() {
+            "mainnet" => "http://127.0.0.1:18081".to_string(),
+            "testnet" => "http://127.0.0.1:28081".to_string(),
+            _ => "http://127.0.0.1:38081".to_string(), // stagenet default
+        }
+    })
 }
 
 fn get_tx_fee() -> u64 {
@@ -71,7 +69,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         diesel::sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -83,7 +84,8 @@ fn establish_connection() -> Result<r2d2::PooledConnection<ConnectionManager<Sql
     dotenvy::dotenv().ok();
 
     let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
-    let encryption_key = env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set in .env")?;
+    let encryption_key =
+        env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set in .env")?;
 
     let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
     let customizer = SqlCipherConnectionCustomizer { encryption_key };
@@ -163,25 +165,34 @@ fn load_escrow_data(conn: &mut SqliteConnection, escrow_id: &str) -> Result<Escr
         .load(conn)
         .context("Failed to query escrow")?;
 
-    let row = rows.into_iter().next()
+    let row = rows
+        .into_iter()
+        .next()
         .ok_or_else(|| anyhow::anyhow!("Escrow not found: {}", escrow_id))?;
 
     Ok(EscrowData {
         id: row.id,
-        view_key_private: row.multisig_view_key
+        view_key_private: row
+            .multisig_view_key
             .ok_or_else(|| anyhow::anyhow!("Missing multisig_view_key"))?,
-        funding_tx_hash: row.funding_tx_hash
+        funding_tx_hash: row
+            .funding_tx_hash
             .ok_or_else(|| anyhow::anyhow!("Missing funding_tx_hash"))?,
-        funding_output_index: row.funding_output_index
+        funding_output_index: row
+            .funding_output_index
             .ok_or_else(|| anyhow::anyhow!("Missing funding_output_index"))?,
-        funding_global_index: row.funding_global_index
+        funding_global_index: row
+            .funding_global_index
             .ok_or_else(|| anyhow::anyhow!("Missing funding_global_index"))?,
-        funding_commitment_mask: row.funding_commitment_mask
+        funding_commitment_mask: row
+            .funding_commitment_mask
             .ok_or_else(|| anyhow::anyhow!("Missing funding_commitment_mask"))?,
-        funding_tx_pubkey: row.funding_tx_pubkey
+        funding_tx_pubkey: row
+            .funding_tx_pubkey
             .ok_or_else(|| anyhow::anyhow!("Missing funding_tx_pubkey"))?,
         amount: row.amount,
-        frost_group_pubkey: row.frost_group_pubkey
+        frost_group_pubkey: row
+            .frost_group_pubkey
             .ok_or_else(|| anyhow::anyhow!("Missing frost_group_pubkey (DKG not complete?)"))?,
         aggregated_key_image: row.aggregated_key_image,
         dispute_signing_pair: row.dispute_signing_pair,
@@ -287,7 +298,10 @@ struct SubmitTxResult {
 // Ring fetching with proper decoy selection
 // ============================================================================
 
-async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result<(Vec<OutEntry>, Vec<u64>, usize)> {
+async fn fetch_ring_members(
+    client: &reqwest::Client,
+    real_index: u64,
+) -> Result<(Vec<OutEntry>, Vec<u64>, usize)> {
     // Generate decoys using Gamma distribution (Monero-compliant)
     // Parameters: α=19.28, θ=1.61 derived from empirical spend time analysis
     let mut indices: Vec<u64> = Vec::with_capacity(RING_SIZE);
@@ -322,10 +336,16 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
     indices.dedup();
 
     if indices.len() != RING_SIZE {
-        bail!("Ring size mismatch: expected {}, got {}", RING_SIZE, indices.len());
+        bail!(
+            "Ring size mismatch: expected {}, got {}",
+            RING_SIZE,
+            indices.len()
+        );
     }
 
-    let real_position = indices.iter().position(|&x| x == real_index)
+    let real_position = indices
+        .iter()
+        .position(|&x| x == real_index)
         .ok_or_else(|| anyhow::anyhow!("Real index not in ring"))?;
 
     println!("Ring indices: {:?}", indices);
@@ -333,7 +353,13 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
 
     // Fetch outputs from daemon
     let params = GetOutsParams {
-        outputs: indices.iter().map(|&i| OutputIndex { amount: 0, index: i }).collect(),
+        outputs: indices
+            .iter()
+            .map(|&i| OutputIndex {
+                amount: 0,
+                index: i,
+            })
+            .collect(),
         get_txid: true,
     };
 
@@ -344,14 +370,21 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
         .await
         .context("Failed to fetch ring members")?;
 
-    let result: GetOutsResult = response.json().await.context("Failed to parse get_outs response")?;
+    let result: GetOutsResult = response
+        .json()
+        .await
+        .context("Failed to parse get_outs response")?;
 
     if result.status != "OK" {
         bail!("get_outs failed: {}", result.status);
     }
 
     if result.outs.len() != RING_SIZE {
-        bail!("Expected {} ring members, got {}", RING_SIZE, result.outs.len());
+        bail!(
+            "Expected {} ring members, got {}",
+            RING_SIZE,
+            result.outs.len()
+        );
     }
 
     Ok((result.outs, indices, real_position))
@@ -369,9 +402,9 @@ struct ClsagSignature {
 
 // Monero domain separators (from monero_inflation_checker)
 // All padded to 32 bytes with zeros when used in hash
-const CLSAG_DOMAIN: &[u8] = b"CLSAG_round";  // Round hash domain (11 bytes)
-const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0";   // mu_P domain (11 bytes)
-const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1";   // mu_C domain (11 bytes)
+const CLSAG_DOMAIN: &[u8] = b"CLSAG_round"; // Round hash domain (11 bytes)
+const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0"; // mu_P domain (11 bytes)
+const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1"; // mu_C domain (11 bytes)
 
 /// Compute CLSAG mixing coefficients mu_P and mu_C
 /// Reference: clsag_hash_agg() in rctSigs.cpp
@@ -428,8 +461,8 @@ fn compute_round_hash(
     ring_commitments: &[EdwardsPoint],
     pseudo_out: &EdwardsPoint,
     tx_prefix_hash: &[u8; 32],
-    _key_image: &EdwardsPoint,  // Not used in round hash (kept for API compatibility)
-    _d_inv8: &EdwardsPoint,     // Not used in round hash (kept for API compatibility)
+    _key_image: &EdwardsPoint, // Not used in round hash (kept for API compatibility)
+    _d_inv8: &EdwardsPoint,    // Not used in round hash (kept for API compatibility)
     l_point: &EdwardsPoint,
     r_point: &EdwardsPoint,
 ) -> Scalar {
@@ -460,8 +493,8 @@ fn sign_clsag(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
     real_index: usize,
-    x_total: &Scalar,           // d + λ₁*b₁ + λ₂*b₂ (full private key)
-    z_diff: &Scalar,            // z_input - z_pseudo (commitment mask difference)
+    x_total: &Scalar, // d + λ₁*b₁ + λ₂*b₂ (full private key)
+    z_diff: &Scalar,  // z_input - z_pseudo (commitment mask difference)
     key_image: &EdwardsPoint,
     pseudo_out: &EdwardsPoint,
     tx_prefix_hash: &[u8; 32],
@@ -480,22 +513,18 @@ fn sign_clsag(
     // For our case: pseudo_out = input_commitment (same mask), so z_diff = 0 and D = identity
     // But we still compute it properly
     let d_full = z_diff * hp_p;
-    let d_inv8 = d_full * Scalar::from(8u64).invert();  // D/8 for serialization
+    let d_inv8 = d_full * Scalar::from(8u64).invert(); // D/8 for serialization
 
     // Compute mu_P and mu_C
-    let (mu_p, mu_c) = compute_mixing_coefficients(
-        ring_keys,
-        ring_commitments,
-        key_image,
-        &d_inv8,
-        pseudo_out,
-    );
+    let (mu_p, mu_c) =
+        compute_mixing_coefficients(ring_keys, ring_commitments, key_image, &d_inv8, pseudo_out);
 
     println!("   mu_P: {}...", hex::encode(&mu_p.to_bytes()[..8]));
     println!("   mu_C: {}...", hex::encode(&mu_c.to_bytes()[..8]));
 
     // Precompute Hp(P[i]) for all ring members
-    let hp_values: Vec<EdwardsPoint> = ring_keys.iter()
+    let hp_values: Vec<EdwardsPoint> = ring_keys
+        .iter()
         .map(|key| hash_to_point(key.compress().to_bytes()))
         .collect();
 
@@ -589,7 +618,9 @@ fn sign_clsag(
     let p_real = &ring_keys[real_index];
     let c_real_commitment = &ring_commitments[real_index];
     let c_adjusted_real = c_real_commitment - pseudo_out;
-    let l_verify = &s_values[real_index] * ED25519_BASEPOINT_TABLE + c_p_real * p_real + c_c_real * c_adjusted_real;
+    let l_verify = &s_values[real_index] * ED25519_BASEPOINT_TABLE
+        + c_p_real * p_real
+        + c_c_real * c_adjusted_real;
 
     if l_verify != l_real {
         println!("WARNING: L verification failed at real index!");
@@ -662,15 +693,13 @@ fn sign_clsag(
     }
 
     // Convert to bytes
-    let s_bytes: Vec<[u8; 32]> = s_values.iter()
-        .map(|s| s.to_bytes())
-        .collect();
+    let s_bytes: Vec<[u8; 32]> = s_values.iter().map(|s| s.to_bytes()).collect();
 
     // CRITICAL FIX: c1 is the challenge ENTERING index 0, NOT the challenge after processing index 0!
     // c_start is computed from L[real], R[real] and is the challenge entering (real+1) % n = index 0
     // c1_computed was WRONG - it was the challenge entering index 1 (after processing index 0)
     let c1 = c_start.to_bytes();
-    let d = d_inv8.compress().to_bytes();  // D/8 is what gets serialized
+    let d = d_inv8.compress().to_bytes(); // D/8 is what gets serialized
 
     Ok(ClsagSignature { s: s_bytes, c1, d })
 }
@@ -710,7 +739,9 @@ async fn check_daemon_connectivity(client: &reqwest::Client) -> Result<(u32, u32
         .await
         .context("Failed to reach daemon for connectivity check")?;
 
-    let rpc: RpcResponse = response.json().await
+    let rpc: RpcResponse = response
+        .json()
+        .await
         .context("Failed to parse daemon get_info response")?;
 
     let info = rpc.result.context("Missing result in get_info response")?;
@@ -720,15 +751,22 @@ async fn check_daemon_connectivity(client: &reqwest::Client) -> Result<(u32, u32
     if total == 0 {
         // WARNING only - some public nodes report 0 peers but can still propagate
         // This happens with nodes behind load balancers or special configurations
-        println!("⚠️  Daemon reports 0 peer connections (Height: {}, Target: {})",
-                 info.height, info.target_height);
+        println!(
+            "⚠️  Daemon reports 0 peer connections (Height: {}, Target: {})",
+            info.height, info.target_height
+        );
         println!("   Proceeding with broadcast anyway (public nodes may still propagate)");
     } else {
-        println!("✅ Daemon connectivity OK: {} outgoing, {} incoming peers",
-                 info.outgoing_connections_count, info.incoming_connections_count);
+        println!(
+            "✅ Daemon connectivity OK: {} outgoing, {} incoming peers",
+            info.outgoing_connections_count, info.incoming_connections_count
+        );
     }
 
-    Ok((info.outgoing_connections_count, info.incoming_connections_count))
+    Ok((
+        info.outgoing_connections_count,
+        info.incoming_connections_count,
+    ))
 }
 
 async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result<String> {
@@ -746,13 +784,19 @@ async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result
         .await
         .context("Failed to submit transaction")?;
 
-    let result: SubmitTxResult = response.json().await
+    let result: SubmitTxResult = response
+        .json()
+        .await
         .context("Failed to parse submit response")?;
 
     if result.status == "OK" {
         Ok("Transaction submitted successfully".to_string())
     } else {
-        bail!("Transaction rejected: {} - {:?}", result.status, result.reason)
+        bail!(
+            "Transaction rejected: {} - {:?}",
+            result.status,
+            result.reason
+        )
     }
 }
 
@@ -764,7 +808,10 @@ async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result
 async fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 5 {
-        println!("Usage: {} <escrow_id> <buyer_share_hex> <vendor_share_hex> <payout_address>", args[0]);
+        println!(
+            "Usage: {} <escrow_id> <buyer_share_hex> <vendor_share_hex> <payout_address>",
+            args[0]
+        );
         println!("\nThis binary reads escrow funding data from the encrypted database,");
         println!("takes FROST secret shares from command line (from browser localStorage),");
         println!("and performs complete FROST 2-of-3 CLSAG signing followed by broadcast.");
@@ -781,7 +828,10 @@ async fn main() -> Result<()> {
 
     println!("╔══════════════════════════════════════════════════════════════════════════╗");
     println!("║     FULL OFFLINE FROST CLSAG BROADCAST                                   ║");
-    println!("║     Escrow: {}                         ║", &escrow_id[..36.min(escrow_id.len())]);
+    println!(
+        "║     Escrow: {}                         ║",
+        &escrow_id[..36.min(escrow_id.len())]
+    );
     println!("╚══════════════════════════════════════════════════════════════════════════╝\n");
 
     // Step 1: Load escrow data from database
@@ -791,11 +841,26 @@ async fn main() -> Result<()> {
     let escrow = load_escrow_data(&mut *conn, escrow_id)?;
 
     println!("✅ Escrow loaded: {}", escrow.id);
-    println!("   Amount: {} atomic ({:.6} XMR)", escrow.amount, escrow.amount as f64 / 1e12);
-    println!("   Funding TX: {}...{}", &escrow.funding_tx_hash[..8], &escrow.funding_tx_hash[56..]);
+    println!(
+        "   Amount: {} atomic ({:.6} XMR)",
+        escrow.amount,
+        escrow.amount as f64 / 1e12
+    );
+    println!(
+        "   Funding TX: {}...{}",
+        &escrow.funding_tx_hash[..8],
+        &escrow.funding_tx_hash[56..]
+    );
     println!("   Global index: {}", escrow.funding_global_index);
-    println!("   FROST Group Pubkey: {}...", &escrow.frost_group_pubkey[..16]);
-    println!("   Destination: {}...{}", &payout_address[..8], &payout_address[payout_address.len()-8..]);
+    println!(
+        "   FROST Group Pubkey: {}...",
+        &escrow.frost_group_pubkey[..16]
+    );
+    println!(
+        "   Destination: {}...{}",
+        &payout_address[..8],
+        &payout_address[payout_address.len() - 8..]
+    );
 
     // Step 2: Parse crypto data
     println!("\n=== STEP 2: Parse Cryptographic Data ===\n");
@@ -811,7 +876,7 @@ async fn main() -> Result<()> {
     println!("Vendor share: {}...", &vendor_share_hex[..16]);
 
     // Lagrange coefficients for buyer(1) + vendor(2)
-    let lambda_buyer = compute_lagrange_coefficient(1, 2);  // = 2
+    let lambda_buyer = compute_lagrange_coefficient(1, 2); // = 2
     let lambda_vendor = compute_lagrange_coefficient(2, 1); // = -1
 
     println!("λ_buyer = 2, λ_vendor = -1");
@@ -824,20 +889,39 @@ async fn main() -> Result<()> {
     // Compute expected one-time output public key: P = d*G + B (where B = group_pubkey)
     let d_g = &d * ED25519_BASEPOINT_TABLE;
     let p_expected = d_g + group_pubkey;
-    println!("One-time output pubkey P: {}", hex::encode(p_expected.compress().as_bytes()));
+    println!(
+        "One-time output pubkey P: {}",
+        hex::encode(p_expected.compress().as_bytes())
+    );
 
     // Verify x_total * G = P
     let p_computed = &x_total * ED25519_BASEPOINT_TABLE;
     if p_computed != p_expected {
         println!("WARNING: x_total * G != P - checking intermediate values...");
-        println!("  d*G:           {}", hex::encode(d_g.compress().as_bytes()));
-        println!("  B (group):     {}", hex::encode(group_pubkey.compress().as_bytes()));
-        println!("  x_total * G:   {}", hex::encode(p_computed.compress().as_bytes()));
-        println!("  P expected:    {}", hex::encode(p_expected.compress().as_bytes()));
+        println!(
+            "  d*G:           {}",
+            hex::encode(d_g.compress().as_bytes())
+        );
+        println!(
+            "  B (group):     {}",
+            hex::encode(group_pubkey.compress().as_bytes())
+        );
+        println!(
+            "  x_total * G:   {}",
+            hex::encode(p_computed.compress().as_bytes())
+        );
+        println!(
+            "  P expected:    {}",
+            hex::encode(p_expected.compress().as_bytes())
+        );
 
         // Check if the Lagrange aggregation matches group pubkey
-        let lagrange_sum = &(lambda_buyer * b_buyer + lambda_vendor * b_vendor) * ED25519_BASEPOINT_TABLE;
-        println!("  (λ₁*b₁ + λ₂*b₂)*G: {}", hex::encode(lagrange_sum.compress().as_bytes()));
+        let lagrange_sum =
+            &(lambda_buyer * b_buyer + lambda_vendor * b_vendor) * ED25519_BASEPOINT_TABLE;
+        println!(
+            "  (λ₁*b₁ + λ₂*b₂)*G: {}",
+            hex::encode(lagrange_sum.compress().as_bytes())
+        );
 
         if lagrange_sum != group_pubkey {
             bail!("CRITICAL: Lagrange shares don't match group pubkey! DKG may be incomplete.");
@@ -852,7 +936,10 @@ async fn main() -> Result<()> {
     // doesn't match x_total. We MUST compute KI here with the correct private key.
     let hp_p = hash_to_point(p_expected.compress().to_bytes());
     let key_image = x_total * hp_p;
-    println!("✅ Key image (computed): {}", hex::encode(key_image.compress().as_bytes()));
+    println!(
+        "✅ Key image (computed): {}",
+        hex::encode(key_image.compress().as_bytes())
+    );
 
     // Log comparison with stored KI if available (for debugging)
     if let Some(ref stored_ki) = escrow.aggregated_key_image {
@@ -872,7 +959,8 @@ async fn main() -> Result<()> {
         .timeout(std::time::Duration::from_secs(30))
         .build()?;
 
-    let (ring_members, ring_indices, real_position) = fetch_ring_members(&client, escrow.funding_global_index as u64).await?;
+    let (ring_members, ring_indices, real_position) =
+        fetch_ring_members(&client, escrow.funding_global_index as u64).await?;
 
     // Verify real output matches the derived one-time pubkey
     let real_key = &ring_members[real_position].key;
@@ -886,11 +974,13 @@ async fn main() -> Result<()> {
     }
 
     // Parse ring data
-    let ring_keys: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_keys: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|o| hex_to_point(&o.key))
         .collect::<Result<Vec<_>>>()?;
 
-    let ring_commitments: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_commitments: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|o| hex_to_point(&o.mask))
         .collect::<Result<Vec<_>>>()?;
 
@@ -898,12 +988,12 @@ async fn main() -> Result<()> {
     // This catches the Bug 2.20: Wrong output_index causing CLSAG invalid_input
     println!("\n=== MASK VERIFICATION (Bug 2.20 Prevention) ===\n");
     let h_bytes_check: [u8; 32] = [
-        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-        0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-        0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-        0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0,
+        0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
+        0x1f, 0x94,
     ];
-    let h_point_check = CompressedEdwardsY(h_bytes_check).decompress()
+    let h_point_check = CompressedEdwardsY(h_bytes_check)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid H point for mask verification"))?;
 
     let expected_commitment = &funding_mask * ED25519_BASEPOINT_TABLE
@@ -913,9 +1003,15 @@ async fn main() -> Result<()> {
     if expected_commitment != onchain_commitment {
         println!("❌ CRITICAL ERROR: Funding mask does not match on-chain commitment!");
         println!("   Expected C = funding_mask * G + amount * H:");
-        println!("   {} ", hex::encode(expected_commitment.compress().as_bytes()));
+        println!(
+            "   {} ",
+            hex::encode(expected_commitment.compress().as_bytes())
+        );
         println!("   On-chain commitment (from daemon):");
-        println!("   {}", hex::encode(onchain_commitment.compress().as_bytes()));
+        println!(
+            "   {}",
+            hex::encode(onchain_commitment.compress().as_bytes())
+        );
         println!();
         println!("   This is Bug 2.20: The stored funding_commitment_mask was derived");
         println!("   using the WRONG output_index. The mask is unique per output.");
@@ -932,11 +1028,17 @@ async fn main() -> Result<()> {
     println!("\n=== STEP 4: Parse Destination & Generate TX Keys ===\n");
 
     // Parse payout address to get spend/view pubkeys
-    let (recipient_spend_pub, recipient_view_pub) = parse_monero_address(payout_address)
-        .context("Failed to parse payout address")?;
+    let (recipient_spend_pub, recipient_view_pub) =
+        parse_monero_address(payout_address).context("Failed to parse payout address")?;
 
-    println!("Recipient spend pubkey: {}...", hex::encode(&recipient_spend_pub[..8]));
-    println!("Recipient view pubkey:  {}...", hex::encode(&recipient_view_pub[..8]));
+    println!(
+        "Recipient spend pubkey: {}...",
+        hex::encode(&recipient_spend_pub[..8])
+    );
+    println!(
+        "Recipient view pubkey:  {}...",
+        hex::encode(&recipient_view_pub[..8])
+    );
 
     // v0.71.0 FIX: Generate DETERMINISTIC TX secret key (r)
     // CRITICAL: MUST match prepare_sign() in escrow.rs (lines 4049-4054)
@@ -977,15 +1079,41 @@ async fn main() -> Result<()> {
 
     // Calculate amounts
     let platform_fee = (input_amount * platform_fee_bps) / 10000;
-    let recipient_amount = input_amount.saturating_sub(platform_fee).saturating_sub(tx_fee);
+    let recipient_amount = input_amount
+        .saturating_sub(platform_fee)
+        .saturating_sub(tx_fee);
 
     println!("[v0.70.0] Platform Fee Configuration:");
-    println!("   Type: {} (fee: {}%)", if is_refund { "REFUND" } else { "RELEASE" }, platform_fee_bps as f64 / 100.0);
-    println!("   Platform wallet: {}...{}", &platform_wallet[..8], &platform_wallet[platform_wallet.len()-8..]);
-    println!("Input amount:     {} atomic ({:.12} XMR)", input_amount, input_amount as f64 / 1e12);
-    println!("Platform fee:     {} atomic ({:.12} XMR)", platform_fee, platform_fee as f64 / 1e12);
-    println!("TX fee:           {} atomic ({:.12} XMR)", tx_fee, tx_fee as f64 / 1e12);
-    println!("Recipient amount: {} atomic ({:.12} XMR)", recipient_amount, recipient_amount as f64 / 1e12);
+    println!(
+        "   Type: {} (fee: {}%)",
+        if is_refund { "REFUND" } else { "RELEASE" },
+        platform_fee_bps as f64 / 100.0
+    );
+    println!(
+        "   Platform wallet: {}...{}",
+        &platform_wallet[..8],
+        &platform_wallet[platform_wallet.len() - 8..]
+    );
+    println!(
+        "Input amount:     {} atomic ({:.12} XMR)",
+        input_amount,
+        input_amount as f64 / 1e12
+    );
+    println!(
+        "Platform fee:     {} atomic ({:.12} XMR)",
+        platform_fee,
+        platform_fee as f64 / 1e12
+    );
+    println!(
+        "TX fee:           {} atomic ({:.12} XMR)",
+        tx_fee,
+        tx_fee as f64 / 1e12
+    );
+    println!(
+        "Recipient amount: {} atomic ({:.12} XMR)",
+        recipient_amount,
+        recipient_amount as f64 / 1e12
+    );
 
     // Parse platform wallet address
     let (platform_spend_pub, platform_view_pub) = parse_monero_address(&platform_wallet)
@@ -1001,9 +1129,13 @@ async fn main() -> Result<()> {
         &recipient_spend_pub,
         &recipient_view_pub,
         output_index_0,
-    ).context("Failed to generate stealth address")?;
+    )
+    .context("Failed to generate stealth address")?;
 
-    println!("Output 0 (recipient): stealth_address = {}...", hex::encode(&stealth_address_0[..8]));
+    println!(
+        "Output 0 (recipient): stealth_address = {}...",
+        hex::encode(&stealth_address_0[..8])
+    );
     println!("Output 0 (recipient): view_tag = 0x{:02x}", view_tag_0);
 
     // Derive mask for output 0
@@ -1020,9 +1152,13 @@ async fn main() -> Result<()> {
         &recipient_view_pub,
         output_index_0,
         recipient_amount,
-    ).context("Failed to encrypt amount")?;
+    )
+    .context("Failed to encrypt amount")?;
 
-    println!("Output 0 (recipient): commitment = {}...", hex::encode(&commitment_0[..8]));
+    println!(
+        "Output 0 (recipient): commitment = {}...",
+        hex::encode(&commitment_0[..8])
+    );
     println!("Output 0 (recipient): amount = {} atomic", recipient_amount);
 
     // Output 1: Platform fee (REAL output, NOT dummy!)
@@ -1032,7 +1168,8 @@ async fn main() -> Result<()> {
         &platform_spend_pub,
         &platform_view_pub,
         output_index_1,
-    ).context("Failed to generate platform stealth address")?;
+    )
+    .context("Failed to generate platform stealth address")?;
 
     // Derive mask for output 1 using PLATFORM's view key (critical for platform to decrypt!)
     let mask_1 = derive_output_mask(&tx_secret_key, &platform_view_pub, output_index_1)
@@ -1048,11 +1185,18 @@ async fn main() -> Result<()> {
         &platform_view_pub,
         output_index_1,
         platform_fee,
-    ).context("Failed to encrypt platform amount")?;
+    )
+    .context("Failed to encrypt platform amount")?;
 
-    println!("Output 1 (platform): stealth_address = {}...", hex::encode(&stealth_address_1[..8]));
+    println!(
+        "Output 1 (platform): stealth_address = {}...",
+        hex::encode(&stealth_address_1[..8])
+    );
     println!("Output 1 (platform): view_tag = 0x{:02x}", view_tag_1);
-    println!("Output 1 (platform): commitment = {}...", hex::encode(&commitment_1[..8]));
+    println!(
+        "Output 1 (platform): commitment = {}...",
+        hex::encode(&commitment_1[..8])
+    );
     println!("Output 1 (platform): amount = {} atomic", platform_fee);
 
     // =========================================================================
@@ -1073,12 +1217,12 @@ async fn main() -> Result<()> {
     println!("\n=== STEP 6: Build Transaction Prefix ===\n");
 
     let h_bytes: [u8; 32] = [
-        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-        0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-        0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-        0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0,
+        0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
+        0x1f, 0x94,
     ];
-    let h_point = CompressedEdwardsY(h_bytes).decompress()
+    let h_point = CompressedEdwardsY(h_bytes)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid H point"))?;
 
     // ==========================================================================
@@ -1116,12 +1260,17 @@ async fn main() -> Result<()> {
 
     let pseudo_out = &pseudo_mask * ED25519_BASEPOINT_TABLE + Scalar::from(input_amount) * h_point;
     let pseudo_out_bytes = pseudo_out.compress().to_bytes();
-    println!("pseudo_out (adjusted mask): {}", hex::encode(&pseudo_out_bytes));
+    println!(
+        "pseudo_out (adjusted mask): {}",
+        hex::encode(&pseudo_out_bytes)
+    );
 
     // Verify commitment balance
-    let out0_point = CompressedEdwardsY(commitment_0).decompress()
+    let out0_point = CompressedEdwardsY(commitment_0)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid commitment_0"))?;
-    let out1_point = CompressedEdwardsY(commitment_1_final).decompress()
+    let out1_point = CompressedEdwardsY(commitment_1_final)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid commitment_1"))?;
     let fee_h = Scalar::from(tx_fee) * h_point;
 
@@ -1130,8 +1279,14 @@ async fn main() -> Result<()> {
         println!("✅ Commitment balance verified: pseudo_out == out0 + out1 + fee*H");
     } else {
         println!("WARNING: Commitment balance mismatch!");
-        println!("  Expected: {}", hex::encode(expected_pseudo.compress().as_bytes()));
-        println!("  Actual:   {}", hex::encode(pseudo_out.compress().as_bytes()));
+        println!(
+            "  Expected: {}",
+            hex::encode(expected_pseudo.compress().as_bytes())
+        );
+        println!(
+            "  Actual:   {}",
+            hex::encode(pseudo_out.compress().as_bytes())
+        );
     }
 
     // Build MoneroTransactionBuilder for proper tx_prefix
@@ -1139,10 +1294,9 @@ async fn main() -> Result<()> {
     tx_builder.set_fee(tx_fee);
 
     // Use the SAME ring indices that were used for CLSAG signing (critical!)
-    tx_builder.add_input(
-        key_image.compress().to_bytes(),
-        &ring_indices,
-    ).context("Failed to add input")?;
+    tx_builder
+        .add_input(key_image.compress().to_bytes(), &ring_indices)
+        .context("Failed to add input")?;
 
     // Add output 0 (recipient - REAL)
     tx_builder.add_output(
@@ -1167,23 +1321,31 @@ async fn main() -> Result<()> {
     // Set TX pubkey
     tx_builder.set_tx_pubkey(&tx_pubkey);
 
-    println!("[v0.70.0] Added 2 REAL outputs: recipient ({} atomic) + platform ({} atomic)", recipient_amount, platform_fee);
+    println!(
+        "[v0.70.0] Added 2 REAL outputs: recipient ({} atomic) + platform ({} atomic)",
+        recipient_amount, platform_fee
+    );
 
     // Step 7: Prepare for signing and compute full CLSAG message
     println!("\n=== STEP 7: Prepare Signing & Compute CLSAG Message ===\n");
 
     // Generate Bulletproof+ BEFORE computing the CLSAG message
     // This is required because the CLSAG message includes the hash of the BP+ data
-    tx_builder.prepare_for_signing()
+    tx_builder
+        .prepare_for_signing()
         .context("Failed to prepare transaction for signing")?;
     println!("✅ Bulletproof+ generated");
 
     // Compute the FULL CLSAG message (get_pre_mlsag_hash)
     // This is: hash(tx_prefix_hash || ss_hash || pseudo_outs_hash)
-    let clsag_message = tx_builder.compute_clsag_message(&[pseudo_out_bytes])
+    let clsag_message = tx_builder
+        .compute_clsag_message(&[pseudo_out_bytes])
         .context("Failed to compute CLSAG message")?;
 
-    println!("CLSAG message (get_pre_mlsag_hash): {}", hex::encode(&clsag_message));
+    println!(
+        "CLSAG message (get_pre_mlsag_hash): {}",
+        hex::encode(&clsag_message)
+    );
     println!("NOTE: This is NOT just tx_prefix_hash, but includes BP+ and pseudo_outs hashes");
 
     // Step 8: Sign CLSAG with the FULL message
@@ -1193,7 +1355,10 @@ async fn main() -> Result<()> {
     // This creates a valid D point: D = z_diff * Hp(P) != identity
     // funding_mask is from escrow funding, pseudo_mask = mask_0 + mask_1 from outputs
     let z_diff = funding_mask - pseudo_mask;
-    println!("z_diff (mask difference): {}...", hex::encode(&z_diff.to_bytes()[..8]));
+    println!(
+        "z_diff (mask difference): {}...",
+        hex::encode(&z_diff.to_bytes()[..8])
+    );
 
     let signature = sign_clsag(
         &ring_keys,
@@ -1203,13 +1368,16 @@ async fn main() -> Result<()> {
         &z_diff,
         &key_image,
         &pseudo_out,
-        &clsag_message,  // Use FULL CLSAG message, not just tx_prefix_hash
+        &clsag_message, // Use FULL CLSAG message, not just tx_prefix_hash
     )?;
 
     println!("✅ CLSAG signature computed");
     println!("   c1: {}...", hex::encode(&signature.c1[..8]));
     println!("   s[0]: {}...", hex::encode(&signature.s[0][..8]));
-    println!("   s[real]: {}...", hex::encode(&signature.s[real_position][..8]));
+    println!(
+        "   s[real]: {}...",
+        hex::encode(&signature.s[real_position][..8])
+    );
     println!("   D/8: {}...", hex::encode(&signature.d[..8]));
 
     // Step 9: Attach signature and build complete transaction
@@ -1230,22 +1398,26 @@ async fn main() -> Result<()> {
     };
 
     // Attach CLSAG to builder
-    tx_builder.attach_clsag(&client_sig)
+    tx_builder
+        .attach_clsag(&client_sig)
         .context("Failed to attach CLSAG signature")?;
 
     // Build complete transaction (generates Bulletproof+ and serializes)
     println!("Building transaction with Bulletproof+ range proof...");
-    let build_result: BuildResult = tx_builder.build()
-        .context("Failed to build transaction")?;
+    let build_result: BuildResult = tx_builder.build().context("Failed to build transaction")?;
 
     let tx_hex = &build_result.tx_hex;
     let tx_hash = build_result.tx_hash;
     let tx_size = tx_hex.len() / 2; // hex is 2 chars per byte
     println!("✅ Transaction built successfully!");
     println!("   Size: {} bytes ({} hex chars)", tx_size, tx_hex.len());
-    println!("   TX hex (first 64 chars): {}...", &tx_hex[..64.min(tx_hex.len())]);
+    println!(
+        "   TX hex (first 64 chars): {}...",
+        &tx_hex[..64.min(tx_hex.len())]
+    );
     println!("   TX hash (correct): {}", hex::encode(&tx_hash));
-    println!("   Hash components: prefix={}, base={}, prunable={}",
+    println!(
+        "   Hash components: prefix={}, base={}, prunable={}",
         hex::encode(&build_result.prefix_hash[..8]),
         hex::encode(&build_result.base_hash[..8]),
         hex::encode(&build_result.prunable_hash[..8])
@@ -1265,15 +1437,45 @@ async fn main() -> Result<()> {
 
     println!("Transaction details (v0.70.0 - Platform Fee):");
     println!("  Escrow ID:      {}", escrow_id);
-    println!("  Type:           {}", if is_refund { "REFUND (3% fee)" } else { "RELEASE (5% fee)" });
-    println!("  Input:          {} atomic ({:.12} XMR)", input_amount, input_amount as f64 / 1e12);
-    println!("  Recipient:      {} atomic ({:.12} XMR)", recipient_amount, recipient_amount as f64 / 1e12);
-    println!("  Platform fee:   {} atomic ({:.12} XMR)", platform_fee, platform_fee as f64 / 1e12);
-    println!("  TX fee:         {} atomic ({:.12} XMR)", tx_fee, tx_fee as f64 / 1e12);
-    println!("  Key image:      {}...", hex::encode(&key_image.compress().as_bytes()[..8]));
+    println!(
+        "  Type:           {}",
+        if is_refund {
+            "REFUND (3% fee)"
+        } else {
+            "RELEASE (5% fee)"
+        }
+    );
+    println!(
+        "  Input:          {} atomic ({:.12} XMR)",
+        input_amount,
+        input_amount as f64 / 1e12
+    );
+    println!(
+        "  Recipient:      {} atomic ({:.12} XMR)",
+        recipient_amount,
+        recipient_amount as f64 / 1e12
+    );
+    println!(
+        "  Platform fee:   {} atomic ({:.12} XMR)",
+        platform_fee,
+        platform_fee as f64 / 1e12
+    );
+    println!(
+        "  TX fee:         {} atomic ({:.12} XMR)",
+        tx_fee,
+        tx_fee as f64 / 1e12
+    );
+    println!(
+        "  Key image:      {}...",
+        hex::encode(&key_image.compress().as_bytes()[..8])
+    );
     println!("  TX hash:        {}", hex::encode(&tx_hash));
     println!("  TX file:        {}", tx_file);
-    println!("  Platform wallet: {}...{}", &platform_wallet[..8], &platform_wallet[platform_wallet.len()-8..]);
+    println!(
+        "  Platform wallet: {}...{}",
+        &platform_wallet[..8],
+        &platform_wallet[platform_wallet.len() - 8..]
+    );
     println!();
 
     if should_broadcast {
@@ -1297,8 +1499,10 @@ async fn main() -> Result<()> {
     } else {
         println!("⚠️  DRY RUN - Transaction NOT broadcast");
         println!("   Add --broadcast flag to actually broadcast:");
-        println!("   cargo run --release --bin full_offline_broadcast {} {} {} {} --broadcast",
-            escrow_id, buyer_share_hex, vendor_share_hex, payout_address);
+        println!(
+            "   cargo run --release --bin full_offline_broadcast {} {} {} {} --broadcast",
+            escrow_id, buyer_share_hex, vendor_share_hex, payout_address
+        );
     }
 
     Ok(())

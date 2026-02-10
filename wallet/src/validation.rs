@@ -1,7 +1,6 @@
 /// Validation stricte des URLs pour OPSEC
 ///
 /// TM-004 Fix: Remplace le faible `contains()` par un parsing IP réel
-
 use anyhow::{Context, Result};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use url::Url;
@@ -18,8 +17,7 @@ use url::Url;
 /// - `http://192.168.1.10:18082`
 /// - `http://0.0.0.0:18082`
 pub fn validate_localhost_strict(url_str: &str) -> Result<()> {
-    let url = Url::parse(url_str)
-        .context("URL invalide")?;
+    let url = Url::parse(url_str).context("URL invalide")?;
 
     // Utiliser url.host() qui gère correctement IPv4, IPv6 et domain names
     match url.host() {
@@ -37,20 +35,14 @@ pub fn validate_localhost_strict(url_str: &str) -> Result<()> {
             if ipv4 == Ipv4Addr::LOCALHOST {
                 Ok(())
             } else {
-                anyhow::bail!(
-                    "RPC doit être 127.0.0.1 (OPSEC), pas {}",
-                    ipv4
-                )
+                anyhow::bail!("RPC doit être 127.0.0.1 (OPSEC), pas {}", ipv4)
             }
         }
         Some(url::Host::Ipv6(ipv6)) => {
             if ipv6 == Ipv6Addr::LOCALHOST {
                 Ok(())
             } else {
-                anyhow::bail!(
-                    "RPC doit être ::1 (OPSEC), pas {}",
-                    ipv6
-                )
+                anyhow::bail!("RPC doit être ::1 (OPSEC), pas {}", ipv6)
             }
         }
         None => {

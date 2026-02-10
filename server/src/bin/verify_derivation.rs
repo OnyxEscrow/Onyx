@@ -3,10 +3,10 @@
 // 2. Recipient: derivation = 8 * v * R (view_secret * tx_pubkey)
 // These MUST match for the wallet to detect the output
 
-use sha3::{Digest, Keccak256};
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
+use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Keccak256};
 
 fn main() {
     println!("=== DERIVATION VERIFICATION ===\n");
@@ -63,7 +63,10 @@ fn main() {
     // Sender's derivation = 8 * r * V
     let sender_derivation = (r * view_pub_point).mul_by_cofactor();
     let sender_derivation_bytes = sender_derivation.compress().to_bytes();
-    println!("sender derivation (8*r*V): {}", hex::encode(&sender_derivation_bytes));
+    println!(
+        "sender derivation (8*r*V): {}",
+        hex::encode(&sender_derivation_bytes)
+    );
 
     // === RECIPIENT SIDE ===
     println!("\n--- RECIPIENT SIDE (wallet) ---");
@@ -73,7 +76,10 @@ fn main() {
 
     // Verify: v * G should equal view_pub
     let computed_view_pub = (&*ED25519_BASEPOINT_TABLE * &v).compress().to_bytes();
-    println!("computed view_pub (v*G): {}", hex::encode(&computed_view_pub));
+    println!(
+        "computed view_pub (v*G): {}",
+        hex::encode(&computed_view_pub)
+    );
     if computed_view_pub == view_pub_bytes {
         println!("✅ v*G matches view_pub");
     } else {
@@ -88,7 +94,10 @@ fn main() {
     // Recipient's derivation = 8 * v * R
     let recipient_derivation = (v * tx_pubkey_point).mul_by_cofactor();
     let recipient_derivation_bytes = recipient_derivation.compress().to_bytes();
-    println!("recipient derivation (8*v*R): {}", hex::encode(&recipient_derivation_bytes));
+    println!(
+        "recipient derivation (8*v*R): {}",
+        hex::encode(&recipient_derivation_bytes)
+    );
 
     // === COMPARE ===
     println!("\n--- COMPARISON ---");
@@ -110,9 +119,13 @@ fn main() {
     loop {
         let mut byte = (val & 0x7F) as u8;
         val >>= 7;
-        if val != 0 { byte |= 0x80; }
+        if val != 0 {
+            byte |= 0x80;
+        }
         output_index_varint.push(byte);
-        if val == 0 { break; }
+        if val == 0 {
+            break;
+        }
     }
 
     // H_s(derivation || output_index)
@@ -129,7 +142,10 @@ fn main() {
         .expect("Failed to decompress spend_pub");
     let h_s_g = &*ED25519_BASEPOINT_TABLE * &h_s;
     let stealth_address = (h_s_g + spend_pub_point).compress().to_bytes();
-    println!("computed stealth_address: {}", hex::encode(&stealth_address));
+    println!(
+        "computed stealth_address: {}",
+        hex::encode(&stealth_address)
+    );
 
     // Expected from blockchain
     let expected_stealth = "dec8d25c25767255031d74ff8c926e91797bd65667f7817478128513fb5a1543";

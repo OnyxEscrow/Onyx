@@ -144,7 +144,8 @@ impl From<Notification> for NotificationResponse {
         };
 
         // Convert notification_type to JS-friendly format (e.g., "new_order" -> "order")
-        let type_alias = n.notification_type
+        let type_alias = n
+            .notification_type
             .trim_start_matches("new_")
             .trim_end_matches("_update")
             .trim_end_matches("_changed")
@@ -184,10 +185,7 @@ impl Notification {
     }
 
     /// Get unread notifications count for a user
-    pub fn count_unread(
-        user_id: &str,
-        conn: &mut SqliteConnection,
-    ) -> Result<i64> {
+    pub fn count_unread(user_id: &str, conn: &mut SqliteConnection) -> Result<i64> {
         use crate::schema::notifications::dsl;
 
         let count = dsl::notifications
@@ -237,10 +235,7 @@ impl Notification {
     }
 
     /// Mark all notifications as read for a user
-    pub fn mark_all_as_read(
-        user_id: &str,
-        conn: &mut SqliteConnection,
-    ) -> Result<usize> {
+    pub fn mark_all_as_read(user_id: &str, conn: &mut SqliteConnection) -> Result<usize> {
         use crate::schema::notifications::dsl;
 
         let updated = diesel::update(

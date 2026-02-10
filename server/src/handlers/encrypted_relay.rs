@@ -362,17 +362,15 @@ pub async fn get_encrypted_relay(
 
     // Find pending relay
     let relay = match EncryptedRelay::find_pending_by_escrow(&mut conn, &escrow_id) {
-        Ok(relays) => {
-            match relays.into_iter().next() {
-                Some(r) => r,
-                None => {
-                    return HttpResponse::NotFound().json(ErrorResponse {
-                        success: false,
-                        error: "No pending relay for this escrow".to_string(),
-                    });
-                }
+        Ok(relays) => match relays.into_iter().next() {
+            Some(r) => r,
+            None => {
+                return HttpResponse::NotFound().json(ErrorResponse {
+                    success: false,
+                    error: "No pending relay for this escrow".to_string(),
+                });
             }
-        }
+        },
         Err(e) => {
             error!("DB query error: {}", e);
             return HttpResponse::InternalServerError().json(ErrorResponse {

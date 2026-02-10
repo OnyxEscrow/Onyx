@@ -366,7 +366,10 @@ where
                     // Validate UUID format
                     if uuid::Uuid::parse_str(&user_id).is_err() {
                         warn!("⚠️  TEST_AUTH_BYPASS: Invalid UUID format in X-Test-User-Id");
-                        return Err(ApiError::Unauthorized("Invalid test user ID format".to_string()).into());
+                        return Err(ApiError::Unauthorized(
+                            "Invalid test user ID format".to_string(),
+                        )
+                        .into());
                     }
 
                     warn!(
@@ -408,10 +411,7 @@ where
 }
 
 #[cfg(debug_assertions)]
-async fn run_normal_auth<S, B>(
-    req: ServiceRequest,
-    svc: Rc<S>,
-) -> Result<ServiceResponse<B>, Error>
+async fn run_normal_auth<S, B>(req: ServiceRequest, svc: Rc<S>) -> Result<ServiceResponse<B>, Error>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
 {
@@ -444,18 +444,17 @@ where
 
     let user_id_for_lookup = user_id.clone();
     let user_id_for_warn = user_id.clone();
-    let user =
-        actix_web::web::block(move || User::find_by_id(&mut conn, user_id_for_lookup))
-            .await
-            .context("Database query failed")
-            .map_err(|e| {
-                warn!(error = %e, "User lookup failed");
-                ApiError::Internal("Database error".to_string())
-            })?
-            .map_err(|_| {
-                warn!(user_id = %user_id_for_warn, "Session refers to non-existent user");
-                ApiError::Unauthorized("Invalid session".to_string())
-            })?;
+    let user = actix_web::web::block(move || User::find_by_id(&mut conn, user_id_for_lookup))
+        .await
+        .context("Database query failed")
+        .map_err(|e| {
+            warn!(error = %e, "User lookup failed");
+            ApiError::Internal("Database error".to_string())
+        })?
+        .map_err(|_| {
+            warn!(user_id = %user_id_for_warn, "Session refers to non-existent user");
+            ApiError::Unauthorized("Invalid session".to_string())
+        })?;
 
     req.extensions_mut().insert(user);
     svc.call(req).await

@@ -150,20 +150,16 @@ impl DisputeRequest {
     /// `data:image/png;base64,iVBORw0KGgoAAAANS...`
     #[cfg(feature = "qr_generation")]
     pub fn to_qr_data_uri(&self) -> Result<String> {
-        use qrcode::QrCode;
         use qrcode::render::png;
+        use qrcode::QrCode;
 
         let json = self.to_json()?;
 
         // Generate QR code (error correction level Medium)
-        let code = QrCode::new(json.as_bytes())
-            .context("Failed to generate QR code")?;
+        let code = QrCode::new(json.as_bytes()).context("Failed to generate QR code")?;
 
         // Render as PNG with 10px module size
-        let png_data = code
-            .render::<png::Color>()
-            .min_dimensions(400, 400)
-            .build();
+        let png_data = code.render::<png::Color>().min_dimensions(400, 400).build();
 
         // Encode as base64 data URI
         let base64_png = base64::encode(&png_data);
@@ -220,18 +216,14 @@ impl ArbiterDecision {
     /// Generate QR code data URI (base64-encoded PNG)
     #[cfg(feature = "qr_generation")]
     pub fn to_qr_data_uri(&self) -> Result<String> {
-        use qrcode::QrCode;
         use qrcode::render::png;
+        use qrcode::QrCode;
 
         let json = self.to_json()?;
 
-        let code = QrCode::new(json.as_bytes())
-            .context("Failed to generate QR code")?;
+        let code = QrCode::new(json.as_bytes()).context("Failed to generate QR code")?;
 
-        let png_data = code
-            .render::<png::Color>()
-            .min_dimensions(400, 400)
-            .build();
+        let png_data = code.render::<png::Color>().min_dimensions(400, 400).build();
 
         let base64_png = base64::encode(&png_data);
         Ok(format!("data:image/png;base64,{}", base64_png))
@@ -264,7 +256,11 @@ impl ArbiterDecision {
             anyhow::bail!("Invalid decision_signature: expected 128 hex chars (64 bytes)");
         }
 
-        if !self.decision_signature.chars().all(|c| c.is_ascii_hexdigit()) {
+        if !self
+            .decision_signature
+            .chars()
+            .all(|c| c.is_ascii_hexdigit())
+        {
             anyhow::bail!("Invalid decision_signature: must be hexadecimal");
         }
 
@@ -309,14 +305,18 @@ impl ArbiterDecision {
         let message = hasher.finalize();
 
         // 2. Parse arbiter public key
-        let pubkey_bytes = hex::decode(arbiter_pubkey)
-            .context("Invalid arbiter_pubkey: not valid hex")?;
+        let pubkey_bytes =
+            hex::decode(arbiter_pubkey).context("Invalid arbiter_pubkey: not valid hex")?;
 
         if pubkey_bytes.len() != 32 {
-            anyhow::bail!("Invalid arbiter_pubkey: expected 32 bytes, got {}", pubkey_bytes.len());
+            anyhow::bail!(
+                "Invalid arbiter_pubkey: expected 32 bytes, got {}",
+                pubkey_bytes.len()
+            );
         }
 
-        let pubkey: [u8; 32] = pubkey_bytes.try_into()
+        let pubkey: [u8; 32] = pubkey_bytes
+            .try_into()
             .map_err(|_| anyhow::anyhow!("Failed to convert pubkey to [u8; 32]"))?;
 
         let verifying_key = VerifyingKey::from_bytes(&pubkey)
@@ -327,10 +327,14 @@ impl ArbiterDecision {
             .context("Invalid decision_signature: not valid hex")?;
 
         if sig_bytes.len() != 64 {
-            anyhow::bail!("Invalid decision_signature: expected 64 bytes, got {}", sig_bytes.len());
+            anyhow::bail!(
+                "Invalid decision_signature: expected 64 bytes, got {}",
+                sig_bytes.len()
+            );
         }
 
-        let sig_array: [u8; 64] = sig_bytes.try_into()
+        let sig_array: [u8; 64] = sig_bytes
+            .try_into()
             .map_err(|_| anyhow::anyhow!("Failed to convert signature to [u8; 64]"))?;
 
         let signature = Signature::from_bytes(&sig_array);
@@ -453,8 +457,8 @@ mod tests {
 
     #[test]
     fn test_signature_verification() -> Result<()> {
-        use ed25519_dalek::{Signer, SigningKey};
         use blake2::{Blake2b512, Digest};
+        use ed25519_dalek::{Signer, SigningKey};
 
         // Generate arbiter keypair
         let signing_key = SigningKey::from_bytes(&random_bytes_32());

@@ -17,10 +17,9 @@ fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     // Get database URL and encryption key
-    let database_url = env::var("DATABASE_URL")
-        .context("DATABASE_URL must be set in .env file")?;
-    let encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY must be set in .env file")?;
+    let database_url = env::var("DATABASE_URL").context("DATABASE_URL must be set in .env file")?;
+    let encryption_key =
+        env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY must be set in .env file")?;
 
     println!("📁 Database: {}", database_url);
     println!("🔑 Using encryption key from .env\n");

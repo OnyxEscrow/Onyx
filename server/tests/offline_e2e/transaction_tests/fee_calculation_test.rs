@@ -141,7 +141,11 @@ fn test_fee_u64_max_no_panic() {
     // This should succeed because we use u128 for intermediate calculation
     // u64::MAX * 10000 / 10000 = u64::MAX
     assert!(fee.is_some(), "u64::MAX with 100% fee should work");
-    assert_eq!(fee.unwrap(), u64::MAX, "100% of u64::MAX should be u64::MAX");
+    assert_eq!(
+        fee.unwrap(),
+        u64::MAX,
+        "100% of u64::MAX should be u64::MAX"
+    );
 }
 
 #[test]
@@ -275,16 +279,12 @@ fn test_fee_percentage_bounds() {
 fn test_minimum_fee_applied() {
     // Very small amount where 3% < min fee
     let amount = 1_000_000_000u64; // 0.001 XMR
-    let min_fee = MIN_NETWORK_FEE;  // 0.0001 XMR
+    let min_fee = MIN_NETWORK_FEE; // 0.0001 XMR
 
     // 3% of 0.001 XMR = 0.00003 XMR < min
     let fee = calculate_fee_with_min(amount, 300, min_fee).unwrap();
 
-    assert_eq!(
-        fee, min_fee,
-        "Fee should be at least minimum ({})",
-        min_fee
-    );
+    assert_eq!(fee, min_fee, "Fee should be at least minimum ({})", min_fee);
 }
 
 #[test]
@@ -310,12 +310,7 @@ fn test_minimum_fee_edge_case() {
     let fee = calculate_fee_with_min(amount, 300, min_fee).unwrap();
 
     // Should be approximately min_fee (rounding may differ slightly)
-    assert!(
-        fee >= min_fee,
-        "Fee {} should be >= min {}",
-        fee,
-        min_fee
-    );
+    assert!(fee >= min_fee, "Fee {} should be >= min {}", fee, min_fee);
 }
 
 // ============================================================================
@@ -549,7 +544,10 @@ fn test_split_payment_large_amount() {
     let order = MAX_SAFE_AMOUNT;
     let buyer_total = calculate_buyer_total(order, 300);
 
-    assert!(buyer_total.is_some(), "Large split payment should not overflow");
+    assert!(
+        buyer_total.is_some(),
+        "Large split payment should not overflow"
+    );
 }
 
 // ============================================================================
@@ -571,11 +569,7 @@ fn test_fee_basis_point_precision() {
     for bps in 1..=100 {
         let fee = calculate_fee_bps(amount, bps).unwrap();
         let expected = amount * bps / 10000;
-        assert_eq!(
-            fee, expected,
-            "Fee at {} bps should be precise",
-            bps
-        );
+        assert_eq!(fee, expected, "Fee at {} bps should be precise", bps);
     }
 }
 

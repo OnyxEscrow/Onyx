@@ -5,8 +5,8 @@
 
 use actix_web::{get, web, HttpResponse};
 use monero_marketplace_wallet::{
-    DaemonPool,
     fee_estimation::{default_fee_estimate, FeeEstimate, FeePriority},
+    DaemonPool,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -121,7 +121,10 @@ pub async fn get_fee_estimate(
     let estimate = match daemon_pool.get_fee_estimate(priority).await {
         Ok(est) => est,
         Err(e) => {
-            tracing::warn!("Failed to get fee estimate from daemon: {}, using default", e);
+            tracing::warn!(
+                "Failed to get fee estimate from daemon: {}, using default",
+                e
+            );
             default_fee_estimate(priority)
         }
     };
@@ -157,9 +160,7 @@ pub async fn get_fee_estimate(
 /// }
 /// ```
 #[get("/v1/fees/all")]
-pub async fn get_all_fee_estimates(
-    daemon_pool: web::Data<Arc<DaemonPool>>,
-) -> HttpResponse {
+pub async fn get_all_fee_estimates(daemon_pool: web::Data<Arc<DaemonPool>>) -> HttpResponse {
     // Get daemon info for height
     let (daemon_height, daemon_url) = match daemon_pool.get_info().await {
         Ok(info) => (Some(info.height), Some(info.served_by)),
@@ -170,7 +171,10 @@ pub async fn get_all_fee_estimates(
     let estimates = match daemon_pool.get_all_fee_estimates().await {
         Ok(ests) => ests.into_iter().map(FeeEstimateResponse::from).collect(),
         Err(e) => {
-            tracing::warn!("Failed to get fee estimates from daemon: {}, using defaults", e);
+            tracing::warn!(
+                "Failed to get fee estimates from daemon: {}, using defaults",
+                e
+            );
             vec![
                 FeeEstimateResponse::from(default_fee_estimate(FeePriority::Unimportant)),
                 FeeEstimateResponse::from(default_fee_estimate(FeePriority::Normal)),
@@ -224,9 +228,7 @@ pub struct DaemonHealthSummary {
 /// }
 /// ```
 #[get("/v1/daemon/health")]
-pub async fn get_daemon_health(
-    daemon_pool: web::Data<Arc<DaemonPool>>,
-) -> HttpResponse {
+pub async fn get_daemon_health(daemon_pool: web::Data<Arc<DaemonPool>>) -> HttpResponse {
     let health_results = daemon_pool.get_all_health().await;
 
     let total = health_results.len();

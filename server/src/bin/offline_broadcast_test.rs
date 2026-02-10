@@ -14,8 +14,8 @@ use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use monero_generators_mirror::hash_to_point;
-use sha3::{Digest, Keccak256};
 use serde::{Deserialize, Serialize};
+use sha3::{Digest, Keccak256};
 
 // ============================================================================
 // VERIFIED CONSTANTS from FROST_CLSAG_VERIFICATION_STATUS.md (escrow ef57f177)
@@ -28,7 +28,8 @@ const FUNDING_TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c0
 const FUNDING_OUTPUT_INDEX: u64 = 1;
 const FUNDING_GLOBAL_INDEX: u64 = 9670786;
 const FUNDING_MASK: &str = "c254d7f8dc4ccfbc7bbab6925a611398ca5c93ab9f3b8c731620ae168a3a4508";
-const EXPECTED_ONE_TIME_PUBKEY: &str = "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
+const EXPECTED_ONE_TIME_PUBKEY: &str =
+    "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
 const EXPECTED_KEY_IMAGE: &str = "8ffbfb305308f35ac4bba545fc33257fc9d91f031959529a48bb7e8ef81d75ff";
 
 // Destination (vendor payout address - main spend pubkey)
@@ -179,7 +180,11 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
     let mut indices: Vec<u64> = Vec::with_capacity(16);
 
     // Add some decoys before the real output
-    let start = if real_index > 1000 { real_index - 1000 } else { 0 };
+    let start = if real_index > 1000 {
+        real_index - 1000
+    } else {
+        0
+    };
     for i in 0..15 {
         let idx = start + i * 60 + (i * 7) % 50; // Spread out decoys
         if idx != real_index && idx < real_index + 1000 {
@@ -201,11 +206,20 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
     indices.sort();
 
     println!("Ring indices: {:?}", indices);
-    println!("Real output at position: {}", indices.iter().position(|&x| x == real_index).unwrap());
+    println!(
+        "Real output at position: {}",
+        indices.iter().position(|&x| x == real_index).unwrap()
+    );
 
     // Fetch outputs from daemon
     let params = GetOutsParams {
-        outputs: indices.iter().map(|&i| OutputIndex { amount: 0, index: i }).collect(),
+        outputs: indices
+            .iter()
+            .map(|&i| OutputIndex {
+                amount: 0,
+                index: i,
+            })
+            .collect(),
         get_txid: true,
     };
 
@@ -217,7 +231,10 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
         .await
         .context("Failed to fetch ring members")?;
 
-    let result: GetOutsResult = response.json().await.context("Failed to parse get_outs response")?;
+    let result: GetOutsResult = response
+        .json()
+        .await
+        .context("Failed to parse get_outs response")?;
 
     if result.outs.len() != 16 {
         anyhow::bail!("Expected 16 ring members, got {}", result.outs.len());
@@ -241,7 +258,11 @@ async fn check_key_image_spent(client: &reqwest::Client, key_image: &str) -> Res
 
     let result: IsKeyImageSpentResult = response.json().await?;
 
-    Ok(result.spent_status.first().map(|&s| s != 0).unwrap_or(false))
+    Ok(result
+        .spent_status
+        .first()
+        .map(|&s| s != 0)
+        .unwrap_or(false))
 }
 
 // ============================================================================
@@ -249,8 +270,8 @@ async fn check_key_image_spent(client: &reqwest::Client, key_image: &str) -> Res
 // ============================================================================
 
 struct ClsagSignature {
-    s: Vec<Scalar>,      // 16 s-values
-    c1: Scalar,          // Initial challenge
+    s: Vec<Scalar>, // 16 s-values
+    c1: Scalar,     // Initial challenge
     key_image: EdwardsPoint,
     d_inv8: EdwardsPoint, // D/8 for mask verification
 }
@@ -303,9 +324,9 @@ fn sign_clsag_frost(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
     real_index: usize,
-    x_total: &Scalar,          // d + λ₁*b₁ + λ₂*b₂
+    x_total: &Scalar, // d + λ₁*b₁ + λ₂*b₂
     key_image: &EdwardsPoint,
-    mask_delta: &Scalar,       // z - pseudo_out_mask
+    mask_delta: &Scalar, // z - pseudo_out_mask
     pseudo_out: &EdwardsPoint,
 ) -> Result<ClsagSignature> {
     use rand::RngCore;
@@ -489,26 +510,33 @@ async fn main() -> Result<()> {
 
     let ring_members = fetch_ring_members(&client, FUNDING_GLOBAL_INDEX).await?;
 
-    let real_ring_idx = ring_members.iter().position(|o| {
-        o.key == EXPECTED_ONE_TIME_PUBKEY
-    });
+    let real_ring_idx = ring_members
+        .iter()
+        .position(|o| o.key == EXPECTED_ONE_TIME_PUBKEY);
 
     match real_ring_idx {
         Some(idx) => println!("✅ Real output found at ring index {}", idx),
         None => {
             println!("⚠️  Real output not in fetched ring - checking if key matches...");
             for (i, o) in ring_members.iter().enumerate() {
-                println!("  Ring[{}]: key={}, unlocked={}", i, &o.key[..16], o.unlocked);
+                println!(
+                    "  Ring[{}]: key={}, unlocked={}",
+                    i,
+                    &o.key[..16],
+                    o.unlocked
+                );
             }
         }
     }
 
     // Parse ring keys and commitments
-    let ring_keys: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_keys: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|o| hex_to_point(&o.key))
         .collect::<Result<Vec<_>>>()?;
 
-    let ring_commitments: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_commitments: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|o| hex_to_point(&o.mask))
         .collect::<Result<Vec<_>>>()?;
 
@@ -528,7 +556,10 @@ async fn main() -> Result<()> {
     let pseudo_out = &pseudo_out_mask * ED25519_BASEPOINT_TABLE + Scalar::from(AMOUNT) * h_point;
 
     println!("Funding mask: {}...", &FUNDING_MASK[..16]);
-    println!("mask_delta: {} (should be zero for balanced)", hex::encode(&mask_delta.to_bytes()[..8]));
+    println!(
+        "mask_delta: {} (should be zero for balanced)",
+        hex::encode(&mask_delta.to_bytes()[..8])
+    );
 
     // Step 5: Build tx_prefix and compute hash
     println!("\n=== STEP 5: Build TX Prefix ===\n");
@@ -540,11 +571,11 @@ async fn main() -> Result<()> {
     tx_prefix.push(0x01); // 1 input
     tx_prefix.push(0x02); // Input type (txin_to_key)
     tx_prefix.extend_from_slice(&encode_varint(AMOUNT)); // Amount (0 for RCT)
-    tx_prefix.push(16);   // Ring size as key offsets count
-    // ... (ring offsets would go here)
+    tx_prefix.push(16); // Ring size as key offsets count
+                        // ... (ring offsets would go here)
     tx_prefix.extend_from_slice(key_image.compress().as_bytes()); // Key image
     tx_prefix.push(0x02); // 2 outputs (destination + change)
-    // ... outputs ...
+                          // ... outputs ...
 
     let tx_prefix_hash: [u8; 32] = {
         let mut hasher = Keccak256::new();
@@ -570,8 +601,14 @@ async fn main() -> Result<()> {
 
     println!("✅ CLSAG signature computed");
     println!("   c1: {}...", hex::encode(&signature.c1.to_bytes()[..8]));
-    println!("   s[0]: {}...", hex::encode(&signature.s[0].to_bytes()[..8]));
-    println!("   s[real]: {}...", hex::encode(&signature.s[real_idx].to_bytes()[..8]));
+    println!(
+        "   s[0]: {}...",
+        hex::encode(&signature.s[0].to_bytes()[..8])
+    );
+    println!(
+        "   s[real]: {}...",
+        hex::encode(&signature.s[real_idx].to_bytes()[..8])
+    );
 
     // Step 7: Summary
     println!("\n╔══════════════════════════════════════════════════════════════════════════╗");

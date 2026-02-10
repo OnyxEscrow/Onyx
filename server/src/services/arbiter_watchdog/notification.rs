@@ -17,10 +17,7 @@ use crate::services::arbiter_watchdog::config::WatchdogConfig;
 #[derive(Clone)]
 pub enum NotificationChannel {
     /// Telegram bot notification
-    Telegram {
-        bot_token: String,
-        chat_id: String,
-    },
+    Telegram { bot_token: String, chat_id: String },
     /// Email notification via SMTP
     Email {
         smtp_host: String,
@@ -31,9 +28,7 @@ pub enum NotificationChannel {
         recipient: String,
     },
     /// Webhook notification
-    Webhook {
-        url: String,
-    },
+    Webhook { url: String },
 }
 
 /// Notification service for multi-channel alerts
@@ -173,7 +168,10 @@ impl NotificationService {
     /// Send message to all configured channels
     async fn send_all(&self, message: &str) -> Result<()> {
         if self.channels.is_empty() {
-            warn!("No notification channels - message only logged: {}", message);
+            warn!(
+                "No notification channels - message only logged: {}",
+                message
+            );
             return Ok(());
         }
 
@@ -195,10 +193,7 @@ impl NotificationService {
             ))
         } else {
             // Some channels succeeded
-            warn!(
-                "Some notification channels failed: {}",
-                errors.join("; ")
-            );
+            warn!("Some notification channels failed: {}", errors.join("; "));
             Ok(())
         }
     }
@@ -228,9 +223,7 @@ impl NotificationService {
                 )
                 .await
             }
-            NotificationChannel::Webhook { url } => {
-                self.send_webhook(url, message).await
-            }
+            NotificationChannel::Webhook { url } => self.send_webhook(url, message).await,
         }
     }
 
@@ -262,11 +255,7 @@ impl NotificationService {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!(
-                "Telegram API error: {} - {}",
-                status,
-                body
-            ));
+            return Err(anyhow::anyhow!("Telegram API error: {} - {}", status, body));
         }
 
         info!("Telegram notification sent");
@@ -340,11 +329,7 @@ impl NotificationService {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!(
-                "Webhook error: {} - {}",
-                status,
-                body
-            ));
+            return Err(anyhow::anyhow!("Webhook error: {} - {}", status, body));
         }
 
         info!("Webhook notification sent");

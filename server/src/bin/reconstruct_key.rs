@@ -179,8 +179,7 @@ mod tests {
         ];
 
         for combo in combinations {
-            let selected_shares: Vec<Vec<u8>> =
-                combo.iter().map(|&i| shares[i].clone()).collect();
+            let selected_shares: Vec<Vec<u8>> = combo.iter().map(|&i| shares[i].clone()).collect();
 
             let reconstructed = reconstruct_key(&selected_shares)?;
             assert_eq!(

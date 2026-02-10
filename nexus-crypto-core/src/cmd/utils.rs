@@ -143,9 +143,10 @@ pub fn extract_spend_pub_from_address(address: &str) -> CryptoResult<[u8; 32]> {
     let decoded = monero_base58_decode(address);
 
     if decoded.len() < 65 {
-        return Err(CryptoError::MaskDerivationFailed(
-            alloc::format!("Address too short: {} bytes, need at least 65", decoded.len())
-        ));
+        return Err(CryptoError::MaskDerivationFailed(alloc::format!(
+            "Address too short: {} bytes, need at least 65",
+            decoded.len()
+        )));
     }
 
     // Spend public key is bytes 1-33 (after network byte)
@@ -167,9 +168,10 @@ pub fn extract_view_pub_from_address(address: &str) -> CryptoResult<[u8; 32]> {
     let decoded = monero_base58_decode(address);
 
     if decoded.len() < 65 {
-        return Err(CryptoError::MaskDerivationFailed(
-            alloc::format!("Address too short: {} bytes, need at least 65", decoded.len())
-        ));
+        return Err(CryptoError::MaskDerivationFailed(alloc::format!(
+            "Address too short: {} bytes, need at least 65",
+            decoded.len()
+        )));
     }
 
     // View public key is bytes 33-65

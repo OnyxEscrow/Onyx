@@ -243,9 +243,10 @@ async fn fetch_post<T: Serialize>(url: &str, body: &T) -> Result<JsValue, JsValu
     // Check status
     if !resp.ok() {
         let status = resp.status();
-        let error_text = JsFuture::from(resp.text().unwrap_or_else(|_| {
-            js_sys::Promise::resolve(&JsValue::from_str("Unknown error"))
-        }))
+        let error_text = JsFuture::from(
+            resp.text()
+                .unwrap_or_else(|_| js_sys::Promise::resolve(&JsValue::from_str("Unknown error"))),
+        )
         .await
         .unwrap_or_else(|_| JsValue::from_str("Unknown error"));
 
@@ -257,9 +258,10 @@ async fn fetch_post<T: Serialize>(url: &str, body: &T) -> Result<JsValue, JsValu
     }
 
     // Parse JSON response
-    let json = JsFuture::from(resp.json().map_err(|e| {
-        JsValue::from_str(&format!("JSON parse failed: {:?}", e))
-    })?)
+    let json = JsFuture::from(
+        resp.json()
+            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {:?}", e)))?,
+    )
     .await?;
 
     Ok(json)
@@ -288,9 +290,10 @@ async fn fetch_get(url: &str) -> Result<JsValue, JsValue> {
 
     if !resp.ok() {
         let status = resp.status();
-        let error_text = JsFuture::from(resp.text().unwrap_or_else(|_| {
-            js_sys::Promise::resolve(&JsValue::from_str("Unknown error"))
-        }))
+        let error_text = JsFuture::from(
+            resp.text()
+                .unwrap_or_else(|_| js_sys::Promise::resolve(&JsValue::from_str("Unknown error"))),
+        )
         .await
         .unwrap_or_else(|_| JsValue::from_str("Unknown error"));
 
@@ -301,9 +304,10 @@ async fn fetch_get(url: &str) -> Result<JsValue, JsValue> {
         )));
     }
 
-    let json = JsFuture::from(resp.json().map_err(|e| {
-        JsValue::from_str(&format!("JSON parse failed: {:?}", e))
-    })?)
+    let json = JsFuture::from(
+        resp.json()
+            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {:?}", e)))?,
+    )
     .await?;
 
     Ok(json)

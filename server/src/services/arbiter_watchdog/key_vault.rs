@@ -60,8 +60,8 @@ impl ArbiterKeyVault {
     fn derive_key(password: &str) -> Result<[u8; 32]> {
         // Use a fixed salt for deterministic key derivation
         // This is acceptable because the password provides the entropy
-        let salt = SaltString::encode_b64(b"NEXUS_ARBITER_VAULT_V1")
-            .context("Failed to create salt")?;
+        let salt =
+            SaltString::encode_b64(b"NEXUS_ARBITER_VAULT_V1").context("Failed to create salt")?;
 
         let argon2 = Argon2::default();
 
@@ -70,9 +70,9 @@ impl ArbiterKeyVault {
             .context("Failed to hash password with Argon2id")?;
 
         // Extract the hash output (32 bytes for our key)
-        let hash_output = password_hash.hash.ok_or_else(|| {
-            anyhow::anyhow!("Argon2 password hash missing output")
-        })?;
+        let hash_output = password_hash
+            .hash
+            .ok_or_else(|| anyhow::anyhow!("Argon2 password hash missing output"))?;
 
         let hash_bytes = hash_output.as_bytes();
         if hash_bytes.len() < 32 {
@@ -105,7 +105,8 @@ impl ArbiterKeyVault {
         let key = format!("{}{}", KEY_PREFIX, escrow_id);
 
         // Store as base64-encoded ciphertext
-        let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
+        let encoded =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
         conn.set_ex::<_, _, ()>(&key, &encoded, KEY_TTL_SECS as u64)
             .await
             .context("Failed to store key_package in Redis")?;
@@ -140,13 +141,14 @@ impl ArbiterKeyVault {
         match encoded {
             Some(data) => {
                 // Decode base64
-                let encrypted = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &data)
-                    .context("Failed to decode base64 ciphertext")?;
+                let encrypted =
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &data)
+                        .context("Failed to decode base64 ciphertext")?;
 
                 // Decrypt
                 let decrypted = self.decrypt(&encrypted)?;
-                let key_package_hex = String::from_utf8(decrypted)
-                    .context("Decrypted data is not valid UTF-8")?;
+                let key_package_hex =
+                    String::from_utf8(decrypted).context("Decrypted data is not valid UTF-8")?;
 
                 debug!(escrow_id = %escrow_id, "Key package retrieved from vault");
                 Ok(Some(key_package_hex))
@@ -247,7 +249,8 @@ impl ArbiterKeyVault {
         let mut conn = get_conn(&self.redis_pool).await?;
         let key = format!("{}{}", DKG_R1_PREFIX, escrow_id);
 
-        let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
+        let encoded =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
         conn.set_ex::<_, _, ()>(&key, &encoded, DKG_SECRET_TTL_SECS as u64)
             .await
             .context("Failed to store R1 secret in Redis")?;
@@ -265,11 +268,9 @@ impl ArbiterKeyVault {
 
         match encoded {
             Some(data) => {
-                let encrypted = base64::Engine::decode(
-                    &base64::engine::general_purpose::STANDARD,
-                    &data,
-                )
-                .context("Failed to decode R1 secret")?;
+                let encrypted =
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &data)
+                        .context("Failed to decode R1 secret")?;
                 let decrypted = self.decrypt(&encrypted)?;
                 let secret_hex =
                     String::from_utf8(decrypted).context("R1 secret is not valid UTF-8")?;
@@ -285,7 +286,8 @@ impl ArbiterKeyVault {
         let mut conn = get_conn(&self.redis_pool).await?;
         let key = format!("{}{}", DKG_R2_PREFIX, escrow_id);
 
-        let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
+        let encoded =
+            base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
         conn.set_ex::<_, _, ()>(&key, &encoded, DKG_SECRET_TTL_SECS as u64)
             .await
             .context("Failed to store R2 secret in Redis")?;
@@ -303,11 +305,9 @@ impl ArbiterKeyVault {
 
         match encoded {
             Some(data) => {
-                let encrypted = base64::Engine::decode(
-                    &base64::engine::general_purpose::STANDARD,
-                    &data,
-                )
-                .context("Failed to decode R2 secret")?;
+                let encrypted =
+                    base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &data)
+                        .context("Failed to decode R2 secret")?;
                 let decrypted = self.decrypt(&encrypted)?;
                 let secret_hex =
                     String::from_utf8(decrypted).context("R2 secret is not valid UTF-8")?;
@@ -352,7 +352,9 @@ mod tests {
         let key = ArbiterKeyVault::derive_key(password).unwrap();
 
         // Create vault-like encryption context
-        let vault = ArbiterKeyVaultContext { encryption_key: key };
+        let vault = ArbiterKeyVaultContext {
+            encryption_key: key,
+        };
 
         let plaintext = b"secret_key_package_data_12345";
         let encrypted = vault.encrypt(plaintext).unwrap();

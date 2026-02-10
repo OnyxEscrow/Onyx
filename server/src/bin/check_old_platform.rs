@@ -1,10 +1,10 @@
 // Check if output[1] was generated with the OLD platform address (subaddress 75wC...)
 // instead of the NEW primary address (58WZH...)
 
-use sha3::{Digest, Keccak256};
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
+use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Keccak256};
 
 // OLD platform address (subaddress)
 const OLD_PLATFORM_ADDRESS: &str = "75wCKnwCxc3ZMLKdupfe8KKXDV6nGik3tRorFffyic8QLy7gqLUeRfeGFzf2seD4kSiY9mSzQFvzd5JyaAuxc8iqJbD1tcs";
@@ -13,12 +13,12 @@ const OLD_PLATFORM_ADDRESS: &str = "75wCKnwCxc3ZMLKdupfe8KKXDV6nGik3tRorFffyic8Q
 const NEW_PLATFORM_ADDRESS: &str = "58WZHPMi4UZbb6jmyphVHiDNkYXNf8wLWhjB4SxHBvG9YNHsyZmntHjj9junfWQJjqixi48rWpoWWGgZBPjrE6HMUKNfmZx";
 
 // Actual output[1] from blockchain
-const BLOCKCHAIN_OUTPUT_1_KEY: &str = "dec8d25c25767255031d74ff8c926e91797bd65667f7817478128513fb5a1543";
+const BLOCKCHAIN_OUTPUT_1_KEY: &str =
+    "dec8d25c25767255031d74ff8c926e91797bd65667f7817478128513fb5a1543";
 const BLOCKCHAIN_OUTPUT_1_VIEWTAG: u8 = 0x54;
 
 fn parse_address(address: &str) -> ([u8; 32], [u8; 32]) {
-    let decoded = base58_monero::decode_check(address)
-        .expect("Failed to decode address");
+    let decoded = base58_monero::decode_check(address).expect("Failed to decode address");
 
     let mut spend_pub = [0u8; 32];
     let mut view_pub = [0u8; 32];
@@ -65,9 +65,13 @@ fn compute_stealth_address(
     loop {
         let mut byte = (val & 0x7F) as u8;
         val >>= 7;
-        if val != 0 { byte |= 0x80; }
+        if val != 0 {
+            byte |= 0x80;
+        }
         output_index_varint.push(byte);
-        if val == 0 { break; }
+        if val == 0 {
+            break;
+        }
     }
 
     // H_s(derivation || output_index)
@@ -109,7 +113,10 @@ fn main() {
 
     println!("tx_secret_key: {}", hex::encode(&tx_secret_key));
     println!("Blockchain output[1] key: {}", BLOCKCHAIN_OUTPUT_1_KEY);
-    println!("Blockchain output[1] view_tag: 0x{:02x}\n", BLOCKCHAIN_OUTPUT_1_VIEWTAG);
+    println!(
+        "Blockchain output[1] view_tag: 0x{:02x}\n",
+        BLOCKCHAIN_OUTPUT_1_VIEWTAG
+    );
 
     // Parse OLD address
     println!("--- OLD Platform Address (subaddress 75wC...) ---");
@@ -117,7 +124,8 @@ fn main() {
     println!("spend_pub: {}", hex::encode(&old_spend_pub));
     println!("view_pub:  {}", hex::encode(&old_view_pub));
 
-    let (old_stealth, old_vt) = compute_stealth_address(&tx_secret_key, &old_spend_pub, &old_view_pub, 1);
+    let (old_stealth, old_vt) =
+        compute_stealth_address(&tx_secret_key, &old_spend_pub, &old_view_pub, 1);
     println!("Computed stealth_address: {}", hex::encode(&old_stealth));
     println!("Computed view_tag: 0x{:02x}", old_vt);
 
@@ -133,7 +141,8 @@ fn main() {
     println!("spend_pub: {}", hex::encode(&new_spend_pub));
     println!("view_pub:  {}", hex::encode(&new_view_pub));
 
-    let (new_stealth, new_vt) = compute_stealth_address(&tx_secret_key, &new_spend_pub, &new_view_pub, 1);
+    let (new_stealth, new_vt) =
+        compute_stealth_address(&tx_secret_key, &new_spend_pub, &new_view_pub, 1);
     println!("Computed stealth_address: {}", hex::encode(&new_stealth));
     println!("Computed view_tag: 0x{:02x}", new_vt);
 

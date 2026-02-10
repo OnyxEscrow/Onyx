@@ -18,7 +18,7 @@
 //! - Ring signature construction requires server-provided decoys
 //! - Key image calculation requires blockchain data from server
 
-use curve25519_dalek::constants::{ED25519_BASEPOINT_TABLE, ED25519_BASEPOINT_POINT};
+use curve25519_dalek::constants::{ED25519_BASEPOINT_POINT, ED25519_BASEPOINT_TABLE};
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::{Identity, VartimeMultiscalarMul};
@@ -119,8 +119,8 @@ fn clsag_build_agg_buffer(
     let mut to_hash = Vec::with_capacity(((2 * n) + 5) * 32);
 
     // Domain separator: "CLSAG_" + "agg_0" + padding to 32 bytes
-    to_hash.extend_from_slice(CLSAG_PREFIX);      // "CLSAG_" (6 bytes)
-    to_hash.extend_from_slice(CLSAG_AGG_0);       // "agg_0" (5 bytes)
+    to_hash.extend_from_slice(CLSAG_PREFIX); // "CLSAG_" (6 bytes)
+    to_hash.extend_from_slice(CLSAG_AGG_0); // "agg_0" (5 bytes)
     to_hash.extend_from_slice(&[0u8; 32 - CLSAG_PREFIX_AGG_0_LEN]); // 21 null bytes
 
     // Ring keys (public keys P[i])
@@ -159,8 +159,8 @@ fn clsag_convert_to_round_format(
     ring_size: usize,
     pseudo_out: &EdwardsPoint,
     msg: &[u8; 32],
-    key_image: &EdwardsPoint,  // v0.13.0: ADDED
-    d_inv8: &EdwardsPoint,     // v0.13.0: ADDED
+    key_image: &EdwardsPoint, // v0.13.0: ADDED
+    d_inv8: &EdwardsPoint,    // v0.13.0: ADDED
 ) {
     // Truncate to: domain(32) + ring_keys(n*32) + ring_commitments(n*32)
     // = ((2*n) + 1) * 32
@@ -176,8 +176,8 @@ fn clsag_convert_to_round_format(
     // domain || P[0..n] || C[0..n] || pseudo_out || msg || I || D || L || R
     to_hash.extend_from_slice(&pseudo_out.compress().to_bytes());
     to_hash.extend_from_slice(msg);
-    to_hash.extend_from_slice(&key_image.compress().to_bytes());  // v0.13.0: ADD I
-    to_hash.extend_from_slice(&d_inv8.compress().to_bytes());     // v0.13.0: ADD D
+    to_hash.extend_from_slice(&key_image.compress().to_bytes()); // v0.13.0: ADD I
+    to_hash.extend_from_slice(&d_inv8.compress().to_bytes()); // v0.13.0: ADD D
 }
 
 /// Add L and R points to round buffer (after truncating to base)
@@ -205,13 +205,8 @@ fn clsag_compute_mixing_coefficients(
     d_inv8: &EdwardsPoint,
     pseudo_out: &EdwardsPoint,
 ) -> (Scalar, Scalar) {
-    let (_, mu_p, mu_c) = clsag_build_agg_buffer(
-        ring_keys,
-        ring_commitments,
-        key_image,
-        d_inv8,
-        pseudo_out,
-    );
+    let (_, mu_p, mu_c) =
+        clsag_build_agg_buffer(ring_keys, ring_commitments, key_image, d_inv8, pseudo_out);
     (mu_p, mu_c)
 }
 
@@ -315,17 +310,21 @@ pub fn generate_monero_wallet(network: Option<String>) -> Result<JsValue, JsValu
 /// # Returns
 /// Same structure as `generate_monero_wallet()`
 #[wasm_bindgen]
-pub fn restore_wallet_from_seed(seed_phrase: String, network: Option<String>) -> Result<JsValue, JsValue> {
+pub fn restore_wallet_from_seed(
+    seed_phrase: String,
+    network: Option<String>,
+) -> Result<JsValue, JsValue> {
     use bip39::Mnemonic;
     use sha2::{Digest as Sha2Digest, Sha256};
 
     // Parse network (default to mainnet for production safety)
     let network_str = network.as_deref().unwrap_or("mainnet");
-    let network_byte = super::network_string_to_byte(network_str)
-        .map_err(|e| JsValue::from_str(&e))?;
+    let network_byte =
+        super::network_string_to_byte(network_str).map_err(|e| JsValue::from_str(&e))?;
 
     // Parse mnemonic (bip39 v2 uses from_str instead of parse)
-    let mnemonic: Mnemonic = seed_phrase.parse()
+    let mnemonic: Mnemonic = seed_phrase
+        .parse()
         .map_err(|e: bip39::Error| JsValue::from_str(&format!("Invalid seed phrase: {}", e)))?;
 
     // Derive entropy from mnemonic (bip39 v2 returns (array, word_count) tuple)
@@ -353,8 +352,12 @@ pub fn restore_wallet_from_seed(seed_phrase: String, network: Option<String>) ->
     let view_pub_bytes = view_public.compress().to_bytes();
 
     // Generate address with explicit network
-    let address = super::generate_monero_address_with_network(&spend_pub_bytes, &view_pub_bytes, network_byte)
-        .map_err(|e| JsValue::from_str(&e))?;
+    let address = super::generate_monero_address_with_network(
+        &spend_pub_bytes,
+        &view_pub_bytes,
+        network_byte,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
 
     let result = serde_json::json!({
         "seed": seed_phrase,
@@ -433,7 +436,7 @@ pub fn prepare_multisig_wasm(
         .map_err(|e| JsValue::from_str(&format!("JSON error: {}", e)))?;
 
     // Base64 encode for transport
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
     let multisig_info_b64 = general_purpose::STANDARD.encode(&multisig_info_json);
 
     // Export view key component for shared view key derivation
@@ -499,7 +502,9 @@ pub fn make_multisig_wasm(
         .map_err(|e| JsValue::from_str(&format!("Invalid peer_infos JSON: {}", e)))?;
 
     if peer_infos.len() != 2 {
-        return Err(JsValue::from_str("Expected 2 peer infos for 2-of-3 multisig"));
+        return Err(JsValue::from_str(
+            "Expected 2 peer infos for 2-of-3 multisig",
+        ));
     }
 
     // Decode my spend key
@@ -512,10 +517,11 @@ pub fn make_multisig_wasm(
     // Decode peer public keys from multisig info blobs
     let mut peer_public_keys = Vec::new();
 
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
 
     for peer_info_b64 in &peer_infos {
-        let peer_info_json = general_purpose::STANDARD.decode(peer_info_b64)
+        let peer_info_json = general_purpose::STANDARD
+            .decode(peer_info_b64)
             .map_err(|e| JsValue::from_str(&format!("Invalid base64: {}", e)))?;
         let peer_info_str = String::from_utf8(peer_info_json)
             .map_err(|e| JsValue::from_str(&format!("Invalid UTF8: {}", e)))?;
@@ -551,7 +557,8 @@ pub fn make_multisig_wasm(
 
         // Decompress the peer's public key point
         let peer_compressed = curve25519_dalek::edwards::CompressedEdwardsY(peer_pub_arr);
-        let peer_point = peer_compressed.decompress()
+        let peer_point = peer_compressed
+            .decompress()
             .ok_or_else(|| JsValue::from_str("Invalid peer public key point"))?;
 
         // Point addition: P_shared = P_shared + P_peer
@@ -577,7 +584,9 @@ pub fn make_multisig_wasm(
         .map_err(|e| JsValue::from_str(&format!("Invalid peer_view_keys JSON: {}", e)))?;
 
     if peer_view_keys.len() != 2 {
-        return Err(JsValue::from_str("Expected 2 peer view keys for 2-of-3 multisig"));
+        return Err(JsValue::from_str(
+            "Expected 2 peer view keys for 2-of-3 multisig",
+        ));
     }
 
     // Start with my view key scalar
@@ -601,13 +610,15 @@ pub fn make_multisig_wasm(
     }
 
     // Derive shared view public key from the summed scalar
-    let multisig_view_public = curve25519_dalek::constants::ED25519_BASEPOINT_TABLE * &shared_view_scalar;
+    let multisig_view_public =
+        curve25519_dalek::constants::ED25519_BASEPOINT_TABLE * &shared_view_scalar;
 
     // Generate multisig address
     let multisig_address = super::generate_monero_address(
         &multisig_spend_public.compress().to_bytes(),
         &multisig_view_public.compress().to_bytes(),
-    ).map_err(|e| JsValue::from_str(&e))?;
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
 
     // Export shared view key for server monitoring (deterministic - same for all parties)
     // This is the PRIVATE view key scalar, not the public key
@@ -634,8 +645,8 @@ pub fn make_multisig_wasm(
 // ============================================================================
 
 use monero_clsag_mirror::{Clsag, ClsagContext, ClsagError};
-use monero_primitives_mirror::{Commitment, Decoys};
 use monero_generators_mirror::hash_to_point;
+use monero_primitives_mirror::{Commitment, Decoys};
 
 /// Sign input data structure from server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -789,8 +800,8 @@ pub fn compute_key_image(spend_key_priv_hex: String) -> Result<JsValue, JsValue>
 #[wasm_bindgen]
 pub fn compute_partial_key_image(
     spend_key_priv_hex: String,
-    one_time_pubkey_hex: String,  // RENAMED: was multisig_pub_key_hex (WRONG name)
-    lagrange_coefficient_hex: String,  // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED)
+    one_time_pubkey_hex: String, // RENAMED: was multisig_pub_key_hex (WRONG name)
+    lagrange_coefficient_hex: String, // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED)
 ) -> Result<JsValue, JsValue> {
     // Decode spend key
     let spend_bytes = hex::decode(&spend_key_priv_hex)
@@ -824,10 +835,13 @@ pub fn compute_partial_key_image(
     lambda_arr.copy_from_slice(&lambda_bytes);
     let lambda = Scalar::from_bytes_mod_order(lambda_arr);
 
-    web_sys::console::log_1(&format!(
-        "[PKI v0.45.0] FROST: Applying λ={} to spend key (REQUIRED)",
-        hex::encode(&lambda.to_bytes()[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[PKI v0.45.0] FROST: Applying λ={} to spend key (REQUIRED)",
+            hex::encode(&lambda.to_bytes()[..8])
+        )
+        .into(),
+    );
 
     // Apply Lagrange coefficient (ALWAYS - not optional)
     let effective_spend = lambda * spend_scalar;
@@ -847,10 +861,13 @@ pub fn compute_partial_key_image(
     // This matches Monero's: hash_to_p3(H_p3, P[l])
     let hp = hash_to_point(pubkey_arr);
 
-    web_sys::console::log_1(&format!(
-        "[PKI] Computing pKI = λ*x * Hp(P) where P = {}...",
-        &one_time_pubkey_hex[..16.min(one_time_pubkey_hex.len())]
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[PKI] Computing pKI = λ*x * Hp(P) where P = {}...",
+            &one_time_pubkey_hex[..16.min(one_time_pubkey_hex.len())]
+        )
+        .into(),
+    );
 
     // Compute partial key image: pKI = (λ * x) * Hp(P)
     let partial_key_image = effective_spend * hp;
@@ -912,7 +929,7 @@ pub fn compute_partial_key_image_with_derivation(
     view_key_shared_hex: String,
     output_index: u64,
     one_time_pubkey_hex: String,
-    lagrange_coefficient_hex: String,  // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED)
+    lagrange_coefficient_hex: String, // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED)
 ) -> Result<JsValue, JsValue> {
     use curve25519_dalek::edwards::CompressedEdwardsY;
 
@@ -984,7 +1001,7 @@ pub fn compute_partial_key_image_with_derivation(
     // Previous bug: Used to_le_bytes() (8 bytes) but server uses varint (1+ bytes)
     let mut hasher = Keccak256::new();
     hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));  // FIX: varint, not to_le_bytes
+    hasher.update(&encode_varint(output_index)); // FIX: varint, not to_le_bytes
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -1006,10 +1023,13 @@ pub fn compute_partial_key_image_with_derivation(
     // NOTE: Only FIRST signer includes derivation to avoid double-counting!
     // This function is for first signer. Second signer uses compute_partial_key_image.
     // ===========================================================
-    web_sys::console::log_1(&format!(
-        "[PKI Derivation v0.45.0] FROST: Applying λ={} to spend_share (REQUIRED)",
-        hex::encode(&lambda.to_bytes()[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[PKI Derivation v0.45.0] FROST: Applying λ={} to spend_share (REQUIRED)",
+            hex::encode(&lambda.to_bytes()[..8])
+        )
+        .into(),
+    );
     let weighted_spend = lambda * spend_scalar;
     let effective_spend_scalar = derivation_scalar + weighted_spend;
 
@@ -1064,7 +1084,7 @@ pub fn compute_partial_key_image_with_derivation(
 /// **Security:** alpha_secret returned to JS, kept in window.tempNonceAlpha
 #[wasm_bindgen]
 pub fn generate_nonce_commitment(
-    _tx_prefix_hash: &str,  // Not used for nonce generation, but kept for API consistency
+    _tx_prefix_hash: &str, // Not used for nonce generation, but kept for API consistency
     multisig_pub_key: &str,
 ) -> Result<JsValue, JsValue> {
     use curve25519_dalek::{constants, edwards::CompressedEdwardsY};
@@ -1110,11 +1130,14 @@ pub fn generate_nonce_commitment(
         "alpha_secret": alpha_hex,  // Returned to JS, stored in window.tempNonceAlpha
     });
 
-    web_sys::console::log_1(&format!(
-        "[MuSig2] Nonce generated - R: {}..., commitment: {}...",
-        &r_public[..16],
-        &commitment_hash[..16]
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[MuSig2] Nonce generated - R: {}..., commitment: {}...",
+            &r_public[..16],
+            &commitment_hash[..16]
+        )
+        .into(),
+    );
 
     serde_wasm_bindgen::to_value(&result)
         .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
@@ -1165,19 +1188,22 @@ pub fn sign_clsag_wasm(
         .map_err(|e| JsValue::from_str(&format!("Invalid input_data JSON: {}", e)))?;
 
     // DIAGNOSTIC: Log input parameters
-    web_sys::console::log_1(&format!(
-        "[CLSAG Debug] sign_clsag_wasm called with:\n  \
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Debug] sign_clsag_wasm called with:\n  \
          - tx_prefix_hash: {}\n  \
          - spend_key (first 8 hex): {}...\n  \
          - ring_size: {}\n  \
          - signer_index: {}\n  \
          - commitment_amount: {}",
-        &tx_prefix_hash_hex[..16],
-        &spend_key_priv_hex[..8],
-        input_data.ring.len(),
-        input_data.signer_index,
-        input_data.commitment_amount
-    ).into());
+            &tx_prefix_hash_hex[..16],
+            &spend_key_priv_hex[..8],
+            input_data.ring.len(),
+            input_data.signer_index,
+            input_data.commitment_amount
+        )
+        .into(),
+    );
 
     // Parse tx prefix hash
     let msg_bytes = hex::decode(&tx_prefix_hash_hex)
@@ -1242,7 +1268,8 @@ pub fn sign_clsag_wasm(
         input_data.offsets.clone(),
         input_data.signer_index,
         ring.clone(),
-    ).ok_or_else(|| JsValue::from_str("Failed to create decoys"))?;
+    )
+    .ok_or_else(|| JsValue::from_str("Failed to create decoys"))?;
 
     // Create CLSAG context
     let context = ClsagContext::new(decoys, commitment)
@@ -1259,21 +1286,23 @@ pub fn sign_clsag_wasm(
     let inputs = vec![(spend_scalar.clone(), context)];
 
     // DIAGNOSTIC: Log before signing
-    web_sys::console::log_1(&format!(
+    web_sys::console::log_1(
+        &format!(
         "[CLSAG Debug] About to call Clsag::sign() with {} input(s), signer_index={}, ring_size={}",
         inputs.len(), input_data.signer_index, ring.len()
-    ).into());
+    )
+        .into(),
+    );
 
     // Sign! The sum_outputs parameter should be the sum of output masks
     // For a simple transfer, this is typically known by the sender
     // We use Scalar::ZERO for the case where there's only one input
-    let signatures = Clsag::sign(&mut rng, inputs, Scalar::ZERO, msg)
-        .map_err(|e| {
-            // DIAGNOSTIC: Log the exact error variant
-            let error_msg = format!("CLSAG signing error: {:?}", e);
-            web_sys::console::error_1(&error_msg.clone().into());
-            JsValue::from_str(&error_msg)
-        })?;
+    let signatures = Clsag::sign(&mut rng, inputs, Scalar::ZERO, msg).map_err(|e| {
+        // DIAGNOSTIC: Log the exact error variant
+        let error_msg = format!("CLSAG signing error: {:?}", e);
+        web_sys::console::error_1(&error_msg.clone().into());
+        JsValue::from_str(&error_msg)
+    })?;
 
     web_sys::console::log_1(&"[CLSAG Debug] Clsag::sign() succeeded".into());
 
@@ -1309,26 +1338,29 @@ pub fn sign_clsag_wasm(
     let signer_pub_hex = hex::encode(signer_public_key.compress().to_bytes());
 
     // DIAGNOSTIC: Log signer public key extraction
-    web_sys::console::log_1(&format!(
-        "[CLSAG Debug] Extracted signer_public_key from ring[{}]: {}",
-        input_data.signer_index, signer_pub_hex
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Debug] Extracted signer_public_key from ring[{}]: {}",
+            input_data.signer_index, signer_pub_hex
+        )
+        .into(),
+    );
 
     let hp = hash_to_point(signer_public_key.compress().to_bytes());
     let hp_hex = hex::encode(hp.compress().to_bytes());
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Debug] hash_to_point(signer_pub): {}",
-        hp_hex
-    ).into());
+    web_sys::console::log_1(&format!("[CLSAG Debug] hash_to_point(signer_pub): {}", hp_hex).into());
 
     let key_image = *spend_scalar * hp;
     let key_image_hex = hex::encode(key_image.compress().to_bytes());
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Debug] Computed partial_key_image: {}",
-        key_image_hex
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Debug] Computed partial_key_image: {}",
+            key_image_hex
+        )
+        .into(),
+    );
 
     // Zeroize sensitive data
     spend_key_arr.zeroize();
@@ -1382,32 +1414,36 @@ pub fn sign_clsag_partial_wasm(
     input_data_json: String,
     tx_prefix_hash_hex: String,
     multisig_pub_key_hex: String,
-    aggregated_key_image_hex: String,           // AGGREGATED key_image from server (pKI_1 + pKI_2)
-    first_signer_c1_hex: Option<String>,        // c1 from first signer (empty string = compute new)
+    aggregated_key_image_hex: String, // AGGREGATED key_image from server (pKI_1 + pKI_2)
+    first_signer_c1_hex: Option<String>, // c1 from first signer (empty string = compute new)
     first_signer_s_values_json: Option<String>, // v0.8.7: s-values from first signer for decoy reuse
-    first_signer_d_hex: Option<String>,         // v0.12.1: D point from first signer for mu consistency
-    mu_p_hex: Option<String>,                   // v0.12.3: Server-computed mu_P (use if provided)
-    mu_c_hex: Option<String>,                   // v0.12.3: Server-computed mu_C (use if provided)
+    first_signer_d_hex: Option<String>, // v0.12.1: D point from first signer for mu consistency
+    mu_p_hex: Option<String>,           // v0.12.3: Server-computed mu_P (use if provided)
+    mu_c_hex: Option<String>,           // v0.12.3: Server-computed mu_C (use if provided)
     first_signer_pseudo_out_hex: Option<String>, // v0.17.0: Pseudo-out from first signer (second signer MUST use this)
-    first_signer_used_r_agg: bool,              // v0.19.0: True if first signer had R_agg (second signer should use alpha)
-    lagrange_coefficient_hex: String,           // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED - prevents overlap!)
+    first_signer_used_r_agg: bool, // v0.19.0: True if first signer had R_agg (second signer should use alpha)
+    lagrange_coefficient_hex: String, // v0.45.0: FROST Lagrange coefficient λ_i (REQUIRED - prevents overlap!)
 ) -> Result<JsValue, JsValue> {
     use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
     use sha3::Keccak256;
 
-    let has_first_signer_c1 = first_signer_c1_hex.as_ref()
+    let has_first_signer_c1 = first_signer_c1_hex
+        .as_ref()
         .map(|s| !s.is_empty())
         .unwrap_or(false);
 
     // v0.8.7: Parse first signer's s-values if provided
-    let first_signer_s_values: Option<Vec<Scalar>> = first_signer_s_values_json.as_ref()
+    let first_signer_s_values: Option<Vec<Scalar>> = first_signer_s_values_json
+        .as_ref()
         .filter(|s| !s.is_empty())
         .and_then(|json| {
             let s_hex_vec: Vec<String> = serde_json::from_str(json).ok()?;
             let mut scalars = Vec::with_capacity(s_hex_vec.len());
             for hex_str in &s_hex_vec {
                 let bytes = hex::decode(hex_str).ok()?;
-                if bytes.len() != 32 { return None; }
+                if bytes.len() != 32 {
+                    return None;
+                }
                 let mut arr = [0u8; 32];
                 arr.copy_from_slice(&bytes);
                 scalars.push(Scalar::from_bytes_mod_order(arr));
@@ -1436,20 +1472,23 @@ pub fn sign_clsag_partial_wasm(
     lambda_arr.copy_from_slice(&lambda_bytes);
     let lagrange_coefficient = Scalar::from_bytes_mod_order(lambda_arr);
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Partial v0.45.0] FROST signing (λ REQUIRED)\n  \
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Partial v0.45.0] FROST signing (λ REQUIRED)\n  \
          tx_prefix_hash: {}...\n  \
          multisig_pub_key: {}...\n  \
          using_first_signer_c1: {}\n  \
          using_first_signer_s_values: {} (count: {})\n  \
          λ = {}...",
-        &tx_prefix_hash_hex[..16.min(tx_prefix_hash_hex.len())],
-        &multisig_pub_key_hex[..16.min(multisig_pub_key_hex.len())],
-        has_first_signer_c1,
-        has_first_signer_s_values,
-        first_signer_s_values.as_ref().map(|v| v.len()).unwrap_or(0),
-        hex::encode(&lagrange_coefficient.to_bytes()[..8])
-    ).into());
+            &tx_prefix_hash_hex[..16.min(tx_prefix_hash_hex.len())],
+            &multisig_pub_key_hex[..16.min(multisig_pub_key_hex.len())],
+            has_first_signer_c1,
+            has_first_signer_s_values,
+            first_signer_s_values.as_ref().map(|v| v.len()).unwrap_or(0),
+            hex::encode(&lagrange_coefficient.to_bytes()[..8])
+        )
+        .into(),
+    );
 
     // Parse inputs
     let input_data: SignInputData = serde_json::from_str(&input_data_json)
@@ -1478,14 +1517,19 @@ pub fn sign_clsag_partial_wasm(
     // If derivation parameters are provided, compute the derived key.
     // Otherwise, use raw spend key (for direct-to-address outputs).
     // =========================================================================
-    let x = if let (Some(tx_pub_key_hex), Some(view_key_hex), Some(output_idx)) =
-        (&input_data.tx_pub_key, &input_data.view_key, input_data.output_index)
-    {
+    let x = if let (Some(tx_pub_key_hex), Some(view_key_hex), Some(output_idx)) = (
+        &input_data.tx_pub_key,
+        &input_data.view_key,
+        input_data.output_index,
+    ) {
         if !tx_pub_key_hex.is_empty() && !view_key_hex.is_empty() {
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.14.2] Computing x WITH derivation: H_s(a·R || {}) + b",
-                output_idx
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.14.2] Computing x WITH derivation: H_s(a·R || {}) + b",
+                    output_idx
+                )
+                .into(),
+            );
 
             // Parse tx_pub_key (R)
             let tx_pub_bytes = hex::decode(tx_pub_key_hex)
@@ -1522,10 +1566,13 @@ pub fn sign_clsag_partial_wasm(
             let derivation_hash: [u8; 32] = hasher.finalize().into();
             let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.14.2] Derivation scalar: {}...",
-                hex::encode(&derivation_hash[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.14.2] Derivation scalar: {}...",
+                    hex::encode(&derivation_hash[..8])
+                )
+                .into(),
+            );
 
             // v0.50.0 FIX: BOTH signers include derivation for Lagrange-weighted aggregation!
             //
@@ -1546,18 +1593,25 @@ pub fn sign_clsag_partial_wasm(
             //
             // Detection: has_first_signer_s_values == true means we are SECOND signer
             if has_first_signer_s_values {
-                web_sys::console::log_1(&"[CLSAG v0.50.0] SECOND SIGNER: x = derivation + b (Lagrange requires both)".into());
-                derivation_scalar + spend_scalar  // v0.50.0 FIX: Include derivation for Lagrange
+                web_sys::console::log_1(
+                    &"[CLSAG v0.50.0] SECOND SIGNER: x = derivation + b (Lagrange requires both)"
+                        .into(),
+                );
+                derivation_scalar + spend_scalar // v0.50.0 FIX: Include derivation for Lagrange
             } else {
                 web_sys::console::log_1(&"[CLSAG v0.50.0] FIRST SIGNER: x = derivation + b".into());
                 derivation_scalar + spend_scalar
             }
         } else {
-            web_sys::console::log_1(&"[CLSAG v0.14.2] Empty derivation params - using x = b (legacy)".into());
+            web_sys::console::log_1(
+                &"[CLSAG v0.14.2] Empty derivation params - using x = b (legacy)".into(),
+            );
             spend_scalar
         }
     } else {
-        web_sys::console::log_1(&"[CLSAG v0.14.2] No derivation params - using x = b (legacy/direct-to-address)".into());
+        web_sys::console::log_1(
+            &"[CLSAG v0.14.2] No derivation params - using x = b (legacy/direct-to-address)".into(),
+        );
         spend_scalar
     };
 
@@ -1590,10 +1644,13 @@ pub fn sign_clsag_partial_wasm(
     let ring_size = input_data.ring.len();
     let signer_idx = input_data.signer_index as usize;
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Partial] Ring size: {}, signer_index: {}",
-        ring_size, signer_idx
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Partial] Ring size: {}, signer_index: {}",
+            ring_size, signer_idx
+        )
+        .into(),
+    );
 
     // ===========================================================
     // Step 1: Parse AGGREGATED key image from server
@@ -1612,10 +1669,13 @@ pub fn sign_clsag_partial_wasm(
     // It's the sum of partial key images: KI = pKI_buyer + pKI_vendor
     let key_image_bytes = aggregated_ki_arr;
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Partial] Using AGGREGATED key_image: {}...",
-        &aggregated_key_image_hex[..16.min(aggregated_key_image_hex.len())]
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Partial] Using AGGREGATED key_image: {}...",
+            &aggregated_key_image_hex[..16.min(aggregated_key_image_hex.len())]
+        )
+        .into(),
+    );
 
     // NOTE: hp (hash-to-point for D) is computed AFTER ring parsing
     // because we need ring_keys[signer_idx] (the actual output pubkey P[l])
@@ -1629,8 +1689,9 @@ pub fn sign_clsag_partial_wasm(
     for (i, pair) in input_data.ring.iter().enumerate() {
         let key_bytes = hex::decode(&pair[0])
             .map_err(|e| JsValue::from_str(&format!("Invalid ring key[{}] hex: {}", i, e)))?;
-        let commit_bytes = hex::decode(&pair[1])
-            .map_err(|e| JsValue::from_str(&format!("Invalid ring commitment[{}] hex: {}", i, e)))?;
+        let commit_bytes = hex::decode(&pair[1]).map_err(|e| {
+            JsValue::from_str(&format!("Invalid ring commitment[{}] hex: {}", i, e))
+        })?;
 
         let mut key_arr = [0u8; 32];
         let mut commit_arr = [0u8; 32];
@@ -1662,21 +1723,27 @@ pub fn sign_clsag_partial_wasm(
     let signer_pubkey_bytes = ring_keys[signer_idx].compress().to_bytes();
     let hp = hash_to_point(signer_pubkey_bytes);
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Partial] Using Hp(P[{}]) = Hp({}...)",
-        signer_idx,
-        hex::encode(&signer_pubkey_bytes[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Partial] Using Hp(P[{}]) = Hp({}...)",
+            signer_idx,
+            hex::encode(&signer_pubkey_bytes[..8])
+        )
+        .into(),
+    );
 
     // Compute partial key image for diagnostic logging only
     // NOTE: This is x * Hp(P), NOT x * Hp(B)
     let partial_key_image = x * hp;
     let partial_ki_bytes = partial_key_image.compress().to_bytes();
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG Partial] My partial_key_image (x * Hp(P)): {}...",
-        hex::encode(&partial_ki_bytes[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG Partial] My partial_key_image (x * Hp(P)): {}...",
+            hex::encode(&partial_ki_bytes[..8])
+        )
+        .into(),
+    );
 
     // ===========================================================
     // Step 3: Compute pseudo output commitment with RANDOM mask
@@ -1696,10 +1763,9 @@ pub fn sign_clsag_partial_wasm(
     // NOT derived at runtime - this is a fixed canonical point!
     // Source: monero-project/monero/src/ringct/rctTypes.h
     const H_BYTES: [u8; 32] = [
-        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-        0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-        0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-        0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0,
+        0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
+        0x1f, 0x94,
     ];
     let h_point = curve25519_dalek::edwards::CompressedEdwardsY(H_BYTES)
         .decompress()
@@ -1715,19 +1781,28 @@ pub fn sign_clsag_partial_wasm(
     // ===========================================================
     let (pseudo_out, pseudo_out_bytes, mask_delta) = if has_first_signer_c1 {
         // SECOND SIGNER: Use first signer's pseudo_out
-        let pseudo_out_hex = first_signer_pseudo_out_hex.as_ref()
+        let pseudo_out_hex = first_signer_pseudo_out_hex
+            .as_ref()
             .filter(|s| !s.is_empty())
-            .ok_or_else(|| JsValue::from_str("v0.17.0 ERROR: Second signer requires first_signer_pseudo_out!"))?;
+            .ok_or_else(|| {
+                JsValue::from_str("v0.17.0 ERROR: Second signer requires first_signer_pseudo_out!")
+            })?;
 
-        web_sys::console::log_1(&format!(
-            "[CLSAG v0.17.0] SECOND SIGNER: Using first_signer_pseudo_out: {}...",
-            &pseudo_out_hex[..16.min(pseudo_out_hex.len())]
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG v0.17.0] SECOND SIGNER: Using first_signer_pseudo_out: {}...",
+                &pseudo_out_hex[..16.min(pseudo_out_hex.len())]
+            )
+            .into(),
+        );
 
-        let pseudo_out_bytes_vec = hex::decode(pseudo_out_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_pseudo_out hex: {}", e)))?;
+        let pseudo_out_bytes_vec = hex::decode(pseudo_out_hex).map_err(|e| {
+            JsValue::from_str(&format!("Invalid first_signer_pseudo_out hex: {}", e))
+        })?;
         if pseudo_out_bytes_vec.len() != 32 {
-            return Err(JsValue::from_str("first_signer_pseudo_out must be 32 bytes"));
+            return Err(JsValue::from_str(
+                "first_signer_pseudo_out must be 32 bytes",
+            ));
         }
         let mut pseudo_out_arr = [0u8; 32];
         pseudo_out_arr.copy_from_slice(&pseudo_out_bytes_vec);
@@ -1754,13 +1829,18 @@ pub fn sign_clsag_partial_wasm(
 
             // mask_delta = funding_mask - commitment_mask (z was parsed earlier)
             let delta = funding_z - z;
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.46.0] SECOND SIGNER: Computing mask_delta = funding_z - z = {}...",
-                hex::encode(&delta.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.46.0] SECOND SIGNER: Computing mask_delta = funding_z - z = {}...",
+                    hex::encode(&delta.to_bytes()[..8])
+                )
+                .into(),
+            );
             delta
         } else {
-            web_sys::console::log_1(&"[CLSAG v0.46.0] SECOND SIGNER: No funding_mask, mask_delta = 0".into());
+            web_sys::console::log_1(
+                &"[CLSAG v0.46.0] SECOND SIGNER: No funding_mask, mask_delta = 0".into(),
+            );
             Scalar::ZERO
         };
 
@@ -1787,7 +1867,7 @@ pub fn sign_clsag_partial_wasm(
         // So: pseudo_out_mask = z (funding_mask), NOT output_mask!
 
         // commitment_mask is output_mask (derived), used only for mask_delta
-        let output_mask = z;  // z was parsed from commitment_mask field
+        let output_mask = z; // z was parsed from commitment_mask field
 
         // v0.35.2 FIX: mask_delta = z - pseudo_out_mask
         //
@@ -1799,7 +1879,7 @@ pub fn sign_clsag_partial_wasm(
         // - pseudo_out_mask = commitment_mask (already the sum from server)
         // - mask_delta = z - pseudo_out_mask ≠ 0 (because z ≠ sum when dummy is derived independently)
         // - D = mask_delta * Hp(P) ≠ identity
-        let pseudo_out_mask = z;  // z was parsed from commitment_mask (now = pseudo_out_mask from server)
+        let pseudo_out_mask = z; // z was parsed from commitment_mask (now = pseudo_out_mask from server)
 
         let mask_delta = if let Some(ref funding_mask_hex) = input_data.funding_mask {
             let funding_bytes = hex::decode(funding_mask_hex)
@@ -1814,24 +1894,38 @@ pub fn sign_clsag_partial_wasm(
             // mask_delta = z - pseudo_out_mask
             let delta = funding_z - pseudo_out_mask;
 
-            web_sys::console::log_1(&"[CLSAG v0.35.2] FIRST SIGNER: mask_delta = z - pseudo_out_mask".into());
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.35.2] funding_mask (z): {}...",
-                hex::encode(&funding_arr[..8])
-            ).into());
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.35.2] commitment_mask (pseudo_out_mask = SUM): {}...",
-                hex::encode(&pseudo_out_mask.to_bytes()[..8])
-            ).into());
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.35.2] mask_delta (z - pseudo_out_mask): {}...",
-                hex::encode(&delta.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &"[CLSAG v0.35.2] FIRST SIGNER: mask_delta = z - pseudo_out_mask".into(),
+            );
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.35.2] funding_mask (z): {}...",
+                    hex::encode(&funding_arr[..8])
+                )
+                .into(),
+            );
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.35.2] commitment_mask (pseudo_out_mask = SUM): {}...",
+                    hex::encode(&pseudo_out_mask.to_bytes()[..8])
+                )
+                .into(),
+            );
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.35.2] mask_delta (z - pseudo_out_mask): {}...",
+                    hex::encode(&delta.to_bytes()[..8])
+                )
+                .into(),
+            );
 
             delta
         } else {
             // Legacy mode: no funding_mask provided, use mask_delta = 0
-            web_sys::console::log_1(&"[CLSAG v0.35.2] WARNING: No funding_mask provided, mask_delta = 0 (legacy)".into());
+            web_sys::console::log_1(
+                &"[CLSAG v0.35.2] WARNING: No funding_mask provided, mask_delta = 0 (legacy)"
+                    .into(),
+            );
             Scalar::ZERO
         };
 
@@ -1874,10 +1968,13 @@ pub fn sign_clsag_partial_wasm(
         if !d_hex.is_empty() {
             // SECOND SIGNER: Use D from first signer
             // CRITICAL: First signer now generates non-identity D with random mask
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.16.0] SECOND SIGNER: Using first_signer_d: {}...",
-                &d_hex[..16.min(d_hex.len())]
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.16.0] SECOND SIGNER: Using first_signer_d: {}...",
+                    &d_hex[..16.min(d_hex.len())]
+                )
+                .into(),
+            );
 
             let d_bytes = hex::decode(d_hex)
                 .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_d hex: {}", e)))?;
@@ -1895,10 +1992,13 @@ pub fn sign_clsag_partial_wasm(
             // v0.16.0 FIX: mask_delta ≠ 0, so D ≠ identity!
             let d_original = hp * mask_delta;
             let d = d_original * inv8;
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.16.0] FIRST SIGNER: D = mask_delta * Hp(P) / 8: {}...",
-                hex::encode(&d.compress().to_bytes()[..16])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.16.0] FIRST SIGNER: D = mask_delta * Hp(P) / 8: {}...",
+                    hex::encode(&d.compress().to_bytes()[..16])
+                )
+                .into(),
+            );
             d
         }
     } else {
@@ -1906,24 +2006,34 @@ pub fn sign_clsag_partial_wasm(
         // Compute D = mask_delta * Hp(P[l]) / 8
         let d_original = hp * mask_delta;
         let d = d_original * inv8;
-        web_sys::console::log_1(&format!(
-            "[CLSAG v0.16.0] FIRST SIGNER: D = mask_delta * Hp(P) / 8: {}...",
-            hex::encode(&d.compress().to_bytes()[..16])
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG v0.16.0] FIRST SIGNER: D = mask_delta * Hp(P) / 8: {}...",
+                hex::encode(&d.compress().to_bytes()[..16])
+            )
+            .into(),
+        );
         d
     };
 
     // Verify D is NOT identity (would indicate mask_delta bug)
-    let identity_bytes = [1u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    let identity_bytes = [
+        1u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0,
+    ];
     if d_inv8.compress().to_bytes() == identity_bytes {
-        web_sys::console::log_1(&"[CLSAG v0.16.0] WARNING: D is IDENTITY - this indicates a bug!".into());
+        web_sys::console::log_1(
+            &"[CLSAG v0.16.0] WARNING: D is IDENTITY - this indicates a bug!".into(),
+        );
     }
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG v0.16.0] D_inv8 = {}...",
-        hex::encode(&d_inv8.compress().to_bytes()[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG v0.16.0] D_inv8 = {}...",
+            hex::encode(&d_inv8.compress().to_bytes()[..8])
+        )
+        .into(),
+    );
 
     // ===========================================================
     // v0.12.3: Use SERVER-PROVIDED mu_P and mu_C if available
@@ -1955,11 +2065,14 @@ pub fn sign_clsag_partial_wasm(
             mu_c_arr.copy_from_slice(&mu_c_bytes);
             let mu_c = Scalar::from_bytes_mod_order(mu_c_arr);
 
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.12.3] Using SERVER-PROVIDED mu_P={}..., mu_C={}...",
-                hex::encode(&mu_p.to_bytes()[..8]),
-                hex::encode(&mu_c.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.12.3] Using SERVER-PROVIDED mu_P={}..., mu_C={}...",
+                    hex::encode(&mu_p.to_bytes()[..8]),
+                    hex::encode(&mu_c.to_bytes()[..8])
+                )
+                .into(),
+            );
 
             (mu_p, mu_c)
         } else {
@@ -1972,11 +2085,14 @@ pub fn sign_clsag_partial_wasm(
                 &pseudo_out,
             );
 
-            web_sys::console::log_1(&format!(
+            web_sys::console::log_1(
+                &format!(
                 "[CLSAG v0.12.3] Computed LOCAL mu_P={}..., mu_C={}... (first signer or fallback)",
                 hex::encode(&mu_p.to_bytes()[..8]),
                 hex::encode(&mu_c.to_bytes()[..8])
-            ).into());
+            )
+                .into(),
+            );
 
             (mu_p, mu_c)
         }
@@ -2025,7 +2141,9 @@ pub fn sign_clsag_partial_wasm(
         Scalar::from_bytes_mod_order(alpha_bytes)
     } else {
         // Fallback: Generate deterministic alpha (legacy mode)
-        web_sys::console::log_1(&"[MuSig2 v0.9.2] Generating deterministic alpha (legacy mode)".into());
+        web_sys::console::log_1(
+            &"[MuSig2 v0.9.2] Generating deterministic alpha (legacy mode)".into(),
+        );
         let mut alpha_hasher = Keccak256::new();
         alpha_hasher.update(b"CLSAG_multisig_nonce_v2");
         alpha_hasher.update(&tx_hash_bytes);
@@ -2038,10 +2156,13 @@ pub fn sign_clsag_partial_wasm(
     let r_mine = ED25519_BASEPOINT_TABLE * &alpha;
     let r_prime_mine = alpha * hp;
 
-    web_sys::console::log_1(&format!(
-        "[MuSig2 v0.9.2] R_mine: {}...",
-        hex::encode(&r_mine.compress().to_bytes()[..16])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[MuSig2 v0.9.2] R_mine: {}...",
+            hex::encode(&r_mine.compress().to_bytes()[..16])
+        )
+        .into(),
+    );
 
     // =========================================================================
     // v0.42.0 FIX: Verify alpha matches submitted nonce
@@ -2056,25 +2177,33 @@ pub fn sign_clsag_partial_wasm(
     // - Debug shows correct PKI, mu_p, mu_c, but ring doesn't close
     // =========================================================================
     if let Some(ref submitted_r_hex) = input_data.my_submitted_r_public {
-        let submitted_r_bytes = hex::decode(submitted_r_hex)
-            .map_err(|e| JsValue::from_str(&format!("[v0.42.0] Invalid my_submitted_r_public hex: {}", e)))?;
+        let submitted_r_bytes = hex::decode(submitted_r_hex).map_err(|e| {
+            JsValue::from_str(&format!(
+                "[v0.42.0] Invalid my_submitted_r_public hex: {}",
+                e
+            ))
+        })?;
         if submitted_r_bytes.len() != 32 {
-            return Err(JsValue::from_str("[v0.42.0] my_submitted_r_public must be 32 bytes"));
+            return Err(JsValue::from_str(
+                "[v0.42.0] my_submitted_r_public must be 32 bytes",
+            ));
         }
 
         let r_mine_hex = hex::encode(r_mine.compress().to_bytes());
         let submitted_r_hex_canonical = submitted_r_hex.to_lowercase();
 
         if r_mine_hex != submitted_r_hex_canonical {
-            web_sys::console::error_1(&format!(
-                "[v0.42.0] CRITICAL: alpha_secret mismatch!\n  \
+            web_sys::console::error_1(
+                &format!(
+                    "[v0.42.0] CRITICAL: alpha_secret mismatch!\n  \
                  R_computed (alpha*G): {}\n  \
                  R_submitted:          {}\n  \
                  This means your nonce was regenerated after submission.\n  \
                  The escrow must be RESET to generate new matching nonces.",
-                r_mine_hex,
-                submitted_r_hex_canonical
-            ).into());
+                    r_mine_hex, submitted_r_hex_canonical
+                )
+                .into(),
+            );
             return Err(JsValue::from_str(
                 "[v0.42.0] CRITICAL: Your alpha_secret does not match your submitted nonce. \
                  This happens when the nonce was regenerated after submission (browser data cleared, \
@@ -2083,13 +2212,18 @@ pub fn sign_clsag_partial_wasm(
             ));
         }
 
-        web_sys::console::log_1(&format!(
-            "[v0.42.0] Alpha verification PASSED: R_mine == R_submitted ({}...)",
-            &r_mine_hex[..16]
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[v0.42.0] Alpha verification PASSED: R_mine == R_submitted ({}...)",
+                &r_mine_hex[..16]
+            )
+            .into(),
+        );
     } else {
         // No submitted_r_public provided - cannot verify alpha (legacy mode)
-        web_sys::console::warn_1(&"[v0.42.0] No my_submitted_r_public provided - cannot verify alpha integrity".into());
+        web_sys::console::warn_1(
+            &"[v0.42.0] No my_submitted_r_public provided - cannot verify alpha integrity".into(),
+        );
     }
 
     // Step 4b: Aggregate nonces if peer_nonce_public is provided
@@ -2099,7 +2233,9 @@ pub fn sign_clsag_partial_wasm(
     //   - alpha for first signer (generates the ring)
     //   - alpha for both signers when nonce aggregation is used
     //   - ZERO for second signer without nonce aggregation (preserves ring)
-    let (l_point, r_point, effective_alpha) = if let Some(peer_nonce_json) = input_data.peer_nonce_public.as_ref() {
+    let (l_point, r_point, effective_alpha) = if let Some(peer_nonce_json) =
+        input_data.peer_nonce_public.as_ref()
+    {
         web_sys::console::log_1(&"[MuSig2 v0.9.2] Aggregating nonces with peer".into());
 
         #[derive(serde::Deserialize)]
@@ -2139,14 +2275,20 @@ pub fn sign_clsag_partial_wasm(
         let r_agg = r_mine + peer_r;
         let r_prime_agg = r_prime_mine + peer_r_prime;
 
-        web_sys::console::log_1(&format!(
-            "[MuSig2 v0.9.2] R_agg = R_mine + R_peer: {}...",
-            hex::encode(&r_agg.compress().to_bytes()[..16])
-        ).into());
-        web_sys::console::log_1(&format!(
-            "[MuSig2 v0.9.2] R'_agg = R'_mine + R'_peer: {}...",
-            hex::encode(&r_prime_agg.compress().to_bytes()[..16])
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[MuSig2 v0.9.2] R_agg = R_mine + R_peer: {}...",
+                hex::encode(&r_agg.compress().to_bytes()[..16])
+            )
+            .into(),
+        );
+        web_sys::console::log_1(
+            &format!(
+                "[MuSig2 v0.9.2] R'_agg = R'_mine + R'_peer: {}...",
+                hex::encode(&r_prime_agg.compress().to_bytes()[..16])
+            )
+            .into(),
+        );
 
         // ===========================================================
         // v0.19.0 FIX: Second signer alpha depends on first_signer_used_r_agg
@@ -2166,7 +2308,9 @@ pub fn sign_clsag_partial_wasm(
         if has_first_signer_c1 {
             if first_signer_used_r_agg {
                 // First signer had R_agg → c1 includes both nonces → use our alpha
-                web_sys::console::log_1(&"[MuSig2 v0.19.0] SECOND SIGNER: Using alpha (first signer had R_agg)".into());
+                web_sys::console::log_1(
+                    &"[MuSig2 v0.19.0] SECOND SIGNER: Using alpha (first signer had R_agg)".into(),
+                );
                 (r_agg, r_prime_agg, alpha)
             } else {
                 // First signer did NOT have R_agg → c1 only has first signer's nonce → use alpha=0
@@ -2175,7 +2319,9 @@ pub fn sign_clsag_partial_wasm(
             }
         } else {
             // FIRST SIGNER with peer nonce: Use R_agg for c1 computation
-            web_sys::console::log_1(&"[MuSig2 v0.19.0] FIRST SIGNER with R_agg: Using aggregated nonces".into());
+            web_sys::console::log_1(
+                &"[MuSig2 v0.19.0] FIRST SIGNER with R_agg: Using aggregated nonces".into(),
+            );
             (r_agg, r_prime_agg, alpha)
         }
     } else {
@@ -2187,7 +2333,10 @@ pub fn sign_clsag_partial_wasm(
             // s2[i] = 0 - c * x2 = -c * x2
             // Final: s_agg = (alpha1 - c*x1) + (-c*x2) = alpha1 - c*(x1+x2)
             // Verification: s_agg*G + c*P = alpha1*G = R1 ✓
-            web_sys::console::log_1(&"[MuSig2 v0.10.0] SECOND SIGNER: No peer nonce - using alpha=0 to preserve ring".into());
+            web_sys::console::log_1(
+                &"[MuSig2 v0.10.0] SECOND SIGNER: No peer nonce - using alpha=0 to preserve ring"
+                    .into(),
+            );
             // L and R points are not used by second signer (we reuse first signer's decoys)
             // but we need to return something for the tuple
             (r_mine, r_prime_mine, Scalar::ZERO)
@@ -2223,10 +2372,13 @@ pub fn sign_clsag_partial_wasm(
         c1_arr.copy_from_slice(&c1_bytes);
         // Store for output - second signer must return same c1
         original_c1_bytes = Some(c1_arr);
-        web_sys::console::log_1(&format!(
-            "[CLSAG Partial] Using first signer's c1: {}...",
-            &c1_hex[..16.min(c1_hex.len())]
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG Partial] Using first signer's c1: {}...",
+                &c1_hex[..16.min(c1_hex.len())]
+            )
+            .into(),
+        );
         Scalar::from_bytes_mod_order(c1_arr)
     } else {
         // =================================================================
@@ -2272,8 +2424,8 @@ pub fn sign_clsag_partial_wasm(
 
         // v0.13.0 FIX: Key image I and D point MUST be in round hash!
         // Monero reference: c = H(... || pseudo_out || msg || I || D || L || R)
-        hasher.update(key_image_point.compress().as_bytes());  // I
-        hasher.update(d_inv8.compress().as_bytes());           // D
+        hasher.update(key_image_point.compress().as_bytes()); // I
+        hasher.update(d_inv8.compress().as_bytes()); // D
 
         // L and R points
         hasher.update(l_point.compress().as_bytes());
@@ -2318,14 +2470,18 @@ pub fn sign_clsag_partial_wasm(
         if first_s_values.len() != ring_size {
             return Err(JsValue::from_str(&format!(
                 "first_signer_s_values length mismatch: got {}, expected {}",
-                first_s_values.len(), ring_size
+                first_s_values.len(),
+                ring_size
             )));
         }
 
-        web_sys::console::log_1(&format!(
-            "[CLSAG Partial] SECOND SIGNER: Reusing {} decoy s-values from first signer",
-            ring_size - 1  // All except signer_idx
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG Partial] SECOND SIGNER: Reusing {} decoy s-values from first signer",
+                ring_size - 1 // All except signer_idx
+            )
+            .into(),
+        );
 
         // Copy first signer's s-values for ALL decoy positions
         for i in 0..ring_size {
@@ -2349,38 +2505,51 @@ pub fn sign_clsag_partial_wasm(
         // R = s*Hp + c_p*I + c_c*D_orig    where D_orig = D_inv8 * 8
         // =========================================================================
         if signer_idx >= 1 {
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.10.3] SECOND SIGNER: Propagating c1 through positions 0..{} to c{}",
-                signer_idx - 1, signer_idx
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.10.3] SECOND SIGNER: Propagating c1 through positions 0..{} to c{}",
+                    signer_idx - 1,
+                    signer_idx
+                )
+                .into(),
+            );
 
             // Decompress key_image from bytes to EdwardsPoint
             let key_image_point = CompressedEdwardsY(key_image_bytes)
                 .decompress()
-                .ok_or_else(|| JsValue::from_str("Failed to decompress key_image for challenge propagation"))?;
+                .ok_or_else(|| {
+                    JsValue::from_str("Failed to decompress key_image for challenge propagation")
+                })?;
 
             // v0.12.0 FIX: D = z * Hp(P[l]) where z is commitment mask
             // D_original is D without the inv(8) factor (for R formula)
             // d_inv8 was already computed earlier in this function
             let d_original = d_inv8 * Scalar::from(8u64);
 
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.12.0] Using D_inv8: {}..., D_original: {}...",
-                hex::encode(&d_inv8.compress().to_bytes()[..8]),
-                hex::encode(&d_original.compress().to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.12.0] Using D_inv8: {}..., D_original: {}...",
+                    hex::encode(&d_inv8.compress().to_bytes()[..8]),
+                    hex::encode(&d_original.compress().to_bytes()[..8])
+                )
+                .into(),
+            );
 
             // v0.12.3 FIX: Use ALREADY-COMPUTED mu_P and mu_C from line 1546
             // Do NOT recompute here! The server-provided values must be used
             // to ensure both signers use IDENTICAL mixing coefficients.
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.12.3] Challenge propagation using EXISTING mu_P={}..., mu_C={}...",
-                hex::encode(&mu_p.to_bytes()[..8]),
-                hex::encode(&mu_c.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.12.3] Challenge propagation using EXISTING mu_P={}..., mu_C={}...",
+                    hex::encode(&mu_p.to_bytes()[..8]),
+                    hex::encode(&mu_c.to_bytes()[..8])
+                )
+                .into(),
+            );
 
             // Compute adjusted commitments: C_adj[i] = C[i] - pseudo_out
-            let c_adjusted: Vec<EdwardsPoint> = ring_commitments.iter()
+            let c_adjusted: Vec<EdwardsPoint> = ring_commitments
+                .iter()
                 .map(|comm| comm - pseudo_out)
                 .collect();
 
@@ -2397,20 +2566,31 @@ pub fn sign_clsag_partial_wasm(
                 &pseudo_out,
             );
             // v0.13.0 FIX: Now passes key_image and d_inv8 to include in round hash
-            clsag_convert_to_round_format(&mut to_hash, ring_size, &pseudo_out, &tx_hash_arr, &key_image_point, &d_inv8);
+            clsag_convert_to_round_format(
+                &mut to_hash,
+                ring_size,
+                &pseudo_out,
+                &tx_hash_arr,
+                &key_image_point,
+                &d_inv8,
+            );
 
             // Propagate challenge from position 0 to signer_idx
             // CRITICAL FIX v0.10.3: Loop MUST start at 0, not 1!
             // c starts as c1 (challenge at position 0), so we must process all positions
             // 0, 1, 2, ..., signer_idx-1 to arrive at c[signer_idx]
             for prop_i in 0..signer_idx {
-                let c_p = mu_p * c;  // mu_P * c
-                let c_c = mu_c * c;  // mu_C * c
+                let c_p = mu_p * c; // mu_P * c
+                let c_c = mu_c * c; // mu_C * c
 
                 // L = s*G + c_p*P + c_c*C_adj (3-term formula with mixing!)
                 let l_i = EdwardsPoint::vartime_multiscalar_mul(
                     [s_values[prop_i], c_p, c_c],
-                    [ED25519_BASEPOINT_POINT, ring_keys[prop_i], c_adjusted[prop_i]],
+                    [
+                        ED25519_BASEPOINT_POINT,
+                        ring_keys[prop_i],
+                        c_adjusted[prop_i],
+                    ],
                 );
 
                 // Hp(P_i) for this ring member
@@ -2427,18 +2607,24 @@ pub fn sign_clsag_partial_wasm(
                 c = clsag_keccak256_to_scalar(&to_hash);
             }
 
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.10.3] Challenge propagated: c{} = {}...",
-                signer_idx,
-                hex::encode(&c.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.10.3] Challenge propagated: c{} = {}...",
+                    signer_idx,
+                    hex::encode(&c.to_bytes()[..8])
+                )
+                .into(),
+            );
         }
     } else {
         // FIRST SIGNER PATH: Generate random decoys (will be shared with second signer)
-        web_sys::console::log_1(&format!(
-            "[CLSAG Partial] FIRST SIGNER: Generating {} random decoy s-values",
-            ring_size - 1
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG Partial] FIRST SIGNER: Generating {} random decoy s-values",
+                ring_size - 1
+            )
+            .into(),
+        );
 
         for i in 0..ring_size {
             if i == signer_idx {
@@ -2447,8 +2633,9 @@ pub fn sign_clsag_partial_wasm(
 
             // Generate RANDOM s-value for this position
             let mut random_bytes = [0u8; 32];
-            getrandom::getrandom(&mut random_bytes)
-                .map_err(|e| JsValue::from_str(&format!("Failed to generate random bytes: {}", e)))?;
+            getrandom::getrandom(&mut random_bytes).map_err(|e| {
+                JsValue::from_str(&format!("Failed to generate random bytes: {}", e))
+            })?;
             s_values[i] = Scalar::from_bytes_mod_order(random_bytes);
         }
 
@@ -2467,16 +2654,21 @@ pub fn sign_clsag_partial_wasm(
         original_c1_first_signer = c; // SAVE c1 before propagation!
 
         if signer_idx >= 1 {
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.10.5] FIRST SIGNER: Propagating c1 through positions 0..{} to c{}",
-                signer_idx - 1, signer_idx
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.10.5] FIRST SIGNER: Propagating c1 through positions 0..{} to c{}",
+                    signer_idx - 1,
+                    signer_idx
+                )
+                .into(),
+            );
 
             // v0.12.0 FIX: D = z * Hp(P[l]) - use d_inv8 from earlier
             let d_original = d_inv8 * Scalar::from(8u64);
 
             // Compute adjusted commitments: C_adj[i] = C[i] - pseudo_out
-            let c_adjusted: Vec<EdwardsPoint> = ring_commitments.iter()
+            let c_adjusted: Vec<EdwardsPoint> = ring_commitments
+                .iter()
                 .map(|comm| comm - pseudo_out)
                 .collect();
 
@@ -2493,7 +2685,14 @@ pub fn sign_clsag_partial_wasm(
                 &pseudo_out,
             );
             // v0.13.0 FIX: Now passes key_image and d_inv8 to include in round hash
-            clsag_convert_to_round_format(&mut to_hash, ring_size, &pseudo_out, &tx_hash_arr, &key_image_point, &d_inv8);
+            clsag_convert_to_round_format(
+                &mut to_hash,
+                ring_size,
+                &pseudo_out,
+                &tx_hash_arr,
+                &key_image_point,
+                &d_inv8,
+            );
 
             // Propagate challenge from position 0 to signer_idx
             for prop_i in 0..signer_idx {
@@ -2503,7 +2702,11 @@ pub fn sign_clsag_partial_wasm(
                 // L = s*G + c_p*P + c_c*C_adj
                 let l_i = EdwardsPoint::vartime_multiscalar_mul(
                     [s_values[prop_i], c_p_prop, c_c_prop],
-                    [ED25519_BASEPOINT_POINT, ring_keys[prop_i], c_adjusted[prop_i]],
+                    [
+                        ED25519_BASEPOINT_POINT,
+                        ring_keys[prop_i],
+                        c_adjusted[prop_i],
+                    ],
                 );
 
                 // Hp(P_i) for this ring member
@@ -2519,11 +2722,14 @@ pub fn sign_clsag_partial_wasm(
                 c = clsag_keccak256_to_scalar(&to_hash);
             }
 
-            web_sys::console::log_1(&format!(
-                "[CLSAG v0.10.5] FIRST SIGNER: Challenge propagated c{} = {}...",
-                signer_idx,
-                hex::encode(&c.to_bytes()[..8])
-            ).into());
+            web_sys::console::log_1(
+                &format!(
+                    "[CLSAG v0.10.5] FIRST SIGNER: Challenge propagated c{} = {}...",
+                    signer_idx,
+                    hex::encode(&c.to_bytes()[..8])
+                )
+                .into(),
+            );
         }
     }
 
@@ -2546,8 +2752,8 @@ pub fn sign_clsag_partial_wasm(
     //   - First signer: s1[l] = alpha1 - c_p*x1 - c_c*mask_delta
     //   - Second signer: s2[l] = alpha2 - c_p*x2 (mask_delta already accounted for by first)
     // ===========================================================
-    let c_p = mu_p * c;  // mu_P * challenge
-    let c_c = mu_c * c;  // mu_C * challenge (NOW USED! v0.16.0)
+    let c_p = mu_p * c; // mu_P * challenge
+    let c_c = mu_c * c; // mu_C * challenge (NOW USED! v0.16.0)
 
     let is_second_signer = first_signer_s_values.is_some();
 
@@ -2562,10 +2768,13 @@ pub fn sign_clsag_partial_wasm(
     //
     // WITHOUT Lagrange (deprecated Monero native): k2 DOUBLE-COUNTED!
     // ===========================================================
-    web_sys::console::log_1(&format!(
-        "[CLSAG v0.45.0] FROST: Applying λ={} to x and mask_delta (REQUIRED)",
-        hex::encode(&lagrange_coefficient.to_bytes()[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG v0.45.0] FROST: Applying λ={} to x and mask_delta (REQUIRED)",
+            hex::encode(&lagrange_coefficient.to_bytes()[..8])
+        )
+        .into(),
+    );
     let effective_x = lagrange_coefficient * x;
     let effective_mask_delta = lagrange_coefficient * mask_delta;
 
@@ -2643,18 +2852,24 @@ pub fn sign_clsag_partial_wasm(
     // Using `c.to_bytes()` here is WRONG because `c` is now c[signer_idx] after propagation!
     let c1_bytes = if let Some(stored_c1) = original_c1_bytes {
         // SECOND SIGNER: use first signer's c1
-        web_sys::console::log_1(&format!(
-            "[CLSAG v0.10.2] SECOND SIGNER: Returning first signer's c1: {}...",
-            hex::encode(&stored_c1[..8])
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG v0.10.2] SECOND SIGNER: Returning first signer's c1: {}...",
+                hex::encode(&stored_c1[..8])
+            )
+            .into(),
+        );
         stored_c1
     } else if first_signer_s_values.is_none() {
         // FIRST SIGNER: use the ORIGINAL c1 (saved before propagation)
         // NOT c.to_bytes() which is c[signer_idx] after propagation!
-        web_sys::console::log_1(&format!(
-            "[CLSAG v0.10.7] FIRST SIGNER: Returning ORIGINAL c1 (before propagation): {}...",
-            hex::encode(&original_c1_first_signer.to_bytes()[..8])
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG v0.10.7] FIRST SIGNER: Returning ORIGINAL c1 (before propagation): {}...",
+                hex::encode(&original_c1_first_signer.to_bytes()[..8])
+            )
+            .into(),
+        );
         original_c1_first_signer.to_bytes()
     } else {
         // Fallback (shouldn't happen)
@@ -2667,10 +2882,13 @@ pub fn sign_clsag_partial_wasm(
     // ===========================================================
     let d_bytes = d_inv8.compress().to_bytes();
 
-    web_sys::console::log_1(&format!(
-        "[CLSAG v0.12.0] Final D_inv8 for signature: {}...",
-        hex::encode(&d_bytes[..8])
-    ).into());
+    web_sys::console::log_1(
+        &format!(
+            "[CLSAG v0.12.0] Final D_inv8 for signature: {}...",
+            hex::encode(&d_bytes[..8])
+        )
+        .into(),
+    );
 
     web_sys::console::log_1(&"[CLSAG Partial] Partial signature computed successfully".into());
 
@@ -2680,9 +2898,7 @@ pub fn sign_clsag_partial_wasm(
     alpha_bytes.zeroize();
 
     // Build result
-    let s_hex: Vec<String> = s_values.iter()
-        .map(|s| hex::encode(s.to_bytes()))
-        .collect();
+    let s_hex: Vec<String> = s_values.iter().map(|s| hex::encode(s.to_bytes())).collect();
 
     // CRITICAL: Return the AGGREGATED key_image (from server), NOT the partial one
     // This ensures the signature matches what's in tx_prefix_hash
@@ -2695,11 +2911,14 @@ pub fn sign_clsag_partial_wasm(
     let result = if is_first_signer {
         web_sys::console::log_1(&"[CLSAG v0.37.2] ENTERING FIRST SIGNER BRANCH".into());
         // FIRST SIGNER: Include mu_p and mu_c in result
-        web_sys::console::log_1(&format!(
-            "[CLSAG v0.37.0] FIRST SIGNER: Including mu_p={}..., mu_c={}... in result",
-            hex::encode(&mu_p.to_bytes()[..8]),
-            hex::encode(&mu_c.to_bytes()[..8])
-        ).into());
+        web_sys::console::log_1(
+            &format!(
+                "[CLSAG v0.37.0] FIRST SIGNER: Including mu_p={}..., mu_c={}... in result",
+                hex::encode(&mu_p.to_bytes()[..8]),
+                hex::encode(&mu_c.to_bytes()[..8])
+            )
+            .into(),
+        );
         serde_json::json!({
             "signature": {
                 "D": hex::encode(d_bytes),

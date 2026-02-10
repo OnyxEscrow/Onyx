@@ -43,8 +43,14 @@ fn main() -> Result<()> {
     println!("  Amount:        {} piconeros (0.003 XMR)", amount);
     println!();
     println!("On-chain transaction outputs:");
-    println!("  Output 0: key={} view_tag={:02x} global_idx={}", output_key_0, view_tag_0, global_index_0);
-    println!("  Output 1: key={} view_tag={:02x} global_idx={}", output_key_1, view_tag_1, global_index_1);
+    println!(
+        "  Output 0: key={} view_tag={:02x} global_idx={}",
+        output_key_0, view_tag_0, global_index_0
+    );
+    println!(
+        "  Output 1: key={} view_tag={:02x} global_idx={}",
+        output_key_1, view_tag_1, global_index_1
+    );
     println!();
 
     // Parse keys
@@ -91,7 +97,10 @@ fn main() -> Result<()> {
             .decompress()
             .context("Failed to decompress spend pubkey")?;
 
-        println!("Multisig address network: {} (24=stagenet)", decoded_addr[0]);
+        println!(
+            "Multisig address network: {} (24=stagenet)",
+            decoded_addr[0]
+        );
         println!("Multisig spend pubkey: {}", hex::encode(&spend_pub_bytes));
         println!();
 
@@ -110,11 +119,18 @@ fn main() -> Result<()> {
 
             // 2. Check view_tag (first byte of shared_secret before reduce)
             let expected_view_tag = shared_secret[0];
-            let onchain_view_tag = if output_idx == 0 { view_tag_0 } else { view_tag_1 };
+            let onchain_view_tag = if output_idx == 0 {
+                view_tag_0
+            } else {
+                view_tag_1
+            };
             if expected_view_tag == onchain_view_tag {
                 println!("  ✅ view_tag matches: {:02x}", expected_view_tag);
             } else {
-                println!("  ❌ view_tag mismatch: expected {:02x}, onchain {:02x}", expected_view_tag, onchain_view_tag);
+                println!(
+                    "  ❌ view_tag mismatch: expected {:02x}, onchain {:02x}",
+                    expected_view_tag, onchain_view_tag
+                );
             }
 
             // 3. Derive expected one-time output key: P = Hs(...)*G + B
@@ -122,7 +138,11 @@ fn main() -> Result<()> {
             let expected_output_key = scalar_g + spend_pub_point;
             let expected_output_key_hex = hex::encode(expected_output_key.compress().to_bytes());
 
-            let onchain_output_key = if output_idx == 0 { output_key_0 } else { output_key_1 };
+            let onchain_output_key = if output_idx == 0 {
+                output_key_0
+            } else {
+                output_key_1
+            };
             if expected_output_key_hex == onchain_output_key {
                 println!("  ✅ OUTPUT KEY MATCHES - This output belongs to us!");
             } else {
@@ -138,14 +158,22 @@ fn main() -> Result<()> {
             let amount_factor: [u8; 32] = amount_hasher.finalize().into();
 
             // Decode encrypted amount (XOR with first 8 bytes)
-            let encrypted_amount_hex = if output_idx == 0 { encrypted_amount_0_hex } else { encrypted_amount_1_hex };
+            let encrypted_amount_hex = if output_idx == 0 {
+                encrypted_amount_0_hex
+            } else {
+                encrypted_amount_1_hex
+            };
             let encrypted_amount = hex::decode(encrypted_amount_hex)?;
             let mut decoded_bytes = [0u8; 8];
             for i in 0..8 {
                 decoded_bytes[i] = encrypted_amount[i] ^ amount_factor[i];
             }
             let decoded_amount = u64::from_le_bytes(decoded_bytes);
-            println!("  decoded amount = {} piconeros ({} XMR)", decoded_amount, decoded_amount as f64 / 1e12);
+            println!(
+                "  decoded amount = {} piconeros ({} XMR)",
+                decoded_amount,
+                decoded_amount as f64 / 1e12
+            );
 
             if decoded_amount == amount {
                 println!("  ✅ AMOUNT MATCHES!");
@@ -163,10 +191,15 @@ fn main() -> Result<()> {
 
             // 6. Verify commitment: C = mask*G + amount*H
             let amount_scalar = Scalar::from(amount);
-            let commitment_point = (mask_scalar * ED25519_BASEPOINT_POINT) + (amount_scalar * h_point);
+            let commitment_point =
+                (mask_scalar * ED25519_BASEPOINT_POINT) + (amount_scalar * h_point);
             let computed_commitment = hex::encode(commitment_point.compress().to_bytes());
 
-            let onchain_commitment = if output_idx == 0 { commitment_0_hex } else { commitment_1_hex };
+            let onchain_commitment = if output_idx == 0 {
+                commitment_0_hex
+            } else {
+                commitment_1_hex
+            };
             println!("  computed commitment = {}", computed_commitment);
             println!("  onchain commitment  = {}", onchain_commitment);
 
@@ -175,7 +208,14 @@ fn main() -> Result<()> {
                 println!();
                 println!("***** CORRECT VALUES FOR ESCROW *****");
                 println!("  funding_output_index = {}", output_idx);
-                println!("  funding_global_index = {}", if output_idx == 0 { global_index_0 } else { global_index_1 });
+                println!(
+                    "  funding_global_index = {}",
+                    if output_idx == 0 {
+                        global_index_0
+                    } else {
+                        global_index_1
+                    }
+                );
                 println!("  funding_commitment_mask = {}", derived_mask_hex);
                 println!("*************************************");
             }
@@ -204,7 +244,7 @@ fn derive_commitment_mask(
         .try_into()
         .map_err(|_| anyhow::anyhow!("Invalid view key"))?;
     let view_scalar = Scalar::from_bytes_mod_order(view_key_bytes);
-    
+
     // Parse tx_pub_key
     let tx_pub_bytes: [u8; 32] = hex::decode(tx_pub_key_hex)?
         .try_into()
@@ -212,27 +252,27 @@ fn derive_commitment_mask(
     let tx_pub_point = CompressedEdwardsY(tx_pub_bytes)
         .decompress()
         .context("Failed to decompress tx_pub_key")?;
-    
+
     // derivation = 8 * view_priv * tx_pub_key
     let cofactor = Scalar::from(8u64);
     let derivation_point = (cofactor * view_scalar) * tx_pub_point;
     let derivation_bytes = derivation_point.compress().to_bytes();
-    
+
     // shared_secret = Hs(derivation || varint(output_index))
     let mut hasher = Keccak256::new();
     hasher.update(&derivation_bytes);
     hasher.update(&encode_varint(output_index));
     let shared_secret = hasher.finalize();
-    
+
     // mask = Hs("commitment_mask" || shared_secret)
     let mut mask_hasher = Keccak256::new();
     mask_hasher.update(b"commitment_mask");
     mask_hasher.update(&shared_secret);
     let mask = mask_hasher.finalize();
-    
+
     // Reduce to scalar
     let mask_scalar = Scalar::from_bytes_mod_order(mask.into());
-    
+
     Ok(hex::encode(mask_scalar.as_bytes()))
 }
 
@@ -256,11 +296,20 @@ fn monero_base58_decode(s: &str) -> Vec<u8> {
     fn base58_decode_block(block: &[u8]) -> Vec<u8> {
         let mut num: u128 = 0;
         for &ch in block {
-            let idx = MONERO_BASE58_ALPHABET.iter().position(|&c| c == ch).expect("valid base58 char");
+            let idx = MONERO_BASE58_ALPHABET
+                .iter()
+                .position(|&c| c == ch)
+                .expect("valid base58 char");
             num = num * 58 + idx as u128;
         }
         let out_len = match block.len() {
-            11 => 8, 7 => 5, 6 => 4, 5 => 3, 4 => 2, 3 => 1, _ => 8,
+            11 => 8,
+            7 => 5,
+            6 => 4,
+            5 => 3,
+            4 => 2,
+            3 => 1,
+            _ => 8,
         };
         let mut result = Vec::with_capacity(out_len);
         for i in (0..out_len).rev() {

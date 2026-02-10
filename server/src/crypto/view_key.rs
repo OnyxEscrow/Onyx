@@ -15,9 +15,9 @@ use curve25519_dalek::scalar::Scalar;
 
 /// Network prefixes for Monero addresses
 /// See: https://github.com/monero-project/monero/blob/master/src/cryptonote_config.h
-const MAINNET_PREFIX: u8 = 18;      // Standard address
-const STAGENET_PREFIX: u8 = 24;     // Stagenet address
-const TESTNET_PREFIX: u8 = 53;      // Testnet address
+const MAINNET_PREFIX: u8 = 18; // Standard address
+const STAGENET_PREFIX: u8 = 24; // Stagenet address
+const TESTNET_PREFIX: u8 = 53; // Testnet address
 
 /// Monero address structure (after base58 decode_check, checksum stripped):
 /// - prefix: 1 byte (network identifier)
@@ -43,10 +43,7 @@ const EXPECTED_RAW_LEN: usize = 65; // 1 + 32 + 32 (checksum stripped by decode_
 /// # Security
 /// - Uses constant-time comparison to prevent timing attacks
 /// - Does NOT reveal the private key or allow spending
-pub fn validate_view_key_matches_address(
-    view_key_hex: &str,
-    address: &str,
-) -> Result<bool> {
+pub fn validate_view_key_matches_address(view_key_hex: &str, address: &str) -> Result<bool> {
     // 1. Parse and validate view key hex
     if view_key_hex.len() != 64 {
         return Err(anyhow!(
@@ -55,8 +52,7 @@ pub fn validate_view_key_matches_address(
         ));
     }
 
-    let view_bytes = hex::decode(view_key_hex)
-        .context("Invalid view key hex encoding")?;
+    let view_bytes = hex::decode(view_key_hex).context("Invalid view key hex encoding")?;
 
     // 2. Convert to scalar (32 bytes)
     let mut view_arr = [0u8; 32];
@@ -204,7 +200,10 @@ mod tests {
         // Valid stagenet address
         let address = "5664QSfgtoHYBXvJLawcquW2j9qswLtzcNYqd3KKetiq8v9REmFveSKeE3ctRdq9zyf9DhbSMy9hyFp9rFKPqbw4Rr5HN3L";
         let result = extract_view_pub_from_address(address);
-        assert!(result.is_ok(), "Should successfully extract view pub from stagenet address");
+        assert!(
+            result.is_ok(),
+            "Should successfully extract view pub from stagenet address"
+        );
 
         let view_pub = result.unwrap();
         assert_eq!(view_pub.len(), 32, "View pub should be 32 bytes");

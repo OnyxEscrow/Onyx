@@ -26,8 +26,8 @@ pub mod traits;
 pub mod ws_limiter;
 
 pub use api_key_auth::{
-    new_api_key_rate_limit_storage, ApiKeyContext, ApiKeyRateLimitStorage,
-    OptionalApiKey, RequireApiKey,
+    new_api_key_rate_limit_storage, ApiKeyContext, ApiKeyRateLimitStorage, OptionalApiKey,
+    RequireApiKey,
 };
 pub use csp_nonce::CspNonce;
 pub use registration_rate_limit::{

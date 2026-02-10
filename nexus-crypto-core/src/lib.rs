@@ -99,8 +99,8 @@ pub use frost::{
 
 // Re-export CMD types and functions
 pub use cmd::{
-    derive_commitment_mask, find_our_output_and_derive_mask, OutputOwnershipResult,
-    decode_encrypted_amount, encode_varint, extract_tx_pub_key_from_extra,
+    decode_encrypted_amount, derive_commitment_mask, encode_varint, extract_tx_pub_key_from_extra,
+    find_our_output_and_derive_mask, OutputOwnershipResult,
 };
 
 // Re-export nonce types and functions
@@ -112,26 +112,26 @@ pub use nonce::{
 
 // Re-export key image types and functions
 pub use keys::{
-    compute_key_image, compute_partial_key_image, compute_partial_key_image_with_derivation,
-    aggregate_partial_key_images, KeyImageResult, PartialKeyImageResult,
+    aggregate_partial_key_images, compute_key_image, compute_partial_key_image,
+    compute_partial_key_image_with_derivation, KeyImageResult, PartialKeyImageResult,
     PartialKeyImageWithDerivationResult,
 };
 
 // Re-export CLSAG types and functions
 pub use clsag::{
-    compute_mixing_coefficients, compute_round_hash, verify_clsag,
-    sign_clsag_partial, sign_clsag_complete, compute_pseudo_out, compute_mask_delta,
-    ClsagSignature as ClsagSig, ClsagVerificationResult, PartialClsagSignature,
+    compute_mask_delta, compute_mixing_coefficients, compute_pseudo_out, compute_round_hash,
+    sign_clsag_complete, sign_clsag_partial, verify_clsag, ClsagSignature as ClsagSig,
+    ClsagVerificationResult, PartialClsagSignature,
 };
 
 // Re-export encryption types and functions
 pub use encryption::{
-    decrypt_data, derive_shared_key, encrypt_data, generate_ephemeral_keypair,
-    DecryptedResult, EncryptedResult, EphemeralKeypair,
+    decrypt_data, derive_shared_key, encrypt_data, generate_ephemeral_keypair, DecryptedResult,
+    EncryptedResult, EphemeralKeypair,
 };
 
 // Re-export backup encryption functions
 pub use encryption::{
-    decrypt_key_from_backup, derive_backup_id, encrypt_key_for_backup,
-    encrypted_size, verify_backup_password,
+    decrypt_key_from_backup, derive_backup_id, encrypt_key_for_backup, encrypted_size,
+    verify_backup_password,
 };

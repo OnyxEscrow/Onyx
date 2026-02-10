@@ -9,7 +9,7 @@ use argon2::{
 };
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use rand::{Rng, thread_rng};
+use rand::{thread_rng, Rng};
 use uuid::Uuid;
 
 use crate::schema::recovery_codes;
@@ -133,10 +133,7 @@ impl RecoveryCode {
     }
 
     /// Get unused recovery codes count for a user
-    pub fn count_unused(
-        conn: &mut SqliteConnection,
-        user_id_param: &str,
-    ) -> QueryResult<i64> {
+    pub fn count_unused(conn: &mut SqliteConnection, user_id_param: &str) -> QueryResult<i64> {
         use crate::schema::recovery_codes::dsl::*;
 
         recovery_codes
@@ -147,10 +144,7 @@ impl RecoveryCode {
     }
 
     /// Mark a recovery code as used
-    pub fn mark_used(
-        conn: &mut SqliteConnection,
-        code_id: &str,
-    ) -> QueryResult<usize> {
+    pub fn mark_used(conn: &mut SqliteConnection, code_id: &str) -> QueryResult<usize> {
         use crate::schema::recovery_codes::dsl::*;
 
         diesel::update(recovery_codes.filter(id.eq(code_id)))
@@ -169,10 +163,7 @@ impl RecoveryCode {
     }
 
     /// Delete all recovery codes for a user (for regeneration)
-    pub fn delete_for_user(
-        conn: &mut SqliteConnection,
-        user_id_param: &str,
-    ) -> QueryResult<usize> {
+    pub fn delete_for_user(conn: &mut SqliteConnection, user_id_param: &str) -> QueryResult<usize> {
         use crate::schema::recovery_codes::dsl::*;
 
         diesel::delete(recovery_codes.filter(user_id.eq(user_id_param))).execute(conn)

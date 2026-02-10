@@ -40,11 +40,7 @@
 //! - `λ` is the Lagrange coefficient
 
 use alloc::string::String;
-use curve25519_dalek::{
-    constants::ED25519_BASEPOINT_TABLE,
-    edwards::CompressedEdwardsY,
-    Scalar,
-};
+use curve25519_dalek::{constants::ED25519_BASEPOINT_TABLE, edwards::CompressedEdwardsY, Scalar};
 use monero_generators_mirror::hash_to_point;
 use sha3::{Digest, Keccak256};
 use zeroize::Zeroize;
@@ -181,8 +177,9 @@ pub fn compute_partial_key_image(
     let spend_scalar = Scalar::from_bytes_mod_order(spend_key_arr);
 
     // Parse Lagrange coefficient
-    let lambda_bytes = hex::decode(lagrange_coefficient_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e)))?;
+    let lambda_bytes = hex::decode(lagrange_coefficient_hex).map_err(|e| {
+        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e))
+    })?;
 
     if lambda_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -281,8 +278,9 @@ pub fn compute_partial_key_image_with_derivation(
     let spend_scalar = Scalar::from_bytes_mod_order(spend_key_arr);
 
     // 2. Parse Lagrange coefficient
-    let lambda_bytes = hex::decode(lagrange_coefficient_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e)))?;
+    let lambda_bytes = hex::decode(lagrange_coefficient_hex).map_err(|e| {
+        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e))
+    })?;
 
     if lambda_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -310,9 +308,9 @@ pub fn compute_partial_key_image_with_derivation(
 
     let mut tx_pub_arr = [0u8; 32];
     tx_pub_arr.copy_from_slice(&tx_pub_bytes);
-    let tx_pub_point = CompressedEdwardsY(tx_pub_arr)
-        .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("tx_pub_key point decompression failed".into()))?;
+    let tx_pub_point = CompressedEdwardsY(tx_pub_arr).decompress().ok_or_else(|| {
+        CryptoError::InvalidPublicKey("tx_pub_key point decompression failed".into())
+    })?;
 
     // 4. Parse shared view key
     let view_bytes = hex::decode(view_key_shared_hex)
@@ -462,11 +460,7 @@ mod tests {
 
     #[test]
     fn test_compute_partial_key_image() {
-        let result = compute_partial_key_image(
-            TEST_SPEND_KEY,
-            TEST_PUBKEY,
-            TEST_LAMBDA,
-        ).unwrap();
+        let result = compute_partial_key_image(TEST_SPEND_KEY, TEST_PUBKEY, TEST_LAMBDA).unwrap();
 
         assert_eq!(result.partial_key_image.len(), 64);
         assert!(result.lagrange_applied);
@@ -488,7 +482,8 @@ mod tests {
 
     #[test]
     fn test_invalid_spend_key_hex() {
-        let result = compute_key_image("not_valid_hex_at_all_not_valid_hex_at_all_not_valid_hex_at_all_");
+        let result =
+            compute_key_image("not_valid_hex_at_all_not_valid_hex_at_all_not_valid_hex_at_all_");
         assert!(result.is_err());
     }
 
@@ -501,10 +496,8 @@ mod tests {
         let pki1 = compute_partial_key_image(spend1, TEST_PUBKEY, TEST_LAMBDA).unwrap();
         let pki2 = compute_partial_key_image(spend2, TEST_PUBKEY, TEST_LAMBDA).unwrap();
 
-        let aggregated = aggregate_partial_key_images(
-            &pki1.partial_key_image,
-            &pki2.partial_key_image,
-        ).unwrap();
+        let aggregated =
+            aggregate_partial_key_images(&pki1.partial_key_image, &pki2.partial_key_image).unwrap();
 
         assert_eq!(aggregated.len(), 64);
     }
@@ -518,9 +511,9 @@ mod tests {
         let one_time = "5866666666666666666666666666666666666666666666666666666666666666";
         let lambda = "0100000000000000000000000000000000000000000000000000000000000000";
 
-        let result = compute_partial_key_image_with_derivation(
-            spend, tx_pub, view, 0, one_time, lambda,
-        ).unwrap();
+        let result =
+            compute_partial_key_image_with_derivation(spend, tx_pub, view, 0, one_time, lambda)
+                .unwrap();
 
         assert_eq!(result.partial_key_image.len(), 64);
         assert_eq!(result.derivation_scalar.len(), 64);

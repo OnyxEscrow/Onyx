@@ -72,7 +72,11 @@ impl FeeLedgerEntry {
         Ok(results.iter().sum())
     }
 
-    pub fn new_platform_fee(escrow_id: &str, amount_atomic: i64, tx_hash: Option<&str>) -> NewFeeLedgerEntry {
+    pub fn new_platform_fee(
+        escrow_id: &str,
+        amount_atomic: i64,
+        tx_hash: Option<&str>,
+    ) -> NewFeeLedgerEntry {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         NewFeeLedgerEntry {
             id: Uuid::new_v4().to_string(),

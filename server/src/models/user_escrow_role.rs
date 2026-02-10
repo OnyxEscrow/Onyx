@@ -158,10 +158,7 @@ impl UserEscrowRole {
     }
 
     /// Get all users for an escrow
-    pub fn find_by_escrow(
-        conn: &mut SqliteConnection,
-        escrow_id: Uuid,
-    ) -> Result<Vec<Self>> {
+    pub fn find_by_escrow(conn: &mut SqliteConnection, escrow_id: Uuid) -> Result<Vec<Self>> {
         user_escrow_roles::table
             .filter(user_escrow_roles::escrow_id.eq(escrow_id.to_string()))
             .load(conn)

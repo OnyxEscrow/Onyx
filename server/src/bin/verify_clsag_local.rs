@@ -170,7 +170,13 @@ fn fetch_ring_members(indices: &[u64]) -> Result<Vec<OutEntry>> {
     }
 
     let params = GetOutsParams {
-        outputs: indices.iter().map(|&i| OutputIndex { amount: 0, index: i }).collect(),
+        outputs: indices
+            .iter()
+            .map(|&i| OutputIndex {
+                amount: 0,
+                index: i,
+            })
+            .collect(),
         get_txid: true,
     };
 
@@ -233,7 +239,7 @@ fn main() -> Result<()> {
     println!("Ring indices: {:?}", indices);
 
     // Key image
-    let key_image_bytes: [u8; 32] = data[offset..offset+32].try_into()?;
+    let key_image_bytes: [u8; 32] = data[offset..offset + 32].try_into()?;
     offset += 32;
 
     let key_image = CompressedEdwardsY(key_image_bytes)
@@ -272,19 +278,19 @@ fn main() -> Result<()> {
     let mut s_values: Vec<Scalar> = Vec::new();
     let mut s_offset = clsag_start;
     for _ in 0..ring_size {
-        let s_bytes: [u8; 32] = data[s_offset..s_offset+32].try_into()?;
+        let s_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
         s_values.push(Scalar::from_canonical_bytes(s_bytes).unwrap_or(Scalar::ZERO));
         s_offset += 32;
     }
 
     // c1
-    let c1_bytes: [u8; 32] = data[s_offset..s_offset+32].try_into()?;
+    let c1_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
     let c1 = Scalar::from_canonical_bytes(c1_bytes).unwrap_or(Scalar::ZERO);
     s_offset += 32;
     println!("c1: {}", hex::encode(&c1_bytes));
 
     // D
-    let d_bytes: [u8; 32] = data[s_offset..s_offset+32].try_into()?;
+    let d_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
     let d_inv8 = CompressedEdwardsY(d_bytes)
         .decompress()
         .context("Invalid D point")?;
@@ -295,7 +301,7 @@ fn main() -> Result<()> {
     let d_full = d_inv8 * Scalar::from(8u64);
 
     // pseudo_out
-    let pseudo_out_bytes: [u8; 32] = data[s_offset..s_offset+32].try_into()?;
+    let pseudo_out_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
     let pseudo_out = CompressedEdwardsY(pseudo_out_bytes)
         .decompress()
         .context("Invalid pseudo_out")?;
@@ -306,16 +312,19 @@ fn main() -> Result<()> {
     let ring_members = fetch_ring_members(&indices)?;
 
     // Parse ring keys and commitments
-    let ring_keys: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_keys: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|rm| hex_to_point(&rm.key))
         .collect::<Result<_>>()?;
 
-    let ring_commitments: Vec<EdwardsPoint> = ring_members.iter()
+    let ring_commitments: Vec<EdwardsPoint> = ring_members
+        .iter()
         .map(|rm| hex_to_point(&rm.mask))
         .collect::<Result<_>>()?;
 
     // Find real index
-    let real_pos = ring_commitments.iter()
+    let real_pos = ring_commitments
+        .iter()
         .position(|c| c.compress().as_bytes() == pseudo_out_bytes.as_slice())
         .context("Real output not found in ring")?;
     println!("Real position: {}", real_pos);
@@ -332,7 +341,8 @@ fn main() -> Result<()> {
     println!("mu_C: {}", hex::encode(mu_c.to_bytes()));
 
     // Compute hash_to_point values for all ring members
-    let hp_values: Vec<EdwardsPoint> = ring_keys.iter()
+    let hp_values: Vec<EdwardsPoint> = ring_keys
+        .iter()
         .map(|key| hash_to_point(key.compress().to_bytes()))
         .collect();
 
@@ -382,21 +392,31 @@ fn main() -> Result<()> {
         );
 
         if step < 3 || i == real_pos || step == ring_size - 1 {
-            println!("Step {}: i={}, c={}...", step, i, hex::encode(&c_current.to_bytes()[..8]));
+            println!(
+                "Step {}: i={}, c={}...",
+                step,
+                i,
+                hex::encode(&c_current.to_bytes()[..8])
+            );
         } else if step == 3 {
             println!("...");
         }
     }
 
     // After processing index 0, we should be back at c1
-    println!("\nFinal c (should equal c1): {}", hex::encode(c_current.to_bytes()));
+    println!(
+        "\nFinal c (should equal c1): {}",
+        hex::encode(c_current.to_bytes())
+    );
     println!("Original c1:               {}", hex::encode(c1.to_bytes()));
 
     if c_current == c1 {
         println!("\n✅ CLSAG verification PASSED (with tx_prefix_hash as message)");
     } else {
         println!("\n❌ CLSAG verification FAILED");
-        println!("   This is expected because we used tx_prefix_hash instead of full CLSAG message");
+        println!(
+            "   This is expected because we used tx_prefix_hash instead of full CLSAG message"
+        );
     }
 
     Ok(())

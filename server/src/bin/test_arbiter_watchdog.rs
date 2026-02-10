@@ -1,6 +1,6 @@
 use anyhow::Result;
 use std::sync::Arc;
-use tracing::{info, error};
+use tracing::{error, info};
 use tracing_subscriber;
 
 use server::db::create_pool;
@@ -20,10 +20,9 @@ async fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     // Initialize database pool
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
-    let encryption_key = std::env::var("DB_ENCRYPTION_KEY")
-        .unwrap_or_default();
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
+    let encryption_key = std::env::var("DB_ENCRYPTION_KEY").unwrap_or_default();
     let db_pool = create_pool(&database_url, &encryption_key)?;
     info!("Database pool initialized");
 

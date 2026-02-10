@@ -65,8 +65,7 @@ impl ClientSeed {
     /// Validates that the phrase is valid BIP39.
     pub fn recover_from_mnemonic(phrase: &str) -> Result<Self> {
         // Validate and parse the mnemonic
-        let _mnemonic = Mnemonic::parse(phrase)
-            .context("Invalid BIP39 mnemonic phrase")?;
+        let _mnemonic = Mnemonic::parse(phrase).context("Invalid BIP39 mnemonic phrase")?;
 
         // If parsing succeeds, the mnemonic is valid
         Ok(ClientSeed {
@@ -187,8 +186,8 @@ mod tests {
         let seed1 = ClientSeed::generate_new().expect("Failed to generate seed");
         let phrase = seed1.mnemonic_phrase.clone();
 
-        let seed2 = ClientSeed::recover_from_mnemonic(&phrase)
-            .expect("Failed to recover from mnemonic");
+        let seed2 =
+            ClientSeed::recover_from_mnemonic(&phrase).expect("Failed to recover from mnemonic");
         assert_eq!(seed2.mnemonic_phrase, seed1.mnemonic_phrase);
     }
 

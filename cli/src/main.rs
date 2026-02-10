@@ -400,8 +400,7 @@ async fn main() -> Result<()> {
                 info!("Server: {}", server_url);
 
                 // Parse role
-                let escrow_role = noncustodial_wallet::parse_role(&role)
-                    .context("Invalid role")?;
+                let escrow_role = noncustodial_wallet::parse_role(&role).context("Invalid role")?;
 
                 // Create non-custodial client
                 let noncustodial_client = noncustodial_wallet::NonCustodialClient::new(
@@ -427,8 +426,7 @@ async fn main() -> Result<()> {
                 info!("Getting wallet info for {} at {}", role, local_rpc_url);
 
                 // Parse role
-                let escrow_role = noncustodial_wallet::parse_role(&role)
-                    .context("Invalid role")?;
+                let escrow_role = noncustodial_wallet::parse_role(&role).context("Invalid role")?;
 
                 // Create non-custodial client
                 let noncustodial_client = noncustodial_wallet::NonCustodialClient::new(
@@ -486,8 +484,7 @@ async fn handle_wallet_generate(server_url: Option<String>) -> Result<()> {
 
     info!("🔐 Generating new 24-word BIP39 mnemonic...");
 
-    let seed = DefaultSeedManager::generate_new()
-        .context("Failed to generate new seed")?;
+    let seed = DefaultSeedManager::generate_new().context("Failed to generate new seed")?;
 
     info!("✅ New seed generated successfully!");
 
@@ -508,8 +505,8 @@ async fn handle_wallet_generate(server_url: Option<String>) -> Result<()> {
     // Optionally register with server
     if let Some(url) = server_url {
         info!("Registering wallet with server at {}...", url);
-        let _keys = DefaultSeedManager::derive_keys(&seed)
-            .context("Failed to derive keys from seed")?;
+        let _keys =
+            DefaultSeedManager::derive_keys(&seed).context("Failed to derive keys from seed")?;
 
         // Registration logic would go here (next step)
         warn!("Address derivation not yet implemented - skipping registration");
@@ -524,17 +521,20 @@ async fn handle_wallet_recover(mnemonic: &str, server_url: Option<String>) -> Re
 
     info!("🔐 Recovering wallet from mnemonic phrase...");
 
-    let seed = DefaultSeedManager::recover_from_mnemonic(mnemonic)
-        .context("Invalid mnemonic phrase")?;
+    let seed =
+        DefaultSeedManager::recover_from_mnemonic(mnemonic).context("Invalid mnemonic phrase")?;
 
     info!("✅ Wallet recovered successfully!");
-    info!("Seed recovered from: {} words", seed.mnemonic_phrase.split_whitespace().count());
+    info!(
+        "Seed recovered from: {} words",
+        seed.mnemonic_phrase.split_whitespace().count()
+    );
 
     // Optionally register with server
     if let Some(url) = server_url {
         info!("Registering recovered wallet with server at {}...", url);
-        let _keys = DefaultSeedManager::derive_keys(&seed)
-            .context("Failed to derive keys from seed")?;
+        let _keys =
+            DefaultSeedManager::derive_keys(&seed).context("Failed to derive keys from seed")?;
 
         // Registration logic would go here
         warn!("Address derivation not yet implemented - skipping registration");
@@ -549,11 +549,10 @@ async fn handle_wallet_register(server_url: &str, mnemonic: &str) -> Result<()> 
 
     info!("🔐 Registering wallet with server at {}...", server_url);
 
-    let seed = DefaultSeedManager::recover_from_mnemonic(mnemonic)
-        .context("Invalid mnemonic phrase")?;
+    let seed =
+        DefaultSeedManager::recover_from_mnemonic(mnemonic).context("Invalid mnemonic phrase")?;
 
-    let keys = DefaultSeedManager::derive_keys(&seed)
-        .context("Failed to derive keys from seed")?;
+    let keys = DefaultSeedManager::derive_keys(&seed).context("Failed to derive keys from seed")?;
 
     // Create registration request (public keys only, no private keys)
     let request = keys

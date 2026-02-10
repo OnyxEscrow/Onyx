@@ -22,9 +22,9 @@ use crate::schema::{message_keypairs, message_read_receipts, secure_messages};
 pub struct MessageKeypair {
     pub id: String,
     pub user_id: String,
-    pub public_key: String,              // X25519 public key (base64)
-    pub encrypted_private_key: String,   // Encrypted with password-derived key
-    pub key_salt: String,                // Salt for key derivation (base64)
+    pub public_key: String,            // X25519 public key (base64)
+    pub encrypted_private_key: String, // Encrypted with password-derived key
+    pub key_salt: String,              // Salt for key derivation (base64)
     pub created_at: String,
     pub is_active: i32,
 }
@@ -142,9 +142,9 @@ pub struct SecureMessage {
     pub conversation_id: String,
     pub sender_id: String,
     pub recipient_id: String,
-    pub encrypted_content: String,        // ChaCha20Poly1305 ciphertext (base64)
-    pub nonce: String,                    // 12-byte nonce (base64)
-    pub sender_ephemeral_pubkey: String,  // X25519 ephemeral key for PFS
+    pub encrypted_content: String, // ChaCha20Poly1305 ciphertext (base64)
+    pub nonce: String,             // 12-byte nonce (base64)
+    pub sender_ephemeral_pubkey: String, // X25519 ephemeral key for PFS
     pub created_at: String,
     pub expires_at: Option<String>,
     pub is_deleted_by_sender: i32,
@@ -315,11 +315,7 @@ impl SecureMessage {
 
         // Get all messages involving this user
         let messages: Vec<SecureMessage> = dsl::secure_messages
-            .filter(
-                dsl::sender_id
-                    .eq(user_id)
-                    .or(dsl::recipient_id.eq(user_id)),
-            )
+            .filter(dsl::sender_id.eq(user_id).or(dsl::recipient_id.eq(user_id)))
             .filter(
                 // Not deleted by current user
                 diesel::dsl::not(
@@ -338,14 +334,17 @@ impl SecureMessage {
             .context("Failed to load messages")?;
 
         // Build unique conversations map
-        let mut conversations: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut conversations: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
         for msg in &messages {
             let other_id = if msg.sender_id == user_id {
                 &msg.recipient_id
             } else {
                 &msg.sender_id
             };
-            conversations.entry(msg.conversation_id.clone()).or_insert_with(|| other_id.clone());
+            conversations
+                .entry(msg.conversation_id.clone())
+                .or_insert_with(|| other_id.clone());
         }
 
         // Build result with user info and unread count

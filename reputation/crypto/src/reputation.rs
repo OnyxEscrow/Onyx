@@ -1,9 +1,9 @@
 use anyhow::{Context, Result};
 use base64::Engine;
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
-use sha2::{Digest, Sha256};
-use reputation_common::types::{SignedReview, ReputationStats};
 use chrono::Utc;
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use reputation_common::types::{ReputationStats, SignedReview};
+use sha2::{Digest, Sha256};
 
 /// Génère une signature cryptographique pour un avis
 ///
@@ -66,7 +66,8 @@ pub fn sign_review(
     // 4. Encoder en base64
     let signature_b64 = base64::engine::general_purpose::STANDARD.encode(signature.to_bytes());
     let verifying_key = buyer_signing_key.verifying_key();
-    let buyer_pubkey_b64 = base64::engine::general_purpose::STANDARD.encode(verifying_key.to_bytes());
+    let buyer_pubkey_b64 =
+        base64::engine::general_purpose::STANDARD.encode(verifying_key.to_bytes());
 
     Ok(SignedReview {
         txid,
@@ -103,14 +104,16 @@ pub fn verify_review_signature(review: &SignedReview) -> Result<bool> {
         .context("Invalid base64 in buyer_pubkey")?;
 
     if pubkey_bytes.len() != 32 {
-        return Err(anyhow::anyhow!("Invalid public key length: expected 32 bytes"));
+        return Err(anyhow::anyhow!(
+            "Invalid public key length: expected 32 bytes"
+        ));
     }
 
     let mut pubkey_array = [0u8; 32];
     pubkey_array.copy_from_slice(&pubkey_bytes);
 
-    let verifying_key = VerifyingKey::from_bytes(&pubkey_array)
-        .context("Invalid ed25519 public key")?;
+    let verifying_key =
+        VerifyingKey::from_bytes(&pubkey_array).context("Invalid ed25519 public key")?;
 
     // 2. Décoder la signature
     let sig_bytes = base64::engine::general_purpose::STANDARD
@@ -118,7 +121,9 @@ pub fn verify_review_signature(review: &SignedReview) -> Result<bool> {
         .context("Invalid base64 in signature")?;
 
     if sig_bytes.len() != 64 {
-        return Err(anyhow::anyhow!("Invalid signature length: expected 64 bytes"));
+        return Err(anyhow::anyhow!(
+            "Invalid signature length: expected 64 bytes"
+        ));
     }
 
     let mut sig_array = [0u8; 64];
@@ -171,7 +176,10 @@ pub fn calculate_stats(reviews: &[SignedReview]) -> ReputationStats {
 /// - 40% transaction volume (min(completed_tx / 100, 1) × 100)
 /// - 30% review quality (avg_rating / 5 × 100)
 /// - 30% review volume (min(total_reviews / 50, 1) × 100)
-pub fn calculate_stats_full(reviews: &[SignedReview], completed_transactions: u32) -> ReputationStats {
+pub fn calculate_stats_full(
+    reviews: &[SignedReview],
+    completed_transactions: u32,
+) -> ReputationStats {
     if reviews.is_empty() {
         let now = Utc::now();
 
@@ -221,7 +229,8 @@ pub fn calculate_stats_full(reviews: &[SignedReview], completed_transactions: u3
     let review_volume = ((total_reviews as f64 / 50.0).min(1.0)) * 100.0;
     let tx_volume = ((completed_transactions as f64 / 100.0).min(1.0)) * 100.0;
 
-    let shield_score = ((0.30 * review_quality) + (0.30 * review_volume) + (0.40 * tx_volume)).round() as u32;
+    let shield_score =
+        ((0.30 * review_quality) + (0.30 * review_volume) + (0.40 * tx_volume)).round() as u32;
     let trust_level = get_trust_level(shield_score);
 
     ReputationStats {
@@ -305,7 +314,7 @@ mod tests {
 
         let result = sign_review(
             "abc".to_string(),
-            6,  // Invalid rating
+            6, // Invalid rating
             None,
             &signing_key,
         );
@@ -328,11 +337,11 @@ mod tests {
         let stats = calculate_stats(&reviews);
 
         assert_eq!(stats.total_reviews, 3);
-        assert!((stats.average_rating - 4.666667).abs() < 0.001);  // (5+4+5)/3
-        assert_eq!(stats.rating_distribution[3], 1);  // 1x 4★
-        assert_eq!(stats.rating_distribution[4], 2);  // 2x 5★
-        assert_eq!(stats.completed_transactions, 0);  // Default
-        assert_eq!(stats.trust_level, "bronze");  // Low shield score without TX
+        assert!((stats.average_rating - 4.666667).abs() < 0.001); // (5+4+5)/3
+        assert_eq!(stats.rating_distribution[3], 1); // 1x 4★
+        assert_eq!(stats.rating_distribution[4], 2); // 2x 5★
+        assert_eq!(stats.completed_transactions, 0); // Default
+        assert_eq!(stats.trust_level, "bronze"); // Low shield score without TX
     }
 
     #[test]

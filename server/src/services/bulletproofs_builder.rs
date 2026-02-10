@@ -8,7 +8,7 @@ use curve25519_dalek::scalar::Scalar;
 use monero_bulletproofs_mirror::Bulletproof;
 use monero_primitives_mirror::Commitment;
 use rand::rngs::OsRng;
-use tracing::{info, warn, error, debug};
+use tracing::{debug, error, info, warn};
 
 /// Generate Bulletproof+ range proof for transaction outputs
 ///
@@ -26,10 +26,7 @@ use tracing::{info, warn, error, debug};
 /// * If amounts and masks have different lengths
 /// * If no outputs provided
 /// * If proof generation fails
-pub fn generate_bulletproof_plus(
-    amounts: &[u64],
-    masks: &[[u8; 32]],
-) -> Result<Bulletproof> {
+pub fn generate_bulletproof_plus(amounts: &[u64], masks: &[[u8; 32]]) -> Result<Bulletproof> {
     // =========================================================================
     // [BP+] PHASE 1: Input Validation
     // =========================================================================
@@ -161,9 +158,7 @@ pub fn generate_bulletproof_plus(
             // Verify it's the Plus variant
             match bp {
                 Bulletproof::Plus(_plus_proof) => {
-                    debug!(
-                        "[BP+][PHASE-4] Proof variant: Plus (correct for RCT v6)"
-                    );
+                    debug!("[BP+][PHASE-4] Proof variant: Plus (correct for RCT v6)");
                     // Note: AggregateRangeProof fields are private, use .write() for serialization
                     debug!(
                         "[BP+][PHASE-4] Plus proof generated successfully (internal fields private)"
@@ -183,10 +178,7 @@ pub fn generate_bulletproof_plus(
             );
 
             // Log diagnostic info
-            error!(
-                "[BP+][PHASE-4] Diagnostic: amounts={:?}",
-                amounts
-            );
+            error!("[BP+][PHASE-4] Diagnostic: amounts={:?}", amounts);
             for (i, mask) in masks.iter().enumerate() {
                 error!(
                     "[BP+][PHASE-4] Diagnostic: mask[{}]={}",
@@ -197,8 +189,7 @@ pub fn generate_bulletproof_plus(
         }
     }
 
-    proof_result
-        .map_err(|e| anyhow::anyhow!("Bulletproof+ generation failed: {:?}", e))
+    proof_result.map_err(|e| anyhow::anyhow!("Bulletproof+ generation failed: {:?}", e))
 }
 
 /// Estimate the serialized size of a Bulletproof
@@ -254,10 +245,9 @@ pub fn verify_bulletproof_plus(
 
     // H point (Monero's generator for amounts)
     const H_BYTES: [u8; 32] = [
-        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-        0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-        0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-        0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+        0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0,
+        0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
+        0x1f, 0x94,
     ];
 
     let h_point = CompressedEdwardsY(H_BYTES)

@@ -177,16 +177,12 @@ impl MultisigSession {
 
     /// Vérifie si tous les participants ont soumis leurs infos Round 1
     pub fn is_round1_complete(&self) -> bool {
-        self.participants
-            .values()
-            .all(|p| p.has_submitted_round1)
+        self.participants.values().all(|p| p.has_submitted_round1)
     }
 
     /// Vérifie si tous les participants ont soumis leurs infos Round 2
     pub fn is_round2_complete(&self) -> bool {
-        self.participants
-            .values()
-            .all(|p| p.has_submitted_round2)
+        self.participants.values().all(|p| p.has_submitted_round2)
     }
 
     /// Récupère les blobs Round 1 de TOUS les autres participants (N-1)
@@ -406,10 +402,7 @@ mod tests {
         let result = state.submit_round2("round2_blob".to_string());
         assert!(result.is_ok());
         assert!(state.has_submitted_round2);
-        assert_eq!(
-            state.multisig_info_round2,
-            Some("round2_blob".to_string())
-        );
+        assert_eq!(state.multisig_info_round2, Some("round2_blob".to_string()));
     }
 
     #[test]

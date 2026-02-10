@@ -137,7 +137,11 @@ pub async fn db_insert_escrow(pool: &DbPool, new_escrow: NewEscrow) -> Result<Es
             .filter(escrows::id.eq(escrow_id.clone()))
             .first(&mut conn)
             .map_err(|e| {
-                tracing::error!("Failed to retrieve escrow {} after insert: {:?}", escrow_id, e);
+                tracing::error!(
+                    "Failed to retrieve escrow {} after insert: {:?}",
+                    escrow_id,
+                    e
+                );
                 anyhow::anyhow!("Failed to retrieve created escrow: {}", e)
             })
     })
@@ -177,7 +181,11 @@ pub async fn db_update_escrow_status(pool: &DbPool, escrow_id: Uuid, status: &st
     db_update_escrow_status_by_str(pool, &escrow_id.to_string(), status).await
 }
 
-pub async fn db_update_escrow_status_by_str(pool: &DbPool, escrow_id: &str, status: &str) -> Result<()> {
+pub async fn db_update_escrow_status_by_str(
+    pool: &DbPool,
+    escrow_id: &str,
+    status: &str,
+) -> Result<()> {
     let mut conn = pool.get().context("Failed to get DB connection")?;
     let status_clone = status.to_string();
     let id = escrow_id.to_string();

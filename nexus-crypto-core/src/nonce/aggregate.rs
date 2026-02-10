@@ -108,11 +108,7 @@ fn parse_compressed_point(hex_str: &str, name: &str) -> CryptoResult<EdwardsPoin
 /// Verify that aggregated nonces match the component nonces.
 ///
 /// Used to verify the server's aggregation is correct.
-pub fn verify_nonce_aggregation(
-    r1: &str,
-    r2: &str,
-    r_agg_claimed: &str,
-) -> CryptoResult<bool> {
+pub fn verify_nonce_aggregation(r1: &str, r2: &str, r_agg_claimed: &str) -> CryptoResult<bool> {
     let computed = aggregate_nonces(r1, r2)?;
     Ok(computed == r_agg_claimed)
 }

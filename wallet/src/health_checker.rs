@@ -44,10 +44,9 @@ impl HealthChecker {
 
     /// Create a new health checker with custom timeout
     pub fn with_timeout(timeout: Duration) -> Result<Self, MoneroError> {
-        let client = Client::builder()
-            .timeout(timeout)
-            .build()
-            .map_err(|e| MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e)))?;
+        let client = Client::builder().timeout(timeout).build().map_err(|e| {
+            MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e))
+        })?;
 
         Ok(Self { client, timeout })
     }
@@ -88,11 +87,23 @@ impl HealthChecker {
                                 .and_then(|v| v.as_str())
                                 .map(String::from);
 
-                            let network = if result.get("mainnet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            let network = if result
+                                .get("mainnet")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false)
+                            {
                                 Some("mainnet".to_string())
-                            } else if result.get("stagenet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            } else if result
+                                .get("stagenet")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false)
+                            {
                                 Some("stagenet".to_string())
-                            } else if result.get("testnet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                            } else if result
+                                .get("testnet")
+                                .and_then(|v| v.as_bool())
+                                .unwrap_or(false)
+                            {
                                 Some("testnet".to_string())
                             } else {
                                 None
@@ -334,10 +345,7 @@ impl PoolHealthSummary {
             0
         };
 
-        let max_height = healthy
-            .iter()
-            .filter_map(|r| r.height)
-            .max();
+        let max_height = healthy.iter().filter_map(|r| r.height).max();
 
         Self {
             total,
@@ -418,18 +426,16 @@ mod tests {
 
     #[test]
     fn test_pool_health_all_down() {
-        let results = vec![
-            HealthCheckResult {
-                url: "http://127.0.0.1:18081".to_string(),
-                healthy: false,
-                response_time_ms: 5000,
-                height: None,
-                network: None,
-                version: None,
-                error: Some("Timeout".to_string()),
-                checked_at: 0,
-            },
-        ];
+        let results = vec![HealthCheckResult {
+            url: "http://127.0.0.1:18081".to_string(),
+            healthy: false,
+            response_time_ms: 5000,
+            height: None,
+            network: None,
+            version: None,
+            error: Some("Timeout".to_string()),
+            checked_at: 0,
+        }];
 
         let summary = PoolHealthSummary::from_results(results);
 

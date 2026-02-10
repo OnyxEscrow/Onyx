@@ -3,11 +3,11 @@
 //! These tests verify that the bug fixes actually work, not just compile.
 //! Run with: cargo test --package server --test bug_fixes_validation -- --nocapture
 
-use blake2::{Blake2b, Digest};
 use blake2::digest::consts::U32;
-use curve25519_dalek::scalar::Scalar;
+use blake2::{Blake2b, Digest};
 use curve25519_dalek::constants::ED25519_BASEPOINT_POINT;
 use curve25519_dalek::edwards::EdwardsPoint;
+use curve25519_dalek::scalar::Scalar;
 use rand_core::OsRng;
 
 /// BUG FIX 2.4: MuSig2 Commitment Validation
@@ -34,9 +34,12 @@ fn test_bug_2_4_commitment_validation_rejects_mismatch() {
     let verification_result = verify_commitment(
         &hex::encode(r_public),
         &hex::encode(r_prime_public),
-        &correct_commitment
+        &correct_commitment,
     );
-    assert!(verification_result.is_ok(), "Correct commitment should pass");
+    assert!(
+        verification_result.is_ok(),
+        "Correct commitment should pass"
+    );
     println!("✅ Correct commitment: ACCEPTED (expected)");
 
     // Test 2: Wrong commitment should fail
@@ -44,30 +47,37 @@ fn test_bug_2_4_commitment_validation_rejects_mismatch() {
     let verification_result = verify_commitment(
         &hex::encode(r_public),
         &hex::encode(r_prime_public),
-        wrong_commitment
+        wrong_commitment,
     );
     assert!(verification_result.is_err(), "Wrong commitment should fail");
     println!("✅ Wrong commitment: REJECTED (expected)");
 
     // Test 3: Swapped nonces should fail
     let mut hasher2 = Blake2b::<U32>::new();
-    hasher2.update(&r_prime_public);  // SWAPPED ORDER
+    hasher2.update(&r_prime_public); // SWAPPED ORDER
     hasher2.update(&r_public);
     let swapped_commitment = hex::encode(hasher2.finalize());
 
     let verification_result = verify_commitment(
         &hex::encode(r_public),
         &hex::encode(r_prime_public),
-        &swapped_commitment  // Commitment uses swapped order
+        &swapped_commitment, // Commitment uses swapped order
     );
-    assert!(verification_result.is_err(), "Swapped order commitment should fail");
+    assert!(
+        verification_result.is_err(),
+        "Swapped order commitment should fail"
+    );
     println!("✅ Swapped-order commitment: REJECTED (expected)");
 
     println!("\n✅✅✅ BUG 2.4 FIX VALIDATED: Commitment mismatch is properly rejected\n");
 }
 
 /// Helper function matching server logic (escrow.rs:7815-7834)
-fn verify_commitment(r_public_hex: &str, r_prime_public_hex: &str, submitted_hash: &str) -> Result<(), String> {
+fn verify_commitment(
+    r_public_hex: &str,
+    r_prime_public_hex: &str,
+    submitted_hash: &str,
+) -> Result<(), String> {
     let r_public_bytes = hex::decode(r_public_hex).map_err(|e| e.to_string())?;
     let r_prime_public_bytes = hex::decode(r_prime_public_hex).map_err(|e| e.to_string())?;
 
@@ -105,22 +115,20 @@ fn test_bug_2_5_ring_data_length_validation() {
     // Before fix: zip() would silently truncate to 15 items
     // After fix: explicit validation catches this
 
-    let validation_result = validate_ring_data_lengths(
-        &ring_public_keys,
-        &ring_commitments,
-        &ring_indices
-    );
+    let validation_result =
+        validate_ring_data_lengths(&ring_public_keys, &ring_commitments, &ring_indices);
 
-    assert!(validation_result.is_err(), "Mismatched lengths should be rejected");
+    assert!(
+        validation_result.is_err(),
+        "Mismatched lengths should be rejected"
+    );
     println!("✅ Mismatched ring data (16 vs 15): REJECTED (expected)");
 
     // Test matching lengths
-    let ring_commitments_correct: Vec<String> = (0..16).map(|i| format!("commit_{:02}", i)).collect();
-    let validation_result = validate_ring_data_lengths(
-        &ring_public_keys,
-        &ring_commitments_correct,
-        &ring_indices
-    );
+    let ring_commitments_correct: Vec<String> =
+        (0..16).map(|i| format!("commit_{:02}", i)).collect();
+    let validation_result =
+        validate_ring_data_lengths(&ring_public_keys, &ring_commitments_correct, &ring_indices);
 
     assert!(validation_result.is_ok(), "Matching lengths should pass");
     println!("✅ Matching ring data (16 == 16 == 16): ACCEPTED (expected)");
@@ -132,7 +140,10 @@ fn test_bug_2_5_ring_data_length_validation() {
 
     let validation_result = validate_ring_data_lengths(&small_pks, &small_commits, &small_indices);
     // This should warn but not fail (ring size 11 is allowed pre-RCT v6)
-    assert!(validation_result.is_ok(), "Non-16 ring size should pass with warning");
+    assert!(
+        validation_result.is_ok(),
+        "Non-16 ring size should pass with warning"
+    );
     println!("✅ Ring size 11: ACCEPTED with warning (expected for older txs)");
 
     println!("\n✅✅✅ BUG 2.5 FIX VALIDATED: Mismatched lengths are detected before zip()\n");
@@ -142,7 +153,7 @@ fn test_bug_2_5_ring_data_length_validation() {
 fn validate_ring_data_lengths(
     ring_public_keys: &[String],
     ring_commitments: &[String],
-    ring_indices: &[u64]
+    ring_indices: &[u64],
 ) -> Result<(), String> {
     let pk_len = ring_public_keys.len();
     let commit_len = ring_commitments.len();
@@ -164,7 +175,10 @@ fn validate_ring_data_lengths(
 
     // Warning for non-16 ring size (RCT v6 requires 16)
     if pk_len != 16 {
-        println!("  ⚠️ Warning: Ring size {} (expected 16 for RCT v6)", pk_len);
+        println!(
+            "  ⚠️ Warning: Ring size {} (expected 16 for RCT v6)",
+            pk_len
+        );
     }
 
     Ok(())
@@ -182,31 +196,46 @@ fn test_bug_2_6_aggregated_key_image_check() {
 
     let status = determine_escrow_status(has_2_of_3_signatures, aggregated_key_image);
 
-    assert_eq!(status, "awaiting_key_image",
-        "Without aggregated_key_image, status should NOT be ready_to_broadcast");
-    println!("✅ 2/3 sigs WITHOUT aggregated_ki: status = '{}' (expected)", status);
+    assert_eq!(
+        status, "awaiting_key_image",
+        "Without aggregated_key_image, status should NOT be ready_to_broadcast"
+    );
+    println!(
+        "✅ 2/3 sigs WITHOUT aggregated_ki: status = '{}' (expected)",
+        status
+    );
 
     // Scenario 2: 2/3 signatures WITH aggregated_key_image
     let aggregated_ki = "a1b2c3d4e5f6..."; // Some hex value
     let status = determine_escrow_status(has_2_of_3_signatures, Some(aggregated_ki));
 
-    assert_eq!(status, "ready_to_broadcast",
-        "With aggregated_key_image, status should be ready_to_broadcast");
-    println!("✅ 2/3 sigs WITH aggregated_ki: status = '{}' (expected)", status);
+    assert_eq!(
+        status, "ready_to_broadcast",
+        "With aggregated_key_image, status should be ready_to_broadcast"
+    );
+    println!(
+        "✅ 2/3 sigs WITH aggregated_ki: status = '{}' (expected)",
+        status
+    );
 
     // Scenario 3: Less than 2/3 signatures
     let has_2_of_3_signatures = false;
     let status = determine_escrow_status(has_2_of_3_signatures, Some(aggregated_ki));
 
-    assert_eq!(status, "awaiting_signatures",
-        "Without 2/3 signatures, status should be awaiting_signatures");
+    assert_eq!(
+        status, "awaiting_signatures",
+        "Without 2/3 signatures, status should be awaiting_signatures"
+    );
     println!("✅ <2/3 sigs: status = '{}' (expected)", status);
 
     println!("\n✅✅✅ BUG 2.6 FIX VALIDATED: Status correctly depends on aggregated_key_image\n");
 }
 
 /// Helper function matching server logic (escrow.rs:3572-3612)
-fn determine_escrow_status(has_2_of_3_signatures: bool, aggregated_key_image: Option<&str>) -> &'static str {
+fn determine_escrow_status(
+    has_2_of_3_signatures: bool,
+    aggregated_key_image: Option<&str>,
+) -> &'static str {
     if !has_2_of_3_signatures {
         return "awaiting_signatures";
     }
@@ -215,7 +244,7 @@ fn determine_escrow_status(has_2_of_3_signatures: bool, aggregated_key_image: Op
     if aggregated_key_image.is_some() {
         "ready_to_broadcast"
     } else {
-        "awaiting_key_image"  // NEW STATUS added in v0.9.6
+        "awaiting_key_image" // NEW STATUS added in v0.9.6
     }
 }
 
@@ -244,8 +273,14 @@ fn test_bug_2_1_cofactor_consistency() {
         "Cofactor multiplication should produce different result"
     );
 
-    println!("Without cofactor: {}", hex::encode(&no_cofactor_bytes[..16]));
-    println!("With cofactor:    {}", hex::encode(&with_cofactor_bytes[..16]));
+    println!(
+        "Without cofactor: {}",
+        hex::encode(&no_cofactor_bytes[..16])
+    );
+    println!(
+        "With cofactor:    {}",
+        hex::encode(&with_cofactor_bytes[..16])
+    );
     println!("✅ Cofactor multiplication produces DIFFERENT result (8x)");
 
     // Verify cofactor is 8 for Ed25519

@@ -47,8 +47,8 @@ fn compute_txid_buggy_order(prefix: &[u8], base: &[u8], prunable: &[u8]) -> [u8;
 
     // BUG: Wrong order!
     let mut hasher = Keccak256::new();
-    hasher.update(&base_hash);    // Should be prefix
-    hasher.update(&prefix_hash);  // Should be base
+    hasher.update(&base_hash); // Should be prefix
+    hasher.update(&prefix_hash); // Should be base
     hasher.update(&prunable_hash);
     hasher.finalize().into()
 }
@@ -140,18 +140,28 @@ fn test_blob_hash_produces_different_result() {
 fn test_keccak256_empty_input() {
     // Known value: Keccak256("") = c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470
     let hash: [u8; 32] = Keccak256::digest(b"").into();
-    let expected = hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap();
+    let expected =
+        hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap();
 
-    assert_eq!(&hash[..], &expected[..], "Keccak256 empty hash should match known value");
+    assert_eq!(
+        &hash[..],
+        &expected[..],
+        "Keccak256 empty hash should match known value"
+    );
 }
 
 #[test]
 fn test_keccak256_test_vector() {
     // Known value: Keccak256("test") = 9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658
     let hash: [u8; 32] = Keccak256::digest(b"test").into();
-    let expected = hex::decode("9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658").unwrap();
+    let expected =
+        hex::decode("9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658").unwrap();
 
-    assert_eq!(&hash[..], &expected[..], "Keccak256 'test' hash should match known value");
+    assert_eq!(
+        &hash[..],
+        &expected[..],
+        "Keccak256 'test' hash should match known value"
+    );
 }
 
 #[test]
@@ -159,7 +169,8 @@ fn test_keccak256_not_sha3() {
     // Keccak256 (Monero) != SHA3-256 (NIST)
     // SHA3-256("test") = 36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80
     let keccak_hash: [u8; 32] = Keccak256::digest(b"test").into();
-    let sha3_expected = hex::decode("36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80").unwrap();
+    let sha3_expected =
+        hex::decode("36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80").unwrap();
 
     assert_ne!(
         &keccak_hash[..],

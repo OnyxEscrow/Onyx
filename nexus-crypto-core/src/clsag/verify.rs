@@ -59,9 +59,18 @@ pub fn verify_clsag(
     debug_info.push(format!("Ring size: {}", ring_size));
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!("D_inv8: {}...", hex::encode(&d_inv8_bytes[..8])));
-    debug_info.push(format!("Key image: {}...", hex::encode(&key_image_bytes[..8])));
-    debug_info.push(format!("Pseudo out: {}...", hex::encode(&pseudo_out_bytes[..8])));
-    debug_info.push(format!("TX prefix hash: {}...", hex::encode(&tx_prefix_hash[..8])));
+    debug_info.push(format!(
+        "Key image: {}...",
+        hex::encode(&key_image_bytes[..8])
+    ));
+    debug_info.push(format!(
+        "Pseudo out: {}...",
+        hex::encode(&pseudo_out_bytes[..8])
+    ));
+    debug_info.push(format!(
+        "TX prefix hash: {}...",
+        hex::encode(&tx_prefix_hash[..8])
+    ));
 
     // Parse D_inv8
     let d_inv8 = match CompressedEdwardsY(d_inv8_bytes).decompress() {
@@ -150,7 +159,10 @@ pub fn verify_clsag(
 
     // D_original = D_inv8 * 8 (undo the /8 from signing)
     let d_original = d_inv8 * Scalar::from(8u64);
-    debug_info.push(format!("D_original: {}...", hex::encode(&d_original.compress().to_bytes()[..8])));
+    debug_info.push(format!(
+        "D_original: {}...",
+        hex::encode(&d_original.compress().to_bytes()[..8])
+    ));
 
     // Precompute Hp(P[i]) for all ring members
     let mut hp_values: Vec<EdwardsPoint> = Vec::with_capacity(ring_size);
@@ -199,7 +211,8 @@ pub fn verify_clsag(
         if idx < 3 || idx == ring_size - 1 {
             debug_info.push(format!(
                 "Round {} (idx={}): L={}..., R={}..., c_next={}...",
-                i, idx,
+                i,
+                idx,
                 hex::encode(&l_point.compress().to_bytes()[..8]),
                 hex::encode(&r_point.compress().to_bytes()[..8]),
                 hex::encode(&c_next.to_bytes()[..8])
@@ -264,8 +277,12 @@ pub fn verify_clsag_with_mu(
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!(
         "stored_mu_p: {}, stored_mu_c: {}",
-        stored_mu_p.map(|m| format!("{}...", hex::encode(&m[..8]))).unwrap_or_else(|| "NONE".to_string()),
-        stored_mu_c.map(|m| format!("{}...", hex::encode(&m[..8]))).unwrap_or_else(|| "NONE".to_string())
+        stored_mu_p
+            .map(|m| format!("{}...", hex::encode(&m[..8])))
+            .unwrap_or_else(|| "NONE".to_string()),
+        stored_mu_c
+            .map(|m| format!("{}...", hex::encode(&m[..8])))
+            .unwrap_or_else(|| "NONE".to_string())
     ));
 
     // Parse D_inv8
@@ -440,13 +457,13 @@ mod tests {
         // c_computed won't match c_expected after the ring loop
         let result = verify_clsag(
             &[[1u8; 32]; 2],
-            [0u8; 32], // c1
-            [0u8; 32], // d_inv8 - identity point (valid)
-            [0u8; 32], // key_image - identity point (valid)
-            [0u8; 32], // pseudo_out - identity point (valid)
+            [0u8; 32],       // c1
+            [0u8; 32],       // d_inv8 - identity point (valid)
+            [0u8; 32],       // key_image - identity point (valid)
+            [0u8; 32],       // pseudo_out - identity point (valid)
             &[[0u8; 32]; 2], // ring keys - identity points
             &[[0u8; 32]; 2], // ring commitments - identity points
-            [0u8; 32], // tx_prefix_hash
+            [0u8; 32],       // tx_prefix_hash
         );
         // The verification might pass point parsing but fail the ring loop
         // Just check it runs without panic

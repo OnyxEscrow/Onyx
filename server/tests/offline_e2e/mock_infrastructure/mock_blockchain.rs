@@ -7,7 +7,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use super::{DeterministicRng, test_fixtures::*};
+use super::{test_fixtures::*, DeterministicRng};
 
 /// Simulated blockchain state
 pub struct MockBlockchain {
@@ -143,7 +143,10 @@ impl MockBlockchain {
         // Check for double-spends
         for input in &tx.inputs {
             if self.is_key_image_spent(&input.key_image) {
-                return Err(format!("Double spend detected: key image {} already spent", &input.key_image[..16]));
+                return Err(format!(
+                    "Double spend detected: key image {} already spent",
+                    &input.key_image[..16]
+                ));
             }
         }
 
@@ -179,7 +182,9 @@ impl MockBlockchain {
         let mut candidates: Vec<_> = self
             .outputs
             .values()
-            .filter(|o| o.unlocked && o.global_index != exclude_index && o.block_height <= min_height)
+            .filter(|o| {
+                o.unlocked && o.global_index != exclude_index && o.block_height <= min_height
+            })
             .map(|o| o.global_index)
             .collect();
 
@@ -190,7 +195,11 @@ impl MockBlockchain {
         } else {
             // Select evenly distributed indices
             let step = candidates.len() / count;
-            candidates.into_iter().step_by(step.max(1)).take(count).collect()
+            candidates
+                .into_iter()
+                .step_by(step.max(1))
+                .take(count)
+                .collect()
         }
     }
 
@@ -211,7 +220,11 @@ impl MockBlockchain {
     }
 
     /// Generate ring data for a specific output
-    pub fn generate_ring_for_output(&self, real_global_index: u64, ring_size: usize) -> Option<RingResult> {
+    pub fn generate_ring_for_output(
+        &self,
+        real_global_index: u64,
+        ring_size: usize,
+    ) -> Option<RingResult> {
         let real_output = self.get_output(real_global_index)?;
 
         // Get ring members

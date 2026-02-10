@@ -431,11 +431,10 @@ impl ApiKey {
     pub fn has_scope(&self, scope: ApiKeyScope) -> bool {
         match &self.scopes {
             None => true, // NULL = all scopes (backward-compatible)
-            Some(scopes_str) => {
-                scopes_str.split(',')
-                    .map(|s| s.trim())
-                    .any(|s| s == scope.as_str() || s == "*")
-            }
+            Some(scopes_str) => scopes_str
+                .split(',')
+                .map(|s| s.trim())
+                .any(|s| s == scope.as_str() || s == "*"),
         }
     }
 
@@ -443,11 +442,10 @@ impl ApiKey {
     pub fn parsed_scopes(&self) -> Vec<ApiKeyScope> {
         match &self.scopes {
             None => ApiKeyScope::all(),
-            Some(scopes_str) => {
-                scopes_str.split(',')
-                    .filter_map(|s| ApiKeyScope::from_str(s.trim()))
-                    .collect()
-            }
+            Some(scopes_str) => scopes_str
+                .split(',')
+                .filter_map(|s| ApiKeyScope::from_str(s.trim()))
+                .collect(),
         }
     }
 
@@ -484,11 +482,10 @@ impl ApiKey {
     pub fn is_origin_allowed(&self, origin: &str) -> bool {
         match &self.allowed_origins {
             None => true,
-            Some(origins_str) => {
-                origins_str.split(',')
-                    .map(|s| s.trim())
-                    .any(|allowed| allowed == "*" || allowed == origin)
-            }
+            Some(origins_str) => origins_str
+                .split(',')
+                .map(|s| s.trim())
+                .any(|allowed| allowed == "*" || allowed == origin),
         }
     }
 }
@@ -535,7 +532,10 @@ mod tests {
         assert_eq!(ApiKeyTier::from_str("free"), Some(ApiKeyTier::Free));
         assert_eq!(ApiKeyTier::from_str("FREE"), Some(ApiKeyTier::Free));
         assert_eq!(ApiKeyTier::from_str("pro"), Some(ApiKeyTier::Pro));
-        assert_eq!(ApiKeyTier::from_str("enterprise"), Some(ApiKeyTier::Enterprise));
+        assert_eq!(
+            ApiKeyTier::from_str("enterprise"),
+            Some(ApiKeyTier::Enterprise)
+        );
         assert_eq!(ApiKeyTier::from_str("invalid"), None);
     }
 }

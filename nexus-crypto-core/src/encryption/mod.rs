@@ -46,7 +46,6 @@ pub use symmetric::{decrypt_data, encrypt_data};
 
 // Re-export backup functions
 pub use backup::{
-    decrypt_key_from_backup, derive_backup_id, encrypt_key_for_backup,
-    encrypted_size, verify_backup_password,
-    HEADER_SIZE, KEY_SIZE, NONCE_SIZE, SALT_SIZE, TAG_SIZE,
+    decrypt_key_from_backup, derive_backup_id, encrypt_key_for_backup, encrypted_size,
+    verify_backup_password, HEADER_SIZE, KEY_SIZE, NONCE_SIZE, SALT_SIZE, TAG_SIZE,
 };

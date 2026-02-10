@@ -77,8 +77,14 @@ impl RoundRobinCoordinator {
             .context("Escrow not found")?;
 
         // Allow: funded (normal), ready_to_release, disputed (arbiter resolution)
-        if escrow.status != "funded" && escrow.status != "ready_to_release" && escrow.status != "disputed" {
-            anyhow::bail!("Escrow must be funded or disputed. Current: {}", escrow.status);
+        if escrow.status != "funded"
+            && escrow.status != "ready_to_release"
+            && escrow.status != "disputed"
+        {
+            anyhow::bail!(
+                "Escrow must be funded or disputed. Current: {}",
+                escrow.status
+            );
         }
 
         if escrow.signing_round.unwrap_or(0) > 0 {
@@ -304,7 +310,9 @@ impl RoundRobinCoordinator {
             is_complete: round == SIGNING_COMPLETE,
             tx_hash: escrow.broadcast_tx_hash.clone(),
             data_to_sign,
-            destination_address: escrow.vendor_payout_address.clone()
+            destination_address: escrow
+                .vendor_payout_address
+                .clone()
                 .or_else(|| escrow.buyer_refund_address.clone()),
             amount: Some(escrow.amount),
         }

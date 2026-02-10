@@ -1,6 +1,6 @@
 //! Verify tx_prefix_hash from TX hex file
 
-use sha3::{Keccak256, Digest};
+use sha3::{Digest, Keccak256};
 use std::fs;
 
 fn main() {
@@ -22,7 +22,10 @@ fn main() {
     let computed_hash = hex::encode(&hash);
 
     println!("TX prefix length: {} bytes", tx_prefix.len());
-    println!("TX prefix (first 32 bytes): {}", hex::encode(&tx_prefix[..32]));
+    println!(
+        "TX prefix (first 32 bytes): {}",
+        hex::encode(&tx_prefix[..32])
+    );
     println!("\nComputed tx_prefix_hash: {}", computed_hash);
 
     // Expected from test

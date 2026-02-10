@@ -7,8 +7,8 @@
 use curve25519_dalek::scalar::Scalar;
 use sha3::{Digest, Keccak256};
 
-use crate::types::errors::{CryptoError, CryptoResult};
 use super::utils::encode_varint;
+use crate::types::errors::{CryptoError, CryptoResult};
 
 /// Decode encrypted amount from ecdhInfo
 ///
@@ -42,7 +42,7 @@ pub fn decode_encrypted_amount(
 
     if encrypted.len() < 8 {
         return Err(CryptoError::AmountDecodeFailed(
-            "Encrypted amount too short (need 8 bytes)".into()
+            "Encrypted amount too short (need 8 bytes)".into(),
         ));
     }
 
@@ -59,7 +59,7 @@ pub fn decode_encrypted_amount_bytes(
 ) -> CryptoResult<u64> {
     if encrypted.len() < 8 {
         return Err(CryptoError::AmountDecodeFailed(
-            "Encrypted amount too short (need 8 bytes)".into()
+            "Encrypted amount too short (need 8 bytes)".into(),
         ));
     }
 
@@ -143,7 +143,10 @@ mod tests {
         assert!(decoded_1.is_ok(), "Should decode amount");
 
         let amount = decoded_1.unwrap();
-        assert_eq!(amount, expected_amount, "Decoded amount should match expected");
+        assert_eq!(
+            amount, expected_amount,
+            "Decoded amount should match expected"
+        );
     }
 
     #[test]
@@ -160,11 +163,17 @@ mod tests {
         // Different outputs must have different view tags (with high probability)
         // Note: These don't match "on-chain" values because those were computed
         // with different derivation (sender's ephemeral key)
-        assert_ne!(view_tag_0, view_tag_1, "Different outputs should have different view tags");
+        assert_ne!(
+            view_tag_0, view_tag_1,
+            "Different outputs should have different view tags"
+        );
 
         // Verify view tags are deterministic
         let view_tag_0_again = compute_view_tag(&derivation, 0);
-        assert_eq!(view_tag_0, view_tag_0_again, "View tag should be deterministic");
+        assert_eq!(
+            view_tag_0, view_tag_0_again,
+            "View tag should be deterministic"
+        );
     }
 
     #[test]

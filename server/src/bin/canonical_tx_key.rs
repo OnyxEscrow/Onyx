@@ -1,9 +1,9 @@
 // Compute the CANONICAL tx_secret_key (reduced mod l)
 // This is what Monero's check_tx_key expects
 
-use sha3::{Digest, Keccak256};
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
+use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Keccak256};
 
 fn main() {
     let escrow_id = "148c8bcd-205d-4f83-8b40-dbfacfcf515e";

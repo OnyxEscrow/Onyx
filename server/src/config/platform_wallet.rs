@@ -7,7 +7,9 @@
 //! If this address is invalid or on the wrong network, ALL PLATFORM FEES
 //! WILL BE PERMANENTLY LOST.
 
-use crate::crypto::address_validation::{validate_address, validate_address_for_network, MoneroNetwork};
+use crate::crypto::address_validation::{
+    validate_address, validate_address_for_network, MoneroNetwork,
+};
 use once_cell::sync::Lazy;
 use std::env;
 use std::sync::RwLock;
@@ -99,8 +101,8 @@ pub fn load_platform_wallet() -> Result<PlatformWalletConfig, PlatformWalletErro
     let expected_network = get_configured_network()?;
 
     // Get platform wallet address
-    let address = env::var("PLATFORM_FEE_WALLET")
-        .map_err(|_| PlatformWalletError::NotConfigured)?;
+    let address =
+        env::var("PLATFORM_FEE_WALLET").map_err(|_| PlatformWalletError::NotConfigured)?;
 
     // Validate address with full checksum verification
     let address_network = validate_address(&address)
@@ -236,34 +238,57 @@ pub fn validate_platform_wallet_on_startup() {
 
             match e {
                 PlatformWalletError::NotConfigured => {
-                    error!("   FIX: Set PLATFORM_FEE_WALLET in .env to a valid {} address",
-                        get_configured_network().unwrap_or(MoneroNetwork::Mainnet));
-                    error!("   Generate with: monero-wallet-cli --generate-new-wallet platform_fee");
+                    error!(
+                        "   FIX: Set PLATFORM_FEE_WALLET in .env to a valid {} address",
+                        get_configured_network().unwrap_or(MoneroNetwork::Mainnet)
+                    );
+                    error!(
+                        "   Generate with: monero-wallet-cli --generate-new-wallet platform_fee"
+                    );
                 }
-                PlatformWalletError::NetworkMismatch { ref address_network, ref expected_network } => {
-                    error!("   The address starts with '{}' which is for {}",
-                        if *address_network == MoneroNetwork::Mainnet { "4/8" }
-                        else if *address_network == MoneroNetwork::Stagenet { "5/7" }
-                        else { "9/A/B" },
-                        address_network);
+                PlatformWalletError::NetworkMismatch {
+                    ref address_network,
+                    ref expected_network,
+                } => {
+                    error!(
+                        "   The address starts with '{}' which is for {}",
+                        if *address_network == MoneroNetwork::Mainnet {
+                            "4/8"
+                        } else if *address_network == MoneroNetwork::Stagenet {
+                            "5/7"
+                        } else {
+                            "9/A/B"
+                        },
+                        address_network
+                    );
                     error!("   But MONERO_NETWORK={}", expected_network);
                     error!("");
                     error!("   FIX: Either:");
-                    error!("   1. Change PLATFORM_FEE_WALLET to a {} address (starts with {})",
+                    error!(
+                        "   1. Change PLATFORM_FEE_WALLET to a {} address (starts with {})",
                         expected_network,
-                        if *expected_network == MoneroNetwork::Mainnet { "'4' or '8'" }
-                        else if *expected_network == MoneroNetwork::Stagenet { "'5' or '7'" }
-                        else { "'9', 'A', or 'B'" });
-                    error!("   2. Or change MONERO_NETWORK={} if you're testing on {}",
-                        address_network, address_network);
+                        if *expected_network == MoneroNetwork::Mainnet {
+                            "'4' or '8'"
+                        } else if *expected_network == MoneroNetwork::Stagenet {
+                            "'5' or '7'"
+                        } else {
+                            "'9', 'A', or 'B'"
+                        }
+                    );
+                    error!(
+                        "   2. Or change MONERO_NETWORK={} if you're testing on {}",
+                        address_network, address_network
+                    );
                 }
                 PlatformWalletError::InvalidAddress(ref msg) => {
                     error!("   The address failed cryptographic validation: {}", msg);
                     error!("   This means the checksum is wrong or the address is corrupted.");
                     error!("");
                     error!("   FIX: Generate a new wallet address with:");
-                    error!("   monero-wallet-cli --{} --generate-new-wallet platform_fee",
-                        get_configured_network().unwrap_or(MoneroNetwork::Mainnet));
+                    error!(
+                        "   monero-wallet-cli --{} --generate-new-wallet platform_fee",
+                        get_configured_network().unwrap_or(MoneroNetwork::Mainnet)
+                    );
                 }
                 PlatformWalletError::InvalidNetworkConfig(ref val) => {
                     error!("   MONERO_NETWORK='{}' is not valid", val);
@@ -325,6 +350,6 @@ mod tests {
     #[test]
     fn test_fee_defaults() {
         assert_eq!(get_release_fee_bps(), 500); // 5%
-        assert_eq!(get_refund_fee_bps(), 300);  // 3%
+        assert_eq!(get_refund_fee_bps(), 300); // 3%
     }
 }

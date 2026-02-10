@@ -108,8 +108,8 @@ pub struct Webhook {
     pub id: String,
     pub api_key_id: String,
     pub url: String,
-    pub secret: String,  // Encrypted HMAC secret
-    pub events: String,  // Comma-separated event types or '*'
+    pub secret: String, // Encrypted HMAC secret
+    pub events: String, // Comma-separated event types or '*'
     pub is_active: i32,
     pub consecutive_failures: i32,
     pub last_failure_reason: Option<String>,
@@ -222,10 +222,7 @@ impl Webhook {
     }
 
     /// Get all webhooks for an API key
-    pub fn get_by_api_key(
-        key_id: &str,
-        conn: &mut SqliteConnection,
-    ) -> Result<Vec<Webhook>> {
+    pub fn get_by_api_key(key_id: &str, conn: &mut SqliteConnection) -> Result<Vec<Webhook>> {
         use crate::schema::webhooks::dsl::*;
 
         let results = webhooks
@@ -244,9 +241,7 @@ impl Webhook {
         use crate::schema::webhooks::dsl::*;
 
         // Get all active webhooks
-        let active_hooks = webhooks
-            .filter(is_active.eq(1))
-            .load::<Webhook>(conn)?;
+        let active_hooks = webhooks.filter(is_active.eq(1)).load::<Webhook>(conn)?;
 
         // Filter by event subscription
         let subscribed: Vec<Webhook> = active_hooks
@@ -265,9 +260,7 @@ impl Webhook {
             .values(&new_webhook)
             .execute(conn)?;
 
-        let webhook = webhooks
-            .find(&new_webhook.id)
-            .first::<Webhook>(conn)?;
+        let webhook = webhooks.find(&new_webhook.id).first::<Webhook>(conn)?;
 
         Ok(webhook)
     }

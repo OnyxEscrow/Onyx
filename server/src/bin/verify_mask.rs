@@ -29,7 +29,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -44,7 +47,10 @@ fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     let args: Vec<String> = env::args().collect();
-    let escrow_id = args.get(1).map(|s| s.as_str()).unwrap_or("1bacd695-7587-418d-94d3-9373065145cd");
+    let escrow_id = args
+        .get(1)
+        .map(|s| s.as_str())
+        .unwrap_or("1bacd695-7587-418d-94d3-9373065145cd");
 
     println!("=== Mask Verification for Escrow {} ===\n", escrow_id);
 
@@ -63,37 +69,61 @@ fn main() -> Result<()> {
 
     // Query escrow
     use self::escrows::dsl::*;
-    let escrow: (String, String, i64, Option<String>, Option<String>, Option<String>) = escrows
+    let escrow: (
+        String,
+        String,
+        i64,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+    ) = escrows
         .filter(id.like(format!("{}%", escrow_id)))
-        .select((id, status, amount, funding_commitment_mask, ring_data_json, vendor_signature))
+        .select((
+            id,
+            status,
+            amount,
+            funding_commitment_mask,
+            ring_data_json,
+            vendor_signature,
+        ))
         .first(&mut conn)
         .context("Escrow not found")?;
 
     println!("Found escrow: {}", escrow.0);
     println!("Status: {}", escrow.1);
-    println!("Amount: {} atomic ({} XMR)", escrow.2, escrow.2 as f64 / 1e12);
+    println!(
+        "Amount: {} atomic ({} XMR)",
+        escrow.2,
+        escrow.2 as f64 / 1e12
+    );
 
     let funding_mask_hex = escrow.3.as_ref().context("No funding_commitment_mask")?;
     println!("\nFunding Mask: {}", funding_mask_hex);
 
     // Parse ring_data_json to get ring_commitments and signer_index
-    let ring_data: serde_json::Value = serde_json::from_str(
-        escrow.4.as_ref().context("No ring_data_json")?
-    )?;
+    let ring_data: serde_json::Value =
+        serde_json::from_str(escrow.4.as_ref().context("No ring_data_json")?)?;
 
-    let signer_index = ring_data["signer_index"].as_u64().context("No signer_index")? as usize;
-    let ring_commitments = ring_data["ring_commitments"].as_array().context("No ring_commitments")?;
-    let c_signer = ring_commitments[signer_index].as_str().context("No C[signer]")?;
+    let signer_index = ring_data["signer_index"]
+        .as_u64()
+        .context("No signer_index")? as usize;
+    let ring_commitments = ring_data["ring_commitments"]
+        .as_array()
+        .context("No ring_commitments")?;
+    let c_signer = ring_commitments[signer_index]
+        .as_str()
+        .context("No C[signer]")?;
     let pseudo_out_ring = ring_data["pseudo_out"].as_str();
 
     println!("Signer Index: {}", signer_index);
     println!("C[{}] (signer commitment): {}", signer_index, c_signer);
 
     // Parse vendor signature to get pseudo_out
-    let vendor_sig: serde_json::Value = serde_json::from_str(
-        escrow.5.as_ref().context("No vendor_signature")?
-    )?;
-    let pseudo_out_hex = vendor_sig["pseudo_out"].as_str().context("No pseudo_out in signature")?;
+    let vendor_sig: serde_json::Value =
+        serde_json::from_str(escrow.5.as_ref().context("No vendor_signature")?)?;
+    let pseudo_out_hex = vendor_sig["pseudo_out"]
+        .as_str()
+        .context("No pseudo_out in signature")?;
     println!("Pseudo_out (from signature): {}", pseudo_out_hex);
     if let Some(p) = pseudo_out_ring {
         println!("Pseudo_out (from ring_data):  {}", p);
@@ -174,7 +204,10 @@ fn main() -> Result<()> {
     let expected_delta = computed_commitment - pseudo_point;
     let expected_delta_hex = hex::encode(expected_delta.compress().as_bytes());
 
-    println!("Expected (funding_mask*G + amount*H - pseudo_out): {}", expected_delta_hex);
+    println!(
+        "Expected (funding_mask*G + amount*H - pseudo_out): {}",
+        expected_delta_hex
+    );
 
     if c_minus_pseudo_hex == expected_delta_hex {
         println!("  ✅ MATCH! Delta computation is consistent");

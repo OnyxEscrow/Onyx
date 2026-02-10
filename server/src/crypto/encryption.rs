@@ -233,21 +233,18 @@ pub fn decrypt_bytes(ciphertext_with_nonce: &[u8], key: &[u8]) -> Result<Vec<u8>
         );
     }
 
-    let cipher = Aes256Gcm::new_from_slice(key)
-        .context("Failed to create AES-256-GCM cipher")?;
+    let cipher = Aes256Gcm::new_from_slice(key).context("Failed to create AES-256-GCM cipher")?;
 
     #[allow(deprecated)]
     let nonce = Nonce::from_slice(&ciphertext_with_nonce[..NONCE_SIZE]);
     let ciphertext = &ciphertext_with_nonce[NONCE_SIZE..];
 
-    cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|e| {
-            anyhow::anyhow!(
-                "Decryption failed: {}. This likely means wrong key or tampered data.",
-                e
-            )
-        })
+    cipher.decrypt(nonce, ciphertext).map_err(|e| {
+        anyhow::anyhow!(
+            "Decryption failed: {}. This likely means wrong key or tampered data.",
+            e
+        )
+    })
 }
 
 /// Encrypt raw bytes (Phase 6: for binary seed data)
@@ -275,8 +272,7 @@ pub fn encrypt_bytes(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
         anyhow::bail!("Cannot encrypt empty data");
     }
 
-    let cipher = Aes256Gcm::new_from_slice(key)
-        .context("Failed to create AES-256-GCM cipher")?;
+    let cipher = Aes256Gcm::new_from_slice(key).context("Failed to create AES-256-GCM cipher")?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     OsRng.fill_bytes(&mut nonce_bytes);
@@ -391,12 +387,7 @@ pub fn derive_key_from_password(password: &str, salt: &[u8]) -> Result<Vec<u8>> 
 
     let mut key = vec![0u8; KEY_SIZE];
 
-    pbkdf2::pbkdf2_hmac::<sha2::Sha256>(
-        password.as_bytes(),
-        salt,
-        PBKDF2_ITERATIONS,
-        &mut key,
-    );
+    pbkdf2::pbkdf2_hmac::<sha2::Sha256>(password.as_bytes(), salt, PBKDF2_ITERATIONS, &mut key);
 
     Ok(key)
 }
@@ -441,7 +432,10 @@ pub fn generate_random_salt(size: usize) -> Result<Vec<u8>> {
 /// * `Err` with specific failure reason
 pub fn validate_password_strength(password: &str) -> Result<()> {
     if password.len() < MIN_PASSWORD_LENGTH {
-        anyhow::bail!("Password must be at least {} characters", MIN_PASSWORD_LENGTH);
+        anyhow::bail!(
+            "Password must be at least {} characters",
+            MIN_PASSWORD_LENGTH
+        );
     }
 
     if !password.chars().any(|c| c.is_uppercase()) {
@@ -456,14 +450,27 @@ pub fn validate_password_strength(password: &str) -> Result<()> {
         anyhow::bail!("Password must contain at least one digit");
     }
 
-    if !password.chars().any(|c| "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c)) {
-        anyhow::bail!("Password must contain at least one special character (!@#$%^&*()_+-=[]{{}}|;:,.<>?)");
+    if !password
+        .chars()
+        .any(|c| "!@#$%^&*()_+-=[]{}|;:,.<>?".contains(c))
+    {
+        anyhow::bail!(
+            "Password must contain at least one special character (!@#$%^&*()_+-=[]{{}}|;:,.<>?)"
+        );
     }
 
     // Check against common passwords (top 100)
     const COMMON_PASSWORDS: &[&str] = &[
-        "password123", "123456789", "qwerty123", "admin123", "letmein123",
-        "welcome123", "monkey123", "dragon123", "master123", "superman123",
+        "password123",
+        "123456789",
+        "qwerty123",
+        "admin123",
+        "letmein123",
+        "welcome123",
+        "monkey123",
+        "dragon123",
+        "master123",
+        "superman123",
         // Add more as needed
     ];
 
@@ -679,8 +686,10 @@ mod tests {
     #[test]
     fn test_derive_key_from_password() {
         let password = "MySecurePassword123!";
-        let salt = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
-                        0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10];
+        let salt = vec![
+            0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e,
+            0x0f, 0x10,
+        ];
 
         let key = derive_key_from_password(password, &salt).expect("Key derivation failed");
 
@@ -704,9 +713,13 @@ mod tests {
         let salt = vec![0x42; 16];
 
         let key1 = derive_key_from_password("Password123!", &salt).expect("Derivation 1 failed");
-        let key2 = derive_key_from_password("DifferentPass123!", &salt).expect("Derivation 2 failed");
+        let key2 =
+            derive_key_from_password("DifferentPass123!", &salt).expect("Derivation 2 failed");
 
-        assert_ne!(key1, key2, "Different passwords must produce different keys");
+        assert_ne!(
+            key1, key2,
+            "Different passwords must produce different keys"
+        );
     }
 
     #[test]
@@ -728,7 +741,10 @@ mod tests {
         let result = derive_key_from_password("short", &salt);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("at least 12 characters"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 12 characters"));
     }
 
     #[test]
@@ -736,7 +752,10 @@ mod tests {
         let result = derive_key_from_password("ValidPassword123!", &[]);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Salt cannot be empty"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Salt cannot be empty"));
     }
 
     #[test]
@@ -754,7 +773,10 @@ mod tests {
         let result = generate_random_salt(8);
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("at least 16 bytes"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 16 bytes"));
     }
 
     #[test]
@@ -768,7 +790,10 @@ mod tests {
         let result = validate_password_strength("Short1!");
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("at least 12 characters"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("at least 12 characters"));
     }
 
     #[test]
@@ -800,7 +825,10 @@ mod tests {
         let result = validate_password_strength("MyLongPassword123");
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("special character"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("special character"));
     }
 
     #[test]

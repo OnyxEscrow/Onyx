@@ -15,7 +15,10 @@ pub mod tor;
 pub mod transaction;
 pub mod validation;
 
-pub use circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError, CircuitOpenError, CircuitState, with_circuit_breaker};
+pub use circuit_breaker::{
+    with_circuit_breaker, CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError,
+    CircuitOpenError, CircuitState,
+};
 pub use client::MoneroClient;
 pub use daemon_pool::{DaemonConfig, DaemonPool};
 pub use escrow::EscrowManager;

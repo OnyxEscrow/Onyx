@@ -15,7 +15,9 @@ use crate::models::escrow::{Escrow, NewEscrow};
 use crate::models::user::User;
 use crate::models::webhook::WebhookEventType;
 use crate::schema::{escrows, users};
-use crate::services::webhook_dispatcher::{WebhookDispatcher, build_escrow_payload, emit_webhook_nonblocking};
+use crate::services::webhook_dispatcher::{
+    build_escrow_payload, emit_webhook_nonblocking, WebhookDispatcher,
+};
 use crate::websocket::{WebSocketServer, WsEvent};
 
 /// Response struct for user escrow list
@@ -148,11 +150,23 @@ pub async fn get_user_escrows_dashboard(
     // Calculate stats before filtering
     let stats = DashboardStats {
         total: all_escrows.len() as i32,
-        active: all_escrows.iter().filter(|(e, _)| {
-            matches!(e.status.as_str(), "pending_dkg" | "awaiting_funding" | "funded" | "shipped" | "signing_initiated")
-        }).count() as i32,
-        completed: all_escrows.iter().filter(|(e, _)| e.status == "completed" || e.status == "released").count() as i32,
-        disputed: all_escrows.iter().filter(|(e, _)| e.status == "disputed").count() as i32,
+        active: all_escrows
+            .iter()
+            .filter(|(e, _)| {
+                matches!(
+                    e.status.as_str(),
+                    "pending_dkg" | "awaiting_funding" | "funded" | "shipped" | "signing_initiated"
+                )
+            })
+            .count() as i32,
+        completed: all_escrows
+            .iter()
+            .filter(|(e, _)| e.status == "completed" || e.status == "released")
+            .count() as i32,
+        disputed: all_escrows
+            .iter()
+            .filter(|(e, _)| e.status == "disputed")
+            .count() as i32,
         total_volume: all_escrows.iter().map(|(e, _)| e.amount).sum(),
         as_buyer: all_escrows.iter().filter(|(_, r)| r == "buyer").count() as i32,
         as_vendor: all_escrows.iter().filter(|(_, r)| r == "vendor").count() as i32,
@@ -185,19 +199,21 @@ pub async fn get_user_escrows_dashboard(
         let limit = query.limit.unwrap_or(20).min(100);
         let start_idx = if let Some(ref cursor_str) = query.cursor {
             match decode_cursor(cursor_str) {
-                Some(cursor_id) => {
-                    all_escrows
-                        .iter()
-                        .position(|(e, _)| e.id == cursor_id)
-                        .map(|pos| pos + 1)
-                        .unwrap_or(0)
-                }
+                Some(cursor_id) => all_escrows
+                    .iter()
+                    .position(|(e, _)| e.id == cursor_id)
+                    .map(|pos| pos + 1)
+                    .unwrap_or(0),
                 None => 0,
             }
         } else {
             0
         };
-        let window: Vec<_> = all_escrows.into_iter().skip(start_idx).take(limit + 1).collect();
+        let window: Vec<_> = all_escrows
+            .into_iter()
+            .skip(start_idx)
+            .take(limit + 1)
+            .collect();
         let has_more = window.len() > limit;
         let items: Vec<_> = window.into_iter().take(limit).collect();
         let next = if has_more {
@@ -210,7 +226,11 @@ pub async fn get_user_escrows_dashboard(
         let page = query.page.unwrap_or(1).max(1);
         let per_page = query.per_page.unwrap_or(10).min(50);
         let start = ((page - 1) * per_page) as usize;
-        let items: Vec<_> = all_escrows.into_iter().skip(start).take(per_page as usize).collect();
+        let items: Vec<_> = all_escrows
+            .into_iter()
+            .skip(start)
+            .take(per_page as usize)
+            .collect();
         (items, None, false, page, per_page)
     };
 
@@ -261,7 +281,7 @@ pub async fn get_user_escrows_dashboard(
             updated_at: escrow.updated_at.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
             multisig_phase: escrow.multisig_phase.clone(),
             frost_dkg_complete: escrow.frost_dkg_complete,
-            has_shield: false, // TODO: check shield_backups table
+            has_shield: false,  // TODO: check shield_backups table
             unread_messages: 0, // TODO: check escrow_messages table
             external_reference: escrow.external_reference.clone(),
             description: escrow.description.clone(),
@@ -279,8 +299,13 @@ pub async fn get_user_escrows_dashboard(
         total,
     };
 
-    info!("Dashboard: {} escrows for user {} (page {}/{})",
-          dashboard_escrows.len(), user_id, page, (total + per_page - 1) / per_page);
+    info!(
+        "Dashboard: {} escrows for user {} (page {}/{})",
+        dashboard_escrows.len(),
+        user_id,
+        page,
+        (total + per_page - 1) / per_page
+    );
 
     let mut response = serde_json::json!({
         "escrows": dashboard_escrows,
@@ -366,12 +391,9 @@ pub async fn get_user_escrows(
     };
 
     // Fetch escrows where user is buyer, vendor, or arbiter
-    let buyer_escrows = Escrow::find_by_buyer(&mut conn, user_id.clone())
-        .unwrap_or_default();
-    let vendor_escrows = Escrow::find_by_vendor(&mut conn, user_id.clone())
-        .unwrap_or_default();
-    let arbiter_escrows = Escrow::find_by_arbiter(&mut conn, user_id.clone())
-        .unwrap_or_default();
+    let buyer_escrows = Escrow::find_by_buyer(&mut conn, user_id.clone()).unwrap_or_default();
+    let vendor_escrows = Escrow::find_by_vendor(&mut conn, user_id.clone()).unwrap_or_default();
+    let arbiter_escrows = Escrow::find_by_arbiter(&mut conn, user_id.clone()).unwrap_or_default();
 
     // Combine all escrows
     let mut all_escrows = Vec::new();
@@ -422,7 +444,11 @@ pub async fn get_user_escrows(
     }
 
     // Sort by created_at descending (most recent first), then by id for stable ordering
-    all_escrows.sort_by(|a, b| b.created_at.cmp(&a.created_at).then_with(|| b.id.cmp(&a.id)));
+    all_escrows.sort_by(|a, b| {
+        b.created_at
+            .cmp(&a.created_at)
+            .then_with(|| b.id.cmp(&a.id))
+    });
 
     let limit = query.limit.unwrap_or(20).min(100);
     let use_cursor_pagination = query.cursor.is_some() || query.limit.is_some();
@@ -446,7 +472,11 @@ pub async fn get_user_escrows(
         };
 
         // Take limit + 1 to detect has_more
-        let window: Vec<_> = all_escrows.into_iter().skip(start_idx).take(limit + 1).collect();
+        let window: Vec<_> = all_escrows
+            .into_iter()
+            .skip(start_idx)
+            .take(limit + 1)
+            .collect();
         let has_more = window.len() > limit;
         let page: Vec<_> = window.into_iter().take(limit).collect();
 
@@ -456,7 +486,11 @@ pub async fn get_user_escrows(
             None
         };
 
-        info!("Retrieved {} escrows (cursor page) for user {}", page.len(), user_id);
+        info!(
+            "Retrieved {} escrows (cursor page) for user {}",
+            page.len(),
+            user_id
+        );
 
         HttpResponse::Ok().json(CursorPaginatedResponse {
             data: page,
@@ -465,7 +499,11 @@ pub async fn get_user_escrows(
         })
     } else {
         // Backwards-compatible: return flat array for existing consumers
-        info!("Retrieved {} escrows for user {}", all_escrows.len(), user_id);
+        info!(
+            "Retrieved {} escrows for user {}",
+            all_escrows.len(),
+            user_id
+        );
         HttpResponse::Ok().json(all_escrows)
     }
 }
@@ -559,7 +597,10 @@ pub async fn create_escrow(
     let arbiter_id = "pending".to_string();
 
     // Generate escrow ID
-    let escrow_id = format!("esc_{}", Uuid::new_v4().to_string().replace("-", "")[..16].to_string());
+    let escrow_id = format!(
+        "esc_{}",
+        Uuid::new_v4().to_string().replace("-", "")[..16].to_string()
+    );
     // EaaS: Use escrow_id as order_id (self-reference for standalone escrows)
     let order_id: Option<String> = Some(escrow_id.clone());
 
@@ -601,18 +642,25 @@ pub async fn create_escrow(
 
     match Escrow::create(&mut conn, new_escrow) {
         Ok(escrow) => {
-            info!("Created EaaS escrow {} by {} as {}", escrow_id, user_id, creator_role);
+            info!(
+                "Created EaaS escrow {} by {} as {}",
+                escrow_id, user_id, creator_role
+            );
 
             // B2B Webhook: EscrowCreated
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 WebhookEventType::EscrowCreated,
-                build_escrow_payload(&escrow_id, "escrow.created", serde_json::json!({
-                    "amount": body.amount,
-                    "creator_role": creator_role,
-                    "status": "pending_counterparty",
-                    "external_reference": body.external_reference,
-                })),
+                build_escrow_payload(
+                    &escrow_id,
+                    "escrow.created",
+                    serde_json::json!({
+                        "amount": body.amount,
+                        "creator_role": creator_role,
+                        "status": "pending_counterparty",
+                        "external_reference": body.external_reference,
+                    }),
+                ),
             );
 
             HttpResponse::Created().json(serde_json::json!({
@@ -624,8 +672,10 @@ pub async fn create_escrow(
         }
         Err(e) => {
             error!("Failed to create escrow: {:?}", e);
-            error!("Escrow creation details - id: {}, order_id: {:?}, buyer: {}, vendor: {}",
-                   escrow_id, order_id_log, buyer_id_log, vendor_id_log);
+            error!(
+                "Escrow creation details - id: {}, order_id: {:?}, buyer: {}, vendor: {}",
+                escrow_id, order_id_log, buyer_id_log, vendor_id_log
+            );
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": format!("Failed to create escrow: {}", e)
             }))
@@ -638,10 +688,7 @@ pub async fn create_escrow(
 // ============================================================================
 
 /// GET /api/escrows/{id}/public - Get escrow details for join page (no auth)
-pub async fn get_escrow_public(
-    pool: web::Data<DbPool>,
-    path: web::Path<String>,
-) -> impl Responder {
+pub async fn get_escrow_public(pool: web::Data<DbPool>, path: web::Path<String>) -> impl Responder {
     let escrow_id = path.into_inner();
 
     let mut conn = match pool.get() {
@@ -762,7 +809,9 @@ pub async fn join_escrow(
         .optional()
         .unwrap_or(None);
 
-    let arbiter_id = arbiter.map(|a| a.id).unwrap_or_else(|| "system_arbiter".to_string());
+    let arbiter_id = arbiter
+        .map(|a| a.id)
+        .unwrap_or_else(|| "system_arbiter".to_string());
 
     // Update escrow
     let update_result = diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id)))
@@ -777,16 +826,23 @@ pub async fn join_escrow(
 
     match update_result {
         Ok(_) => {
-            info!("User {} joined escrow {} as {}", user_id, escrow_id, assigned_role);
+            info!(
+                "User {} joined escrow {} as {}",
+                user_id, escrow_id, assigned_role
+            );
 
             // B2B Webhook: MultisigSetupStarted (counterparty joined, DKG can begin)
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 WebhookEventType::MultisigSetupStarted,
-                build_escrow_payload(&escrow_id, "multisig.setup_started", serde_json::json!({
-                    "joined_role": assigned_role,
-                    "status": "pending_dkg",
-                })),
+                build_escrow_payload(
+                    &escrow_id,
+                    "multisig.setup_started",
+                    serde_json::json!({
+                        "joined_role": assigned_role,
+                        "status": "pending_dkg",
+                    }),
+                ),
             );
 
             HttpResponse::Ok().json(serde_json::json!({
@@ -850,9 +906,8 @@ pub async fn get_lobby_status(
     };
 
     // Check user is a participant
-    let is_participant = escrow.buyer_id == user_id
-        || escrow.vendor_id == user_id
-        || escrow.arbiter_id == user_id;
+    let is_participant =
+        escrow.buyer_id == user_id || escrow.vendor_id == user_id || escrow.arbiter_id == user_id;
 
     if !is_participant {
         return HttpResponse::Forbidden().json(serde_json::json!({
@@ -869,8 +924,15 @@ pub async fn get_lobby_status(
     // Determine DKG status based on escrow status
     let dkg_status = match escrow.status.as_str() {
         "pending_counterparty" => "pending",
-        "pending_dkg" => if escrow.multisig_address.is_some() { "complete" } else { "pending" },
-        "awaiting_funding" | "funded" | "delivered" | "pending_release" | "completed" | "disputed" => "complete",
+        "pending_dkg" => {
+            if escrow.multisig_address.is_some() {
+                "complete"
+            } else {
+                "pending"
+            }
+        }
+        "awaiting_funding" | "funded" | "delivered" | "pending_release" | "completed"
+        | "disputed" => "complete",
         _ => "pending",
     };
 
@@ -930,9 +992,8 @@ pub async fn start_dkg(
     };
 
     // Check user is a participant
-    let is_participant = escrow.buyer_id == user_id
-        || escrow.vendor_id == user_id
-        || escrow.arbiter_id == user_id;
+    let is_participant =
+        escrow.buyer_id == user_id || escrow.vendor_id == user_id || escrow.arbiter_id == user_id;
 
     if !is_participant {
         return HttpResponse::Forbidden().json(serde_json::json!({
@@ -941,7 +1002,10 @@ pub async fn start_dkg(
     }
 
     // Check all parties have joined
-    if escrow.buyer_id == "pending" || escrow.vendor_id == "pending" || escrow.arbiter_id == "pending" {
+    if escrow.buyer_id == "pending"
+        || escrow.vendor_id == "pending"
+        || escrow.arbiter_id == "pending"
+    {
         return HttpResponse::BadRequest().json(serde_json::json!({
             "error": "All parties must join before starting DKG",
             "buyer_joined": escrow.buyer_id != "pending",
@@ -1089,7 +1153,7 @@ pub async fn mark_delivered(
                 escrow_id,
                 user_id,
                 &payout_address[..12],
-                &payout_address[payout_address.len()-8..]
+                &payout_address[payout_address.len() - 8..]
             );
 
             // Broadcast EscrowShipped event to notify buyer
@@ -1100,16 +1164,23 @@ pub async fn mark_delivered(
                 tracking_info: None,
                 auto_release_at: chrono::Utc::now().naive_utc() + chrono::Duration::days(14),
             });
-            info!("[WebSocket] Broadcast EscrowShipped for {} to buyer {}", escrow_id, escrow.buyer_id);
+            info!(
+                "[WebSocket] Broadcast EscrowShipped for {} to buyer {}",
+                escrow_id, escrow.buyer_id
+            );
 
             // B2B Webhook: EscrowShipped
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 WebhookEventType::EscrowShipped,
-                build_escrow_payload(&escrow_id, "escrow.shipped", serde_json::json!({
-                    "vendor_id": user_id,
-                    "status": "shipped",
-                })),
+                build_escrow_payload(
+                    &escrow_id,
+                    "escrow.shipped",
+                    serde_json::json!({
+                        "vendor_id": user_id,
+                        "status": "shipped",
+                    }),
+                ),
             );
 
             HttpResponse::Ok().json(serde_json::json!({
@@ -1195,16 +1266,23 @@ pub async fn confirm_delivery(
         .execute(&mut conn)
     {
         Ok(_) => {
-            info!("Escrow {} confirmed by buyer {}, initiating release", escrow_id, user_id);
+            info!(
+                "Escrow {} confirmed by buyer {}, initiating release",
+                escrow_id, user_id
+            );
 
             // B2B Webhook: MultisigSigningRequired (buyer confirmed, signing can begin)
             emit_webhook_nonblocking(
                 webhook_dispatcher.get_ref().clone(),
                 WebhookEventType::MultisigSigningRequired,
-                build_escrow_payload(&escrow_id, "multisig.signing_required", serde_json::json!({
-                    "buyer_id": user_id,
-                    "status": "signing_initiated",
-                })),
+                build_escrow_payload(
+                    &escrow_id,
+                    "multisig.signing_required",
+                    serde_json::json!({
+                        "buyer_id": user_id,
+                        "status": "signing_initiated",
+                    }),
+                ),
             );
 
             HttpResponse::Ok().json(serde_json::json!({
@@ -1241,10 +1319,7 @@ pub struct ArbiterDisputeResponse {
 }
 
 /// GET /api/arbiter/disputes - List all disputes for arbiter
-pub async fn get_arbiter_disputes(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn get_arbiter_disputes(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     let user_id = match session.get::<String>("user_id") {
         Ok(Some(uid)) => uid,
         _ => {
@@ -1272,7 +1347,7 @@ pub async fn get_arbiter_disputes(
         .unwrap_or(None);
 
     match &user {
-        Some(u) if u.role == "arbiter" => {},
+        Some(u) if u.role == "arbiter" => {}
         _ => {
             return HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Only arbiters can access this endpoint"
@@ -1309,15 +1384,25 @@ pub async fn get_arbiter_disputes(
             escrow_id: escrow.id.clone(),
             status: escrow.status.clone(),
             reason: escrow.dispute_reason.clone(),
-            buyer_username: buyer.map(|u| u.username).unwrap_or_else(|| "Unknown".to_string()),
-            vendor_username: vendor.map(|u| u.username).unwrap_or_else(|| "Unknown".to_string()),
+            buyer_username: buyer
+                .map(|u| u.username)
+                .unwrap_or_else(|| "Unknown".to_string()),
+            vendor_username: vendor
+                .map(|u| u.username)
+                .unwrap_or_else(|| "Unknown".to_string()),
             amount: escrow.amount,
             created_at: escrow.created_at.format("%Y-%m-%d %H:%M UTC").to_string(),
-            dispute_created_at: escrow.dispute_created_at.map(|d| d.format("%Y-%m-%d %H:%M UTC").to_string()),
+            dispute_created_at: escrow
+                .dispute_created_at
+                .map(|d| d.format("%Y-%m-%d %H:%M UTC").to_string()),
         });
     }
 
-    info!("Retrieved {} disputes for arbiter {}", response.len(), user_id);
+    info!(
+        "Retrieved {} disputes for arbiter {}",
+        response.len(),
+        user_id
+    );
 
     HttpResponse::Ok().json(serde_json::json!({
         "disputes": response,
@@ -1362,7 +1447,7 @@ pub async fn get_arbiter_dispute_detail(
         .unwrap_or(None);
 
     match &user {
-        Some(u) if u.role == "arbiter" => {},
+        Some(u) if u.role == "arbiter" => {}
         _ => {
             return HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Only arbiters can access this endpoint"

@@ -4,13 +4,13 @@
 //! Every intermediate value is logged to allow comparison with reference implementations.
 
 use curve25519_dalek::{
-    constants::{ED25519_BASEPOINT_TABLE, ED25519_BASEPOINT_POINT},
+    constants::{ED25519_BASEPOINT_POINT, ED25519_BASEPOINT_TABLE},
     edwards::EdwardsPoint,
     scalar::Scalar,
     traits::VartimeMultiscalarMul,
 };
-use sha3::{Digest, Keccak256};
 use monero_generators_mirror::{hash_to_point, H};
+use sha3::{Digest, Keccak256};
 
 /// Debug context that captures all intermediate CLSAG values
 #[derive(Default)]
@@ -55,7 +55,7 @@ pub fn compute_mu_with_debug(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
     key_image: &EdwardsPoint,
-    d_inv8: &EdwardsPoint,  // D * inv8
+    d_inv8: &EdwardsPoint, // D * inv8
     pseudo_out: &EdwardsPoint,
 ) -> (Scalar, Scalar) {
     ctx.log("=== Computing mu_P and mu_C ===");
@@ -103,7 +103,10 @@ pub fn compute_mu_with_debug(
     hash_input.extend_from_slice(&po_bytes);
     ctx.log_bytes("pseudo_out", &po_bytes);
 
-    ctx.log(&format!("Total hash input length for mu_P: {}", hash_input.len()));
+    ctx.log(&format!(
+        "Total hash input length for mu_P: {}",
+        hash_input.len()
+    ));
 
     // Compute mu_P
     let mu_p_hash: [u8; 32] = Keccak256::digest(&hash_input).into();
@@ -112,7 +115,7 @@ pub fn compute_mu_with_debug(
     ctx.log_scalar("mu_P", &mu_p);
 
     // Compute mu_C (change domain to agg_1)
-    hash_input[10] = b'1';  // Change "CLSAG_agg_0" to "CLSAG_agg_1"
+    hash_input[10] = b'1'; // Change "CLSAG_agg_0" to "CLSAG_agg_1"
     let mu_c_hash: [u8; 32] = Keccak256::digest(&hash_input).into();
     let mu_c = Scalar::from_bytes_mod_order(mu_c_hash);
     ctx.log_bytes("mu_C hash", &mu_c_hash);
@@ -128,7 +131,7 @@ pub fn ring_loop_iteration_debug(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
     key_image: &EdwardsPoint,
-    d_original: &EdwardsPoint,  // Original D (NOT * inv8)
+    d_original: &EdwardsPoint, // Original D (NOT * inv8)
     pseudo_out: &EdwardsPoint,
     msg: &[u8; 32],
     s_i: &Scalar,
@@ -161,15 +164,14 @@ pub fn ring_loop_iteration_debug(
 
     // R = s[i] * Hp(P[i]) + c_p * I + c_c * D
     // NOTE: Uses ORIGINAL D, not D * inv8!
-    let r_point = EdwardsPoint::vartime_multiscalar_mul(
-        [*s_i, c_p, c_c],
-        [hp_i, *key_image, *d_original],
-    );
+    let r_point =
+        EdwardsPoint::vartime_multiscalar_mul([*s_i, c_p, c_c], [hp_i, *key_image, *d_original]);
     ctx.log_point(&format!("R[{}]", i), &r_point);
 
     // Compute next challenge
     let c_next = compute_round_hash_debug(
-        ctx, i,
+        ctx,
+        i,
         ring_keys,
         ring_commitments,
         pseudo_out,
@@ -252,7 +254,10 @@ pub fn verify_commitment_balance_debug(
     ctx.log_point("output + fee*H", &expected);
 
     let matches = pseudo_out.compress() == expected.compress();
-    ctx.log(&format!("Balance check: {}", if matches { "PASS" } else { "FAIL" }));
+    ctx.log(&format!(
+        "Balance check: {}",
+        if matches { "PASS" } else { "FAIL" }
+    ));
 
     matches
 }

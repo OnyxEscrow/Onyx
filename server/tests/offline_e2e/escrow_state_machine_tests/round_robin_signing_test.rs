@@ -450,8 +450,14 @@ fn test_other_signer() {
         [0u8; 32],
     );
 
-    assert_eq!(session.other_signer(SigningRole::Buyer), Some(SigningRole::Vendor));
-    assert_eq!(session.other_signer(SigningRole::Vendor), Some(SigningRole::Buyer));
+    assert_eq!(
+        session.other_signer(SigningRole::Buyer),
+        Some(SigningRole::Vendor)
+    );
+    assert_eq!(
+        session.other_signer(SigningRole::Vendor),
+        Some(SigningRole::Buyer)
+    );
     assert_eq!(session.other_signer(SigningRole::Arbiter), None);
 }
 

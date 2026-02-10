@@ -10,10 +10,10 @@ use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
 use sha3::{Digest, Keccak256};
 
-use crate::types::errors::{CryptoError, CryptoResult};
-use super::derivation::derive_commitment_mask;
 use super::amounts::decode_encrypted_amount_bytes;
+use super::derivation::derive_commitment_mask;
 use super::utils::{encode_varint, extract_spend_pub_from_address};
+use crate::types::errors::{CryptoError, CryptoResult};
 
 /// Result of output ownership verification and mask derivation
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -96,7 +96,9 @@ pub fn find_our_output_and_derive_mask(
     let spend_pub_bytes = extract_spend_pub_from_address(multisig_address)?;
     let spend_pub_point = CompressedEdwardsY(spend_pub_bytes)
         .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("Spend public key decompression failed".into()))?;
+        .ok_or_else(|| {
+            CryptoError::InvalidPublicKey("Spend public key decompression failed".into())
+        })?;
 
     // Compute derivation: D = 8 * view_priv * tx_pub_key
     let shared_point = view_scalar * tx_pub_point;
@@ -137,11 +139,13 @@ pub fn find_our_output_and_derive_mask(
                 if let Some(encrypted_hex) = amounts.get(idx) {
                     let encrypted = match hex::decode(encrypted_hex) {
                         Ok(bytes) if bytes.len() >= 8 => bytes,
-                        _ => return Ok(OutputOwnershipResult {
-                            output_index: output_idx,
-                            commitment_mask: mask,
-                            decoded_amount: None,
-                        }),
+                        _ => {
+                            return Ok(OutputOwnershipResult {
+                                output_index: output_idx,
+                                commitment_mask: mask,
+                                decoded_amount: None,
+                            })
+                        }
                     };
                     decode_encrypted_amount_bytes(&derivation_bytes, output_idx, &encrypted).ok()
                 } else {
@@ -160,7 +164,7 @@ pub fn find_our_output_and_derive_mask(
     }
 
     Err(CryptoError::MaskDerivationFailed(
-        "No matching output found - none of the outputs belong to our address".into()
+        "No matching output found - none of the outputs belong to our address".into(),
     ))
 }
 
@@ -218,7 +222,9 @@ pub fn find_our_output_by_view_tag(
     let spend_pub_bytes = extract_spend_pub_from_address(multisig_address)?;
     let spend_pub_point = CompressedEdwardsY(spend_pub_bytes)
         .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("Spend public key decompression failed".into()))?;
+        .ok_or_else(|| {
+            CryptoError::InvalidPublicKey("Spend public key decompression failed".into())
+        })?;
 
     // Compute derivation
     let shared_point = view_scalar * tx_pub_point;
@@ -259,11 +265,10 @@ pub fn find_our_output_by_view_tag(
 
             let decoded_amount = if let Some(amounts) = encrypted_amounts {
                 if let Some(encrypted_hex) = amounts.get(idx) {
-                    hex::decode(encrypted_hex)
-                        .ok()
-                        .and_then(|encrypted| {
-                            decode_encrypted_amount_bytes(&derivation_bytes, output_idx, &encrypted).ok()
-                        })
+                    hex::decode(encrypted_hex).ok().and_then(|encrypted| {
+                        decode_encrypted_amount_bytes(&derivation_bytes, output_idx, &encrypted)
+                            .ok()
+                    })
                 } else {
                     None
                 }
@@ -280,7 +285,7 @@ pub fn find_our_output_by_view_tag(
     }
 
     Err(CryptoError::MaskDerivationFailed(
-        "No matching output found".into()
+        "No matching output found".into(),
     ))
 }
 
@@ -321,10 +326,18 @@ mod tests {
 
         // Output 1 belongs to us (not output 0)
         assert_eq!(ownership.output_index, 1, "Output 1 should be ours");
-        assert_eq!(ownership.commitment_mask.len(), 64, "Mask should be 64 hex chars");
+        assert_eq!(
+            ownership.commitment_mask.len(),
+            64,
+            "Mask should be 64 hex chars"
+        );
 
         // Verify decoded amount
-        assert_eq!(ownership.decoded_amount, Some(2000000000), "Amount should be 0.002 XMR");
+        assert_eq!(
+            ownership.decoded_amount,
+            Some(2000000000),
+            "Amount should be 0.002 XMR"
+        );
     }
 
     #[test]
@@ -339,13 +352,8 @@ mod tests {
             "2222222222222222222222222222222222222222222222222222222222222222".to_string(),
         ];
 
-        let result = find_our_output_and_derive_mask(
-            view_key,
-            tx_pub_key,
-            address,
-            &output_keys,
-            None,
-        );
+        let result =
+            find_our_output_and_derive_mask(view_key, tx_pub_key, address, &output_keys, None);
 
         assert!(result.is_err(), "Should not find our output");
         assert!(matches!(result, Err(CryptoError::MaskDerivationFailed(_))));

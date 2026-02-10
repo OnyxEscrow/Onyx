@@ -1,6 +1,6 @@
-use sha3::{Digest, Keccak256};
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
+use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Keccak256};
 
 fn main() {
     let escrow_id = "148c8bcd-205d-4f83-8b40-dbfacfcf515e";
@@ -22,8 +22,8 @@ fn main() {
     // Expected tx_pubkey from blockchain (extracted from extra field)
     // Extra: [1, 12, 130, 174, ...] -> bytes 1-32 are the pubkey
     let blockchain_tx_pubkey: [u8; 32] = [
-        12, 130, 174, 102, 125, 227, 200, 243, 17, 50, 37, 118, 84, 127, 181, 76,
-        85, 59, 227, 231, 52, 28, 99, 1, 220, 56, 236, 13, 1, 120, 51, 117
+        12, 130, 174, 102, 125, 227, 200, 243, 17, 50, 37, 118, 84, 127, 181, 76, 85, 59, 227, 231,
+        52, 28, 99, 1, 220, 56, 236, 13, 1, 120, 51, 117,
     ];
 
     println!("Escrow ID: {}", escrow_id);
@@ -32,7 +32,10 @@ fn main() {
     println!("tx_secret_key:            {}", hex::encode(&tx_secret_key));
     println!();
     println!("Computed tx_pubkey (r*G): {}", hex::encode(&tx_pubkey));
-    println!("Blockchain tx_pubkey:     {}", hex::encode(&blockchain_tx_pubkey));
+    println!(
+        "Blockchain tx_pubkey:     {}",
+        hex::encode(&blockchain_tx_pubkey)
+    );
     println!();
     println!("TX PUBKEYS MATCH? {}", tx_pubkey == blockchain_tx_pubkey);
 }

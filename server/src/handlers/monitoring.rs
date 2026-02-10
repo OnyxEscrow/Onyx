@@ -176,23 +176,22 @@ pub async fn get_escrow_status(
     };
 
     // Load escrow
-    let escrow = match tokio::task::spawn_blocking(move || {
-        Escrow::find_by_id(&mut conn, escrow_id_str)
-    })
-    .await
-    {
-        Ok(Ok(escrow)) => escrow,
-        Ok(Err(e)) => {
-            return HttpResponse::NotFound().json(serde_json::json!({
-                "error": format!("Escrow not found: {}", e)
-            }));
-        }
-        Err(e) => {
-            return HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": format!("Task join error: {}", e)
-            }));
-        }
-    };
+    let escrow =
+        match tokio::task::spawn_blocking(move || Escrow::find_by_id(&mut conn, escrow_id_str))
+            .await
+        {
+            Ok(Ok(escrow)) => escrow,
+            Ok(Err(e)) => {
+                return HttpResponse::NotFound().json(serde_json::json!({
+                    "error": format!("Escrow not found: {}", e)
+                }));
+            }
+            Err(e) => {
+                return HttpResponse::InternalServerError().json(serde_json::json!({
+                    "error": format!("Task join error: {}", e)
+                }));
+            }
+        };
 
     // Build response with timeout info
     #[derive(Serialize)]

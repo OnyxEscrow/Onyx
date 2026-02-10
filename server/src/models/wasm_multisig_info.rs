@@ -18,7 +18,7 @@ pub struct WasmMultisigInfoRow {
     pub role: String,
     pub multisig_info: String,
     pub view_key_component: Option<String>,
-    pub created_at: i32,  // Maps to Integer in SQLite
+    pub created_at: i32, // Maps to Integer in SQLite
 }
 
 /// Insertable model for wasm_multisig_infos table
@@ -30,7 +30,7 @@ pub struct NewWasmMultisigInfo {
     pub role: String,
     pub multisig_info: String,
     pub view_key_component: Option<String>,
-    pub created_at: i32,  // Maps to Integer in SQLite
+    pub created_at: i32, // Maps to Integer in SQLite
 }
 
 impl WasmMultisigInfoRow {
@@ -171,7 +171,10 @@ impl SqliteWasmMultisigStore {
     }
 
     /// Get all infos for an escrow
-    pub fn get_all_for_escrow(&self, escrow_id: &str) -> Result<Vec<WasmMultisigInfoRow>, anyhow::Error> {
+    pub fn get_all_for_escrow(
+        &self,
+        escrow_id: &str,
+    ) -> Result<Vec<WasmMultisigInfoRow>, anyhow::Error> {
         let mut conn = self.pool.get()?;
         let infos = WasmMultisigInfoRow::get_all_for_escrow(&mut conn, escrow_id)?;
         Ok(infos)

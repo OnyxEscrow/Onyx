@@ -12,8 +12,8 @@
 //! 4. **Character set invariance** - multisig_info only contains base64 chars
 //! 5. **Threshold validation** - Invalid thresholds always rejected
 
-use proptest::prelude::*;
 use monero_marketplace_common::{MAX_MULTISIG_INFO_LEN, MIN_MULTISIG_INFO_LEN};
+use proptest::prelude::*;
 
 /// Strategy to generate valid multisig_info strings
 fn valid_multisig_info_strategy() -> impl Strategy<Value = String> {
@@ -21,7 +21,7 @@ fn valid_multisig_info_strategy() -> impl Strategy<Value = String> {
 
     length.prop_flat_map(move |len| {
         let data_len = len - 10; // "MultisigV1" is 10 chars
-        // Generate random base64 string of exact length
+                                 // Generate random base64 string of exact length
         let regex = format!("MultisigV1[A-Za-z0-9+/=]{{{}}}", data_len);
         proptest::string::string_regex(&regex).expect("Invalid regex")
     })
@@ -35,25 +35,25 @@ fn invalid_multisig_info_strategy() -> impl Strategy<Value = String> {
         Just("Multisig".to_string()),
         Just("M".to_string()),
         Just("".to_string()),
-
         // Wrong prefix
         (MIN_MULTISIG_INFO_LEN..MAX_MULTISIG_INFO_LEN)
             .prop_map(|len| format!("InvalidPrefix{}", "A".repeat(len - 13))),
-
         // Invalid characters
         (MIN_MULTISIG_INFO_LEN..MAX_MULTISIG_INFO_LEN)
             .prop_map(|len| format!("MultisigV1{}", "@#$%".repeat(len / 4))),
-
         // Too long
-        Just(format!("MultisigV1{}", "A".repeat(MAX_MULTISIG_INFO_LEN + 100))),
+        Just(format!(
+            "MultisigV1{}",
+            "A".repeat(MAX_MULTISIG_INFO_LEN + 100)
+        )),
     ]
 }
 
 /// Strategy to generate threshold values
 fn threshold_strategy() -> impl Strategy<Value = u32> {
     prop_oneof![
-        Just(0u32), // Invalid
-        Just(1u32), // Invalid (must be at least 2 for 2-of-3)
+        Just(0u32),    // Invalid
+        Just(1u32),    // Invalid (must be at least 2 for 2-of-3)
         2u32..4u32,    // Valid range for 2-of-3
         10u32..100u32, // Too high
     ]
@@ -330,8 +330,7 @@ fn validate_multisig_info_list(infos: &[String]) -> Result<(), String> {
 
     // Validate each info
     for (i, info) in infos.iter().enumerate() {
-        validate_multisig_info_format(info)
-            .map_err(|e| format!("Invalid info[{}]: {}", i, e))?;
+        validate_multisig_info_format(info).map_err(|e| format!("Invalid info[{}]: {}", i, e))?;
     }
 
     Ok(())
@@ -395,7 +394,10 @@ fn regression_exactly_min_length() {
     // Bug: MIN_MULTISIG_INFO_LEN boundary was off-by-one
     let info = format!("MultisigV1{}", "A".repeat(MIN_MULTISIG_INFO_LEN - 10));
     let result = validate_multisig_info_format(&info);
-    assert!(result.is_ok(), "Exactly MIN_MULTISIG_INFO_LEN should be accepted");
+    assert!(
+        result.is_ok(),
+        "Exactly MIN_MULTISIG_INFO_LEN should be accepted"
+    );
 }
 
 #[test]
@@ -403,7 +405,10 @@ fn regression_exactly_max_length() {
     // Bug: MAX_MULTISIG_INFO_LEN boundary was off-by-one
     let info = format!("MultisigV1{}", "A".repeat(MAX_MULTISIG_INFO_LEN - 10));
     let result = validate_multisig_info_format(&info);
-    assert!(result.is_ok(), "Exactly MAX_MULTISIG_INFO_LEN should be accepted");
+    assert!(
+        result.is_ok(),
+        "Exactly MAX_MULTISIG_INFO_LEN should be accepted"
+    );
 }
 
 #[test]

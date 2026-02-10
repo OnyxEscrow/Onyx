@@ -129,8 +129,10 @@ pub async fn submit_nonce_commitment(
         }
         Err(e) => {
             error!("Failed to submit nonce: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to submit: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to submit: {}",
+                e
+            )))
         }
     }
 }
@@ -292,7 +294,9 @@ pub async fn submit_partial_signature(
                             return;
                         }
                     };
-                    match FrostSigningCoordinator::aggregate_and_broadcast(&mut agg_conn, &eid).await {
+                    match FrostSigningCoordinator::aggregate_and_broadcast(&mut agg_conn, &eid)
+                        .await
+                    {
                         Ok(tx_hash) => {
                             info!(escrow_id = %eid, tx_hash = %tx_hash, "TX aggregated and broadcasted automatically");
                         }
@@ -314,8 +318,10 @@ pub async fn submit_partial_signature(
         }
         Err(e) => {
             error!("Failed to submit partial signature: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to submit: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to submit: {}",
+                e
+            )))
         }
     }
 }
@@ -391,8 +397,10 @@ pub async fn complete_and_broadcast(
         }
         Err(e) => {
             error!("Failed to complete signing: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to complete: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to complete: {}",
+                e
+            )))
         }
     }
 }
@@ -439,12 +447,11 @@ pub async fn get_tx_data(
         Ok(data) => {
             // Get escrow fields for signing
             use crate::schema::escrows;
-            let escrow_opt: Option<crate::models::escrow::Escrow> = escrows::table
-                .find(&escrow_id)
-                .first(&mut conn)
-                .ok();
+            let escrow_opt: Option<crate::models::escrow::Escrow> =
+                escrows::table.find(&escrow_id).first(&mut conn).ok();
 
-            let multisig_pubkey = escrow_opt.as_ref()
+            let multisig_pubkey = escrow_opt
+                .as_ref()
                 .and_then(|e| e.frost_group_pubkey.clone())
                 .unwrap_or_default();
 
@@ -462,9 +469,13 @@ pub async fn get_tx_data(
                     let mask_1_hex = params.get("mask_1")?.as_str()?;
                     let m0 = hex::decode(mask_0_hex).ok()?;
                     let m1 = hex::decode(mask_1_hex).ok()?;
-                    if m0.len() != 32 || m1.len() != 32 { return None; }
-                    let mut a0 = [0u8; 32]; a0.copy_from_slice(&m0);
-                    let mut a1 = [0u8; 32]; a1.copy_from_slice(&m1);
+                    if m0.len() != 32 || m1.len() != 32 {
+                        return None;
+                    }
+                    let mut a0 = [0u8; 32];
+                    a0.copy_from_slice(&m0);
+                    let mut a1 = [0u8; 32];
+                    a1.copy_from_slice(&m1);
                     let s = curve25519_dalek::scalar::Scalar::from_bytes_mod_order(a0)
                         + curve25519_dalek::scalar::Scalar::from_bytes_mod_order(a1);
                     Some(hex::encode(s.to_bytes()))
@@ -479,9 +490,15 @@ pub async fn get_tx_data(
                 amount_atomic: data.5,
                 multisig_pubkey,
                 pseudo_out_mask,
-                funding_commitment_mask: escrow_opt.as_ref().and_then(|e| e.funding_commitment_mask.clone()),
-                multisig_view_key: escrow_opt.as_ref().and_then(|e| e.multisig_view_key.clone()),
-                funding_tx_pubkey: escrow_opt.as_ref().and_then(|e| e.funding_tx_pubkey.clone()),
+                funding_commitment_mask: escrow_opt
+                    .as_ref()
+                    .and_then(|e| e.funding_commitment_mask.clone()),
+                multisig_view_key: escrow_opt
+                    .as_ref()
+                    .and_then(|e| e.multisig_view_key.clone()),
+                funding_tx_pubkey: escrow_opt
+                    .as_ref()
+                    .and_then(|e| e.funding_tx_pubkey.clone()),
                 funding_output_index: escrow_opt.as_ref().and_then(|e| e.funding_output_index),
             }))
         }
@@ -537,10 +554,19 @@ pub fn configure_signing_routes(cfg: &mut web::ServiceConfig) {
             .route("/{id}/sign/init", web::post().to(init_frost_signing))
             .route("/{id}/sign/nonces", web::post().to(submit_nonce_commitment))
             .route("/{id}/sign/nonces", web::get().to(get_nonce_commitments))
-            .route("/{id}/sign/partial", web::post().to(submit_partial_signature))
+            .route(
+                "/{id}/sign/partial",
+                web::post().to(submit_partial_signature),
+            )
             .route("/{id}/sign/status", web::get().to(get_signing_status))
-            .route("/{id}/sign/complete", web::post().to(complete_and_broadcast))
+            .route(
+                "/{id}/sign/complete",
+                web::post().to(complete_and_broadcast),
+            )
             .route("/{id}/sign/tx-data", web::get().to(get_tx_data))
-            .route("/{id}/sign/first-signer-data", web::get().to(get_first_signer_data)),
+            .route(
+                "/{id}/sign/first-signer-data",
+                web::get().to(get_first_signer_data),
+            ),
     );
 }

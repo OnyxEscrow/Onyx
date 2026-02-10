@@ -124,14 +124,15 @@ pub async fn restore_ephemeral_wallet(
 
     // Step 2: Decrypt master seed
     let master_seed = SensitiveBytes::new(
-        decrypt_bytes(encrypted_master_seed, &decryption_key)
-            .map_err(|e| MoneroError::InvalidResponse(format!("Decryption failed (wrong password?): {}", e)))?
+        decrypt_bytes(encrypted_master_seed, &decryption_key).map_err(|e| {
+            MoneroError::InvalidResponse(format!("Decryption failed (wrong password?): {}", e))
+        })?,
     );
 
     // Step 3: Derive escrow-specific wallet seed
     let escrow_seed = SensitiveBytes::new(
         derive_escrow_wallet_seed(master_seed.as_slice(), escrow_id, role)
-            .map_err(|e| MoneroError::InvalidResponse(format!("Seed derivation failed: {}", e)))?
+            .map_err(|e| MoneroError::InvalidResponse(format!("Seed derivation failed: {}", e)))?,
     );
 
     // Step 4: Convert to hex for Monero RPC
@@ -189,11 +190,7 @@ pub async fn restore_ephemeral_wallet(
 /// # Returns
 ///
 /// * `String` - Derived seed as hex (not actual Monero address)
-pub fn derive_expected_address(
-    master_seed: &[u8],
-    escrow_id: &str,
-    role: &str,
-) -> Result<String> {
+pub fn derive_expected_address(master_seed: &[u8], escrow_id: &str, role: &str) -> Result<String> {
     let escrow_seed = derive_escrow_wallet_seed(master_seed, escrow_id, role)?;
     Ok(hex::encode(&escrow_seed))
 }

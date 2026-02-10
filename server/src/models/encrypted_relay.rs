@@ -13,16 +13,16 @@ use crate::schema::encrypted_relay;
 #[derive(Debug, Clone, Queryable, Identifiable, Serialize, Deserialize)]
 #[diesel(table_name = encrypted_relay)]
 pub struct EncryptedRelay {
-    pub id: String,                    // 1
-    pub escrow_id: String,             // 2
-    pub encrypted_blob: String,        // 3
-    pub first_signer_role: String,     // 4
-    pub first_signer_pubkey: String,   // 5
-    pub nonce: String,                 // 6
-    pub created_at: String,            // 7
-    pub expires_at: String,            // 8 - NOT NULL
-    pub consumed_at: Option<String>,   // 9
-    pub status: String,                // 10
+    pub id: String,                  // 1
+    pub escrow_id: String,           // 2
+    pub encrypted_blob: String,      // 3
+    pub first_signer_role: String,   // 4
+    pub first_signer_pubkey: String, // 5
+    pub nonce: String,               // 6
+    pub created_at: String,          // 7
+    pub expires_at: String,          // 8 - NOT NULL
+    pub consumed_at: Option<String>, // 9
+    pub status: String,              // 10
 }
 
 /// Insertable model for creating new relay entries

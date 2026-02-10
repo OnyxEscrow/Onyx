@@ -11,12 +11,12 @@ use crate::config::{
 };
 use crate::crypto::address_validation::{validate_address_for_network, AddressValidationError};
 use crate::crypto::encryption::encrypt_field;
-use crate::logging::sanitize::{
-    sanitize_address, sanitize_escrow_id, sanitize_rpc_url, sanitize_txid, sanitize_user_id,
-};
 use crate::db::{
     db_count_multisig_infos, db_insert_escrow, db_load_escrow, db_store_multisig_info,
     db_update_escrow_address, db_update_escrow_status, DbPool,
+};
+use crate::logging::sanitize::{
+    sanitize_address, sanitize_escrow_id, sanitize_rpc_url, sanitize_txid, sanitize_user_id,
 };
 use crate::models::escrow::{Escrow, NewEscrow};
 use crate::models::user::User;
@@ -88,7 +88,9 @@ impl EscrowOrchestrator {
     ) -> Result<(Uuid, String)> {
         info!(
             "Registering client wallet RPC: user={}, role={:?}, url={}",
-            sanitize_user_id(&user_id.to_string()), role, sanitize_rpc_url(&rpc_url)
+            sanitize_user_id(&user_id.to_string()),
+            role,
+            sanitize_rpc_url(&rpc_url)
         );
 
         // 1. Verify user exists and role matches
@@ -125,12 +127,12 @@ impl EscrowOrchestrator {
         let mut wallet_manager = self.wallet_manager.lock().await;
         let wallet_id = wallet_manager
             .register_client_wallet_rpc(
-                "temp-escrow-needs-refactor",  // TODO: Pass actual escrow_id
+                "temp-escrow-needs-refactor", // TODO: Pass actual escrow_id
                 role,
                 rpc_url.clone(),
                 rpc_user,
                 rpc_password,
-                "manual",  // Default to manual recovery for now
+                "manual", // Default to manual recovery for now
             )
             .await
             .context("Failed to register client wallet RPC")?;
@@ -145,9 +147,14 @@ impl EscrowOrchestrator {
 
         info!(
             "✅ Client wallet registered: wallet_id={}, address={}, user={}",
-            sanitize_user_id(&wallet_id.to_string()), sanitize_address(&wallet_address), sanitize_user_id(&user_id.to_string())
+            sanitize_user_id(&wallet_id.to_string()),
+            sanitize_address(&wallet_address),
+            sanitize_user_id(&user_id.to_string())
         );
-        info!("🔒 NON-CUSTODIAL: Client controls private keys at {}", sanitize_rpc_url(&rpc_url));
+        info!(
+            "🔒 NON-CUSTODIAL: Client controls private keys at {}",
+            sanitize_rpc_url(&rpc_url)
+        );
 
         Ok((wallet_id, wallet_address))
     }
@@ -216,7 +223,10 @@ impl EscrowOrchestrator {
 
         // 1. Assign arbiter using round-robin from available arbiters
         let arbiter_id = self.assign_arbiter().await?;
-        info!("✅ Assigned arbiter {} to escrow", sanitize_user_id(&arbiter_id.to_string()));
+        info!(
+            "✅ Assigned arbiter {} to escrow",
+            sanitize_user_id(&arbiter_id.to_string())
+        );
 
         // 2. Create escrow in DB
         let escrow_id = Uuid::new_v4();
@@ -257,7 +267,10 @@ impl EscrowOrchestrator {
             .await
             .context("Failed to create escrow in database")?;
 
-        info!("✅ Escrow record created: {}", sanitize_escrow_id(&escrow.id));
+        info!(
+            "✅ Escrow record created: {}",
+            sanitize_escrow_id(&escrow.id)
+        );
 
         // 3. Initialize coordination state (v0.4.0 non-custodial - revised plan)
         // Set multisig_phase to "awaiting_registrations" in escrows table
@@ -279,9 +292,7 @@ impl EscrowOrchestrator {
         info!("✅ Coordination initialized - multisig_phase: awaiting_registrations");
 
         // 4. Notify parties via WebSocket
-        self.websocket.do_send(WsEvent::EscrowInit {
-            escrow_id,
-        });
+        self.websocket.do_send(WsEvent::EscrowInit { escrow_id });
 
         info!(
             "✅ [v0.4.0 NON-CUSTODIAL] Escrow {} initialized - awaiting buyer and vendor wallet registrations",
@@ -334,21 +345,33 @@ impl EscrowOrchestrator {
                     if let Some(port) = wallet.rpc_port {
                         match pool.close_wallet(port).await {
                             Ok(_) => {
-                                info!("✅ Cleanup: Closed wallet {} on port {}", sanitize_user_id(&wallet_id.to_string()), port);
+                                info!(
+                                    "✅ Cleanup: Closed wallet {} on port {}",
+                                    sanitize_user_id(&wallet_id.to_string()),
+                                    port
+                                );
                                 cleanup_count += 1;
                             }
                             Err(e) => {
                                 error!(
                                     "❌ Cleanup failed for wallet {} on port {}: {}",
-                                    sanitize_user_id(&wallet_id.to_string()), port, e
+                                    sanitize_user_id(&wallet_id.to_string()),
+                                    port,
+                                    e
                                 );
                             }
                         }
                     } else {
-                        warn!("⚠️ Wallet {} has no rpc_port tracked", sanitize_user_id(&wallet_id.to_string()));
+                        warn!(
+                            "⚠️ Wallet {} has no rpc_port tracked",
+                            sanitize_user_id(&wallet_id.to_string())
+                        );
                     }
                 } else {
-                    warn!("⚠️ Wallet {} not found in WalletManager", sanitize_user_id(&wallet_id.to_string()));
+                    warn!(
+                        "⚠️ Wallet {} not found in WalletManager",
+                        sanitize_user_id(&wallet_id.to_string())
+                    );
                 }
             }
 
@@ -401,18 +424,27 @@ impl EscrowOrchestrator {
         // Step 1: prepare_multisig() - Each wallet generates multisig info
         info!("📝 Step 1/3: Calling prepare_multisig() on all 3 wallets...");
 
-        info!("📝 Calling prepare_multisig() for BUYER wallet {}", sanitize_user_id(&buyer_temp_wallet_id.to_string()));
+        info!(
+            "📝 Calling prepare_multisig() for BUYER wallet {}",
+            sanitize_user_id(&buyer_temp_wallet_id.to_string())
+        );
         let buyer_info = match wallet_manager
             .make_multisig(&escrow_id.to_string(), buyer_temp_wallet_id, vec![])
             .await
         {
             Ok(info) => {
-                info!("✅ Buyer prepare_multisig() success: {} chars", info.multisig_info.len());
+                info!(
+                    "✅ Buyer prepare_multisig() success: {} chars",
+                    info.multisig_info.len()
+                );
                 info
             }
             Err(e) => {
                 error!("❌ Buyer prepare_multisig() FAILED: {:?}", e);
-                return Err(anyhow::anyhow!("Failed to prepare multisig for buyer: {:?}", e));
+                return Err(anyhow::anyhow!(
+                    "Failed to prepare multisig for buyer: {:?}",
+                    e
+                ));
             }
         };
 
@@ -453,10 +485,7 @@ impl EscrowOrchestrator {
         info!("🔄 Step 2/3: Exchanging multisig info (make_multisig)...");
 
         wallet_manager
-            .exchange_multisig_info(
-                escrow_id,
-                vec![buyer_info, vendor_info, arbiter_info],
-            )
+            .exchange_multisig_info(escrow_id, vec![buyer_info, vendor_info, arbiter_info])
             .await
             .context("Failed to exchange multisig info")?;
 
@@ -479,9 +508,7 @@ impl EscrowOrchestrator {
             ));
         }
 
-        info!(
-            "✅ Step 3/3 complete: Multisig address finalized (95 chars verified)"
-        );
+        info!("✅ Step 3/3 complete: Multisig address finalized (95 chars verified)");
 
         // Store multisig address in database
         db_update_escrow_address(&self.db, escrow_id, &multisig_address)
@@ -580,7 +607,10 @@ impl EscrowOrchestrator {
 
     /// Make multisig for all 3 parties (step 3)
     async fn make_multisig(&self, escrow_id: Uuid) -> Result<()> {
-        info!("Making multisig for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+        info!(
+            "Making multisig for escrow {}",
+            sanitize_escrow_id(&escrow_id.to_string())
+        );
 
         // Load escrow with all wallet infos
         let escrow = db_load_escrow(&self.db, escrow_id).await?;
@@ -661,7 +691,10 @@ impl EscrowOrchestrator {
             new_status: "funded".to_string(),
         });
 
-        info!("Multisig setup complete for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+        info!(
+            "Multisig setup complete for escrow {}",
+            sanitize_escrow_id(&escrow_id.to_string())
+        );
         Ok(())
     }
 
@@ -810,7 +843,10 @@ impl EscrowOrchestrator {
             .release_funds(escrow_id, destinations)
             .await?;
 
-        info!("Transaction submitted to network: tx_hash={}", sanitize_txid(&tx_hash));
+        info!(
+            "Transaction submitted to network: tx_hash={}",
+            sanitize_txid(&tx_hash)
+        );
 
         // Update escrow with transaction hash (for blockchain monitoring)
         crate::db::db_update_escrow_transaction_hash(&self.db, escrow_id, &tx_hash).await?;
@@ -830,7 +866,8 @@ impl EscrowOrchestrator {
 
         info!(
             "Funds releasing for escrow {}: tx={} (awaiting confirmations)",
-            sanitize_escrow_id(&escrow_id.to_string()), sanitize_txid(&tx_hash)
+            sanitize_escrow_id(&escrow_id.to_string()),
+            sanitize_txid(&tx_hash)
         );
         Ok(tx_hash.clone())
     }
@@ -1059,18 +1096,26 @@ impl EscrowOrchestrator {
 
         info!(
             "Dispute resolved for escrow {} in favor of {} by arbiter {}",
-            sanitize_escrow_id(&escrow_id.to_string()), resolution, sanitize_user_id(&arbiter_id.to_string())
+            sanitize_escrow_id(&escrow_id.to_string()),
+            resolution,
+            sanitize_user_id(&arbiter_id.to_string())
         );
 
         // 6. Auto-trigger appropriate action based on resolution
         let tx_hash = match resolution {
             "buyer" => {
-                info!("Auto-triggering refund to buyer for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+                info!(
+                    "Auto-triggering refund to buyer for escrow {}",
+                    sanitize_escrow_id(&escrow_id.to_string())
+                );
                 self.refund_funds(escrow_id, arbiter_id, recipient_address)
                     .await?
             }
             "vendor" => {
-                info!("Auto-triggering release to vendor for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+                info!(
+                    "Auto-triggering release to vendor for escrow {}",
+                    sanitize_escrow_id(&escrow_id.to_string())
+                );
                 self.release_funds(escrow_id, arbiter_id, recipient_address)
                     .await?
             }
@@ -1078,7 +1123,9 @@ impl EscrowOrchestrator {
         };
         info!(
             "Dispute resolution complete for escrow {}: {} via tx {}",
-            sanitize_escrow_id(&escrow_id.to_string()), resolution, sanitize_txid(&tx_hash)
+            sanitize_escrow_id(&escrow_id.to_string()),
+            resolution,
+            sanitize_txid(&tx_hash)
         );
 
         Ok(tx_hash)
@@ -1110,7 +1157,10 @@ impl EscrowOrchestrator {
     /// info!("Escrow has {} XMR ({} unlocked)", balance / 1e12, unlocked / 1e12);
     /// ```
     pub async fn sync_and_get_balance(&self, escrow_id: Uuid) -> Result<(u64, u64)> {
-        info!("🔄 Syncing multisig wallets for escrow: {}", sanitize_escrow_id(&escrow_id.to_string()));
+        info!(
+            "🔄 Syncing multisig wallets for escrow: {}",
+            sanitize_escrow_id(&escrow_id.to_string())
+        );
 
         // Verify escrow exists
         let escrow = db_load_escrow(&self.db, escrow_id)
@@ -1118,7 +1168,11 @@ impl EscrowOrchestrator {
             .context("Failed to load escrow")?;
 
         // Only show address type, not actual address
-        let address_status = if escrow.multisig_address.is_some() { "[set]" } else { "(none)" };
+        let address_status = if escrow.multisig_address.is_some() {
+            "[set]"
+        } else {
+            "(none)"
+        };
 
         info!(
             "Loaded escrow {}: status={}, multisig_address={}",
@@ -1149,14 +1203,20 @@ impl EscrowOrchestrator {
     /// This method creates mock wallets in the WalletManager to allow
     /// testing the release/refund flow without real multisig setup.
     pub async fn dev_initialize_mock_wallets(&self, escrow_id: Uuid) -> Result<()> {
-        info!("DEV: Initializing mock multisig wallets for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+        info!(
+            "DEV: Initializing mock multisig wallets for escrow {}",
+            sanitize_escrow_id(&escrow_id.to_string())
+        );
 
         let mut wallet_manager = self.wallet_manager.lock().await;
 
         // Call the dev method on wallet_manager to create mock wallets
         wallet_manager.dev_create_mock_multisig(escrow_id).await?;
 
-        info!("DEV: Mock wallets created for escrow {}", sanitize_escrow_id(&escrow_id.to_string()));
+        info!(
+            "DEV: Mock wallets created for escrow {}",
+            sanitize_escrow_id(&escrow_id.to_string())
+        );
         Ok(())
     }
 }

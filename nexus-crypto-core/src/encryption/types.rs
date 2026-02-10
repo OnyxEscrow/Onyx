@@ -54,11 +54,7 @@ impl EphemeralKeypair {
 
 impl EncryptedResult {
     /// Create a new encrypted result.
-    pub fn new(
-        encrypted_blob: String,
-        nonce_hex: String,
-        ephemeral_pubkey_hex: String,
-    ) -> Self {
+    pub fn new(encrypted_blob: String, nonce_hex: String, ephemeral_pubkey_hex: String) -> Self {
         Self {
             encrypted_blob,
             nonce_hex,
@@ -80,21 +76,14 @@ mod tests {
 
     #[test]
     fn test_ephemeral_keypair_creation() {
-        let keypair = EphemeralKeypair::new(
-            "0".repeat(64),
-            "1".repeat(64),
-        );
+        let keypair = EphemeralKeypair::new("0".repeat(64), "1".repeat(64));
         assert_eq!(keypair.private_key_hex.len(), 64);
         assert_eq!(keypair.public_key_hex.len(), 64);
     }
 
     #[test]
     fn test_encrypted_result_creation() {
-        let result = EncryptedResult::new(
-            "blob".to_string(),
-            "0".repeat(24),
-            "1".repeat(64),
-        );
+        let result = EncryptedResult::new("blob".to_string(), "0".repeat(24), "1".repeat(64));
         assert_eq!(result.nonce_hex.len(), 24);
         assert_eq!(result.ephemeral_pubkey_hex.len(), 64);
     }

@@ -130,7 +130,11 @@ impl ShieldBackup {
     }
 
     /// Update backup_id (during Shield recovery with a different derived ID)
-    pub fn update_backup_id(conn: &mut SqliteConnection, id: &str, new_backup_id: &str) -> Result<()> {
+    pub fn update_backup_id(
+        conn: &mut SqliteConnection,
+        id: &str,
+        new_backup_id: &str,
+    ) -> Result<()> {
         diesel::update(shield_backups::table.filter(shield_backups::id.eq(id)))
             .set(shield_backups::backup_id.eq(new_backup_id))
             .execute(conn)

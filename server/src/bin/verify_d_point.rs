@@ -59,7 +59,10 @@ fn main() {
     // Compute D from D_inv8: D = D_inv8 * 8
     let eight = Scalar::from(8u64);
     let d_computed = d_inv8_tx * eight;
-    println!("D computed (D_inv8 * 8): {}", hex::encode(d_computed.compress().as_bytes()));
+    println!(
+        "D computed (D_inv8 * 8): {}",
+        hex::encode(d_computed.compress().as_bytes())
+    );
 
     // Now we need to find mask_delta such that D = mask_delta * Hp(P)
     // We can verify this by checking if D / Hp(P) gives a valid scalar
@@ -79,14 +82,26 @@ fn main() {
 
     // For verification, let's check if D is on the curve correctly
     println!("\n=== D POINT ANALYSIS ===");
-    println!("D_inv8 * 8 = D = {}", hex::encode(d_computed.compress().as_bytes()));
+    println!(
+        "D_inv8 * 8 = D = {}",
+        hex::encode(d_computed.compress().as_bytes())
+    );
 
     // Verify D_inv8 * 8 * inv8 = D_inv8
     let inv8 = Scalar::from(8u64).invert();
     let d_inv8_verify = d_computed * inv8;
-    println!("D * inv8 = {}", hex::encode(d_inv8_verify.compress().as_bytes()));
-    println!("Matches D_inv8 in TX: {}",
-        if hex::encode(d_inv8_verify.compress().as_bytes()) == D_INV8_IN_TX { "✅" } else { "❌" });
+    println!(
+        "D * inv8 = {}",
+        hex::encode(d_inv8_verify.compress().as_bytes())
+    );
+    println!(
+        "Matches D_inv8 in TX: {}",
+        if hex::encode(d_inv8_verify.compress().as_bytes()) == D_INV8_IN_TX {
+            "✅"
+        } else {
+            "❌"
+        }
+    );
 
     // Now let's try to verify with actual mask values from the database
     // We need to get the full 32-byte mask values
@@ -113,18 +128,39 @@ fn main() {
     // Let me also compute what mu values should be
     println!("\n=== CHECKING IF D IS IDENTITY ===");
     let identity_bytes = [
-        1u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        1u8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        0, 0,
     ];
     let d_bytes = d_computed.compress().to_bytes();
     let d_inv8_bytes = d_inv8_tx.compress().to_bytes();
 
-    println!("D is identity: {}", if d_bytes == identity_bytes { "YES ⚠️" } else { "NO ✅" });
-    println!("D_inv8 is identity: {}", if d_inv8_bytes == identity_bytes { "YES ⚠️" } else { "NO ✅" });
+    println!(
+        "D is identity: {}",
+        if d_bytes == identity_bytes {
+            "YES ⚠️"
+        } else {
+            "NO ✅"
+        }
+    );
+    println!(
+        "D_inv8 is identity: {}",
+        if d_inv8_bytes == identity_bytes {
+            "YES ⚠️"
+        } else {
+            "NO ✅"
+        }
+    );
 
     // Check if D_inv8 * 8 = 0 (which would indicate mask_delta = 0)
     let zero_point = EdwardsPoint::default();
-    println!("D is zero point: {}", if d_computed == zero_point { "YES ⚠️" } else { "NO ✅" });
+    println!(
+        "D is zero point: {}",
+        if d_computed == zero_point {
+            "YES ⚠️"
+        } else {
+            "NO ✅"
+        }
+    );
 
     // Now let's try to compute what D SHOULD be with different mask_delta values
     println!("\n=== COMPUTING D WITH TEST MASK VALUES ===");
@@ -132,12 +168,18 @@ fn main() {
     // If mask_delta = 0, D should be identity
     let mask_zero = Scalar::ZERO;
     let d_from_zero = hp_signer * mask_zero;
-    println!("D with mask_delta=0: {}", hex::encode(d_from_zero.compress().as_bytes()));
+    println!(
+        "D with mask_delta=0: {}",
+        hex::encode(d_from_zero.compress().as_bytes())
+    );
 
     // If mask_delta = 1, D should be Hp(P)
     let mask_one = Scalar::ONE;
     let d_from_one = hp_signer * mask_one;
-    println!("D with mask_delta=1: {}...", &hex::encode(d_from_one.compress().as_bytes())[..32]);
+    println!(
+        "D with mask_delta=1: {}...",
+        &hex::encode(d_from_one.compress().as_bytes())[..32]
+    );
 
     // Try to reverse-engineer the mask_delta from D
     // This is discrete log problem - we can't solve it directly
@@ -145,7 +187,10 @@ fn main() {
 
     println!("\n=== SUMMARY ===");
     println!("The D_inv8 in TX is: {}", D_INV8_IN_TX);
-    println!("This corresponds to D = {}", hex::encode(d_computed.compress().as_bytes()));
+    println!(
+        "This corresponds to D = {}",
+        hex::encode(d_computed.compress().as_bytes())
+    );
     println!("");
     println!("For CLSAG verification to pass:");
     println!("1. D_inv8 must be correctly computed: D_inv8 = mask_delta * Hp(P) / 8");

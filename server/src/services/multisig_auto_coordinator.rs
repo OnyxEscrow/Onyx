@@ -70,10 +70,7 @@ impl MultisigAutoCoordinator {
 
     /// Check for escrows ready for coordination and trigger setup
     async fn check_and_coordinate(&self) -> Result<()> {
-        let mut conn = self
-            .db
-            .get()
-            .context("Failed to get database connection")?;
+        let mut conn = self.db.get().context("Failed to get database connection")?;
 
         // Find escrows in "all_registered" state
         let ready_escrows: Vec<Escrow> = escrows::table

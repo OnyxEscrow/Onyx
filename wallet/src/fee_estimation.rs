@@ -56,7 +56,10 @@ impl std::str::FromStr for FeePriority {
             "normal" | "default" | "medium" => Ok(FeePriority::Normal),
             "elevated" | "high" => Ok(FeePriority::Elevated),
             "priority" | "urgent" => Ok(FeePriority::Priority),
-            _ => Err(format!("Unknown priority: {}. Valid: unimportant, normal, elevated, priority", s)),
+            _ => Err(format!(
+                "Unknown priority: {}. Valid: unimportant, normal, elevated, priority",
+                s
+            )),
         }
     }
 }
@@ -131,7 +134,9 @@ impl FeeEstimator {
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
             .build()
-            .map_err(|e| MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e)))?;
+            .map_err(|e| {
+                MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e))
+            })?;
 
         Ok(Self {
             daemon_url: daemon_url.trim_end_matches('/').to_string(),
@@ -146,7 +151,10 @@ impl FeeEstimator {
     ///
     /// # Returns
     /// `FeeEstimate` with fee per byte and estimated transaction fees
-    pub async fn get_fee_estimate(&self, priority: FeePriority) -> Result<FeeEstimate, MoneroError> {
+    pub async fn get_fee_estimate(
+        &self,
+        priority: FeePriority,
+    ) -> Result<FeeEstimate, MoneroError> {
         let grace_blocks = priority.grace_blocks();
 
         let request = serde_json::json!({
@@ -303,10 +311,22 @@ mod tests {
 
     #[test]
     fn test_priority_from_str() {
-        assert_eq!("normal".parse::<FeePriority>().unwrap(), FeePriority::Normal);
-        assert_eq!("low".parse::<FeePriority>().unwrap(), FeePriority::Unimportant);
-        assert_eq!("high".parse::<FeePriority>().unwrap(), FeePriority::Elevated);
-        assert_eq!("urgent".parse::<FeePriority>().unwrap(), FeePriority::Priority);
+        assert_eq!(
+            "normal".parse::<FeePriority>().unwrap(),
+            FeePriority::Normal
+        );
+        assert_eq!(
+            "low".parse::<FeePriority>().unwrap(),
+            FeePriority::Unimportant
+        );
+        assert_eq!(
+            "high".parse::<FeePriority>().unwrap(),
+            FeePriority::Elevated
+        );
+        assert_eq!(
+            "urgent".parse::<FeePriority>().unwrap(),
+            FeePriority::Priority
+        );
         assert!("invalid".parse::<FeePriority>().is_err());
     }
 

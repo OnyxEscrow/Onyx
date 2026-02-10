@@ -5,9 +5,9 @@
 //! à traiter les requêtes.
 
 use anyhow::{Context, Result};
+use std::env;
 use std::process::Command;
 use tokio::time::{sleep, Duration};
-use std::env;
 use tracing::{info, warn};
 
 /// Configuration réseau Monero
@@ -17,7 +17,7 @@ struct NetworkConfig {
     daemon_port: u16,
     network_flag: &'static str,
     wallet_dir: &'static str,
-    monitor_rpc_port: u16,  // Port for blockchain monitor view-only wallet RPC
+    monitor_rpc_port: u16, // Port for blockchain monitor view-only wallet RPC
 }
 
 /// Obtient la configuration réseau basée sur MONERO_NETWORK
@@ -31,7 +31,7 @@ fn get_network_config() -> NetworkConfig {
             daemon_port: 38081,
             network_flag: "--stagenet",
             wallet_dir: "./stagenet-wallets",
-            monitor_rpc_port: 38086,  // Blockchain monitor RPC
+            monitor_rpc_port: 38086, // Blockchain monitor RPC
         },
         "mainnet" => NetworkConfig {
             name: "mainnet",
@@ -39,15 +39,16 @@ fn get_network_config() -> NetworkConfig {
             daemon_port: 18081,
             network_flag: "--mainnet",
             wallet_dir: "./mainnet-wallets",
-            monitor_rpc_port: 18086,  // Blockchain monitor RPC
+            monitor_rpc_port: 18086, // Blockchain monitor RPC
         },
-        _ => NetworkConfig {  // testnet by default
+        _ => NetworkConfig {
+            // testnet by default
             name: "testnet",
             wallet_base_port: 18082,
             daemon_port: 28081,
             network_flag: "--testnet",
             wallet_dir: "./testnet-wallets",
-            monitor_rpc_port: 28086,  // Blockchain monitor RPC
+            monitor_rpc_port: 28086, // Blockchain monitor RPC
         },
     }
 }
@@ -95,7 +96,7 @@ async fn check_rpc_availability() -> Result<bool> {
             .await;
 
         match response {
-            Ok(_) => continue, // OK, ce RPC est accessible
+            Ok(_) => continue,          // OK, ce RPC est accessible
             Err(_) => return Ok(false), // Un RPC est inaccessible
         }
     }
@@ -107,8 +108,15 @@ async fn check_rpc_availability() -> Result<bool> {
 pub fn start_wallet_rpcs() -> Result<()> {
     let config = get_network_config();
 
-    info!("🚀 Starting 4 Monero Wallet RPC instances ({})...", config.name);
-    info!("   - Buyer/Vendor/Arbiter: ports {}-{}", config.wallet_base_port, config.wallet_base_port + 2);
+    info!(
+        "🚀 Starting 4 Monero Wallet RPC instances ({})...",
+        config.name
+    );
+    info!(
+        "   - Buyer/Vendor/Arbiter: ports {}-{}",
+        config.wallet_base_port,
+        config.wallet_base_port + 2
+    );
     info!("   - Blockchain Monitor: port {}", config.monitor_rpc_port);
 
     std::thread::sleep(Duration::from_millis(1000));
@@ -123,12 +131,16 @@ pub fn start_wallet_rpcs() -> Result<()> {
     let port1 = config.wallet_base_port.to_string();
     let _output1 = Command::new("monero-wallet-rpc")
         .args([
-            "--rpc-bind-port", &port1,
+            "--rpc-bind-port",
+            &port1,
             "--disable-rpc-login",
-            "--wallet-dir", config.wallet_dir,
-            "--daemon-address", &daemon_addr,
+            "--wallet-dir",
+            config.wallet_dir,
+            "--daemon-address",
+            &daemon_addr,
             config.network_flag,
-            "--log-level", "2"
+            "--log-level",
+            "2",
         ])
         .spawn()
         .context("Failed to start buyer RPC")?;
@@ -137,12 +149,16 @@ pub fn start_wallet_rpcs() -> Result<()> {
     let port2 = (config.wallet_base_port + 1).to_string();
     let _output2 = Command::new("monero-wallet-rpc")
         .args([
-            "--rpc-bind-port", &port2,
+            "--rpc-bind-port",
+            &port2,
             "--disable-rpc-login",
-            "--wallet-dir", config.wallet_dir,
-            "--daemon-address", &daemon_addr,
+            "--wallet-dir",
+            config.wallet_dir,
+            "--daemon-address",
+            &daemon_addr,
             config.network_flag,
-            "--log-level", "2"
+            "--log-level",
+            "2",
         ])
         .spawn()
         .context("Failed to start vendor RPC")?;
@@ -151,12 +167,16 @@ pub fn start_wallet_rpcs() -> Result<()> {
     let port3 = (config.wallet_base_port + 2).to_string();
     let _output3 = Command::new("monero-wallet-rpc")
         .args([
-            "--rpc-bind-port", &port3,
+            "--rpc-bind-port",
+            &port3,
             "--disable-rpc-login",
-            "--wallet-dir", config.wallet_dir,
-            "--daemon-address", &daemon_addr,
+            "--wallet-dir",
+            config.wallet_dir,
+            "--daemon-address",
+            &daemon_addr,
             config.network_flag,
-            "--log-level", "2"
+            "--log-level",
+            "2",
         ])
         .spawn()
         .context("Failed to start arbiter RPC")?;
@@ -165,12 +185,16 @@ pub fn start_wallet_rpcs() -> Result<()> {
     let monitor_port = config.monitor_rpc_port.to_string();
     let _output4 = Command::new("monero-wallet-rpc")
         .args([
-            "--rpc-bind-port", &monitor_port,
+            "--rpc-bind-port",
+            &monitor_port,
             "--disable-rpc-login",
-            "--wallet-dir", config.wallet_dir,
-            "--daemon-address", &daemon_addr,
+            "--wallet-dir",
+            config.wallet_dir,
+            "--daemon-address",
+            &daemon_addr,
             config.network_flag,
-            "--log-level", "1"  // Lower log level for monitor
+            "--log-level",
+            "1", // Lower log level for monitor
         ])
         .spawn()
         .context("Failed to start blockchain monitor RPC")?;
@@ -185,16 +209,28 @@ pub fn start_wallet_rpcs() -> Result<()> {
     let monitor_check = format!("monero-wallet-rpc.*{}", config.monitor_rpc_port);
 
     if !is_process_running(&port1_check) {
-        return Err(anyhow::anyhow!("Failed to start buyer RPC on port {}", config.wallet_base_port));
+        return Err(anyhow::anyhow!(
+            "Failed to start buyer RPC on port {}",
+            config.wallet_base_port
+        ));
     }
     if !is_process_running(&port2_check) {
-        return Err(anyhow::anyhow!("Failed to start vendor RPC on port {}", config.wallet_base_port + 1));
+        return Err(anyhow::anyhow!(
+            "Failed to start vendor RPC on port {}",
+            config.wallet_base_port + 1
+        ));
     }
     if !is_process_running(&port3_check) {
-        return Err(anyhow::anyhow!("Failed to start arbiter RPC on port {}", config.wallet_base_port + 2));
+        return Err(anyhow::anyhow!(
+            "Failed to start arbiter RPC on port {}",
+            config.wallet_base_port + 2
+        ));
     }
     if !is_process_running(&monitor_check) {
-        return Err(anyhow::anyhow!("Failed to start blockchain monitor RPC on port {}", config.monitor_rpc_port));
+        return Err(anyhow::anyhow!(
+            "Failed to start blockchain monitor RPC on port {}",
+            config.monitor_rpc_port
+        ));
     }
 
     info!("✅ All 4 Wallet RPC instances running:");
@@ -239,7 +275,7 @@ pub async fn ensure_dependencies() -> Result<()> {
     } else {
         info!("⚠️ RPC instances not accessible, starting them...");
         start_wallet_rpcs()?;
-        
+
         // Attendre suffisamment que les RPC soient prêts
         // Les RPCs prennent quelques secondes pour être opérationnels après le démarrage
         let mut success = false;
@@ -250,11 +286,16 @@ pub async fn ensure_dependencies() -> Result<()> {
                 success = true;
                 break;
             }
-            info!("⏳ Waiting for RPC instances to be ready... (attempt {}/10)", attempt);
+            info!(
+                "⏳ Waiting for RPC instances to be ready... (attempt {}/10)",
+                attempt
+            );
         }
-        
+
         if !success {
-            return Err(anyhow::anyhow!("Failed to start RPC instances - timeout waiting for them to become responsive"));
+            return Err(anyhow::anyhow!(
+                "Failed to start RPC instances - timeout waiting for them to become responsive"
+            ));
         }
     }
 

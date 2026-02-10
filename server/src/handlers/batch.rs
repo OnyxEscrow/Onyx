@@ -174,9 +174,8 @@ fn execute_operation(
         .map_err(|_| format!("Escrow '{}' not found", escrow_id))?;
 
     // Verify caller is a participant
-    let is_participant = escrow.buyer_id == user_id
-        || escrow.vendor_id == user_id
-        || escrow.arbiter_id == user_id;
+    let is_participant =
+        escrow.buyer_id == user_id || escrow.vendor_id == user_id || escrow.arbiter_id == user_id;
 
     if !is_participant {
         return Err("Not a participant in this escrow".to_string());

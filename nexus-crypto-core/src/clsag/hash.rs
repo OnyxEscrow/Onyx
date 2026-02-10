@@ -167,21 +167,11 @@ mod tests {
         let ring_keys = vec![key, key];
         let ring_commitments = vec![key, key];
 
-        let (mu_p1, mu_c1) = compute_mixing_coefficients(
-            &ring_keys,
-            &ring_commitments,
-            &key,
-            &key,
-            &key,
-        );
+        let (mu_p1, mu_c1) =
+            compute_mixing_coefficients(&ring_keys, &ring_commitments, &key, &key, &key);
 
-        let (mu_p2, mu_c2) = compute_mixing_coefficients(
-            &ring_keys,
-            &ring_commitments,
-            &key,
-            &key,
-            &key,
-        );
+        let (mu_p2, mu_c2) =
+            compute_mixing_coefficients(&ring_keys, &ring_commitments, &key, &key, &key);
 
         assert_eq!(mu_p1, mu_p2);
         assert_eq!(mu_c1, mu_c2);

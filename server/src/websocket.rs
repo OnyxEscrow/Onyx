@@ -39,7 +39,10 @@ impl Actor for WebSocketSession {
         self.server.do_send(Disconnect { id: self.id });
         // Release connection slot when WebSocket closes
         self.conn_mgr.release(&self.user_id_str);
-        info!("WebSocket disconnected for user {} (released connection slot)", self.user_id);
+        info!(
+            "WebSocket disconnected for user {} (released connection slot)",
+            self.user_id
+        );
     }
 }
 
@@ -283,7 +286,6 @@ pub enum WsEvent {
     },
 
     // ========== FROST DKG Notifications ==========
-
     /// Notification that FROST DKG Round 1 requires user action
     ///
     /// Triggered when a party needs to submit their Round 1 commitment.
@@ -339,7 +341,6 @@ pub enum WsEvent {
     },
 
     // ========== FROST Signing Notifications ==========
-
     /// Notification that a signature is required from a specific party
     ///
     /// Triggered during round-robin signing:
@@ -405,7 +406,6 @@ pub enum WsEvent {
     },
 
     // ========== Secure E2E Messaging Notifications ==========
-
     /// Notification that a new secure message was received
     ///
     /// Triggered when another user sends an encrypted message.
@@ -437,7 +437,6 @@ pub enum WsEvent {
     },
 
     // ========== Shipped Tracking Notifications (v0.75.0) ==========
-
     /// Early payment detection - TX visible on chain but not yet fully confirmed
     ///
     /// Triggered when blockchain monitor sees total_balance > 0 but unlocked_balance < amount.
@@ -510,7 +509,6 @@ pub enum WsEvent {
     },
 
     // ========== Underfunded Escrow Notifications (v0.68.0) ==========
-
     /// Notification that grace period has started for underfunded escrow
     ///
     /// Triggered when funding timeout is reached but partial funds exist.
@@ -552,7 +550,6 @@ pub enum WsEvent {
     },
 
     // ========== BTC → XMR Swap Notifications (Multi-Currency Track 1) ==========
-
     /// Notification that a BTC swap quote was created
     ///
     /// Triggered when a user requests a BTC→XMR swap quote.
@@ -674,7 +671,6 @@ pub enum WsEvent {
     },
 
     // ========== Escrow E2EE Chat Notifications ==========
-
     /// Notification that a new encrypted chat message was sent in an escrow
     ///
     /// Triggered when a participant sends a message in the escrow chat.

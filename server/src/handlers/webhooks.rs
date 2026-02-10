@@ -25,7 +25,9 @@ use url::Url;
 
 use crate::db::DbPool;
 use crate::models::webhook::{NewWebhook, Webhook, WebhookEventType, WebhookResponse};
-use crate::models::webhook_delivery::{WebhookDelivery, WebhookDeliveryResponse, WebhookDeliveryStats};
+use crate::models::webhook_delivery::{
+    WebhookDelivery, WebhookDeliveryResponse, WebhookDeliveryStats,
+};
 use crate::services::webhook_dispatcher::WebhookDispatcher;
 
 /// Request body for creating a webhook
@@ -103,7 +105,8 @@ fn is_private_or_reserved_ip(ip: &IpAddr) -> bool {
                 || ipv4.is_link_local()
                 || ipv4.is_broadcast()
                 || (ipv4.octets()[0] == 169 && ipv4.octets()[1] == 254) // AWS metadata
-                || (ipv4.octets()[0] == 100 && ipv4.octets()[1] >= 64 && ipv4.octets()[1] <= 127) // Carrier-grade NAT
+                || (ipv4.octets()[0] == 100 && ipv4.octets()[1] >= 64 && ipv4.octets()[1] <= 127)
+            // Carrier-grade NAT
         }
         IpAddr::V6(ipv6) => ipv6.is_loopback() || ipv6.is_unspecified(),
     }
@@ -592,7 +595,9 @@ pub async fn rotate_webhook_secret(
             HttpResponse::Ok().json(RotateSecretResponse {
                 webhook_id,
                 secret: new_secret,
-                message: "Secret rotated successfully. Update your integration with the new secret.".to_string(),
+                message:
+                    "Secret rotated successfully. Update your integration with the new secret."
+                        .to_string(),
             })
         }
         Ok(Some(_)) => HttpResponse::Forbidden().json(serde_json::json!({
@@ -645,8 +650,10 @@ pub async fn get_webhook_deliveries(
         Ok(Some(webhook)) if webhook.api_key_id == api_key_id => {
             match WebhookDelivery::get_by_webhook(&webhook_id, limit, &mut conn) {
                 Ok(deliveries) => {
-                    let responses: Vec<WebhookDeliveryResponse> =
-                        deliveries.into_iter().map(WebhookDeliveryResponse::from).collect();
+                    let responses: Vec<WebhookDeliveryResponse> = deliveries
+                        .into_iter()
+                        .map(WebhookDeliveryResponse::from)
+                        .collect();
 
                     HttpResponse::Ok().json(serde_json::json!({
                         "deliveries": responses,

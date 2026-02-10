@@ -49,7 +49,7 @@ fn main() {
                 let _offset = read_varint(&tx, &mut pos);
             }
 
-            let ki = &tx[pos..pos+32];
+            let ki = &tx[pos..pos + 32];
             pos += 32;
             println!("  Key image: {}", hex::encode(ki));
         }
@@ -64,11 +64,16 @@ fn main() {
         pos += 1;
 
         if output_type == 0x03 {
-            let key = &tx[pos..pos+32];
+            let key = &tx[pos..pos + 32];
             pos += 32;
             let view_tag = tx[pos];
             pos += 1;
-            println!("    Output {}: key={}..., view_tag=0x{:02x}", i, &hex::encode(key)[..16], view_tag);
+            println!(
+                "    Output {}: key={}..., view_tag=0x{:02x}",
+                i,
+                &hex::encode(key)[..16],
+                view_tag
+            );
         }
     }
 
@@ -94,12 +99,16 @@ fn main() {
     println!("  RCT type: {} (BulletproofPlus)", rct_type);
 
     let fee = read_varint(&tx, &mut pos);
-    println!("  Fee: {} atomic units ({:.12} XMR)", fee, fee as f64 / 1e12);
+    println!(
+        "  Fee: {} atomic units ({:.12} XMR)",
+        fee,
+        fee as f64 / 1e12
+    );
 
     // ecdhInfo (2 outputs = 2 * 8 bytes = 16 bytes)
     println!("  ecdhInfo:");
     for i in 0..output_count {
-        let ecdh = &tx[pos..pos+8];
+        let ecdh = &tx[pos..pos + 8];
         pos += 8;
         println!("    [{}]: {}", i, hex::encode(ecdh));
     }
@@ -107,12 +116,15 @@ fn main() {
     // outPk (2 outputs = 2 * 32 bytes = 64 bytes)
     println!("  outPk:");
     for i in 0..output_count {
-        let outpk = &tx[pos..pos+32];
+        let outpk = &tx[pos..pos + 32];
         pos += 32;
         println!("    [{}]: {}", i, hex::encode(outpk));
     }
 
-    println!("\n  RCT BASE ends at pos {} (expected around 178+1+varints+16+64=262)", pos);
+    println!(
+        "\n  RCT BASE ends at pos {} (expected around 178+1+varints+16+64=262)",
+        pos
+    );
 
     // === RCT PRUNABLE ===
     println!("\nRCT PRUNABLE (starts at pos {}):", pos);
@@ -126,32 +138,32 @@ fn main() {
         println!("  BP+[{}] starts at pos {}:", bp_idx, bp_start);
 
         // A (32 bytes)
-        let a = &tx[pos..pos+32];
+        let a = &tx[pos..pos + 32];
         pos += 32;
         println!("    A: {}... (pos={})", &hex::encode(a)[..16], pos);
 
         // A1 (32 bytes)
-        let a1 = &tx[pos..pos+32];
+        let a1 = &tx[pos..pos + 32];
         pos += 32;
         println!("    A1: {}... (pos={})", &hex::encode(a1)[..16], pos);
 
         // B (32 bytes)
-        let b = &tx[pos..pos+32];
+        let b = &tx[pos..pos + 32];
         pos += 32;
         println!("    B: {}... (pos={})", &hex::encode(b)[..16], pos);
 
         // r1 (32 bytes)
-        let r1 = &tx[pos..pos+32];
+        let r1 = &tx[pos..pos + 32];
         pos += 32;
         println!("    r1: {}... (pos={})", &hex::encode(r1)[..16], pos);
 
         // s1 (32 bytes)
-        let s1 = &tx[pos..pos+32];
+        let s1 = &tx[pos..pos + 32];
         pos += 32;
         println!("    s1: {}... (pos={})", &hex::encode(s1)[..16], pos);
 
         // d1 (32 bytes)
-        let d1 = &tx[pos..pos+32];
+        let d1 = &tx[pos..pos + 32];
         pos += 32;
         println!("    d1: {}... (pos={})", &hex::encode(d1)[..16], pos);
 
@@ -159,7 +171,7 @@ fn main() {
         let l_count = read_varint(&tx, &mut pos);
         println!("    L count: {} (pos={})", l_count, pos);
         for i in 0..l_count {
-            let l = &tx[pos..pos+32];
+            let l = &tx[pos..pos + 32];
             pos += 32;
             if i < 2 {
                 println!("      L[{}]: {}...", i, &hex::encode(l)[..16]);
@@ -171,7 +183,7 @@ fn main() {
         let r_count = read_varint(&tx, &mut pos);
         println!("    R count: {} (pos={})", r_count, pos);
         for i in 0..r_count {
-            let r = &tx[pos..pos+32];
+            let r = &tx[pos..pos + 32];
             pos += 32;
             if i < 2 {
                 println!("      R[{}]: {}...", i, &hex::encode(r)[..16]);
@@ -195,7 +207,7 @@ fn main() {
 
         let mut s_values = Vec::new();
         for i in 0..ring_size {
-            let s = &tx[pos..pos+32];
+            let s = &tx[pos..pos + 32];
             pos += 32;
             s_values.push(hex::encode(s));
             if i < 3 || i == ring_size - 1 {
@@ -206,12 +218,12 @@ fn main() {
         }
 
         // c1 (32 bytes)
-        let c1 = &tx[pos..pos+32];
+        let c1 = &tx[pos..pos + 32];
         pos += 32;
         println!("    c1: {}", hex::encode(c1));
 
         // D (32 bytes)
-        let d = &tx[pos..pos+32];
+        let d = &tx[pos..pos + 32];
         pos += 32;
         println!("    D: {}", hex::encode(d));
 
@@ -221,7 +233,7 @@ fn main() {
     // pseudo_outs (input_count * 32 bytes)
     println!("\n  pseudo_outs:");
     for i in 0..input_count {
-        let pseudo_out = &tx[pos..pos+32];
+        let pseudo_out = &tx[pos..pos + 32];
         pos += 32;
         println!("    [{}]: {}", i, hex::encode(pseudo_out));
     }

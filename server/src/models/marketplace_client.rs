@@ -72,7 +72,11 @@ impl MarketplaceClient {
             .context("Failed to query active marketplace clients")
     }
 
-    pub fn update_fee_bps(conn: &mut SqliteConnection, client_id: &str, fee_bps: i32) -> Result<()> {
+    pub fn update_fee_bps(
+        conn: &mut SqliteConnection,
+        client_id: &str,
+        fee_bps: i32,
+    ) -> Result<()> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         diesel::update(marketplace_clients::table.find(client_id))
             .set((
@@ -84,7 +88,11 @@ impl MarketplaceClient {
         Ok(())
     }
 
-    pub fn update_webhook_url(conn: &mut SqliteConnection, client_id: &str, url: Option<&str>) -> Result<()> {
+    pub fn update_webhook_url(
+        conn: &mut SqliteConnection,
+        client_id: &str,
+        url: Option<&str>,
+    ) -> Result<()> {
         let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
         diesel::update(marketplace_clients::table.find(client_id))
             .set((

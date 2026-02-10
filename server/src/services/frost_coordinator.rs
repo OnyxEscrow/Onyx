@@ -164,10 +164,7 @@ impl FrostCoordinator {
     /// Get all Round 1 packages (for Round 2 processing)
     ///
     /// Returns JSON: {"1": "hex...", "2": "hex...", "3": "hex..."}
-    pub fn get_all_round1_packages(
-        conn: &mut SqliteConnection,
-        escrow_id: &str,
-    ) -> Result<String> {
+    pub fn get_all_round1_packages(conn: &mut SqliteConnection, escrow_id: &str) -> Result<String> {
         let state = Self::get_state(conn, escrow_id)?;
 
         if !state.round1_complete {
@@ -253,12 +250,12 @@ impl FrostCoordinator {
 
         // Check if all packages submitted
         let state = Self::get_state(conn, escrow_id)?;
-        let buyer_done = state.buyer_to_vendor_round2.is_some()
-            && state.buyer_to_arbiter_round2.is_some();
-        let vendor_done = state.vendor_to_buyer_round2.is_some()
-            && state.vendor_to_arbiter_round2.is_some();
-        let arbiter_done = state.arbiter_to_buyer_round2.is_some()
-            && state.arbiter_to_vendor_round2.is_some();
+        let buyer_done =
+            state.buyer_to_vendor_round2.is_some() && state.buyer_to_arbiter_round2.is_some();
+        let vendor_done =
+            state.vendor_to_buyer_round2.is_some() && state.vendor_to_arbiter_round2.is_some();
+        let arbiter_done =
+            state.arbiter_to_buyer_round2.is_some() && state.arbiter_to_vendor_round2.is_some();
 
         let all_complete = buyer_done && vendor_done && arbiter_done;
 
@@ -538,8 +535,8 @@ impl FrostCoordinator {
         let state = Self::get_state(conn, escrow_id)?;
 
         // Deserialize arbiter's R1 secret
-        let r1_secret_bytes = hex::decode(arbiter_r1_secret_hex)
-            .context("Failed to decode arbiter R1 secret hex")?;
+        let r1_secret_bytes =
+            hex::decode(arbiter_r1_secret_hex).context("Failed to decode arbiter R1 secret hex")?;
         let r1_secret = dkg::round1::SecretPackage::deserialize(&r1_secret_bytes)
             .map_err(|e| anyhow::anyhow!("Failed to deserialize R1 secret: {:?}", e))?;
 
@@ -654,8 +651,8 @@ impl FrostCoordinator {
         let state = Self::get_state(conn, escrow_id)?;
 
         // Deserialize arbiter's R2 secret
-        let r2_secret_bytes = hex::decode(arbiter_r2_secret_hex)
-            .context("Failed to decode arbiter R2 secret hex")?;
+        let r2_secret_bytes =
+            hex::decode(arbiter_r2_secret_hex).context("Failed to decode arbiter R2 secret hex")?;
         let r2_secret = dkg::round2::SecretPackage::deserialize(&r2_secret_bytes)
             .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 secret: {:?}", e))?;
 

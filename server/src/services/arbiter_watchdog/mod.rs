@@ -116,11 +116,9 @@ impl ArbiterWatchdog {
         redis_pool: RedisPool,
         config: WatchdogConfig,
     ) -> Result<Self> {
-        let key_vault = ArbiterKeyVault::new(
-            redis_pool.clone(),
-            config.vault_master_password.clone(),
-        )
-        .context("Failed to initialize ArbiterKeyVault")?;
+        let key_vault =
+            ArbiterKeyVault::new(redis_pool.clone(), config.vault_master_password.clone())
+                .context("Failed to initialize ArbiterKeyVault")?;
 
         let auto_signer = FrostAutoSigner::new(key_vault.clone(), db_pool.clone());
         let monitor = EscrowMonitor::new(db_pool.clone(), config.poll_interval);
@@ -169,7 +167,10 @@ impl ArbiterWatchdog {
             return Ok(());
         }
 
-        info!(count = pending_escrows.len(), "Found escrows awaiting arbiter action");
+        info!(
+            count = pending_escrows.len(),
+            "Found escrows awaiting arbiter action"
+        );
 
         for escrow in pending_escrows {
             if let Err(e) = self.process_single_escrow(&escrow).await {
@@ -222,8 +223,10 @@ impl ArbiterWatchdog {
                         );
 
                         // Aggregate and broadcast
-                        match FrostSigningCoordinator::aggregate_and_broadcast(&mut conn, &escrow.id)
-                            .await
+                        match FrostSigningCoordinator::aggregate_and_broadcast(
+                            &mut conn, &escrow.id,
+                        )
+                        .await
                         {
                             Ok(tx_hash) => {
                                 info!(
@@ -249,7 +252,10 @@ impl ArbiterWatchdog {
         let decision = AutoSigningRules::evaluate(escrow);
 
         match decision {
-            SigningDecision::AutoRelease { escrow_id, vendor_address } => {
+            SigningDecision::AutoRelease {
+                escrow_id,
+                vendor_address,
+            } => {
                 if !self.config.auto_sign_enabled {
                     info!(
                         escrow_id = %escrow_id,
@@ -289,8 +295,10 @@ impl ArbiterWatchdog {
                     if let Ok(mut conn) = self.pool.get() {
                         use crate::services::frost_signing_coordinator::FrostSigningCoordinator;
 
-                        match FrostSigningCoordinator::aggregate_and_broadcast(&mut conn, &escrow_id)
-                            .await
+                        match FrostSigningCoordinator::aggregate_and_broadcast(
+                            &mut conn, &escrow_id,
+                        )
+                        .await
                         {
                             Ok(tx_hash) => {
                                 info!(
@@ -311,7 +319,10 @@ impl ArbiterWatchdog {
                 }
             }
 
-            SigningDecision::AutoRefund { escrow_id, buyer_address } => {
+            SigningDecision::AutoRefund {
+                escrow_id,
+                buyer_address,
+            } => {
                 if !self.config.auto_sign_enabled {
                     info!(
                         escrow_id = %escrow_id,
@@ -384,10 +395,7 @@ impl ArbiterWatchdog {
     /// - Extract arbiter's signing share from vault → store in ring_data_json
     /// - If winner's share is also present → call CLI binary → update status
     /// - If winner's share missing → wait (winner must submit via frontend)
-    async fn handle_dispute_broadcast(
-        &self,
-        escrow: &crate::models::escrow::Escrow,
-    ) -> Result<()> {
+    async fn handle_dispute_broadcast(&self, escrow: &crate::models::escrow::Escrow) -> Result<()> {
         let escrow_id = &escrow.id;
         let dispute_pair = escrow
             .dispute_signing_pair
@@ -614,11 +622,7 @@ impl ArbiterWatchdog {
     ///
     /// Called after DKG Part 3 when the arbiter's key_package is generated.
     /// Stores the encrypted key_package in Redis for later auto-signing.
-    pub async fn register_arbiter_key(
-        &self,
-        escrow_id: &str,
-        key_package_hex: &str,
-    ) -> Result<()> {
+    pub async fn register_arbiter_key(&self, escrow_id: &str, key_package_hex: &str) -> Result<()> {
         self.key_vault
             .store_key_package(escrow_id, key_package_hex)
             .await
@@ -634,7 +638,10 @@ impl ArbiterWatchdog {
 
     /// Check if arbiter key is registered for an escrow
     pub async fn has_arbiter_key(&self, escrow_id: &str) -> bool {
-        self.key_vault.has_key_package(escrow_id).await.unwrap_or(false)
+        self.key_vault
+            .has_key_package(escrow_id)
+            .await
+            .unwrap_or(false)
     }
 }
 

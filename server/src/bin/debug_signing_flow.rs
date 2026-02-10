@@ -16,7 +16,7 @@
 //! 5. Verification: Step-by-step verification loop
 //! 6. Diagnosis: Identify exact divergence point
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_TABLE,
     edwards::{CompressedEdwardsY, EdwardsPoint},
@@ -75,7 +75,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -92,10 +95,8 @@ const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0";
 const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1";
 
 const H_BYTES: [u8; 32] = [
-    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-    0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-    0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
+    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
 ];
 
 // ===========================================================================
@@ -282,12 +283,33 @@ fn phase1_setup(conn: &mut SqliteConnection, escrow_id: &str) -> Result<EscrowDa
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
 
     let result: Vec<(
-        String, Option<String>, Option<String>, Option<String>, Option<i32>,
-        Option<i32>, Option<String>, Option<String>, i64, Option<String>,
-        Option<String>, Option<String>, String, Option<String>, Option<String>,
-        Option<String>, Option<String>, Option<String>, Option<String>,
-        Option<String>, Option<String>, Option<i32>, Option<i32>, Option<String>,
-        Option<i32>, Option<String>, Option<String>,  // first_signer_had_r_agg is i32, mu_p/mu_c are String
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        Option<i32>,
+        Option<String>,
+        Option<String>,
+        i64,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        String,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<i32>,
+        Option<i32>,
+        Option<String>,
+        Option<i32>,
+        Option<String>,
+        Option<String>, // first_signer_had_r_agg is i32, mu_p/mu_c are String
     )> = escrows::table
         .filter(escrows::id.eq(escrow_id))
         .select((
@@ -353,45 +375,141 @@ fn phase1_setup(conn: &mut SqliteConnection, escrow_id: &str) -> Result<EscrowDa
 
     println!("✓ Escrow ID: {}", escrow.id);
     println!("✓ Status: {}", escrow.status);
-    println!("✓ Multisig Address: {}", escrow.multisig_address.as_deref().unwrap_or("NOT SET"));
-    println!("✓ Amount: {} atomic ({:.6} XMR)", escrow.amount, escrow.amount as f64 / 1e12);
-    println!("✓ Funding TX: {}", escrow.funding_tx_hash.as_deref().unwrap_or("NOT FUNDED"));
-    println!("✓ First Signer Role: {}", escrow.first_signer_role.as_deref().unwrap_or("NONE"));
+    println!(
+        "✓ Multisig Address: {}",
+        escrow.multisig_address.as_deref().unwrap_or("NOT SET")
+    );
+    println!(
+        "✓ Amount: {} atomic ({:.6} XMR)",
+        escrow.amount,
+        escrow.amount as f64 / 1e12
+    );
+    println!(
+        "✓ Funding TX: {}",
+        escrow.funding_tx_hash.as_deref().unwrap_or("NOT FUNDED")
+    );
+    println!(
+        "✓ First Signer Role: {}",
+        escrow.first_signer_role.as_deref().unwrap_or("NONE")
+    );
 
     println!("\n--- Partial Key Images ---");
-    println!("  Buyer PKI:   {}", escrow.buyer_partial_ki.as_deref()
-        .map(|s| if s.len() > 16 { format!("{}...", &s[..16]) } else { s.to_string() })
-        .unwrap_or_else(|| "NONE".to_string()));
-    println!("  Vendor PKI:  {}", escrow.vendor_partial_ki.as_deref()
-        .map(|s| if s.len() > 16 { format!("{}...", &s[..16]) } else { s.to_string() })
-        .unwrap_or_else(|| "NONE".to_string()));
-    println!("  Aggregated:  {}", escrow.aggregated_ki.as_deref()
-        .map(|s| if s.len() > 16 { format!("{}...", &s[..16]) } else { s.to_string() })
-        .unwrap_or_else(|| "NONE".to_string()));
+    println!(
+        "  Buyer PKI:   {}",
+        escrow
+            .buyer_partial_ki
+            .as_deref()
+            .map(|s| if s.len() > 16 {
+                format!("{}...", &s[..16])
+            } else {
+                s.to_string()
+            })
+            .unwrap_or_else(|| "NONE".to_string())
+    );
+    println!(
+        "  Vendor PKI:  {}",
+        escrow
+            .vendor_partial_ki
+            .as_deref()
+            .map(|s| if s.len() > 16 {
+                format!("{}...", &s[..16])
+            } else {
+                s.to_string()
+            })
+            .unwrap_or_else(|| "NONE".to_string())
+    );
+    println!(
+        "  Aggregated:  {}",
+        escrow
+            .aggregated_ki
+            .as_deref()
+            .map(|s| if s.len() > 16 {
+                format!("{}...", &s[..16])
+            } else {
+                s.to_string()
+            })
+            .unwrap_or_else(|| "NONE".to_string())
+    );
 
     println!("\n--- MuSig2 Nonces ---");
-    println!("  Vendor Nonce: {}", if escrow.vendor_nonce_public.is_some() { "✓ PRESENT" } else { "✗ MISSING" });
-    println!("  Buyer Nonce:  {}", if escrow.buyer_nonce_public.is_some() { "✓ PRESENT" } else { "✗ MISSING" });
-    println!("  Aggregated:   {}", if escrow.nonce_aggregated.is_some() { "✓ AGGREGATED" } else { "✗ NOT YET" });
+    println!(
+        "  Vendor Nonce: {}",
+        if escrow.vendor_nonce_public.is_some() {
+            "✓ PRESENT"
+        } else {
+            "✗ MISSING"
+        }
+    );
+    println!(
+        "  Buyer Nonce:  {}",
+        if escrow.buyer_nonce_public.is_some() {
+            "✓ PRESENT"
+        } else {
+            "✗ MISSING"
+        }
+    );
+    println!(
+        "  Aggregated:   {}",
+        if escrow.nonce_aggregated.is_some() {
+            "✓ AGGREGATED"
+        } else {
+            "✗ NOT YET"
+        }
+    );
 
     println!("\n--- Stored mu Values (v0.37.0) ---");
-    println!("  mu_p: {}", escrow.mu_p.as_deref()
-        .map(|s| if s.len() > 16 { format!("{}...", &s[..16]) } else { s.to_string() })
-        .unwrap_or_else(|| "NOT STORED".to_string()));
-    println!("  mu_c: {}", escrow.mu_c.as_deref()
-        .map(|s| if s.len() > 16 { format!("{}...", &s[..16]) } else { s.to_string() })
-        .unwrap_or_else(|| "NOT STORED".to_string()));
+    println!(
+        "  mu_p: {}",
+        escrow
+            .mu_p
+            .as_deref()
+            .map(|s| if s.len() > 16 {
+                format!("{}...", &s[..16])
+            } else {
+                s.to_string()
+            })
+            .unwrap_or_else(|| "NOT STORED".to_string())
+    );
+    println!(
+        "  mu_c: {}",
+        escrow
+            .mu_c
+            .as_deref()
+            .map(|s| if s.len() > 16 {
+                format!("{}...", &s[..16])
+            } else {
+                s.to_string()
+            })
+            .unwrap_or_else(|| "NOT STORED".to_string())
+    );
 
     println!("\n--- First Signer Timing (v0.41.0) ---");
-    println!("  first_signer_had_r_agg: {}", match escrow.first_signer_had_r_agg {
-        Some(1) => "TRUE (used R_agg)".to_string(),
-        Some(0) => "FALSE (used individual nonce)".to_string(),
-        _ => "NOT SET".to_string(),
-    });
+    println!(
+        "  first_signer_had_r_agg: {}",
+        match escrow.first_signer_had_r_agg {
+            Some(1) => "TRUE (used R_agg)".to_string(),
+            Some(0) => "FALSE (used individual nonce)".to_string(),
+            _ => "NOT SET".to_string(),
+        }
+    );
 
     println!("\n--- Signatures ---");
-    println!("  Buyer Signature:  {}", if escrow.buyer_signature.is_some() { "✓ PRESENT" } else { "✗ MISSING" });
-    println!("  Vendor Signature: {}", if escrow.vendor_signature.is_some() { "✓ PRESENT" } else { "✗ MISSING" });
+    println!(
+        "  Buyer Signature:  {}",
+        if escrow.buyer_signature.is_some() {
+            "✓ PRESENT"
+        } else {
+            "✗ MISSING"
+        }
+    );
+    println!(
+        "  Vendor Signature: {}",
+        if escrow.vendor_signature.is_some() {
+            "✓ PRESENT"
+        } else {
+            "✗ MISSING"
+        }
+    );
 
     Ok(escrow)
 }
@@ -432,24 +550,38 @@ fn phase2_pki_analysis(escrow: &EscrowData) -> Result<()> {
     // Parse as points
     println!("Parsing partial key images...");
 
-    let buyer_pki_point = parse_point(buyer_pki)
-        .context("Failed to parse buyer PKI as point")?;
-    let vendor_pki_point = parse_point(vendor_pki)
-        .context("Failed to parse vendor PKI as point")?;
-    let aggregated_ki_point = parse_point(aggregated_ki)
-        .context("Failed to parse aggregated KI as point")?;
+    let buyer_pki_point = parse_point(buyer_pki).context("Failed to parse buyer PKI as point")?;
+    let vendor_pki_point =
+        parse_point(vendor_pki).context("Failed to parse vendor PKI as point")?;
+    let aggregated_ki_point =
+        parse_point(aggregated_ki).context("Failed to parse aggregated KI as point")?;
 
-    println!("  ✓ Buyer PKI:      {}", short_hex(&buyer_pki_point.compress().to_bytes()));
-    println!("  ✓ Vendor PKI:     {}", short_hex(&vendor_pki_point.compress().to_bytes()));
-    println!("  ✓ Aggregated KI:  {}", short_hex(&aggregated_ki_point.compress().to_bytes()));
+    println!(
+        "  ✓ Buyer PKI:      {}",
+        short_hex(&buyer_pki_point.compress().to_bytes())
+    );
+    println!(
+        "  ✓ Vendor PKI:     {}",
+        short_hex(&vendor_pki_point.compress().to_bytes())
+    );
+    println!(
+        "  ✓ Aggregated KI:  {}",
+        short_hex(&aggregated_ki_point.compress().to_bytes())
+    );
 
     // Compute expected aggregation: buyer_pki + vendor_pki
     let expected_aggregated = buyer_pki_point + vendor_pki_point;
     let expected_hex = full_hex(&expected_aggregated.compress().to_bytes());
 
     println!("\n--- PKI Aggregation Check ---");
-    println!("  Expected (buyer + vendor): {}", short_hex(&expected_aggregated.compress().to_bytes()));
-    println!("  Stored Aggregated KI:      {}", short_hex(&aggregated_ki_point.compress().to_bytes()));
+    println!(
+        "  Expected (buyer + vendor): {}",
+        short_hex(&expected_aggregated.compress().to_bytes())
+    );
+    println!(
+        "  Stored Aggregated KI:      {}",
+        short_hex(&aggregated_ki_point.compress().to_bytes())
+    );
 
     if expected_hex == *aggregated_ki {
         println!("  ✅ PKI AGGREGATION CORRECT: buyer_pki + vendor_pki = aggregated_ki");
@@ -458,7 +590,9 @@ fn phase2_pki_analysis(escrow: &EscrowData) -> Result<()> {
         println!("     Expected: {}", expected_hex);
         println!("     Stored:   {}", aggregated_ki);
         println!("\n  DIAGNOSIS: This indicates that either:");
-        println!("    1. First signer re-submitted PKI with derivation (double-counted derivation)");
+        println!(
+            "    1. First signer re-submitted PKI with derivation (double-counted derivation)"
+        );
         println!("    2. Both signers submitted PKI with derivation (should only be first signer)");
         println!("    3. PKI values were computed with different base points");
     }
@@ -474,12 +608,14 @@ fn parse_signature(sig_json: &str) -> Result<SignatureData> {
     let v: serde_json::Value = serde_json::from_str(sig_json)?;
     let sig = v.get("signature").context("Missing 'signature' field")?;
 
-    let c1 = sig.get("c1")
+    let c1 = sig
+        .get("c1")
         .and_then(|v| v.as_str())
         .context("Missing c1")?
         .to_string();
 
-    let s_values: Vec<String> = sig.get("s")
+    let s_values: Vec<String> = sig
+        .get("s")
         .and_then(|v| v.as_array())
         .context("Missing s array")?
         .iter()
@@ -490,22 +626,39 @@ fn parse_signature(sig_json: &str) -> Result<SignatureData> {
 
     // Note: pseudo_out is at TOP LEVEL of stored JSON, not inside "signature" object
     // The stored format is: { "signature": {...}, "key_image": "...", "pseudo_out": "..." }
-    let pseudo_out = v.get("pseudo_out").and_then(|v| v.as_str()).map(String::from);
+    let pseudo_out = v
+        .get("pseudo_out")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     // mu_p and mu_c may be inside the signature or at top level - check both
-    let mu_p = sig.get("mu_p").and_then(|v| v.as_str()).map(String::from)
+    let mu_p = sig
+        .get("mu_p")
+        .and_then(|v| v.as_str())
+        .map(String::from)
         .or_else(|| v.get("mu_p").and_then(|v| v.as_str()).map(String::from));
-    let mu_c = sig.get("mu_c").and_then(|v| v.as_str()).map(String::from)
+    let mu_c = sig
+        .get("mu_c")
+        .and_then(|v| v.as_str())
+        .map(String::from)
         .or_else(|| v.get("mu_c").and_then(|v| v.as_str()).map(String::from));
 
-    Ok(SignatureData { c1, s_values, d, pseudo_out, mu_p, mu_c })
+    Ok(SignatureData {
+        c1,
+        s_values,
+        d,
+        pseudo_out,
+        mu_p,
+        mu_c,
+    })
 }
 
 fn parse_ring_data(ring_json: &str) -> Result<RingData> {
     let v: serde_json::Value = serde_json::from_str(ring_json)?;
 
     // Note: Field name in stored JSON is "ring_public_keys" not "ring_member_keys"
-    let ring_keys: Vec<String> = v.get("ring_public_keys")
+    let ring_keys: Vec<String> = v
+        .get("ring_public_keys")
         .and_then(|v| v.as_array())
         .context("Missing ring_public_keys")?
         .iter()
@@ -513,29 +666,39 @@ fn parse_ring_data(ring_json: &str) -> Result<RingData> {
         .collect();
 
     // Note: Field name in stored JSON is "ring_commitments" not "ring_member_commitments"
-    let ring_commitments: Vec<String> = v.get("ring_commitments")
+    let ring_commitments: Vec<String> = v
+        .get("ring_commitments")
         .and_then(|v| v.as_array())
         .context("Missing ring_commitments")?
         .iter()
         .filter_map(|v| v.as_str().map(String::from))
         .collect();
 
-    let tx_prefix_hash = v.get("tx_prefix_hash")
+    let tx_prefix_hash = v
+        .get("tx_prefix_hash")
         .and_then(|v| v.as_str())
         .context("Missing tx_prefix_hash")?
         .to_string();
 
-    let signer_index = v.get("signer_index")
+    let signer_index = v
+        .get("signer_index")
         .and_then(|v| v.as_u64())
         .context("Missing signer_index")? as usize;
 
-    let key_image = v.get("key_image")
+    let key_image = v
+        .get("key_image")
         .and_then(|v| v.as_str())
         .context("Missing key_image")?
         .to_string();
 
-    let stealth_address = v.get("stealth_address").and_then(|v| v.as_str()).map(String::from);
-    let tx_pubkey = v.get("tx_pubkey").and_then(|v| v.as_str()).map(String::from);
+    let stealth_address = v
+        .get("stealth_address")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+    let tx_pubkey = v
+        .get("tx_pubkey")
+        .and_then(|v| v.as_str())
+        .map(String::from);
 
     Ok(RingData {
         ring_keys,
@@ -599,21 +762,51 @@ fn phase3_first_signer_trace(escrow: &EscrowData) -> Result<Option<(SignatureDat
 
     println!("  c1: {}", short_hex(&hex::decode(&sig.c1)?));
     println!("  s_values count: {}", sig.s_values.len());
-    println!("  D: {}", sig.d.as_deref().map(|s| short_hex(&hex::decode(s).unwrap_or_default())).unwrap_or_else(|| "NOT SET".to_string()));
-    println!("  pseudo_out: {}", sig.pseudo_out.as_deref().map(|s| short_hex(&hex::decode(s).unwrap_or_default())).unwrap_or_else(|| "NOT SET".to_string()));
-    println!("  mu_p (in sig): {}", sig.mu_p.as_deref().map(|s| short_hex(&hex::decode(s).unwrap_or_default())).unwrap_or_else(|| "NOT IN SIGNATURE".to_string()));
-    println!("  mu_c (in sig): {}", sig.mu_c.as_deref().map(|s| short_hex(&hex::decode(s).unwrap_or_default())).unwrap_or_else(|| "NOT IN SIGNATURE".to_string()));
+    println!(
+        "  D: {}",
+        sig.d
+            .as_deref()
+            .map(|s| short_hex(&hex::decode(s).unwrap_or_default()))
+            .unwrap_or_else(|| "NOT SET".to_string())
+    );
+    println!(
+        "  pseudo_out: {}",
+        sig.pseudo_out
+            .as_deref()
+            .map(|s| short_hex(&hex::decode(s).unwrap_or_default()))
+            .unwrap_or_else(|| "NOT SET".to_string())
+    );
+    println!(
+        "  mu_p (in sig): {}",
+        sig.mu_p
+            .as_deref()
+            .map(|s| short_hex(&hex::decode(s).unwrap_or_default()))
+            .unwrap_or_else(|| "NOT IN SIGNATURE".to_string())
+    );
+    println!(
+        "  mu_c (in sig): {}",
+        sig.mu_c
+            .as_deref()
+            .map(|s| short_hex(&hex::decode(s).unwrap_or_default()))
+            .unwrap_or_else(|| "NOT IN SIGNATURE".to_string())
+    );
 
     println!("\n--- Ring Data ---");
     println!("  Ring size: {}", ring.ring_keys.len());
     println!("  Signer index: {}", ring.signer_index);
-    println!("  TX prefix hash: {}", short_hex(&hex::decode(&ring.tx_prefix_hash)?));
+    println!(
+        "  TX prefix hash: {}",
+        short_hex(&hex::decode(&ring.tx_prefix_hash)?)
+    );
     println!("  Key image: {}", short_hex(&hex::decode(&ring.key_image)?));
 
     // Show s[signer_index] specifically
     if ring.signer_index < sig.s_values.len() {
         println!("\n--- Critical s-value at signer position ---");
-        println!("  s[{}] (first signer): {}", ring.signer_index, &sig.s_values[ring.signer_index]);
+        println!(
+            "  s[{}] (first signer): {}",
+            ring.signer_index, &sig.s_values[ring.signer_index]
+        );
     }
 
     Ok(Some((sig, ring)))
@@ -623,13 +816,21 @@ fn phase3_first_signer_trace(escrow: &EscrowData) -> Result<Option<(SignatureDat
 // Phase 4: Second Signer Trace
 // ===========================================================================
 
-fn phase4_second_signer_trace(escrow: &EscrowData, first_sig: &SignatureData, ring: &RingData) -> Result<Option<SignatureData>> {
+fn phase4_second_signer_trace(
+    escrow: &EscrowData,
+    first_sig: &SignatureData,
+    ring: &RingData,
+) -> Result<Option<SignatureData>> {
     println!("\n╔══════════════════════════════════════════════════════════════════╗");
     println!("║           PHASE 4: Second Signer CLSAG Trace                     ║");
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
 
     let first_role = escrow.first_signer_role.as_deref().unwrap_or("vendor");
-    let second_role = if first_role == "vendor" { "buyer" } else { "vendor" };
+    let second_role = if first_role == "vendor" {
+        "buyer"
+    } else {
+        "vendor"
+    };
     println!("Second signer role: {}", second_role);
 
     let second_sig_json = match second_role {
@@ -665,12 +866,23 @@ fn phase4_second_signer_trace(escrow: &EscrowData, first_sig: &SignatureData, ri
 
     // Compare s-values at signer index
     if ring.signer_index < first_sig.s_values.len() && ring.signer_index < sig.s_values.len() {
-        println!("\n--- s[{}] Comparison (signer position) ---", ring.signer_index);
-        println!("  First signer s[{}]:  {}", ring.signer_index, &first_sig.s_values[ring.signer_index]);
-        println!("  Second signer s[{}]: {}", ring.signer_index, &sig.s_values[ring.signer_index]);
+        println!(
+            "\n--- s[{}] Comparison (signer position) ---",
+            ring.signer_index
+        );
+        println!(
+            "  First signer s[{}]:  {}",
+            ring.signer_index, &first_sig.s_values[ring.signer_index]
+        );
+        println!(
+            "  Second signer s[{}]: {}",
+            ring.signer_index, &sig.s_values[ring.signer_index]
+        );
 
         if first_sig.s_values[ring.signer_index] == sig.s_values[ring.signer_index] {
-            println!("  ⚠ s-values are IDENTICAL - Second signer should have ADDED their contribution!");
+            println!(
+                "  ⚠ s-values are IDENTICAL - Second signer should have ADDED their contribution!"
+            );
         } else {
             println!("  ✓ s-values differ (expected - second signer added contribution)");
 
@@ -686,12 +898,18 @@ fn phase4_second_signer_trace(escrow: &EscrowData, first_sig: &SignatureData, ri
 
     // Check first signer timing flag (v0.41.0 TOCTOU fix)
     println!("\n--- First Signer Timing Check (v0.41.0) ---");
-    println!("  first_signer_had_r_agg: {}", match escrow.first_signer_had_r_agg {
-        Some(1) => "TRUE (first signer used R_agg)",
-        Some(0) => "FALSE (first signer used individual nonce)",
-        _ => "NOT SET (first signer not yet signed?)",
-    });
-    println!("  nonce_aggregated is_some(): {}", escrow.nonce_aggregated.is_some());
+    println!(
+        "  first_signer_had_r_agg: {}",
+        match escrow.first_signer_had_r_agg {
+            Some(1) => "TRUE (first signer used R_agg)",
+            Some(0) => "FALSE (first signer used individual nonce)",
+            _ => "NOT SET (first signer not yet signed?)",
+        }
+    );
+    println!(
+        "  nonce_aggregated is_some(): {}",
+        escrow.nonce_aggregated.is_some()
+    );
     println!("  ✓ v0.41.0 FIX: first_signer_had_r_agg is now STORED at signing time");
     println!("  First sig c1: {}", &first_sig.c1);
 
@@ -724,14 +942,13 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
     let mut ring_commitments: Vec<EdwardsPoint> = Vec::new();
 
     for (i, key_hex) in ring.ring_keys.iter().enumerate() {
-        let key = parse_point(key_hex)
-            .context(format!("Failed to parse ring_key[{}]", i))?;
+        let key = parse_point(key_hex).context(format!("Failed to parse ring_key[{}]", i))?;
         ring_keys.push(key);
     }
 
     for (i, commit_hex) in ring.ring_commitments.iter().enumerate() {
-        let commit = parse_point(commit_hex)
-            .context(format!("Failed to parse ring_commitment[{}]", i))?;
+        let commit =
+            parse_point(commit_hex).context(format!("Failed to parse ring_commitment[{}]", i))?;
         ring_commitments.push(commit);
     }
 
@@ -785,7 +1002,10 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
     let d_original = d_inv8 * Scalar::from(8u64);
     println!("\n--- D Point ---");
     println!("  D_inv8:     {}", short_hex(&d_inv8.compress().to_bytes()));
-    println!("  D_original: {}", short_hex(&d_original.compress().to_bytes()));
+    println!(
+        "  D_original: {}",
+        short_hex(&d_original.compress().to_bytes())
+    );
 
     // Precompute Hp(P[i])
     let mut hp_values: Vec<EdwardsPoint> = Vec::new();
@@ -827,7 +1047,15 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
 
         // Log critical rounds
         if i == 0 || i == ring.signer_index || i == ring_size - 1 {
-            println!("\n  Round {}{}:", i, if i == ring.signer_index { " (SIGNER)" } else { "" });
+            println!(
+                "\n  Round {}{}:",
+                i,
+                if i == ring.signer_index {
+                    " (SIGNER)"
+                } else {
+                    ""
+                }
+            );
             println!("    c_input: {}", short_hex(&c.to_bytes()));
             println!("    s[{}]:    {}", i, short_hex(&s.to_bytes()));
             println!("    c_p:     {}", short_hex(&c_p.to_bytes()));
@@ -863,7 +1091,11 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
 // Phase 6: Diagnosis
 // ===========================================================================
 
-fn phase6_diagnosis(escrow: &EscrowData, first_sig: Option<&SignatureData>, second_sig: Option<&SignatureData>) {
+fn phase6_diagnosis(
+    escrow: &EscrowData,
+    first_sig: Option<&SignatureData>,
+    second_sig: Option<&SignatureData>,
+) {
     println!("\n╔══════════════════════════════════════════════════════════════════╗");
     println!("║                    PHASE 6: DIAGNOSIS                            ║");
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
@@ -877,7 +1109,14 @@ fn phase6_diagnosis(escrow: &EscrowData, first_sig: Option<&SignatureData>, seco
     println!("   - If first signer signed BEFORE nonces aggregated, but second signer");
     println!("     signs AFTER aggregation, the flag is WRONG");
     println!("   Current state:");
-    println!("     nonce_aggregated: {}", if escrow.nonce_aggregated.is_some() { "PRESENT (true)" } else { "ABSENT (false)" });
+    println!(
+        "     nonce_aggregated: {}",
+        if escrow.nonce_aggregated.is_some() {
+            "PRESENT (true)"
+        } else {
+            "ABSENT (false)"
+        }
+    );
     println!("     first_signer_role: {:?}", escrow.first_signer_role);
     println!("   FIX: Store first_signer_used_r_agg when first signer submits signature\n");
 
@@ -887,8 +1126,14 @@ fn phase6_diagnosis(escrow: &EscrowData, first_sig: Option<&SignatureData>, seco
     println!("   - Both compute mu locally with potentially different values");
     println!("   - The retry loop (5 × 2s) should wait for stored mu values");
     println!("   Current state:");
-    println!("     stored mu_p: {}", escrow.mu_p.as_deref().unwrap_or("NOT STORED"));
-    println!("     stored mu_c: {}", escrow.mu_c.as_deref().unwrap_or("NOT STORED"));
+    println!(
+        "     stored mu_p: {}",
+        escrow.mu_p.as_deref().unwrap_or("NOT STORED")
+    );
+    println!(
+        "     stored mu_c: {}",
+        escrow.mu_c.as_deref().unwrap_or("NOT STORED")
+    );
     if escrow.mu_p.is_none() || escrow.mu_c.is_none() {
         println!("   ⚠ mu values not stored - possible race condition!\n");
     } else {
@@ -899,11 +1144,14 @@ fn phase6_diagnosis(escrow: &EscrowData, first_sig: Option<&SignatureData>, seco
     println!("✅ v0.41.0 TOCTOU FIX:");
     println!("   - first_signer_had_r_agg is STORED at signing time (not computed dynamically)");
     println!("   Current state:");
-    println!("     first_signer_had_r_agg: {}", match escrow.first_signer_had_r_agg {
-        Some(1) => "1 (TRUE - first signer used R_agg)",
-        Some(0) => "0 (FALSE - first signer used individual nonce)",
-        _ => "NOT SET",
-    });
+    println!(
+        "     first_signer_had_r_agg: {}",
+        match escrow.first_signer_had_r_agg {
+            Some(1) => "1 (TRUE - first signer used R_agg)",
+            Some(0) => "0 (FALSE - first signer used individual nonce)",
+            _ => "NOT SET",
+        }
+    );
     println!("     first_signer_role: {:?}", escrow.first_signer_role);
     if first_sig.is_some() {
         println!("   ✓ First signature present\n");

@@ -118,9 +118,9 @@ async fn create_listing(pool: &DbPool, vendor_id: Uuid, price: i64) -> Result<Uu
             price_xmr: price,
             stock: 10,
             status: "active".to_string(),
-            images_ipfs_cids: None,  // No images for E2E test
+            images_ipfs_cids: None, // No images for E2E test
             category: "electronics".to_string(),
-            shipping_cost_xmr: 0,  // Free shipping for E2E test
+            shipping_cost_xmr: 0, // Free shipping for E2E test
         };
 
         diesel::insert_into(listings::table)

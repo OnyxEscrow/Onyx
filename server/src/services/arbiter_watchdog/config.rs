@@ -43,7 +43,9 @@ impl Default for WatchdogConfig {
     fn default() -> Self {
         Self {
             poll_interval: Duration::from_secs(30),
-            vault_master_password: SecretString::new("INSECURE_DEFAULT_DO_NOT_USE_IN_PRODUCTION".into()),
+            vault_master_password: SecretString::new(
+                "INSECURE_DEFAULT_DO_NOT_USE_IN_PRODUCTION".into(),
+            ),
             auto_sign_enabled: true,
             require_both_signatures: true,
             telegram_bot_token: None,
@@ -159,10 +161,16 @@ impl std::fmt::Display for ConfigError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ConfigError::MissingVaultPassword => {
-                write!(f, "ARBITER_VAULT_MASTER_PASSWORD environment variable is required")
+                write!(
+                    f,
+                    "ARBITER_VAULT_MASTER_PASSWORD environment variable is required"
+                )
             }
             ConfigError::WeakVaultPassword => {
-                write!(f, "ARBITER_VAULT_MASTER_PASSWORD must be at least 16 characters")
+                write!(
+                    f,
+                    "ARBITER_VAULT_MASTER_PASSWORD must be at least 16 characters"
+                )
             }
         }
     }

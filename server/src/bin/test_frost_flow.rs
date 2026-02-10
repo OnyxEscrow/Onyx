@@ -14,13 +14,13 @@ use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::VartimeMultiscalarMul;
+use rand::rngs::OsRng;
 use reqwest::cookie::Jar;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha3::{Digest, Keccak256};
 use std::sync::Arc;
-use rand::rngs::OsRng;
 
 // Use monero's correct hash_to_point (ge_fromfe_frombytes_vartime)
 use monero_generators_mirror::hash_to_point as monero_hash_to_point;
@@ -47,7 +47,8 @@ const BUYER_SHARE: &str = "916e1d306297b252a49d616846bc1e22276ea3d535280bdde3f8d
 const OUTPUT_INDEX: u64 = 1;
 
 // Expected values (computed by validate_escrow_crypto.rs)
-const EXPECTED_ONE_TIME_PUBKEY: &str = "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
+const EXPECTED_ONE_TIME_PUBKEY: &str =
+    "ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0";
 const EXPECTED_TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c013175fb5612009da9";
 
 // ============================================================================
@@ -244,7 +245,13 @@ fn keccak256_to_scalar(data: &[u8]) -> Scalar {
 /// Reference: clsag_hash_agg() in rctSigs.cpp
 /// mu_P = H(CLSAG_agg_0 || ring_keys || ring_commitments || I || D_inv8 || pseudo_out)
 /// CRITICAL: Domain separator MUST be 32-byte padded, and D_inv8 (NOT message!) is included
-fn clsag_agg_0(ring: &[EdwardsPoint], commitments: &[EdwardsPoint], key_image: &EdwardsPoint, d_inv8: &EdwardsPoint, pseudo_out: &EdwardsPoint) -> Scalar {
+fn clsag_agg_0(
+    ring: &[EdwardsPoint],
+    commitments: &[EdwardsPoint],
+    key_image: &EdwardsPoint,
+    d_inv8: &EdwardsPoint,
+    pseudo_out: &EdwardsPoint,
+) -> Scalar {
     let mut hasher = Keccak256::new();
 
     // CRITICAL: Domain separator must be 32-byte padded (Monero uses 32-byte key slots)
@@ -252,10 +259,14 @@ fn clsag_agg_0(ring: &[EdwardsPoint], commitments: &[EdwardsPoint], key_image: &
     domain_sep[..11].copy_from_slice(b"CLSAG_agg_0");
     hasher.update(&domain_sep);
 
-    for p in ring { hasher.update(p.compress().as_bytes()); }
-    for c in commitments { hasher.update(c.compress().as_bytes()); }
+    for p in ring {
+        hasher.update(p.compress().as_bytes());
+    }
+    for c in commitments {
+        hasher.update(c.compress().as_bytes());
+    }
     hasher.update(key_image.compress().as_bytes());
-    hasher.update(d_inv8.compress().as_bytes());  // D/8, not D!
+    hasher.update(d_inv8.compress().as_bytes()); // D/8, not D!
     hasher.update(pseudo_out.compress().as_bytes());
     // NO message in mu computation!
 
@@ -264,15 +275,25 @@ fn clsag_agg_0(ring: &[EdwardsPoint], commitments: &[EdwardsPoint], key_image: &
 }
 
 /// Compute CLSAG_agg_1 for mu_C
-fn clsag_agg_1(ring: &[EdwardsPoint], commitments: &[EdwardsPoint], key_image: &EdwardsPoint, d_inv8: &EdwardsPoint, pseudo_out: &EdwardsPoint) -> Scalar {
+fn clsag_agg_1(
+    ring: &[EdwardsPoint],
+    commitments: &[EdwardsPoint],
+    key_image: &EdwardsPoint,
+    d_inv8: &EdwardsPoint,
+    pseudo_out: &EdwardsPoint,
+) -> Scalar {
     let mut hasher = Keccak256::new();
 
     let mut domain_sep = [0u8; 32];
     domain_sep[..11].copy_from_slice(b"CLSAG_agg_1");
     hasher.update(&domain_sep);
 
-    for p in ring { hasher.update(p.compress().as_bytes()); }
-    for c in commitments { hasher.update(c.compress().as_bytes()); }
+    for p in ring {
+        hasher.update(p.compress().as_bytes());
+    }
+    for c in commitments {
+        hasher.update(c.compress().as_bytes());
+    }
     hasher.update(key_image.compress().as_bytes());
     hasher.update(d_inv8.compress().as_bytes());
     hasher.update(pseudo_out.compress().as_bytes());
@@ -282,7 +303,13 @@ fn clsag_agg_1(ring: &[EdwardsPoint], commitments: &[EdwardsPoint], key_image: &
 }
 
 /// Compute CLSAG round hash
-fn clsag_round(prefix: &[u8], p: &EdwardsPoint, c: &EdwardsPoint, l: &EdwardsPoint, r: &EdwardsPoint) -> Scalar {
+fn clsag_round(
+    prefix: &[u8],
+    p: &EdwardsPoint,
+    c: &EdwardsPoint,
+    l: &EdwardsPoint,
+    r: &EdwardsPoint,
+) -> Scalar {
     let mut hasher = Keccak256::new();
     hasher.update(prefix);
     hasher.update(p.compress().as_bytes());
@@ -337,7 +364,12 @@ async fn create_session(role: &str) -> Result<Client> {
 // PKI COMPUTATION
 // ============================================================================
 
-fn compute_pki_with_derivation(share: &str, derivation: &Scalar, one_time_pubkey: &str, lambda: Scalar) -> String {
+fn compute_pki_with_derivation(
+    share: &str,
+    derivation: &Scalar,
+    one_time_pubkey: &str,
+    lambda: Scalar,
+) -> String {
     // PKI = (derivation + λ × share) × Hp(P)
     // CRITICAL: Must use monero_hash_to_point for consistency with CLSAG!
     let share_scalar = hex_to_scalar(share);
@@ -427,11 +459,8 @@ async fn main() -> Result<()> {
     );
 
     // BUYER is SECOND submitter → NO derivation
-    let expected_buyer_pki = compute_pki_no_derivation(
-        BUYER_SHARE,
-        &one_time_pubkey_hex,
-        lambda_buyer,
-    );
+    let expected_buyer_pki =
+        compute_pki_no_derivation(BUYER_SHARE, &one_time_pubkey_hex, lambda_buyer);
 
     // Compute expected aggregated key image
     let vendor_pki_point = hex_to_point(&expected_vendor_pki);
@@ -480,7 +509,10 @@ async fn main() -> Result<()> {
     println!("[3/6] Submit Vendor PKI (first submitter, WITH derivation)...");
     println!("  PKI: {}", expected_vendor_pki);
 
-    let submit_url = format!("{}/api/v2/escrow/{}/submit-partial-key-image", SERVER_URL, ESCROW_ID);
+    let submit_url = format!(
+        "{}/api/v2/escrow/{}/submit-partial-key-image",
+        SERVER_URL, ESCROW_ID
+    );
     let pki_req = SubmitPkiRequest {
         role: "vendor".to_string(),
         partial_key_image: expected_vendor_pki.clone(),
@@ -509,7 +541,10 @@ async fn main() -> Result<()> {
             if expected_vendor_pki.starts_with(existing) {
                 println!("  ✓ Vendor PKI already submitted (same value, OK)");
             } else {
-                println!("  ❌ PKI conflict: existing prefix {} doesn't match", existing);
+                println!(
+                    "  ❌ PKI conflict: existing prefix {} doesn't match",
+                    existing
+                );
                 anyhow::bail!("Vendor PKI conflict");
             }
         } else {
@@ -575,7 +610,10 @@ async fn main() -> Result<()> {
                 println!("\n  === KEY IMAGE (from previous aggregation) ===");
                 println!("  Expected: {}", expected_ki_hex);
             } else {
-                println!("  ❌ PKI conflict: existing prefix {} doesn't match", existing);
+                println!(
+                    "  ❌ PKI conflict: existing prefix {} doesn't match",
+                    existing
+                );
                 anyhow::bail!("Buyer PKI conflict");
             }
         } else {
@@ -655,7 +693,9 @@ async fn main() -> Result<()> {
             if let Some(obj) = input.as_object() {
                 for (key, val) in obj.iter() {
                     let val_preview = match val {
-                        Value::String(s) if s.len() > 32 => format!("{}... (len={})", &s[..32], s.len()),
+                        Value::String(s) if s.len() > 32 => {
+                            format!("{}... (len={})", &s[..32], s.len())
+                        }
                         Value::String(s) => format!("{} (len={})", s.clone(), s.len()),
                         Value::Array(a) => format!("[{} items]", a.len()),
                         Value::Number(n) => format!("{}", n),
@@ -675,12 +715,20 @@ async fn main() -> Result<()> {
     // Also print important top-level fields
     eprintln!("  +++ TOP LEVEL FIELDS +++");
     if let Some(tph) = prepare_resp.get("tx_prefix_hash").and_then(|v| v.as_str()) {
-        eprintln!("    tx_prefix_hash: {}... (len={})", &tph[..32.min(tph.len())], tph.len());
+        eprintln!(
+            "    tx_prefix_hash: {}... (len={})",
+            &tph[..32.min(tph.len())],
+            tph.len()
+        );
     } else {
         eprintln!("    tx_prefix_hash: NOT FOUND!");
     }
     if let Some(ki) = prepare_resp.get("key_image").and_then(|v| v.as_str()) {
-        eprintln!("    key_image: {}... (len={})", &ki[..32.min(ki.len())], ki.len());
+        eprintln!(
+            "    key_image: {}... (len={})",
+            &ki[..32.min(ki.len())],
+            ki.len()
+        );
     } else {
         eprintln!("    key_image: NOT FOUND!");
     }
@@ -693,7 +741,8 @@ async fn main() -> Result<()> {
     eprintln!("  +++ END TOP LEVEL +++\n");
 
     // Extract signing data
-    let input = prepare_resp["inputs"].as_array()
+    let input = prepare_resp["inputs"]
+        .as_array()
         .and_then(|arr| arr.first())
         .context("No inputs in prepare response")?;
 
@@ -701,26 +750,31 @@ async fn main() -> Result<()> {
     let signer_index = input["signer_index"].as_u64().unwrap_or(0) as usize;
 
     // tx_prefix_hash is at TOP LEVEL of response, not in inputs[0]!
-    let tx_prefix_hash = prepare_resp["tx_prefix_hash"].as_str()
+    let tx_prefix_hash = prepare_resp["tx_prefix_hash"]
+        .as_str()
         .or_else(|| input["tx_prefix_hash"].as_str())
         .unwrap_or("");
 
     // Try multiple field names for masks
-    let commitment_mask_hex = input["commitment_mask"].as_str()
+    let commitment_mask_hex = input["commitment_mask"]
+        .as_str()
         .or_else(|| input["pseudo_out_mask"].as_str())
         .or_else(|| input["mask"].as_str())
         .unwrap_or("");
 
-    let funding_mask_hex = input["funding_mask"].as_str()
+    let funding_mask_hex = input["funding_mask"]
+        .as_str()
         .or_else(|| input["output_mask"].as_str())
         .or_else(|| input["z"].as_str())
         .unwrap_or("");
 
     // key_image is at both TOP LEVEL and in inputs[0]
-    let key_image_hex = input["key_image"].as_str()
+    let key_image_hex = input["key_image"]
+        .as_str()
         .or_else(|| prepare_resp["key_image"].as_str())
         .unwrap_or("");
-    let amount = input["commitment_amount"].as_u64()
+    let amount = input["commitment_amount"]
+        .as_u64()
         .or_else(|| input["amount"].as_u64())
         .unwrap_or(0);
 
@@ -732,7 +786,11 @@ async fn main() -> Result<()> {
         println!("\n  Continuing with computed values from known crypto data...\n");
     }
 
-    println!("  Ring size: {}, Signer idx: {}", ring_json.len(), signer_index);
+    println!(
+        "  Ring size: {}, Signer idx: {}",
+        ring_json.len(),
+        signer_index
+    );
     println!("  Amount: {} piconero", amount);
 
     // Parse ring members
@@ -784,7 +842,8 @@ async fn main() -> Result<()> {
     };
 
     // Compute pseudo_out = commitment_mask * G + amount * H
-    let pseudo_out = &*ED25519_BASEPOINT_TABLE * &commitment_mask + &*H * &Scalar::from(real_amount);
+    let pseudo_out =
+        &*ED25519_BASEPOINT_TABLE * &commitment_mask + &*H * &Scalar::from(real_amount);
     let pseudo_out_hex = hex::encode(pseudo_out.compress().as_bytes());
     println!("  Pseudo_out: {}...", &pseudo_out_hex[..16]);
 
@@ -814,10 +873,22 @@ async fn main() -> Result<()> {
 
     // Compute mu_p and mu_c using CORRECT server-compatible functions
     // CRITICAL: Use d_inv8 (NOT message!), 32-byte padded domain separator
-    let mu_p = clsag_agg_0(&ring_keys, &ring_commitments, &key_image, &d_inv8, &pseudo_out);
+    let mu_p = clsag_agg_0(
+        &ring_keys,
+        &ring_commitments,
+        &key_image,
+        &d_inv8,
+        &pseudo_out,
+    );
     let mu_p_hex = hex::encode(mu_p.as_bytes());
 
-    let mu_c = clsag_agg_1(&ring_keys, &ring_commitments, &key_image, &d_inv8, &pseudo_out);
+    let mu_c = clsag_agg_1(
+        &ring_keys,
+        &ring_commitments,
+        &key_image,
+        &d_inv8,
+        &pseudo_out,
+    );
     let mu_c_hex = hex::encode(mu_c.as_bytes());
 
     println!("  mu_p: {}...", &mu_p_hex[..16]);
@@ -849,8 +920,14 @@ async fn main() -> Result<()> {
     let r_prime = alpha * hp_p;
 
     println!("  Alpha nonce generated");
-    println!("  L_π (alpha*G): {}...", hex::encode(&r_public.compress().as_bytes()[..8]));
-    println!("  R_π (alpha*Hp(P)): {}...", hex::encode(&r_prime.compress().as_bytes()[..8]));
+    println!(
+        "  L_π (alpha*G): {}...",
+        hex::encode(&r_public.compress().as_bytes()[..8])
+    );
+    println!(
+        "  R_π (alpha*Hp(P)): {}...",
+        hex::encode(&r_prime.compress().as_bytes()[..8])
+    );
 
     // CLSAG RING COMPUTATION (first signer partial)
     // Start at signer_index+1, go around the ring
@@ -869,8 +946,12 @@ async fn main() -> Result<()> {
     let mut domain_round = [0u8; 32];
     domain_round[..11].copy_from_slice(b"CLSAG_round");
     prefix.extend_from_slice(&domain_round);
-    for p in &ring_keys { prefix.extend_from_slice(p.compress().as_bytes()); }
-    for cm in &ring_commitments { prefix.extend_from_slice(cm.compress().as_bytes()); }
+    for p in &ring_keys {
+        prefix.extend_from_slice(p.compress().as_bytes());
+    }
+    for cm in &ring_commitments {
+        prefix.extend_from_slice(cm.compress().as_bytes());
+    }
     prefix.extend_from_slice(pseudo_out.compress().as_bytes());
     prefix.extend_from_slice(&message);
     prefix.extend_from_slice(key_image.compress().as_bytes());
@@ -890,7 +971,7 @@ async fn main() -> Result<()> {
     // CLSAG stores c_1 (challenge AFTER processing index 0, going INTO index 1)
     // The c we have NOW is c_0 (output from signer at π=15).
     // We'll save c1 AFTER the first iteration of the loop (when idx=0 is processed).
-    let mut c1 = Scalar::ZERO;  // Will be set in loop
+    let mut c1 = Scalar::ZERO; // Will be set in loop
 
     // Go around the ring from (signer_index+1) to (signer_index-1)
     for i in 1..n {
@@ -925,17 +1006,26 @@ async fn main() -> Result<()> {
         // This is c_1 = challenge going INTO index 1
         if idx == 0 {
             c1 = c;
-            println!("  Saved c1 after processing idx=0: {}...", hex::encode(&c1.as_bytes()[..8]));
+            println!(
+                "  Saved c1 after processing idx=0: {}...",
+                hex::encode(&c1.as_bytes()[..8])
+            );
         }
     }
 
     // The c we have now is c_π (at our position)
     // s_π = alpha - c_π * (mu_p * x_eff + mu_c * (z - mask))
     let c_pi = c;
-    println!("  c_π (for s_pi computation): {}...", hex::encode(&c_pi.as_bytes()[..8]));
+    println!(
+        "  c_π (for s_pi computation): {}...",
+        hex::encode(&c_pi.as_bytes()[..8])
+    );
     let s_pi = alpha - c_pi * (mu_p * x_eff_vendor + mu_c * mask_delta);
     s_values[signer_index] = s_pi;
-    println!("  s_π (vendor partial): {}...", hex::encode(&s_pi.as_bytes()[..8]));
+    println!(
+        "  s_π (vendor partial): {}...",
+        hex::encode(&s_pi.as_bytes()[..8])
+    );
 
     let c1_hex = hex::encode(c1.as_bytes());
 
@@ -961,7 +1051,11 @@ async fn main() -> Result<()> {
     let verify_c_next: [u8; 32] = verify_hasher.finalize().into();
     verify_c = Scalar::from_bytes_mod_order(verify_c_next);
 
-    println!("    Starting verification from c_{} = {}...", (signer_index + 1) % n, hex::encode(&verify_c.as_bytes()[..8]));
+    println!(
+        "    Starting verification from c_{} = {}...",
+        (signer_index + 1) % n,
+        hex::encode(&verify_c.as_bytes()[..8])
+    );
 
     let mut verify_c1: Option<Scalar> = None;
 
@@ -993,13 +1087,22 @@ async fn main() -> Result<()> {
         // Track c1 (challenge at index 1)
         if idx == 0 && verify_c1.is_none() {
             verify_c1 = Some(verify_c);
-            println!("    idx=0 processed → c_1 = {}...", hex::encode(&verify_c.as_bytes()[..8]));
+            println!(
+                "    idx=0 processed → c_1 = {}...",
+                hex::encode(&verify_c.as_bytes()[..8])
+            );
         }
     }
 
     // Now verify_c should be c_π (the challenge at signer's position)
-    println!("    After loop: c_π = {}...", hex::encode(&verify_c.as_bytes()[..8]));
-    println!("    Expected c_π = {}...", hex::encode(&c_pi.as_bytes()[..8]));
+    println!(
+        "    After loop: c_π = {}...",
+        hex::encode(&verify_c.as_bytes()[..8])
+    );
+    println!(
+        "    Expected c_π = {}...",
+        hex::encode(&c_pi.as_bytes()[..8])
+    );
 
     if verify_c == c_pi {
         println!("    ✓ Ring closure verified - c_π matches!");
@@ -1010,8 +1113,14 @@ async fn main() -> Result<()> {
 
     // Verify c1 matches
     if let Some(vc1) = verify_c1 {
-        println!("    Verification c1: {}...", hex::encode(&vc1.as_bytes()[..8]));
-        println!("    Stored c1:       {}...", hex::encode(&c1.as_bytes()[..8]));
+        println!(
+            "    Verification c1: {}...",
+            hex::encode(&vc1.as_bytes()[..8])
+        );
+        println!(
+            "    Stored c1:       {}...",
+            hex::encode(&c1.as_bytes()[..8])
+        );
         if vc1 == c1 {
             println!("    ✓ c1 matches!");
         } else {
@@ -1052,15 +1161,24 @@ async fn main() -> Result<()> {
         full_c = Scalar::from_bytes_mod_order(c_next_arr);
 
         if idx == signer_index {
-            println!("    idx={} (SIGNER): L={}..., R={}...", idx,
+            println!(
+                "    idx={} (SIGNER): L={}..., R={}...",
+                idx,
                 hex::encode(&l_point.compress().as_bytes()[..8]),
-                hex::encode(&r_point.compress().as_bytes()[..8]));
+                hex::encode(&r_point.compress().as_bytes()[..8])
+            );
         }
     }
 
     // After full loop, full_c should equal c1 for a valid signature
-    println!("    After full ring: c = {}...", hex::encode(&full_c.as_bytes()[..8]));
-    println!("    Expected c1:     {}...", hex::encode(&c1.as_bytes()[..8]));
+    println!(
+        "    After full ring: c = {}...",
+        hex::encode(&full_c.as_bytes()[..8])
+    );
+    println!(
+        "    Expected c1:     {}...",
+        hex::encode(&c1.as_bytes()[..8])
+    );
 
     if full_c == c1 {
         println!("    ✓ FULL SIGNATURE VERIFIED (vendor-only) - This is unexpected!");
@@ -1183,7 +1301,7 @@ async fn main() -> Result<()> {
                 // Process in CLSAG order: 1, 2, 3, ..., n-1, 0
                 let idx = (i + 1) % n;
                 let s = s_values_complete[idx];
-                let c_input = verify_complete_c;  // Save c before update
+                let c_input = verify_complete_c; // Save c before update
 
                 let p_point = ring_keys[idx];
                 let c_point = ring_commitments[idx];
@@ -1209,24 +1327,54 @@ async fn main() -> Result<()> {
                 if idx == signer_index {
                     println!("      idx={} (SIGNER):", idx);
                     println!("        s_π = {}...", hex::encode(&s.as_bytes()[..8]));
-                    println!("        c_π (input) = {}...", hex::encode(&c_input.as_bytes()[..8]));
-                    println!("        L (computed) = {}...", hex::encode(&l_point.compress().as_bytes()[..8]));
-                    println!("        R (computed) = {}...", hex::encode(&r_point.compress().as_bytes()[..8]));
-                    println!("        c_next = {}...", hex::encode(&verify_complete_c.as_bytes()[..8]));
+                    println!(
+                        "        c_π (input) = {}...",
+                        hex::encode(&c_input.as_bytes()[..8])
+                    );
+                    println!(
+                        "        L (computed) = {}...",
+                        hex::encode(&l_point.compress().as_bytes()[..8])
+                    );
+                    println!(
+                        "        R (computed) = {}...",
+                        hex::encode(&r_point.compress().as_bytes()[..8])
+                    );
+                    println!(
+                        "        c_next = {}...",
+                        hex::encode(&verify_complete_c.as_bytes()[..8])
+                    );
 
                     // Check individual components
                     println!("\n        --- Component check ---");
                     let s_g = &*ED25519_BASEPOINT_TABLE * &s;
-                    println!("        s*G = {}...", hex::encode(&s_g.compress().as_bytes()[..8]));
-                    println!("        c*combined_L = {}...", hex::encode(&(c_input * combined).compress().as_bytes()[..8]));
+                    println!(
+                        "        s*G = {}...",
+                        hex::encode(&s_g.compress().as_bytes()[..8])
+                    );
+                    println!(
+                        "        c*combined_L = {}...",
+                        hex::encode(&(c_input * combined).compress().as_bytes()[..8])
+                    );
                     let s_hp = s * hp_pi;
-                    println!("        s*Hp(P) = {}...", hex::encode(&s_hp.compress().as_bytes()[..8]));
-                    println!("        c*combined_R = {}...", hex::encode(&(c_input * combined_r).compress().as_bytes()[..8]));
+                    println!(
+                        "        s*Hp(P) = {}...",
+                        hex::encode(&s_hp.compress().as_bytes()[..8])
+                    );
+                    println!(
+                        "        c*combined_R = {}...",
+                        hex::encode(&(c_input * combined_r).compress().as_bytes()[..8])
+                    );
                 }
             }
 
-            println!("      After full ring: c = {}...", hex::encode(&verify_complete_c.as_bytes()[..8]));
-            println!("      Expected c1:     {}...", hex::encode(&c1.as_bytes()[..8]));
+            println!(
+                "      After full ring: c = {}...",
+                hex::encode(&verify_complete_c.as_bytes()[..8])
+            );
+            println!(
+                "      Expected c1:     {}...",
+                hex::encode(&c1.as_bytes()[..8])
+            );
 
             if verify_complete_c == c1 {
                 println!("      ✅ COMPLETE SIGNATURE VERIFIED LOCALLY!");
@@ -1242,8 +1390,14 @@ async fn main() -> Result<()> {
                 println!("\n      --- Key relationship check ---");
                 let expected_p = &x_total * ED25519_BASEPOINT_TABLE;
                 let actual_p = ring_keys[signer_index];
-                println!("        Expected P (x_total*G): {}...", hex::encode(&expected_p.compress().as_bytes()[..16]));
-                println!("        Actual P[signer_idx]:   {}...", hex::encode(&actual_p.compress().as_bytes()[..16]));
+                println!(
+                    "        Expected P (x_total*G): {}...",
+                    hex::encode(&expected_p.compress().as_bytes()[..16])
+                );
+                println!(
+                    "        Actual P[signer_idx]:   {}...",
+                    hex::encode(&actual_p.compress().as_bytes()[..16])
+                );
                 if expected_p == actual_p {
                     println!("        ✓ Keys match!");
                 } else {
@@ -1255,23 +1409,44 @@ async fn main() -> Result<()> {
 
             // v0.57.0 DIAGNOSTIC: Print values in same format as server for comparison
             println!("\n    === v0.57.0 DIAG: VALUES TO COMPARE WITH SERVER ===");
-            println!("    s0:              {}", hex::encode(s_values_complete[0].as_bytes()));
-            println!("    s_signer (s15):  {}", hex::encode(s_values_complete[15].as_bytes()));
+            println!(
+                "    s0:              {}",
+                hex::encode(s_values_complete[0].as_bytes())
+            );
+            println!(
+                "    s_signer (s15):  {}",
+                hex::encode(s_values_complete[15].as_bytes())
+            );
             println!("    c1_input:        {}", c1_hex);
             println!("    d_inv8:          {}", d_inv8_hex);
             println!("    key_image:       {}", key_image_hex);
             println!("    pseudo_out:      {}", pseudo_out_hex);
             println!("    tx_prefix:       {}", tx_prefix_hash);
-            println!("    ring_key_0:      {}", hex::encode(ring_keys[0].compress().as_bytes()));
-            println!("    ring_key_15:     {}", hex::encode(ring_keys[15].compress().as_bytes()));
-            println!("    ring_commit_0:   {}", hex::encode(ring_commitments[0].compress().as_bytes()));
-            println!("    ring_commit_15:  {}", hex::encode(ring_commitments[15].compress().as_bytes()));
+            println!(
+                "    ring_key_0:      {}",
+                hex::encode(ring_keys[0].compress().as_bytes())
+            );
+            println!(
+                "    ring_key_15:     {}",
+                hex::encode(ring_keys[15].compress().as_bytes())
+            );
+            println!(
+                "    ring_commit_0:   {}",
+                hex::encode(ring_commitments[0].compress().as_bytes())
+            );
+            println!(
+                "    ring_commit_15:  {}",
+                hex::encode(ring_commitments[15].compress().as_bytes())
+            );
             println!("    mu_p FULL:       {}", mu_p_hex);
             println!("    mu_c FULL:       {}", mu_c_hex);
             println!("    === END v0.57.0 DIAG ===\n");
 
             let completed = CompletedClsag {
-                s_values: s_values_complete.iter().map(|s| hex::encode(s.as_bytes())).collect(),
+                s_values: s_values_complete
+                    .iter()
+                    .map(|s| hex::encode(s.as_bytes()))
+                    .collect(),
                 c1: c1_hex.clone(),
                 // CRITICAL: Submit D/8 (d_inv8) NOT D - server expects D/8 in CLSAG signature
                 d: d_inv8_hex.clone(),
@@ -1282,7 +1457,8 @@ async fn main() -> Result<()> {
             let completed_json = serde_json::to_string(&completed)?;
 
             // Submit completed signature
-            let sign_complete_url = format!("{}/api/v2/escrow/{}/sign/complete", SERVER_URL, ESCROW_ID);
+            let sign_complete_url =
+                format!("{}/api/v2/escrow/{}/sign/complete", SERVER_URL, ESCROW_ID);
             let sign_complete_req = SignCompleteRequest {
                 role: "buyer".to_string(),
                 completed_clsag: completed_json,

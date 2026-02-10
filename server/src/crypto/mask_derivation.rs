@@ -272,11 +272,7 @@ pub fn find_our_output_and_derive_mask(
             // Optionally decode the amount
             let decoded_amount = if let Some(amounts) = encrypted_amounts {
                 if let Some(encrypted_hex) = amounts.get(idx) {
-                    decode_encrypted_amount(
-                        &derivation_bytes,
-                        output_idx,
-                        encrypted_hex,
-                    ).ok()
+                    decode_encrypted_amount(&derivation_bytes, output_idx, encrypted_hex).ok()
                 } else {
                     None
                 }
@@ -293,7 +289,7 @@ pub fn find_our_output_and_derive_mask(
     }
 
     Err(MaskDerivationError::HexDecodeError(
-        "No matching output found - none of the outputs belong to our address".to_string()
+        "No matching output found - none of the outputs belong to our address".to_string(),
     ))
 }
 
@@ -309,7 +305,13 @@ fn extract_spend_pub_from_address(address: &str) -> Result<[u8; 32], MaskDerivat
             num = num * 58 + idx as u128;
         }
         let out_len = match block.len() {
-            11 => 8, 7 => 5, 6 => 4, 5 => 3, 4 => 2, 3 => 1, _ => 8,
+            11 => 8,
+            7 => 5,
+            6 => 4,
+            5 => 3,
+            4 => 2,
+            3 => 1,
+            _ => 8,
         };
         let mut result = Vec::with_capacity(out_len);
         for i in (0..out_len).rev() {
@@ -331,9 +333,10 @@ fn extract_spend_pub_from_address(address: &str) -> Result<[u8; 32], MaskDerivat
     }
 
     if decoded.len() < 65 {
-        return Err(MaskDerivationError::HexDecodeError(
-            format!("Address too short: {} bytes, need at least 65", decoded.len())
-        ));
+        return Err(MaskDerivationError::HexDecodeError(format!(
+            "Address too short: {} bytes, need at least 65",
+            decoded.len()
+        )));
     }
 
     // Spend public key is bytes 1-33 (after network byte)
@@ -353,7 +356,7 @@ fn decode_encrypted_amount(
 
     if encrypted.len() < 8 {
         return Err(MaskDerivationError::HexDecodeError(
-            "Encrypted amount too short".to_string()
+            "Encrypted amount too short".to_string(),
         ));
     }
 
@@ -431,7 +434,10 @@ mod tests {
         let mask_0 = derive_commitment_mask(view_key, tx_pub_key, 0).unwrap();
         let mask_1 = derive_commitment_mask(view_key, tx_pub_key, 1).unwrap();
 
-        assert_ne!(mask_0, mask_1, "Different output indices should produce different masks");
+        assert_ne!(
+            mask_0, mask_1,
+            "Different output indices should produce different masks"
+        );
     }
 
     #[test]
@@ -485,13 +491,14 @@ mod tests {
         // Monero H generator point (used for commitment amounts)
         // H = 8 * hash_to_point("H") - pre-computed value from monero source
         const H_BYTES: [u8; 32] = [
-            0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-            0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-            0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-            0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+            0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad,
+            0xd0, 0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d,
+            0xd3, 0x9c, 0x1f, 0x94,
         ];
 
-        let h_point = CompressedEdwardsY(H_BYTES).decompress().expect("H is valid");
+        let h_point = CompressedEdwardsY(H_BYTES)
+            .decompress()
+            .expect("H is valid");
 
         // View key and tx_pub_key from our escrow
         let view_key = "b7f874f9baea745f0e7e6817014e563384d90658045304a978d196346d513f06";
@@ -559,7 +566,10 @@ mod tests {
         fn base58_decode_block(block: &[u8]) -> Vec<u8> {
             let mut num: u128 = 0;
             for &ch in block {
-                let idx = ALPHABET.iter().position(|&c| c == ch).expect("valid base58 char");
+                let idx = ALPHABET
+                    .iter()
+                    .position(|&c| c == ch)
+                    .expect("valid base58 char");
                 num = num * 58 + idx as u128;
             }
 
@@ -649,7 +659,10 @@ mod tests {
         println!("Tx pub key: {}", tx_pub_key);
         println!("Encrypted amount [0]: {}", hex::encode(&encrypted_amount_0));
         println!("Encrypted amount [1]: {}", hex::encode(&encrypted_amount_1));
-        println!("Expected escrow amount: {} atomic (0.002 XMR)", expected_amount);
+        println!(
+            "Expected escrow amount: {} atomic (0.002 XMR)",
+            expected_amount
+        );
         println!();
 
         // Parse view key
@@ -676,11 +689,17 @@ mod tests {
             let shared_secret: [u8; 32] = hasher.finalize().into();
 
             println!("\nOutput index {}:", output_idx);
-            println!("  shared_secret (before reduce): {}", hex::encode(&shared_secret));
+            println!(
+                "  shared_secret (before reduce): {}",
+                hex::encode(&shared_secret)
+            );
 
             // Reduce to scalar (sc_reduce32 equivalent)
             let shared_secret_scalar = Scalar::from_bytes_mod_order(shared_secret);
-            println!("  shared_secret (after reduce): {}", hex::encode(shared_secret_scalar.as_bytes()));
+            println!(
+                "  shared_secret (after reduce): {}",
+                hex::encode(shared_secret_scalar.as_bytes())
+            );
 
             // Compute amount encoding factor: Hs("amount" || shared_secret)
             // In v2, amount_key = derivation_to_scalar output
@@ -692,14 +711,22 @@ mod tests {
             println!("  amount_factor: {}", hex::encode(&amount_factor));
 
             // XOR first 8 bytes with encrypted amount to decode
-            let encrypted = if output_idx == 0 { &encrypted_amount_0 } else { &encrypted_amount_1 };
+            let encrypted = if output_idx == 0 {
+                &encrypted_amount_0
+            } else {
+                &encrypted_amount_1
+            };
             let mut decoded_bytes = [0u8; 8];
             for i in 0..8 {
                 decoded_bytes[i] = encrypted[i] ^ amount_factor[i];
             }
 
             let decoded_amount = u64::from_le_bytes(decoded_bytes);
-            println!("  Decoded amount: {} atomic ({} XMR)", decoded_amount, decoded_amount as f64 / 1e12);
+            println!(
+                "  Decoded amount: {} atomic ({} XMR)",
+                decoded_amount,
+                decoded_amount as f64 / 1e12
+            );
 
             if decoded_amount == expected_amount {
                 println!("  ✅ MATCH! This is the escrow output!");
@@ -718,7 +745,10 @@ mod tests {
 
         // Also compute and print the commitment mask for output_index=1 (the correct one)
         let mask_for_output_1 = derive_commitment_mask(view_key, tx_pub_key, 1).unwrap();
-        println!("\n*** CORRECT MASK for output_index=1: {} ***", mask_for_output_1);
+        println!(
+            "\n*** CORRECT MASK for output_index=1: {} ***",
+            mask_for_output_1
+        );
 
         // Verify output ownership by computing expected one-time public key
         // P = Hs(derivation || i) * G + B (where B is public spend key)
@@ -732,11 +762,20 @@ mod tests {
         fn base58_decode_block2(block: &[u8]) -> Vec<u8> {
             let mut num: u128 = 0;
             for &ch in block {
-                let idx = ALPHABET.iter().position(|&c| c == ch).expect("valid base58 char");
+                let idx = ALPHABET
+                    .iter()
+                    .position(|&c| c == ch)
+                    .expect("valid base58 char");
                 num = num * 58 + idx as u128;
             }
             let out_len = match block.len() {
-                11 => 8, 7 => 5, 6 => 4, 5 => 3, 4 => 2, 3 => 1, _ => 8,
+                11 => 8,
+                7 => 5,
+                6 => 4,
+                5 => 3,
+                4 => 2,
+                3 => 1,
+                _ => 8,
             };
             let mut result = Vec::with_capacity(out_len);
             for i in (0..out_len).rev() {
@@ -761,7 +800,9 @@ mod tests {
 
         let decoded_addr = monero_base58_decode2(address);
         let spend_pub_bytes: [u8; 32] = decoded_addr[1..33].try_into().unwrap();
-        let spend_pub_point = CompressedEdwardsY(spend_pub_bytes).decompress().expect("valid point");
+        let spend_pub_point = CompressedEdwardsY(spend_pub_bytes)
+            .decompress()
+            .expect("valid point");
 
         println!("Public spend key (B): {}", hex::encode(&spend_pub_bytes));
 
@@ -786,8 +827,21 @@ mod tests {
 
             println!("Output index {}:", output_idx);
             println!("  Expected output key: {}", expected_hex);
-            println!("  On-chain output key: {}", if output_idx == 0 { output_key_0 } else { output_key_1 });
-            if expected_hex == (if output_idx == 0 { output_key_0 } else { output_key_1 }) {
+            println!(
+                "  On-chain output key: {}",
+                if output_idx == 0 {
+                    output_key_0
+                } else {
+                    output_key_1
+                }
+            );
+            if expected_hex
+                == (if output_idx == 0 {
+                    output_key_0
+                } else {
+                    output_key_1
+                })
+            {
                 println!("  ✅ MATCH! This output belongs to our address!");
             } else {
                 println!("  ❌ NO MATCH - this output does NOT belong to us");

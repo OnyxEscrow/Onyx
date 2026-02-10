@@ -101,7 +101,11 @@ impl ClsagVerificationResult {
     }
 
     /// Create an early failure result (before mu computation).
-    pub fn early_failure(c_expected: [u8; 32], failure_step: String, debug_info: Vec<String>) -> Self {
+    pub fn early_failure(
+        c_expected: [u8; 32],
+        failure_step: String,
+        debug_info: Vec<String>,
+    ) -> Self {
         Self {
             valid: false,
             c_computed: [0u8; 32],

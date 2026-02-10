@@ -1,10 +1,10 @@
 // Diagnostic tool to verify platform fee output in a transaction
 // Run: cargo run --bin verify_platform_output -- <tx_hash> <escrow_id> <amount_atomic>
 
-use sha3::{Digest, Keccak256};
-use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
+use curve25519_dalek::scalar::Scalar;
+use sha3::{Digest, Keccak256};
 use std::env;
 
 const PLATFORM_ADDRESS: &str = "58WZHPMi4UZbb6jmyphVHiDNkYXNf8wLWhjB4SxHBvG9YNHsyZmntHjj9junfWQJjqixi48rWpoWWGgZBPjrE6HMUKNfmZx";
@@ -31,13 +31,17 @@ fn main() {
     println!("TX Hash: {}", tx_hash);
     println!("Escrow ID: {}", escrow_id);
     println!("Amount: {} atomic", amount);
-    println!("Platform Address: {}...{}", &PLATFORM_ADDRESS[..12], &PLATFORM_ADDRESS[PLATFORM_ADDRESS.len()-8..]);
+    println!(
+        "Platform Address: {}...{}",
+        &PLATFORM_ADDRESS[..12],
+        &PLATFORM_ADDRESS[PLATFORM_ADDRESS.len() - 8..]
+    );
     println!();
 
     // Step 1: Parse platform address
     println!("--- Step 1: Parse Platform Address ---");
-    let decoded = base58_monero::decode_check(PLATFORM_ADDRESS)
-        .expect("Failed to decode platform address");
+    let decoded =
+        base58_monero::decode_check(PLATFORM_ADDRESS).expect("Failed to decode platform address");
 
     if decoded.len() != 65 {
         panic!("Invalid address length: {} (expected 65)", decoded.len());
@@ -108,7 +112,10 @@ fn main() {
     println!("\n--- Step 6: Compute Stealth Address ---");
     let h_s_g = &*ED25519_BASEPOINT_TABLE * &h_s;
     let stealth_address = (h_s_g + spend_pub_point).compress().to_bytes();
-    println!("EXPECTED stealth_address: {}", hex::encode(&stealth_address));
+    println!(
+        "EXPECTED stealth_address: {}",
+        hex::encode(&stealth_address)
+    );
 
     // Step 7: Compute view_tag
     println!("\n--- Step 7: Compute View Tag ---");
@@ -122,12 +129,21 @@ fn main() {
 
     println!("\n=== SUMMARY ===");
     println!("To verify, check the blockchain TX and compare:");
-    println!("  1. TX extra field should contain tx_pubkey: {}", hex::encode(&tx_pubkey));
-    println!("  2. Output[1] target key should be: {}", hex::encode(&stealth_address));
+    println!(
+        "  1. TX extra field should contain tx_pubkey: {}",
+        hex::encode(&tx_pubkey)
+    );
+    println!(
+        "  2. Output[1] target key should be: {}",
+        hex::encode(&stealth_address)
+    );
     println!("  3. Output[1] view_tag should be: 0x{:02x}", view_tag);
 
     println!("\n=== CURL COMMAND TO FETCH TX ===");
-    println!(r#"curl -s -X POST http://stagenet.xmr-tw.org:38081/get_transactions -d '{{"txs_hashes":["{}"],"decode_as_json":true}}' -H "Content-Type: application/json" | jq '.txs[0].as_json' -r | jq ."#, tx_hash);
+    println!(
+        r#"curl -s -X POST http://stagenet.xmr-tw.org:38081/get_transactions -d '{{"txs_hashes":["{}"],"decode_as_json":true}}' -H "Content-Type: application/json" | jq '.txs[0].as_json' -r | jq ."#,
+        tx_hash
+    );
 
     println!("\n=== MANUAL VERIFICATION ===");
     println!("In the TX JSON, look for:");

@@ -63,43 +63,45 @@ pub async fn get_usage_analytics(
         .get()
         .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
 
-    let escrow_stats = web::block(move || -> Result<(i64, i64, i64, i64, i64), anyhow::Error> {
-        let mut query = escrows::table
-            .filter(
-                escrows::buyer_id
-                    .eq(&user_id_clone)
-                    .or(escrows::vendor_id.eq(&user_id_clone)),
-            )
-            .into_boxed();
-
-        if let Some(cutoff_ts) = cutoff {
-            let cutoff_str = cutoff_ts.naive_utc();
-            query = query.filter(escrows::created_at.ge(cutoff_str));
-        }
-
-        let all: Vec<(String, i64)> = query
-            .select((escrows::status, escrows::amount))
-            .load::<(String, i64)>(&mut conn)?;
-
-        let total = all.len() as i64;
-        let active = all
-            .iter()
-            .filter(|(s, _)| {
-                matches!(
-                    s.as_str(),
-                    "created" | "funded" | "in_progress" | "shipped" | "signing"
+    let escrow_stats = web::block(
+        move || -> Result<(i64, i64, i64, i64, i64), anyhow::Error> {
+            let mut query = escrows::table
+                .filter(
+                    escrows::buyer_id
+                        .eq(&user_id_clone)
+                        .or(escrows::vendor_id.eq(&user_id_clone)),
                 )
-            })
-            .count() as i64;
-        let completed = all
-            .iter()
-            .filter(|(s, _)| s == "released" || s == "completed")
-            .count() as i64;
-        let disputed = all.iter().filter(|(s, _)| s == "disputed").count() as i64;
-        let volume: i64 = all.iter().map(|(_, a)| a).sum();
+                .into_boxed();
 
-        Ok((total, active, completed, disputed, volume))
-    })
+            if let Some(cutoff_ts) = cutoff {
+                let cutoff_str = cutoff_ts.naive_utc();
+                query = query.filter(escrows::created_at.ge(cutoff_str));
+            }
+
+            let all: Vec<(String, i64)> = query
+                .select((escrows::status, escrows::amount))
+                .load::<(String, i64)>(&mut conn)?;
+
+            let total = all.len() as i64;
+            let active = all
+                .iter()
+                .filter(|(s, _)| {
+                    matches!(
+                        s.as_str(),
+                        "created" | "funded" | "in_progress" | "shipped" | "signing"
+                    )
+                })
+                .count() as i64;
+            let completed = all
+                .iter()
+                .filter(|(s, _)| s == "released" || s == "completed")
+                .count() as i64;
+            let disputed = all.iter().filter(|(s, _)| s == "disputed").count() as i64;
+            let volume: i64 = all.iter().map(|(_, a)| a).sum();
+
+            Ok((total, active, completed, disputed, volume))
+        },
+    )
     .await
     .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?
     .map_err(|e| ApiError::Internal(format!("Escrow stats error: {}", e)))?;

@@ -3,10 +3,10 @@
 //! Detects unencrypted databases and encrypts them in-place using SQLCipher.
 //! This tool is idempotent - running it multiple times is safe.
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
+use std::env;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::env;
 
 const DB_PATH: &str = "marketplace.db";
 
@@ -65,7 +65,10 @@ fn check_encryption_status(db_path: &Path, key: &str) -> Result<EncryptionStatus
     // Try to open with encryption key
     let encrypted_test = Command::new("sqlcipher")
         .arg(db_path)
-        .arg(format!("PRAGMA key = '{}'; SELECT COUNT(*) FROM sqlite_master;", key))
+        .arg(format!(
+            "PRAGMA key = '{}'; SELECT COUNT(*) FROM sqlite_master;",
+            key
+        ))
         .output()
         .context("Failed to run sqlcipher (is it installed?)")?;
 
@@ -103,13 +106,12 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
 
     // First, rename current DB to temp location
     let temp_unencrypted = db_path.with_extension("unencrypted.tmp");
-    std::fs::rename(db_path, &temp_unencrypted)
-        .context("Failed to move unencrypted database")?;
+    std::fs::rename(db_path, &temp_unencrypted).context("Failed to move unencrypted database")?;
 
     // Run init_db to create encrypted database
-    let output = Command::new("./target/release/init_db")
-        .output()
-        .context("Failed to run init_db. Make sure it's built with: cargo build --release --bin init_db")?;
+    let output = Command::new("./target/release/init_db").output().context(
+        "Failed to run init_db. Make sure it's built with: cargo build --release --bin init_db",
+    )?;
 
     if !output.status.success() {
         // Restore original if failed
@@ -175,8 +177,7 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
 
     println!("3️⃣ Backing up original database...");
     let backup_path = db_path.with_extension(format!("backup.{}", chrono::Utc::now().timestamp()));
-    std::fs::copy(db_path, &backup_path)
-        .context("Failed to backup original database")?;
+    std::fs::copy(db_path, &backup_path).context("Failed to backup original database")?;
     println!("   Backup saved to: {}", backup_path.display());
 
     println!("4️⃣ Replacing database with encrypted version...");
@@ -194,10 +195,7 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
 
 fn verify_encrypted_database(db_path: &Path, key: &str) -> Result<()> {
     // Run integrity check
-    let integrity_sql = format!(
-        "PRAGMA key = '{}'; PRAGMA integrity_check;",
-        key
-    );
+    let integrity_sql = format!("PRAGMA key = '{}'; PRAGMA integrity_check;", key);
 
     let output = Command::new("sqlcipher")
         .arg(db_path)

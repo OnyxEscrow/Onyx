@@ -30,7 +30,7 @@ pub mod masks;
 pub mod utils;
 
 // Re-export main functions
+pub use amounts::decode_encrypted_amount;
 pub use derivation::derive_commitment_mask;
 pub use masks::{find_our_output_and_derive_mask, OutputOwnershipResult};
 pub use utils::{encode_varint, extract_tx_pub_key_from_extra};
-pub use amounts::decode_encrypted_amount;

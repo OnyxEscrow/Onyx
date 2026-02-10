@@ -9,8 +9,8 @@
 //! Reference: Monero v0.18+ transaction format
 
 use crate::mock_infrastructure::{
-    DeterministicRng,
     test_fixtures::{TransactionFixture, TxInvalidType},
+    DeterministicRng,
 };
 
 // ============================================================================
@@ -84,7 +84,11 @@ fn test_varint_two_bytes() {
         assert_eq!(encoded.len(), 2, "Value {} should encode to 2 bytes", value);
 
         let (decoded, consumed) = decode_varint(&encoded).unwrap();
-        assert_eq!(decoded, value, "Decoded should match original for {}", value);
+        assert_eq!(
+            decoded, value,
+            "Decoded should match original for {}",
+            value
+        );
         assert_eq!(consumed, 2, "Should consume 2 bytes");
     }
 }
@@ -121,14 +125,18 @@ fn test_varint_encoding_format() {
     // Next 7 bits: 0x02
     // Encoded: [0xAC, 0x02] (0x2C | 0x80, then 0x02)
     let encoded = encode_varint(300);
-    assert_eq!(encoded, vec![0xAC, 0x02], "300 should encode to [0xAC, 0x02]");
+    assert_eq!(
+        encoded,
+        vec![0xAC, 0x02],
+        "300 should encode to [0xAC, 0x02]"
+    );
 }
 
 // ============================================================================
 // OUTPUT TYPE TESTS
 // ============================================================================
 
-const OUTPUT_TYPE_TXOUT_TO_KEY: u8 = 0x02;         // Old format (no view tag)
+const OUTPUT_TYPE_TXOUT_TO_KEY: u8 = 0x02; // Old format (no view tag)
 const OUTPUT_TYPE_TXOUT_TO_TAGGED_KEY: u8 = 0x03; // New format (with view tag)
 
 #[test]
@@ -145,8 +153,7 @@ fn test_output_type_validation() {
 
     for output_type in &fixture.output_types {
         assert_eq!(
-            *output_type,
-            OUTPUT_TYPE_TXOUT_TO_TAGGED_KEY,
+            *output_type, OUTPUT_TYPE_TXOUT_TO_TAGGED_KEY,
             "Valid tx should use output type 0x03"
         );
     }
@@ -159,13 +166,15 @@ fn test_wrong_output_type_detection() {
 
     for output_type in &fixture.output_types {
         assert_eq!(
-            *output_type,
-            OUTPUT_TYPE_TXOUT_TO_KEY,
+            *output_type, OUTPUT_TYPE_TXOUT_TO_KEY,
             "Invalid tx should have old output type 0x02"
         );
     }
 
-    assert!(!fixture.should_be_valid, "Wrong output type should be invalid");
+    assert!(
+        !fixture.should_be_valid,
+        "Wrong output type should be invalid"
+    );
 }
 
 // ============================================================================
@@ -281,7 +290,10 @@ fn test_extra_field_pubkey_format() {
     extra.extend(&pubkey_bytes);
 
     assert_eq!(extra.len(), 33, "TX pubkey extra should be 33 bytes");
-    assert_eq!(extra[0], TX_EXTRA_TAG_PUBKEY, "First byte should be pubkey tag");
+    assert_eq!(
+        extra[0], TX_EXTRA_TAG_PUBKEY,
+        "First byte should be pubkey tag"
+    );
 }
 
 #[test]
@@ -332,8 +344,7 @@ fn test_rct_type_bulletproof_plus() {
     let fixture = TransactionFixture::generate_valid(&mut rng);
 
     assert_eq!(
-        fixture.rct_type,
-        RCT_TYPE_BULLETPROOF_PLUS,
+        fixture.rct_type, RCT_TYPE_BULLETPROOF_PLUS,
         "Current network requires RCT type 6 (BulletproofPlus)"
     );
 }
@@ -343,7 +354,10 @@ fn test_old_rct_type_warning() {
     let mut rng = DeterministicRng::with_name("rct_old");
     let fixture = TransactionFixture::generate_invalid(&mut rng, TxInvalidType::OldRctType);
 
-    assert_eq!(fixture.rct_type, RCT_TYPE_CLSAG, "Invalid fixture should have old type");
+    assert_eq!(
+        fixture.rct_type, RCT_TYPE_CLSAG,
+        "Invalid fixture should have old type"
+    );
     // Note: Old RCT types may still be valid on chain, but we warn about them
 }
 
@@ -356,8 +370,7 @@ fn validate_tx_structure(prefix: &[u8]) -> Result<TransactionParsed, String> {
     let mut offset = 0;
 
     // Version
-    let (version, consumed) = decode_varint(&prefix[offset..])
-        .ok_or("Failed to parse version")?;
+    let (version, consumed) = decode_varint(&prefix[offset..]).ok_or("Failed to parse version")?;
     offset += consumed;
 
     if version != 2 {
@@ -365,8 +378,8 @@ fn validate_tx_structure(prefix: &[u8]) -> Result<TransactionParsed, String> {
     }
 
     // Unlock time
-    let (unlock_time, consumed) = decode_varint(&prefix[offset..])
-        .ok_or("Failed to parse unlock_time")?;
+    let (unlock_time, consumed) =
+        decode_varint(&prefix[offset..]).ok_or("Failed to parse unlock_time")?;
     offset += consumed;
 
     if unlock_time != 0 {
@@ -374,8 +387,8 @@ fn validate_tx_structure(prefix: &[u8]) -> Result<TransactionParsed, String> {
     }
 
     // Number of inputs
-    let (num_inputs, consumed) = decode_varint(&prefix[offset..])
-        .ok_or("Failed to parse num_inputs")?;
+    let (num_inputs, consumed) =
+        decode_varint(&prefix[offset..]).ok_or("Failed to parse num_inputs")?;
     offset += consumed;
 
     if num_inputs == 0 {

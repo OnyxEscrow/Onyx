@@ -82,7 +82,10 @@ impl SigningPair {
     /// Panics if first_signer == second_signer
     #[must_use]
     pub fn new(first_signer: EscrowRole, second_signer: EscrowRole) -> Self {
-        assert_ne!(first_signer, second_signer, "Signing pair must have different roles");
+        assert_ne!(
+            first_signer, second_signer,
+            "Signing pair must have different roles"
+        );
         Self {
             first_signer,
             second_signer,
@@ -244,9 +247,18 @@ mod tests {
 
     #[test]
     fn test_escrow_role_from_frost_id() {
-        assert_eq!(EscrowRole::from_frost_identifier(1), Some(EscrowRole::Buyer));
-        assert_eq!(EscrowRole::from_frost_identifier(2), Some(EscrowRole::Vendor));
-        assert_eq!(EscrowRole::from_frost_identifier(3), Some(EscrowRole::Arbiter));
+        assert_eq!(
+            EscrowRole::from_frost_identifier(1),
+            Some(EscrowRole::Buyer)
+        );
+        assert_eq!(
+            EscrowRole::from_frost_identifier(2),
+            Some(EscrowRole::Vendor)
+        );
+        assert_eq!(
+            EscrowRole::from_frost_identifier(3),
+            Some(EscrowRole::Arbiter)
+        );
         assert_eq!(EscrowRole::from_frost_identifier(0), None);
         assert_eq!(EscrowRole::from_frost_identifier(4), None);
     }

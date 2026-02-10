@@ -9,8 +9,8 @@
 //! CRITICAL: This module prevents loss of funds by rejecting invalid addresses
 //! before any transaction is created.
 
-use base58_monero::decode_check;
 use base58_monero::base58::Error as Base58Error;
+use base58_monero::decode_check;
 use thiserror::Error;
 
 /// Monero network types
@@ -25,7 +25,7 @@ impl MoneroNetwork {
     /// Get expected first character(s) for standard addresses
     pub fn address_prefix(&self) -> &'static [char] {
         match self {
-            MoneroNetwork::Mainnet => &['4', '8'],  // 4 = standard, 8 = subaddress
+            MoneroNetwork::Mainnet => &['4', '8'], // 4 = standard, 8 = subaddress
             MoneroNetwork::Stagenet => &['5', '7'], // 5 = standard, 7 = subaddress
             MoneroNetwork::Testnet => &['9', 'A', 'B'], // 9 = standard, A/B = subaddress
         }
@@ -34,27 +34,27 @@ impl MoneroNetwork {
     /// Network byte for standard addresses
     pub fn standard_network_byte(&self) -> u8 {
         match self {
-            MoneroNetwork::Mainnet => 18,   // 0x12
-            MoneroNetwork::Stagenet => 24,  // 0x18
-            MoneroNetwork::Testnet => 53,   // 0x35
+            MoneroNetwork::Mainnet => 18,  // 0x12
+            MoneroNetwork::Stagenet => 24, // 0x18
+            MoneroNetwork::Testnet => 53,  // 0x35
         }
     }
 
     /// Network byte for subaddresses
     pub fn subaddress_network_byte(&self) -> u8 {
         match self {
-            MoneroNetwork::Mainnet => 42,   // 0x2A
-            MoneroNetwork::Stagenet => 36,  // 0x24
-            MoneroNetwork::Testnet => 63,   // 0x3F
+            MoneroNetwork::Mainnet => 42,  // 0x2A
+            MoneroNetwork::Stagenet => 36, // 0x24
+            MoneroNetwork::Testnet => 63,  // 0x3F
         }
     }
 
     /// Network byte for integrated addresses
     pub fn integrated_network_byte(&self) -> u8 {
         match self {
-            MoneroNetwork::Mainnet => 19,   // 0x13
-            MoneroNetwork::Stagenet => 25,  // 0x19
-            MoneroNetwork::Testnet => 54,   // 0x36
+            MoneroNetwork::Mainnet => 19,  // 0x13
+            MoneroNetwork::Stagenet => 25, // 0x19
+            MoneroNetwork::Testnet => 54,  // 0x36
         }
     }
 
@@ -118,7 +118,9 @@ pub enum AddressValidationError {
         expected_network: MoneroNetwork,
     },
 
-    #[error("Invalid decoded length: {actual} bytes (expected 65 for standard or 73 for integrated)")]
+    #[error(
+        "Invalid decoded length: {actual} bytes (expected 65 for standard or 73 for integrated)"
+    )]
     InvalidDecodedLength { actual: usize },
 
     #[error("Empty address")]
@@ -189,7 +191,9 @@ pub fn validate_address(address: &str) -> Result<MoneroNetwork, AddressValidatio
     // Verify decoded length (65 = standard, 73 = integrated after checksum removal)
     // Note: decode_check returns data WITHOUT the checksum
     if decoded.len() != 65 && decoded.len() != 73 {
-        return Err(AddressValidationError::InvalidDecodedLength { actual: decoded.len() });
+        return Err(AddressValidationError::InvalidDecodedLength {
+            actual: decoded.len(),
+        });
     }
 
     // Extract and validate network byte (first byte)
@@ -269,7 +273,9 @@ pub fn extract_public_keys(address: &str) -> Result<([u8; 32], [u8; 32]), Addres
     let decoded = decode_check(address)?;
 
     if decoded.len() < 65 {
-        return Err(AddressValidationError::InvalidDecodedLength { actual: decoded.len() });
+        return Err(AddressValidationError::InvalidDecodedLength {
+            actual: decoded.len(),
+        });
     }
 
     let mut spend_key = [0u8; 32];
@@ -376,7 +382,10 @@ mod tests {
     fn test_invalid_length() {
         let short = "4AdUndXHHZ6cfufTM";
         let result = validate_address(short);
-        assert!(matches!(result, Err(AddressValidationError::InvalidLength { .. })));
+        assert!(matches!(
+            result,
+            Err(AddressValidationError::InvalidLength { .. })
+        ));
     }
 
     #[test]
@@ -400,7 +409,11 @@ mod tests {
 
         let result = validate_address(&tampered);
         // Should fail with checksum error or invalid base58
-        assert!(result.is_err(), "Tampered address should fail validation: got {:?}", result);
+        assert!(
+            result.is_err(),
+            "Tampered address should fail validation: got {:?}",
+            result
+        );
     }
 
     #[test]
@@ -414,10 +427,22 @@ mod tests {
 
     #[test]
     fn test_network_from_string() {
-        assert_eq!(MoneroNetwork::from_str("mainnet"), Some(MoneroNetwork::Mainnet));
-        assert_eq!(MoneroNetwork::from_str("MAINNET"), Some(MoneroNetwork::Mainnet));
-        assert_eq!(MoneroNetwork::from_str("stagenet"), Some(MoneroNetwork::Stagenet));
-        assert_eq!(MoneroNetwork::from_str("testnet"), Some(MoneroNetwork::Testnet));
+        assert_eq!(
+            MoneroNetwork::from_str("mainnet"),
+            Some(MoneroNetwork::Mainnet)
+        );
+        assert_eq!(
+            MoneroNetwork::from_str("MAINNET"),
+            Some(MoneroNetwork::Mainnet)
+        );
+        assert_eq!(
+            MoneroNetwork::from_str("stagenet"),
+            Some(MoneroNetwork::Stagenet)
+        );
+        assert_eq!(
+            MoneroNetwork::from_str("testnet"),
+            Some(MoneroNetwork::Testnet)
+        );
         assert_eq!(MoneroNetwork::from_str("invalid"), None);
     }
 

@@ -1,3 +1,4 @@
+use actix_web::{get, web, HttpResponse};
 /// Prometheus Metrics Exporter
 ///
 /// Exposes critical operational metrics for monitoring:
@@ -5,10 +6,8 @@
 /// - RPC call success/failure rates
 /// - Dispute resolution metrics
 /// - Database connection pool health
-
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use actix_web::{get, HttpResponse, web};
 
 /// Global metrics collector
 #[derive(Clone)]
@@ -207,8 +206,8 @@ mod tests {
     fn test_dispute_outcome_tracking() {
         let metrics = Metrics::new();
 
-        metrics.record_dispute_resolved(true);  // Buyer won
-        metrics.record_dispute_resolved(true);  // Buyer won
+        metrics.record_dispute_resolved(true); // Buyer won
+        metrics.record_dispute_resolved(true); // Buyer won
         metrics.record_dispute_resolved(false); // Vendor won
 
         assert_eq!(metrics.disputes_buyer_won.load(Ordering::Relaxed), 2);

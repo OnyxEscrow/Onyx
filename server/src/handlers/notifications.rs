@@ -60,10 +60,7 @@ fn get_user_id_from_session(session: &Session) -> Result<String, HttpResponse> {
 ///
 /// Requires authentication.
 #[get("/notifications")]
-pub async fn get_notifications(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn get_notifications(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     // Get authenticated user
     let user_id = match get_user_id_from_session(&session) {
         Ok(id) => id,
@@ -121,10 +118,7 @@ pub async fn get_notifications(
 ///
 /// Requires authentication.
 #[get("/notifications/unread-count")]
-pub async fn get_unread_count(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn get_unread_count(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     // Get authenticated user
     let user_id = match get_user_id_from_session(&session) {
         Ok(id) => id,
@@ -203,12 +197,10 @@ pub async fn mark_notification_read(
 
     // Mark as read (user_id ensures ownership)
     match Notification::mark_as_read(&notification_id, &user_id, &mut conn) {
-        Ok(_) => {
-            HttpResponse::Ok().json(serde_json::json!({
-                "success": true,
-                "message": "Notification marked as read"
-            }))
-        }
+        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+            "success": true,
+            "message": "Notification marked as read"
+        })),
         Err(e) => {
             tracing::error!("Failed to mark notification as read: {:?}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
@@ -261,12 +253,10 @@ pub async fn mark_all_notifications_read(
 
     // Mark all as read
     match Notification::mark_all_as_read(&user_id, &mut conn) {
-        Ok(count) => {
-            HttpResponse::Ok().json(serde_json::json!({
-                "success": true,
-                "marked_count": count
-            }))
-        }
+        Ok(count) => HttpResponse::Ok().json(serde_json::json!({
+            "success": true,
+            "marked_count": count
+        })),
         Err(e) => {
             tracing::error!("Failed to mark all notifications as read: {:?}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({

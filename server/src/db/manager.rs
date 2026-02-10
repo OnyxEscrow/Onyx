@@ -15,13 +15,11 @@ impl DatabaseConfig {
     /// Load configuration from environment or use defaults
     pub fn from_env() -> Result<Self> {
         let database_path = PathBuf::from(
-            std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "marketplace.db".to_string()),
+            std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string()),
         );
 
         let backup_dir = PathBuf::from(
-            std::env::var("DATABASE_BACKUP_DIR")
-                .unwrap_or_else(|_| "./backups".to_string()),
+            std::env::var("DATABASE_BACKUP_DIR").unwrap_or_else(|_| "./backups".to_string()),
         );
 
         let backup_retention_days = std::env::var("DATABASE_BACKUP_RETENTION_DAYS")
@@ -47,8 +45,7 @@ impl DatabaseManager {
     /// Create a new DatabaseManager
     pub fn new(config: DatabaseConfig) -> Result<Self> {
         // Create backup directory if it doesn't exist
-        fs::create_dir_all(&config.backup_dir)
-            .context("Failed to create backup directory")?;
+        fs::create_dir_all(&config.backup_dir).context("Failed to create backup directory")?;
 
         info!(
             "DatabaseManager initialized: backups at {:?}",
@@ -109,10 +106,10 @@ impl DatabaseManager {
         }
 
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
-        let backup_path = self.config.backup_dir.join(format!(
-            "nexus_{}_{}.db",
-            backup_reason, timestamp
-        ));
+        let backup_path = self
+            .config
+            .backup_dir
+            .join(format!("nexus_{}_{}.db", backup_reason, timestamp));
 
         info!(
             "Creating backup: {:?} (reason: {})",
@@ -158,43 +155,33 @@ impl DatabaseManager {
         self.verify_integrity(backup_path)
             .context("Backup file is corrupted")?;
 
-        warn!(
-            "Restoring database from backup: {:?}",
-            backup_path
-        );
+        warn!("Restoring database from backup: {:?}", backup_path);
 
         // Backup the corrupted file for analysis
         let corrupted_path = self.config.database_path.with_extension("corrupted");
         if self.config.database_path.exists() {
             fs::rename(&self.config.database_path, &corrupted_path)
                 .context("Failed to backup corrupted database")?;
-            warn!(
-                "Corrupted database backed up to: {:?}",
-                corrupted_path
-            );
+            warn!("Corrupted database backed up to: {:?}", corrupted_path);
         }
 
         // Restore from backup
         fs::copy(backup_path, &self.config.database_path)
             .context("Failed to restore database from backup")?;
 
-        info!(
-            "Database restored successfully from: {:?}",
-            backup_path
-        );
+        info!("Database restored successfully from: {:?}", backup_path);
 
         Ok(())
     }
 
     /// Clean up old backups based on retention policy
     pub fn cleanup_old_backups(&self) -> Result<()> {
-        let entries = fs::read_dir(&self.config.backup_dir)
-            .context("Failed to read backup directory")?;
+        let entries =
+            fs::read_dir(&self.config.backup_dir).context("Failed to read backup directory")?;
 
         let now = std::time::SystemTime::now();
-        let retention_duration = std::time::Duration::from_secs(
-            self.config.backup_retention_days as u64 * 86400,
-        );
+        let retention_duration =
+            std::time::Duration::from_secs(self.config.backup_retention_days as u64 * 86400);
 
         let mut cleaned_count = 0;
         let mut total_freed = 0u64;
@@ -209,7 +196,8 @@ impl DatabaseManager {
             }
 
             // Skip non-backup files
-            if !path.file_name()
+            if !path
+                .file_name()
                 .and_then(|s| s.to_str())
                 .map(|s| s.contains("nexus_"))
                 .unwrap_or(false)
@@ -251,8 +239,8 @@ impl DatabaseManager {
         let mut oldest_backup: Option<PathBuf> = None;
         let mut oldest_time: Option<std::time::SystemTime> = None;
 
-        let entries = fs::read_dir(&self.config.backup_dir)
-            .context("Failed to read backup directory")?;
+        let entries =
+            fs::read_dir(&self.config.backup_dir).context("Failed to read backup directory")?;
 
         for entry in entries {
             if let Ok(entry) = entry {
@@ -361,7 +349,11 @@ mod tests {
         };
 
         // Create a fake backup
-        fs::write(backup_dir.join("nexus_test_20250101_000000.db"), "fake data").unwrap();
+        fs::write(
+            backup_dir.join("nexus_test_20250101_000000.db"),
+            "fake data",
+        )
+        .unwrap();
 
         let manager = DatabaseManager::new(config).unwrap();
         manager.cleanup_old_backups().unwrap();

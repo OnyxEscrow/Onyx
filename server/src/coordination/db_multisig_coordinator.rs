@@ -13,7 +13,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::coordination::multisig_coordinator::{
-    MultisigCoordinator, MultisigCoordinationError, MultisigSession, MultisigStage,
+    MultisigCoordinationError, MultisigCoordinator, MultisigSession, MultisigStage,
     ParticipantState, ParticipantType,
 };
 use crate::db::DbPool;
@@ -102,7 +102,9 @@ impl DbMultisigCoordinator {
     }
 
     /// Convert ParticipantType to database fields
-    fn participant_type_to_db(ptype: &ParticipantType) -> (&'static str, Option<String>, Option<String>) {
+    fn participant_type_to_db(
+        ptype: &ParticipantType,
+    ) -> (&'static str, Option<String>, Option<String>) {
         match ptype {
             ParticipantType::LocalManaged { wallet_id } => {
                 ("local_managed", Some(wallet_id.to_string()), None)
@@ -132,10 +134,7 @@ impl DbMultisigCoordinator {
     }
 
     /// Load full MultisigSession from database
-    fn load_session(
-        &self,
-        escrow_id: Uuid,
-    ) -> Result<MultisigSession, MultisigCoordinationError> {
+    fn load_session(&self, escrow_id: Uuid) -> Result<MultisigSession, MultisigCoordinationError> {
         let mut conn = self.pool.get().map_err(|e| {
             MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
         })?;
@@ -143,8 +142,8 @@ impl DbMultisigCoordinator {
         let db_session = DbMultisigSession::find_by_escrow(&mut conn, &escrow_id.to_string())
             .map_err(|_| MultisigCoordinationError::SessionNotFound(escrow_id))?;
 
-        let db_participants =
-            DbMultisigParticipant::find_by_session(&mut conn, &db_session.id).map_err(|e| {
+        let db_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
+            .map_err(|e| {
                 MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
             })?;
 
@@ -342,8 +341,8 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         }
 
         // Check if we can advance stage
-        let all_participants =
-            DbMultisigParticipant::find_by_session(&mut conn, &db_session.id).map_err(|e| {
+        let all_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
+            .map_err(|e| {
                 MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
             })?;
 
@@ -352,10 +351,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         match current_stage {
             MultisigStage::Initialization => {
                 // Check if all submitted Round 1
-                if all_participants
-                    .iter()
-                    .all(|p| p.has_submitted_round1)
-                {
+                if all_participants.iter().all(|p| p.has_submitted_round1) {
                     DbMultisigSession::update_stage(
                         &mut conn,
                         &db_session.id,
@@ -373,10 +369,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
             }
             MultisigStage::KeyExchange => {
                 // Check if all submitted Round 2
-                if all_participants
-                    .iter()
-                    .all(|p| p.has_submitted_round2)
-                {
+                if all_participants.iter().all(|p| p.has_submitted_round2) {
                     DbMultisigSession::update_stage(
                         &mut conn,
                         &db_session.id,
@@ -423,8 +416,8 @@ impl MultisigCoordinator for DbMultisigCoordinator {
             })?;
 
         // Load all participants
-        let all_participants =
-            DbMultisigParticipant::find_by_session(&mut conn, &db_session.id).map_err(|e| {
+        let all_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
+            .map_err(|e| {
                 MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
             })?;
 

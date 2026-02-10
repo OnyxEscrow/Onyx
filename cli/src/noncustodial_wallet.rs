@@ -136,11 +136,11 @@ impl NonCustodialClient {
             rpc_url: local_rpc_url.clone(),
             rpc_user: None,
             rpc_password: None,
-            timeout_seconds: 120,  // Increased from 30 to handle slow wallet operations
+            timeout_seconds: 120, // Increased from 30 to handle slow wallet operations
         };
 
-        let local_wallet = MoneroClient::new(config)
-            .context("Failed to create local wallet client")?;
+        let local_wallet =
+            MoneroClient::new(config).context("Failed to create local wallet client")?;
 
         let http_client = HttpClient::builder()
             .timeout(Duration::from_secs(60))
@@ -168,7 +168,10 @@ impl NonCustodialClient {
     ///
     /// **Returns:** Multisig address
     pub async fn init_escrow(&self, escrow_id: &str, wallet_name: &str) -> Result<String> {
-        info!("🔐 Starting non-custodial escrow initialization for {}", self.role.as_str());
+        info!(
+            "🔐 Starting non-custodial escrow initialization for {}",
+            self.role.as_str()
+        );
         info!("Escrow ID: {}", escrow_id);
         info!("Local wallet: {}", wallet_name);
 
@@ -177,14 +180,18 @@ impl NonCustodialClient {
 
         // Step 2: Prepare multisig locally
         info!("📝 Preparing multisig locally...");
-        let prepare_result = self.local_wallet
+        let prepare_result = self
+            .local_wallet
             .multisig()
             .prepare_multisig()
             .await
             .context("Failed to prepare multisig")?;
 
         info!("✅ Local multisig prepared");
-        info!("Multisig info length: {} chars", prepare_result.multisig_info.len());
+        info!(
+            "Multisig info length: {} chars",
+            prepare_result.multisig_info.len()
+        );
 
         // Step 3: Register with server coordinator
         info!("📡 Registering with server coordinator...");
@@ -199,7 +206,10 @@ impl NonCustodialClient {
             info!("🔄 Buyer: Coordinating multisig info exchange...");
             self.coordinate_exchange(escrow_id).await?
         } else {
-            info!("⏳ {}: Waiting for buyer to coordinate multisig exchange...", self.role);
+            info!(
+                "⏳ {}: Waiting for buyer to coordinate multisig exchange...",
+                self.role
+            );
             self.wait_for_multisig_result(escrow_id).await?
         };
 
@@ -207,7 +217,8 @@ impl NonCustodialClient {
 
         // Step 6: Finalize multisig locally
         info!("🔧 Finalizing multisig locally (make_multisig with threshold=2)...");
-        let make_result = self.local_wallet
+        let make_result = self
+            .local_wallet
             .multisig()
             .make_multisig(2, infos_to_use)
             .await
@@ -215,32 +226,44 @@ impl NonCustodialClient {
 
         info!("✅ Multisig wallet created (Round 1 complete)");
         info!("Multisig address: {}", make_result.address);
-        info!("Multisig info length: {} chars", make_result.multisig_info.len());
+        info!(
+            "Multisig info length: {} chars",
+            make_result.multisig_info.len()
+        );
 
         // Step 7: Exchange multisig keys ROUND 1 (2-of-3 requires TWO rounds!)
         info!("🔑 Exchange multisig keys - ROUND 1...");
-        let others_keys_r1 = self.coordinate_key_exchange(escrow_id, &make_result.multisig_info).await?;
+        let others_keys_r1 = self
+            .coordinate_key_exchange(escrow_id, &make_result.multisig_info)
+            .await?;
 
         info!("📥 Received {} keys for round 1", others_keys_r1.len());
 
-        let exchange_result_r1 = self.local_wallet
+        let exchange_result_r1 = self
+            .local_wallet
             .multisig()
             .exchange_multisig_keys(others_keys_r1)
             .await
             .context("Failed to exchange_multisig_keys (Round 1)")?;
 
-        info!("✅ Round 1 complete! Multisig info: {} chars", exchange_result_r1.multisig_info.len());
+        info!(
+            "✅ Round 1 complete! Multisig info: {} chars",
+            exchange_result_r1.multisig_info.len()
+        );
 
         // Step 8: Exchange multisig keys ROUND 2 (CRITICAL - makes wallet READY)
         info!("🔑 Exchange multisig keys - ROUND 2 (finalizing)...");
 
         // Use coordinate_sync_round with round=1 for the second exchange_multisig_keys
-        let round2_infos = self.coordinate_sync_round(escrow_id, 1, &exchange_result_r1.multisig_info).await
+        let round2_infos = self
+            .coordinate_sync_round(escrow_id, 1, &exchange_result_r1.multisig_info)
+            .await
             .context("Failed to coordinate round 2 exchange")?;
 
         info!("📥 Received {} keys for round 2", round2_infos.len());
 
-        let exchange_result_r2 = self.local_wallet
+        let exchange_result_r2 = self
+            .local_wallet
             .multisig()
             .exchange_multisig_keys(round2_infos)
             .await
@@ -250,7 +273,8 @@ impl NonCustodialClient {
         info!("Final multisig address: {}", exchange_result_r2.address);
 
         // Verify wallet is now READY (not just in multisig mode)
-        let is_multisig = self.local_wallet
+        let is_multisig = self
+            .local_wallet
             .multisig()
             .is_multisig()
             .await
@@ -266,7 +290,8 @@ impl NonCustodialClient {
 
         // Step 8: Complete multisig synchronization (2 rounds of export/import)
         info!("🔄 Starting multisig synchronization (2 rounds required)...");
-        self.complete_multisig_sync(escrow_id).await
+        self.complete_multisig_sync(escrow_id)
+            .await
             .context("Failed to complete multisig synchronization")?;
 
         info!("✅ Multisig fully synchronized and READY for transactions!");
@@ -283,8 +308,8 @@ impl NonCustodialClient {
             rpc_password: None,
             timeout_seconds: 30,
         };
-        let monitor_client = MoneroClient::new(monitor_config)
-            .context("Failed to create monitoring client")?;
+        let monitor_client =
+            MoneroClient::new(monitor_config).context("Failed to create monitoring client")?;
         let monitor_address = make_result.address.clone();
         let monitor_server_url = self.server_url.clone();
         let monitor_escrow_id = escrow_id.to_string();
@@ -295,13 +320,18 @@ impl NonCustodialClient {
                 &monitor_address,
                 &monitor_server_url,
                 &monitor_escrow_id,
-            ).await {
+            )
+            .await
+            {
                 error!("Blockchain monitoring failed: {}", e);
             }
         });
 
         info!("ℹ️  Next steps:");
-        info!("  1. Buyer sends XMR to multisig address: {}", make_result.address);
+        info!(
+            "  1. Buyer sends XMR to multisig address: {}",
+            make_result.address
+        );
         info!("  2. System will detect funds automatically");
         info!("  3. Escrow status will update to 'funded'");
 
@@ -322,7 +352,8 @@ impl NonCustodialClient {
     ) -> Result<Vec<String>> {
         info!("🔄 Coordinating key exchange (using sync-round with round=0)...");
 
-        self.coordinate_sync_round(escrow_id, 0, our_multisig_info).await
+        self.coordinate_sync_round(escrow_id, 0, our_multisig_info)
+            .await
     }
 
     /// Complete multisig synchronization (2 rounds of export/import)
@@ -333,7 +364,8 @@ impl NonCustodialClient {
         info!("🔄 Round 1: Export/Import multisig info...");
 
         // Round 1: Export
-        let export_round1 = self.local_wallet
+        let export_round1 = self
+            .local_wallet
             .multisig()
             .export_multisig_info()
             .await
@@ -342,18 +374,27 @@ impl NonCustodialClient {
         info!("📤 Round 1 export: {} chars", export_round1.info.len());
 
         // Coordinate round 1 with server (using round=2 to avoid collision with exchange_multisig_keys round=1)
-        let others_round1 = self.coordinate_sync_round(escrow_id, 2, &export_round1.info).await?;
+        let others_round1 = self
+            .coordinate_sync_round(escrow_id, 2, &export_round1.info)
+            .await?;
 
-        info!("📥 Received {} infos from other participants (round 1)", others_round1.len());
+        info!(
+            "📥 Received {} infos from other participants (round 1)",
+            others_round1.len()
+        );
 
         // Round 1: Import
-        let import_result1 = self.local_wallet
+        let import_result1 = self
+            .local_wallet
             .multisig()
             .import_multisig_info(others_round1)
             .await
             .context("Failed to import multisig info (round 1)")?;
 
-        info!("✅ Multisig sync complete: {} outputs processed", import_result1.n_outputs);
+        info!(
+            "✅ Multisig sync complete: {} outputs processed",
+            import_result1.n_outputs
+        );
 
         Ok(())
     }
@@ -399,11 +440,13 @@ impl NonCustodialClient {
             if attempts > max_attempts {
                 return Err(anyhow::anyhow!(
                     "Timeout waiting for sync round {} participants after {} attempts",
-                    round, max_attempts
+                    round,
+                    max_attempts
                 ));
             }
 
-            let response = self.http_client
+            let response = self
+                .http_client
                 .post(&url)
                 .json(&request)
                 .send()
@@ -411,7 +454,10 @@ impl NonCustodialClient {
                 .context("Failed to send sync round request")?;
 
             if !response.status().is_success() {
-                warn!("Sync round {} not ready yet (attempt {}), retrying...", round, attempts);
+                warn!(
+                    "Sync round {} not ready yet (attempt {}), retrying...",
+                    round, attempts
+                );
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
@@ -422,7 +468,10 @@ impl NonCustodialClient {
                 .context("Failed to parse sync round response")?;
 
             if !sync_response.success {
-                warn!("Sync round {} not ready (attempt {}), retrying...", round, attempts);
+                warn!(
+                    "Sync round {} not ready (attempt {}), retrying...",
+                    round, attempts
+                );
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
             }
@@ -431,7 +480,9 @@ impl NonCustodialClient {
             if sync_response.received_infos.len() != 2 {
                 warn!(
                     "Sync round {} incomplete: expected 2 infos, got {} (attempt {}), retrying...",
-                    round, sync_response.received_infos.len(), attempts
+                    round,
+                    sync_response.received_infos.len(),
+                    attempts
                 );
                 tokio::time::sleep(Duration::from_secs(2)).await;
                 continue;
@@ -449,7 +500,10 @@ impl NonCustodialClient {
         server_url: &str,
         escrow_id: &str,
     ) -> Result<()> {
-        info!("👁️  Monitoring blockchain for address: {}...", &address[..15]);
+        info!(
+            "👁️  Monitoring blockchain for address: {}...",
+            &address[..15]
+        );
 
         let mut last_balance: u64 = 0;
         let check_interval = Duration::from_secs(30); // Check every 30 seconds
@@ -463,11 +517,9 @@ impl NonCustodialClient {
                         info!("🎉 FUNDS RECEIVED! Balance: {} XMR", amount_xmr);
 
                         // Notify server that funds were received
-                        if let Err(e) = Self::notify_funds_received_static(
-                            server_url,
-                            escrow_id,
-                            balance
-                        ).await {
+                        if let Err(e) =
+                            Self::notify_funds_received_static(server_url, escrow_id, balance).await
+                        {
                             error!("Failed to notify server of funds: {}", e);
                         }
 
@@ -524,8 +576,14 @@ impl NonCustodialClient {
             info!("✅ Server notified of funds received");
             Ok(())
         } else {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
-            Err(anyhow::anyhow!("Server notification failed: {}", error_text))
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            Err(anyhow::anyhow!(
+                "Server notification failed: {}",
+                error_text
+            ))
         }
     }
 
@@ -556,7 +614,10 @@ impl NonCustodialClient {
                 // CRITICAL: Open the wallet immediately after creation
                 // The RPC daemon keeps wallets in memory - create_wallet() only creates the file,
                 // we must call open_wallet() to make it the active wallet
-                self.local_wallet.rpc().open_wallet(wallet_name, "").await
+                self.local_wallet
+                    .rpc()
+                    .open_wallet(wallet_name, "")
+                    .await
                     .context("Failed to open newly created wallet")?;
                 info!("✅ Wallet '{}' opened and ready", wallet_name);
                 Ok(())
@@ -565,10 +626,17 @@ impl NonCustodialClient {
                 let error_msg = e.to_string();
                 if error_msg.contains("already exists")
                     || error_msg.contains("Cannot create wallet")
-                    || error_msg.contains("EOF while parsing") {
-                    warn!("Wallet '{}' already exists, attempting to open it", wallet_name);
+                    || error_msg.contains("EOF while parsing")
+                {
+                    warn!(
+                        "Wallet '{}' already exists, attempting to open it",
+                        wallet_name
+                    );
                     // If wallet exists, try to open it
-                    self.local_wallet.rpc().open_wallet(wallet_name, "").await
+                    self.local_wallet
+                        .rpc()
+                        .open_wallet(wallet_name, "")
+                        .await
                         .context("Failed to open existing wallet")?;
                     info!("✅ Wallet '{}' opened", wallet_name);
                     Ok(())
@@ -589,7 +657,8 @@ impl NonCustodialClient {
             rpc_url: self.local_rpc_url.clone(),
         };
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(&url)
             .json(&request)
             .send()
@@ -597,7 +666,10 @@ impl NonCustodialClient {
             .context("Failed to send registration request")?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow::anyhow!("Registration failed: {}", error_text));
         }
 
@@ -607,10 +679,17 @@ impl NonCustodialClient {
             .context("Failed to parse registration response")?;
 
         if !reg_response.success {
-            return Err(anyhow::anyhow!("Registration failed: {}", reg_response.message));
+            return Err(anyhow::anyhow!(
+                "Registration failed: {}",
+                reg_response.message
+            ));
         }
 
-        info!("✅ Registered as {} for escrow {}", self.role.as_str(), escrow_id);
+        info!(
+            "✅ Registered as {} for escrow {}",
+            self.role.as_str(),
+            escrow_id
+        );
         info!("State: {}", reg_response.coordination_state);
         if !reg_response.awaiting.is_empty() {
             info!("Waiting for: {:?}", reg_response.awaiting);
@@ -621,17 +700,24 @@ impl NonCustodialClient {
 
     /// Wait for all participants to register
     async fn wait_for_all_participants(&self, escrow_id: &str) -> Result<()> {
-        let url = format!("{}/api/v2/escrow/coordination-status/{}", self.server_url, escrow_id);
+        let url = format!(
+            "{}/api/v2/escrow/coordination-status/{}",
+            self.server_url, escrow_id
+        );
         let max_attempts = 60; // 60 attempts * 2s = 2 minutes max
         let mut attempts = 0;
 
         loop {
             attempts += 1;
             if attempts > max_attempts {
-                return Err(anyhow::anyhow!("Timeout waiting for participants after {} attempts", max_attempts));
+                return Err(anyhow::anyhow!(
+                    "Timeout waiting for participants after {} attempts",
+                    max_attempts
+                ));
             }
 
-            let response = self.http_client
+            let response = self
+                .http_client
                 .get(&url)
                 .send()
                 .await
@@ -662,18 +748,25 @@ impl NonCustodialClient {
             .flatten()
             .collect();
 
-            info!("Waiting for participants: {:?} (attempt {}/{})", missing, attempts, max_attempts);
+            info!(
+                "Waiting for participants: {:?} (attempt {}/{})",
+                missing, attempts, max_attempts
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
     }
 
     /// Wait for multisig coordination result (for seller/arbiter polling)
     async fn wait_for_multisig_result(&self, escrow_id: &str) -> Result<Vec<String>> {
-        let url = format!("{}/api/v2/escrow/coordination-status/{}", self.server_url, escrow_id);
+        let url = format!(
+            "{}/api/v2/escrow/coordination-status/{}",
+            self.server_url, escrow_id
+        );
         let max_attempts = 60; // 60 attempts * 2s = 2 minutes max
 
         for attempt in 1..=max_attempts {
-            let response = self.http_client
+            let response = self
+                .http_client
                 .get(&url)
                 .send()
                 .await
@@ -699,15 +792,24 @@ impl NonCustodialClient {
                     _ => return Err(anyhow::anyhow!("Invalid role: {}", self.role)),
                 };
 
-                info!("✅ Received multisig infos from server ({} infos)", infos.len());
+                info!(
+                    "✅ Received multisig infos from server ({} infos)",
+                    infos.len()
+                );
                 return Ok(infos);
             }
 
-            info!("⏳ Waiting for multisig coordination... (attempt {}/{})", attempt, max_attempts);
+            info!(
+                "⏳ Waiting for multisig coordination... (attempt {}/{})",
+                attempt, max_attempts
+            );
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
-        Err(anyhow::anyhow!("Timeout waiting for multisig coordination after {} attempts", max_attempts))
+        Err(anyhow::anyhow!(
+            "Timeout waiting for multisig coordination after {} attempts",
+            max_attempts
+        ))
     }
 
     /// Coordinate multisig info exchange through server
@@ -723,7 +825,8 @@ impl NonCustodialClient {
             escrow_id: escrow_id.to_string(),
         };
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(&url)
             .json(&request)
             .send()
@@ -731,7 +834,10 @@ impl NonCustodialClient {
             .context("Failed to send coordinate request")?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow::anyhow!("Coordination failed: {}", error_text));
         }
 
@@ -741,7 +847,10 @@ impl NonCustodialClient {
             .context("Failed to parse coordination response")?;
 
         if !coord_response.success {
-            return Err(anyhow::anyhow!("Coordination failed: {}", coord_response.message));
+            return Err(anyhow::anyhow!(
+                "Coordination failed: {}",
+                coord_response.message
+            ));
         }
 
         // Extract the multisig infos for our role
@@ -752,11 +861,17 @@ impl NonCustodialClient {
         };
 
         info!("✅ Coordination successful");
-        info!("Received {} multisig infos from other participants", infos.len());
+        info!(
+            "Received {} multisig infos from other participants",
+            infos.len()
+        );
 
         if infos.len() != 2 {
             error!("❌ Expected 2 multisig infos but got {}", infos.len());
-            return Err(anyhow::anyhow!("Invalid number of multisig infos: expected 2, got {}", infos.len()));
+            return Err(anyhow::anyhow!(
+                "Invalid number of multisig infos: expected 2, got {}",
+                infos.len()
+            ));
         }
 
         Ok(infos)
@@ -792,6 +907,8 @@ pub fn parse_role(role_str: &str) -> Result<EscrowRole> {
         "buyer" => Ok(EscrowRole::Buyer),
         "seller" => Ok(EscrowRole::Seller),
         "arbiter" => Ok(EscrowRole::Arbiter),
-        _ => Err(anyhow::anyhow!("Invalid role: must be 'buyer', 'seller', or 'arbiter'")),
+        _ => Err(anyhow::anyhow!(
+            "Invalid role: must be 'buyer', 'seller', or 'arbiter'"
+        )),
     }
 }

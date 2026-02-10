@@ -178,11 +178,23 @@ impl DaemonEndpoint {
                         }
 
                         // Extract network
-                        let network = if result.get("mainnet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        let network = if result
+                            .get("mainnet")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false)
+                        {
                             "mainnet"
-                        } else if result.get("stagenet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        } else if result
+                            .get("stagenet")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false)
+                        {
                             "stagenet"
-                        } else if result.get("testnet").and_then(|v| v.as_bool()).unwrap_or(false) {
+                        } else if result
+                            .get("testnet")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false)
+                        {
                             "testnet"
                         } else {
                             "unknown"
@@ -248,11 +260,19 @@ impl DaemonEndpoint {
             healthy: *self.healthy.read().await,
             last_response_ms: {
                 let ms = self.last_response_ms.load(Ordering::SeqCst);
-                if ms > 0 { Some(ms) } else { None }
+                if ms > 0 {
+                    Some(ms)
+                } else {
+                    None
+                }
             },
             height: {
                 let h = self.last_height.load(Ordering::SeqCst);
-                if h > 0 { Some(h) } else { None }
+                if h > 0 {
+                    Some(h)
+                } else {
+                    None
+                }
             },
             network: self.network.read().await.clone(),
             failure_count: self.failure_count.load(Ordering::SeqCst) as u32,
@@ -309,7 +329,10 @@ impl DaemonPool {
 
         let mut endpoints = Vec::with_capacity(config.urls.len());
         for url in &config.urls {
-            endpoints.push(Arc::new(DaemonEndpoint::new(url, config.request_timeout_secs)?));
+            endpoints.push(Arc::new(DaemonEndpoint::new(
+                url,
+                config.request_timeout_secs,
+            )?));
         }
 
         let pool = Self {
@@ -422,19 +445,44 @@ impl DaemonPool {
 
         Ok(DaemonInfo {
             height: result.get("height").and_then(|v| v.as_u64()).unwrap_or(0),
-            target_height: result.get("target_height").and_then(|v| v.as_u64()).unwrap_or(0),
-            difficulty: result.get("difficulty").and_then(|v| v.as_u64()).unwrap_or(0),
-            tx_pool_size: result.get("tx_pool_size").and_then(|v| v.as_u64()).unwrap_or(0),
-            version: result.get("version").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            mainnet: result.get("mainnet").and_then(|v| v.as_bool()).unwrap_or(false),
-            testnet: result.get("testnet").and_then(|v| v.as_bool()).unwrap_or(false),
-            stagenet: result.get("stagenet").and_then(|v| v.as_bool()).unwrap_or(false),
+            target_height: result
+                .get("target_height")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0),
+            difficulty: result
+                .get("difficulty")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0),
+            tx_pool_size: result
+                .get("tx_pool_size")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(0),
+            version: result
+                .get("version")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            mainnet: result
+                .get("mainnet")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            testnet: result
+                .get("testnet")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            stagenet: result
+                .get("stagenet")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
             served_by: endpoint.url.clone(),
         })
     }
 
     /// Get fee estimate from a healthy daemon
-    pub async fn get_fee_estimate(&self, priority: FeePriority) -> Result<FeeEstimate, MoneroError> {
+    pub async fn get_fee_estimate(
+        &self,
+        priority: FeePriority,
+    ) -> Result<FeeEstimate, MoneroError> {
         let endpoint = self
             .get_next_healthy()
             .ok_or_else(|| MoneroError::RpcUnreachable)?;

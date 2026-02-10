@@ -1,7 +1,7 @@
-use actix_web::{web, HttpResponse, post};
+use crate::db::DbPool;
+use actix_web::{post, web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::db::DbPool;
 
 #[derive(Serialize, Deserialize)]
 pub struct MultisigCoordinationRequest {
@@ -13,7 +13,7 @@ pub struct MultisigCoordinationRequest {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct MultisigParticipant {
     pub user_id: String,
-    pub role: String, // "buyer", "vendor", "arbiter"
+    pub role: String,          // "buyer", "vendor", "arbiter"
     pub multisig_info: String, // Monero RPC multisig_info output
 }
 
@@ -140,13 +140,21 @@ pub async fn finalize_multisig(
     // 4. Verify all wallets are ready (is_multisig() == true)
     // 5. Generate final multisig address
 
-    let multisig_address = format!("multisig_{}", Uuid::new_v4().to_string().chars().take(10).collect::<String>());
+    let multisig_address = format!(
+        "multisig_{}",
+        Uuid::new_v4()
+            .to_string()
+            .chars()
+            .take(10)
+            .collect::<String>()
+    );
 
     Ok(HttpResponse::Ok().json(MultisigCoordinationResponse {
         status: "ready".to_string(),
         multisig_address: Some(multisig_address),
         coordination_id: req.wallet_id.clone(),
-        message: "Multisig wallet coordination complete. Wallets are ready for 2-of-3 signing.".to_string(),
+        message: "Multisig wallet coordination complete. Wallets are ready for 2-of-3 signing."
+            .to_string(),
     }))
 }
 

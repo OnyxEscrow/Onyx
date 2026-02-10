@@ -158,7 +158,10 @@ pub fn load_wallet_encryption_config() -> WalletEncryptionConfig {
     }
 
     // Testnet/stagenet without password - warn but allow
-    warn!("⚠️  No WALLET_ENCRYPTION_PASSWORD set for {} network", network);
+    warn!(
+        "⚠️  No WALLET_ENCRYPTION_PASSWORD set for {} network",
+        network
+    );
     warn!("   Wallet files will NOT be encrypted.");
     warn!("   Set WALLET_ENCRYPTION_PASSWORD for production use.");
 
@@ -207,15 +210,9 @@ pub fn validate_wallet_encryption_on_startup() {
     let network = env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
 
     if config.enabled {
-        info!(
-            "✅ Wallet encryption enabled for {} network",
-            network
-        );
+        info!("✅ Wallet encryption enabled for {} network", network);
     } else {
-        warn!(
-            "⚠️  Wallet encryption DISABLED for {} network",
-            network
-        );
+        warn!("⚠️  Wallet encryption DISABLED for {} network", network);
         if network.to_lowercase() == "mainnet" {
             panic!("Wallet encryption must be enabled for mainnet");
         }

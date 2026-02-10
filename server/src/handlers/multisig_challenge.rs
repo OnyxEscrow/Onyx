@@ -8,7 +8,9 @@ use actix_web::{post, web, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::crypto::multisig_validation::{ChallengeStore, MultisigChallenge, verify_multisig_submission};
+use crate::crypto::multisig_validation::{
+    verify_multisig_submission, ChallengeStore, MultisigChallenge,
+};
 
 /// Global challenge store (in-memory for now)
 /// TODO: Move to Redis in production for multi-server support
@@ -198,7 +200,7 @@ pub async fn submit_multisig_info_with_signature(
     // Retrieve challenge
     let challenge = CHALLENGE_STORE.get(user_id, *escrow_id).ok_or_else(|| {
         actix_web::error::ErrorBadRequest(
-            "No challenge found. Call /multisig/challenge first to request a challenge."
+            "No challenge found. Call /multisig/challenge first to request a challenge.",
         )
     })?;
 
@@ -279,9 +281,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_challenge_request_unauthenticated() {
-        let app = test::init_service(
-            App::new().service(request_multisig_challenge)
-        ).await;
+        let app = test::init_service(App::new().service(request_multisig_challenge)).await;
 
         let escrow_id = Uuid::new_v4();
         let req = test::TestRequest::post()

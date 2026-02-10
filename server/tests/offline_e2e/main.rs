@@ -29,13 +29,13 @@
 //! - Zero external dependencies
 //! - Deterministic (same results every run)
 
-pub mod mock_infrastructure;
 pub mod crypto_tests;
-pub mod transaction_tests;
 pub mod escrow_state_machine_tests;
-pub mod validation_tests;
+pub mod mock_infrastructure;
 pub mod regression_tests;
 pub mod swap_tests;
+pub mod transaction_tests;
+pub mod validation_tests;
 
 // Re-export common test utilities
 pub use mock_infrastructure::*;

@@ -27,7 +27,7 @@ const PARALLEL_BATCH_SIZE: usize = 4;
 fn get_monitoring_rpc_ports() -> Vec<u16> {
     let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
     match network.to_lowercase().as_str() {
-        "mainnet" => vec![18083, 18084, 18085, 18086],  // NOT 18082 (that's monerod restricted RPC!)
+        "mainnet" => vec![18083, 18084, 18085, 18086], // NOT 18082 (that's monerod restricted RPC!)
         "testnet" => vec![28082, 28083, 28084, 28086],
         _ => vec![38083, 38084, 38085, 38086], // stagenet default
     }
@@ -36,7 +36,10 @@ fn get_monitoring_rpc_ports() -> Vec<u16> {
 use crate::crypto::encryption::decrypt_field;
 use crate::crypto::mask_derivation::{derive_commitment_mask, find_our_output_and_derive_mask};
 use crate::crypto::view_key::validate_view_key_matches_address;
-use crate::db::{db_load_escrow, db_load_escrow_by_str, db_update_escrow_status, db_update_escrow_status_by_str, DbPool};
+use crate::db::{
+    db_load_escrow, db_load_escrow_by_str, db_update_escrow_status, db_update_escrow_status_by_str,
+    DbPool,
+};
 use crate::models::escrow::Escrow;
 use crate::models::notification::{NewNotification, Notification, NotificationType};
 // Order model removed in EaaS transformation - escrow status is the source of truth
@@ -91,7 +94,8 @@ pub struct BlockchainMonitor {
     /// Encryption key for decrypting wallet RPC configs (non-custodial escrows)
     encryption_key: Vec<u8>,
     /// Track consecutive failures per escrow for alerting
-    consecutive_failures: Arc<std::sync::Mutex<std::collections::HashMap<String, ConsecutiveFailure>>>,
+    consecutive_failures:
+        Arc<std::sync::Mutex<std::collections::HashMap<String, ConsecutiveFailure>>>,
 }
 
 impl BlockchainMonitor {
@@ -182,7 +186,8 @@ impl BlockchainMonitor {
             .build()
             .unwrap_or_default();
 
-        let response = client.post(&daemon_url)
+        let response = client
+            .post(&daemon_url)
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": "0",
@@ -192,30 +197,28 @@ impl BlockchainMonitor {
             .await;
 
         match response {
-            Ok(resp) => {
-                match resp.json::<serde_json::Value>().await {
-                    Ok(body) => {
-                        let synced = body["result"]["synchronized"].as_bool().unwrap_or(false);
-                        let height = body["result"]["height"].as_u64().unwrap_or(0);
-                        let target_height = body["result"]["target_height"].as_u64().unwrap_or(0);
+            Ok(resp) => match resp.json::<serde_json::Value>().await {
+                Ok(body) => {
+                    let synced = body["result"]["synchronized"].as_bool().unwrap_or(false);
+                    let height = body["result"]["height"].as_u64().unwrap_or(0);
+                    let target_height = body["result"]["target_height"].as_u64().unwrap_or(0);
 
-                        if !synced {
-                            warn!(
-                                "⚠️ [MONITOR] Daemon not synced yet (height {}/{})  - skipping poll",
-                                height, target_height
-                            );
-                            return false;
-                        }
+                    if !synced {
+                        warn!(
+                            "⚠️ [MONITOR] Daemon not synced yet (height {}/{})  - skipping poll",
+                            height, target_height
+                        );
+                        return false;
+                    }
 
-                        info!("✅ [MONITOR] Daemon synced at height {}", height);
-                        true
-                    }
-                    Err(e) => {
-                        warn!("⚠️ [MONITOR] Failed to parse daemon response: {}", e);
-                        false
-                    }
+                    info!("✅ [MONITOR] Daemon synced at height {}", height);
+                    true
                 }
-            }
+                Err(e) => {
+                    warn!("⚠️ [MONITOR] Failed to parse daemon response: {}", e);
+                    false
+                }
+            },
             Err(e) => {
                 error!("❌ [MONITOR] Daemon unreachable: {}", e);
                 false
@@ -228,11 +231,13 @@ impl BlockchainMonitor {
     /// Alerts if threshold is exceeded.
     fn record_consecutive_failure(&self, escrow_id: &str, error_msg: &str) {
         let mut failures = self.consecutive_failures.lock().unwrap();
-        let entry = failures.entry(escrow_id.to_string()).or_insert(ConsecutiveFailure {
-            count: 0,
-            first_failure_at: chrono::Utc::now(),
-            last_error: String::new(),
-        });
+        let entry = failures
+            .entry(escrow_id.to_string())
+            .or_insert(ConsecutiveFailure {
+                count: 0,
+                first_failure_at: chrono::Utc::now(),
+                last_error: String::new(),
+            });
 
         entry.count += 1;
         entry.last_error = error_msg.to_string();
@@ -260,7 +265,10 @@ impl BlockchainMonitor {
     fn clear_consecutive_failures(&self, escrow_id: &str) {
         let mut failures = self.consecutive_failures.lock().unwrap();
         if failures.remove(escrow_id).is_some() {
-            info!("✅ [MONITOR] Cleared failure tracking for escrow {}", escrow_id);
+            info!(
+                "✅ [MONITOR] Cleared failure tracking for escrow {}",
+                escrow_id
+            );
         }
     }
 
@@ -299,7 +307,10 @@ impl BlockchainMonitor {
         }
 
         // Step 2: wallet-rpc is unhealthy - attempt restart
-        warn!("⚠️ [MONITOR] wallet-rpc on port {} unresponsive - attempting auto-restart", port);
+        warn!(
+            "⚠️ [MONITOR] wallet-rpc on port {} unresponsive - attempting auto-restart",
+            port
+        );
 
         // Kill any existing process on the port
         // Try multiple methods for portability
@@ -313,9 +324,8 @@ impl BlockchainMonitor {
 
         // Step 3: Start new wallet-rpc process
         let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
-        let wallet_dir = std::env::var("WALLET_DIR").unwrap_or_else(|_| {
-            format!("./{}-wallets", network)
-        });
+        let wallet_dir =
+            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{}-wallets", network));
         let daemon_port = match network.as_str() {
             "mainnet" => 18081,
             "testnet" => 28081,
@@ -335,20 +345,29 @@ impl BlockchainMonitor {
         }
 
         cmd.args([
-            "--rpc-bind-port", &port.to_string(),
-            "--rpc-bind-ip", "127.0.0.1",
+            "--rpc-bind-port",
+            &port.to_string(),
+            "--rpc-bind-ip",
+            "127.0.0.1",
             "--disable-rpc-login",
-            "--wallet-dir", &wallet_dir,
-            "--daemon-address", &format!("127.0.0.1:{}", daemon_port),
+            "--wallet-dir",
+            &wallet_dir,
+            "--daemon-address",
+            &format!("127.0.0.1:{}", daemon_port),
             "--trusted-daemon",
-            "--log-level", "1",
+            "--log-level",
+            "1",
         ])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null());
 
         match cmd.spawn() {
             Ok(child) => {
-                info!("🚀 [MONITOR] Spawned wallet-rpc on port {} (PID {})", port, child.id());
+                info!(
+                    "🚀 [MONITOR] Spawned wallet-rpc on port {} (PID {})",
+                    port,
+                    child.id()
+                );
             }
             Err(e) => {
                 error!("❌ [MONITOR] Failed to spawn wallet-rpc: {}", e);
@@ -362,7 +381,11 @@ impl BlockchainMonitor {
             tokio::time::sleep(Duration::from_secs(1)).await;
 
             if health_check().await {
-                info!("✅ [MONITOR] wallet-rpc on port {} recovered after {}s", port, i + 1);
+                info!(
+                    "✅ [MONITOR] wallet-rpc on port {} recovered after {}s",
+                    port,
+                    i + 1
+                );
                 return true;
             }
 
@@ -371,7 +394,10 @@ impl BlockchainMonitor {
             }
         }
 
-        error!("❌ [MONITOR] wallet-rpc on port {} failed to recover after {}s", port, max_wait);
+        error!(
+            "❌ [MONITOR] wallet-rpc on port {} failed to recover after {}s",
+            port, max_wait
+        );
         false
     }
 
@@ -446,12 +472,16 @@ impl BlockchainMonitor {
                     let eid = escrow_id_str.clone();
                     // Assign RPC port based on escrow ID hash (consistent across poll cycles)
                     let rpc_ports = get_monitoring_rpc_ports();
-                    let hash: u64 = eid.bytes().fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
+                    let hash: u64 = eid
+                        .bytes()
+                        .fold(0u64, |acc, b| acc.wrapping_mul(31).wrapping_add(b as u64));
                     let port_idx = (hash % rpc_ports.len() as u64) as usize;
                     let rpc_port = rpc_ports[port_idx];
                     async move {
                         // Use recovery wrapper for automatic lock conflict resolution
-                        self_clone.check_escrow_funding_with_recovery(&eid, rpc_port).await;
+                        self_clone
+                            .check_escrow_funding_with_recovery(&eid, rpc_port)
+                            .await;
                     }
                 })
                 .collect();
@@ -575,9 +605,8 @@ impl BlockchainMonitor {
     /// * `wallet_filename` - The wallet filename (without path)
     fn cleanup_wallet_lock_files(&self, wallet_filename: &str) {
         let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
-        let wallet_dir = std::env::var("WALLET_DIR").unwrap_or_else(|_| {
-            format!("./{}-wallets", network)
-        });
+        let wallet_dir =
+            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{}-wallets", network));
 
         // Check for .lock file (wallet-rpc creates this)
         let lock_path = format!("{}/{}.lock", wallet_dir, wallet_filename);
@@ -585,10 +614,7 @@ impl BlockchainMonitor {
         if std::path::Path::new(&lock_path).exists() {
             match std::fs::remove_file(&lock_path) {
                 Ok(_) => {
-                    info!(
-                        "🗑️ [RECOVERY] Removed stale lock file: {}",
-                        lock_path
-                    );
+                    info!("🗑️ [RECOVERY] Removed stale lock file: {}", lock_path);
                 }
                 Err(e) => {
                     warn!(
@@ -670,7 +696,9 @@ impl BlockchainMonitor {
                         let delay_ms = BASE_RETRY_DELAY_MS * (attempt as u64 + 1);
                         info!(
                             "⏳ [RECOVERY] Waiting {}ms before retry {} for escrow {}",
-                            delay_ms, attempt + 2, escrow_id
+                            delay_ms,
+                            attempt + 2,
+                            escrow_id
                         );
                         tokio::time::sleep(Duration::from_millis(delay_ms)).await;
 
@@ -725,7 +753,6 @@ impl BlockchainMonitor {
         Ok(result.0.is_some() || result.1.is_some())
     }
 
-
     /// Check if an escrow multisig address has received funding
     ///
     /// This monitors the multisig wallet balance and updates escrow status
@@ -759,7 +786,10 @@ impl BlockchainMonitor {
             // INSTRUMENTATION: Complete tracing for blockchain monitor debug
             // ========================================================================
             let monitor_start = std::time::Instant::now();
-            info!("🔬 [MONITOR-TRACE] ========== START check_escrow_funding for {} ==========", escrow_id);
+            info!(
+                "🔬 [MONITOR-TRACE] ========== START check_escrow_funding for {} ==========",
+                escrow_id
+            );
 
             // WASM NON-CUSTODIAL MODE: Create view-only wallet using shared multisig view key
             info!("🔬 [MONITOR-TRACE] Step 1: WASM escrow detected");
@@ -767,7 +797,10 @@ impl BlockchainMonitor {
             // Get the SHARED multisig view key
             let view_key = match escrow.multisig_view_key {
                 Some(ref key) => {
-                    info!("🔬 [MONITOR-TRACE] Step 2: Got view_key (len={})", key.len());
+                    info!(
+                        "🔬 [MONITOR-TRACE] Step 2: Got view_key (len={})",
+                        key.len()
+                    );
                     key.clone()
                 }
                 None => {
@@ -835,7 +868,10 @@ impl BlockchainMonitor {
             // Use the RPC port passed as parameter (enables parallel checks on different ports)
             let rpc_url = format!("http://127.0.0.1:{}/json_rpc", rpc_port);
             let daemon_url = format!("http://127.0.0.1:{}/json_rpc", daemon_port);
-            info!("🔬 [MONITOR-TRACE] Step 3: Using RPC port {} daemon {}", rpc_port, daemon_url);
+            info!(
+                "🔬 [MONITOR-TRACE] Step 3: Using RPC port {} daemon {}",
+                rpc_port, daemon_url
+            );
 
             // Build HTTP client with timeouts (300s for slow wallet scans)
             let client = reqwest::Client::builder()
@@ -853,7 +889,8 @@ impl BlockchainMonitor {
 
             // Get blockchain height from daemon
             info!("🔬 [MONITOR-TRACE] Step 6: Getting blockchain height from daemon...");
-            let height_response = client.post(&daemon_url)
+            let height_response = client
+                .post(&daemon_url)
                 .json(&serde_json::json!({
                     "jsonrpc": "2.0",
                     "id": "0",
@@ -865,8 +902,8 @@ impl BlockchainMonitor {
             // Fallback heights as of Jan 2026 - update quarterly!
             // These are used when daemon is unreachable, to avoid scanning from genesis
             let fallback_height = match network.as_str() {
-                "mainnet" => 3550000,  // Updated Jan 2026 (mainnet ~3,596,000)
-                "testnet" => 2950000,  // Updated Jan 2026
+                "mainnet" => 3550000, // Updated Jan 2026 (mainnet ~3,596,000)
+                "testnet" => 2950000, // Updated Jan 2026
                 "stagenet" | _ => 2100000,
             };
 
@@ -874,8 +911,15 @@ impl BlockchainMonitor {
                 Ok(resp) => {
                     let height_json: serde_json::Value = resp.json().await.unwrap_or_default();
                     let current_height = height_json["result"]["height"].as_u64().unwrap_or(0);
-                    let calculated = if current_height > 100 { current_height - 100 } else { 0 };
-                    info!("🔬 [MONITOR-TRACE] Step 6 result: daemon height={}, restore_height={}", current_height, calculated);
+                    let calculated = if current_height > 100 {
+                        current_height - 100
+                    } else {
+                        0
+                    };
+                    info!(
+                        "🔬 [MONITOR-TRACE] Step 6 result: daemon height={}, restore_height={}",
+                        current_height, calculated
+                    );
                     calculated
                 }
                 Err(e) => {
@@ -893,10 +937,14 @@ impl BlockchainMonitor {
             // Track if wallet already existed (affects refresh behavior)
             let mut wallet_was_opened = false;
 
-            info!("🔬 [MONITOR-TRACE] Step 7: Trying to OPEN existing wallet '{}' first...", wallet_filename);
+            info!(
+                "🔬 [MONITOR-TRACE] Step 7: Trying to OPEN existing wallet '{}' first...",
+                wallet_filename
+            );
 
             // Step 7a: Try to open existing wallet first
-            let open_response = client.post(&rpc_url)
+            let open_response = client
+                .post(&rpc_url)
                 .json(&serde_json::json!({
                     "jsonrpc": "2.0",
                     "id": "0",
@@ -916,10 +964,13 @@ impl BlockchainMonitor {
                     if open_body.get("error").is_none() {
                         // Wallet opened successfully - but we MUST verify it's the correct wallet!
                         // BUG FIX: Wallet files can be corrupted/overwritten, address validation is critical
-                        info!("🔬 [MONITOR-TRACE] Step 7a: Wallet file opened, validating address...");
+                        info!(
+                            "🔬 [MONITOR-TRACE] Step 7a: Wallet file opened, validating address..."
+                        );
 
                         // Get the wallet's actual address
-                        let addr_response = client.post(&rpc_url)
+                        let addr_response = client
+                            .post(&rpc_url)
                             .json(&serde_json::json!({
                                 "jsonrpc": "2.0",
                                 "id": "0",
@@ -930,11 +981,18 @@ impl BlockchainMonitor {
 
                         let wallet_address = match addr_response {
                             Ok(resp) => {
-                                let addr_body: serde_json::Value = resp.json().await.unwrap_or_default();
-                                addr_body["result"]["address"].as_str().unwrap_or("").to_string()
+                                let addr_body: serde_json::Value =
+                                    resp.json().await.unwrap_or_default();
+                                addr_body["result"]["address"]
+                                    .as_str()
+                                    .unwrap_or("")
+                                    .to_string()
                             }
                             Err(e) => {
-                                warn!("🔬 [MONITOR-TRACE] Step 7a: Failed to get wallet address: {}", e);
+                                warn!(
+                                    "🔬 [MONITOR-TRACE] Step 7a: Failed to get wallet address: {}",
+                                    e
+                                );
                                 String::new()
                             }
                         };
@@ -953,7 +1011,8 @@ impl BlockchainMonitor {
 
                             // Close and delete the corrupted wallet, then recreate
                             info!("🔬 [MONITOR-TRACE] Step 7a: Closing corrupted wallet...");
-                            let _ = client.post(&rpc_url)
+                            let _ = client
+                                .post(&rpc_url)
                                 .json(&serde_json::json!({
                                     "jsonrpc": "2.0",
                                     "id": "0",
@@ -963,15 +1022,22 @@ impl BlockchainMonitor {
                                 .await;
 
                             // Delete corrupted wallet files
-                            let wallet_dir = std::env::var("WALLET_DIR").unwrap_or_else(|_| "./stagenet-wallets".to_string());
+                            let wallet_dir = std::env::var("WALLET_DIR")
+                                .unwrap_or_else(|_| "./stagenet-wallets".to_string());
                             let wallet_base = format!("{}/{}", wallet_dir, wallet_filename);
                             for ext in &["", ".keys", ".address.txt"] {
                                 let path = format!("{}{}", wallet_base, ext);
                                 if std::path::Path::new(&path).exists() {
                                     if let Err(e) = std::fs::remove_file(&path) {
-                                        warn!("Failed to delete corrupted wallet file {}: {}", path, e);
+                                        warn!(
+                                            "Failed to delete corrupted wallet file {}: {}",
+                                            path, e
+                                        );
                                     } else {
-                                        info!("🔬 [MONITOR-TRACE] Deleted corrupted file: {}", path);
+                                        info!(
+                                            "🔬 [MONITOR-TRACE] Deleted corrupted file: {}",
+                                            path
+                                        );
                                     }
                                 }
                             }
@@ -992,34 +1058,49 @@ impl BlockchainMonitor {
                                 }
                             });
 
-                            let gen_response = client.post(&rpc_url)
-                                .json(&generate_payload)
-                                .send()
-                                .await;
+                            let gen_response =
+                                client.post(&rpc_url).json(&generate_payload).send().await;
 
                             match gen_response {
                                 Ok(resp) => {
-                                    let gen_body: serde_json::Value = resp.json().await.unwrap_or_default();
+                                    let gen_body: serde_json::Value =
+                                        resp.json().await.unwrap_or_default();
                                     if gen_body.get("error").is_some() {
-                                        let gen_err = gen_body["error"]["message"].as_str().unwrap_or("unknown");
-                                        error!("🔬 [MONITOR-TRACE] FAILED to recreate wallet: {}", gen_err);
-                                        return Err(anyhow::anyhow!("Failed to recreate corrupted wallet: {}", gen_err));
+                                        let gen_err = gen_body["error"]["message"]
+                                            .as_str()
+                                            .unwrap_or("unknown");
+                                        error!(
+                                            "🔬 [MONITOR-TRACE] FAILED to recreate wallet: {}",
+                                            gen_err
+                                        );
+                                        return Err(anyhow::anyhow!(
+                                            "Failed to recreate corrupted wallet: {}",
+                                            gen_err
+                                        ));
                                     }
                                     info!("🔬 [MONITOR-TRACE] Step 7a: ✅ Wallet RECREATED successfully");
                                     // wallet_was_opened stays false - new wallet needs full scan
                                 }
                                 Err(e) => {
                                     error!("🔬 [MONITOR-TRACE] FAILED to recreate wallet: {}", e);
-                                    return Err(anyhow::anyhow!("Failed to recreate corrupted wallet: {}", e));
+                                    return Err(anyhow::anyhow!(
+                                        "Failed to recreate corrupted wallet: {}",
+                                        e
+                                    ));
                                 }
                             }
                         }
                     } else {
                         let err_msg = open_body["error"]["message"].as_str().unwrap_or("");
-                        info!("🔬 [MONITOR-TRACE] Step 7a: open_wallet failed: {}", err_msg);
+                        info!(
+                            "🔬 [MONITOR-TRACE] Step 7a: open_wallet failed: {}",
+                            err_msg
+                        );
 
                         // Wallet doesn't exist - need to create it
-                        if err_msg.contains("Failed to open wallet") || err_msg.contains("does not exist") {
+                        if err_msg.contains("Failed to open wallet")
+                            || err_msg.contains("does not exist")
+                        {
                             info!("🔬 [MONITOR-TRACE] Step 7b: Wallet doesn't exist, creating with restore_height={}", restore_height);
 
                             let generate_payload = serde_json::json!({
@@ -1037,23 +1118,27 @@ impl BlockchainMonitor {
                             });
 
                             let generate_start = std::time::Instant::now();
-                            let generate_response = client.post(&rpc_url)
-                                .json(&generate_payload)
-                                .send()
-                                .await;
+                            let generate_response =
+                                client.post(&rpc_url).json(&generate_payload).send().await;
 
                             match generate_response {
                                 Ok(gen_resp) => {
-                                    let gen_body: serde_json::Value = gen_resp.json().await.unwrap_or_default();
+                                    let gen_body: serde_json::Value =
+                                        gen_resp.json().await.unwrap_or_default();
                                     info!("🔬 [MONITOR-TRACE] Step 7b: generate_from_keys result in {:?}: {:?}",
                                           generate_start.elapsed(), gen_body);
 
                                     if gen_body.get("error").is_some() {
-                                        let gen_err = gen_body["error"]["message"].as_str().unwrap_or("unknown");
+                                        let gen_err = gen_body["error"]["message"]
+                                            .as_str()
+                                            .unwrap_or("unknown");
                                         // If wallet already exists (race condition), try to open again
-                                        if gen_err.contains("already exists") || gen_err.contains("Cannot create") {
+                                        if gen_err.contains("already exists")
+                                            || gen_err.contains("Cannot create")
+                                        {
                                             info!("🔬 [MONITOR-TRACE] Step 7c: Wallet created by another process, opening...");
-                                            let retry_open = client.post(&rpc_url)
+                                            let retry_open = client
+                                                .post(&rpc_url)
                                                 .json(&serde_json::json!({
                                                     "jsonrpc": "2.0",
                                                     "id": "0",
@@ -1065,35 +1150,62 @@ impl BlockchainMonitor {
                                                 }))
                                                 .send()
                                                 .await
-                                                .context("Failed to open wallet after create race")?;
-                                            let retry_body: serde_json::Value = retry_open.json().await.unwrap_or_default();
+                                                .context(
+                                                    "Failed to open wallet after create race",
+                                                )?;
+                                            let retry_body: serde_json::Value =
+                                                retry_open.json().await.unwrap_or_default();
                                             if retry_body.get("error").is_some() {
-                                                error!("🔬 [MONITOR-TRACE] FAILED at Step 7c: {:?}", retry_body["error"]);
-                                                return Err(anyhow::anyhow!("Failed to open wallet: {:?}", retry_body["error"]));
+                                                error!(
+                                                    "🔬 [MONITOR-TRACE] FAILED at Step 7c: {:?}",
+                                                    retry_body["error"]
+                                                );
+                                                return Err(anyhow::anyhow!(
+                                                    "Failed to open wallet: {:?}",
+                                                    retry_body["error"]
+                                                ));
                                             }
                                             wallet_was_opened = true;
                                         } else {
-                                            error!("🔬 [MONITOR-TRACE] FAILED at Step 7b: {}", gen_err);
-                                            return Err(anyhow::anyhow!("Failed to create view-only wallet: {}", gen_err));
+                                            error!(
+                                                "🔬 [MONITOR-TRACE] FAILED at Step 7b: {}",
+                                                gen_err
+                                            );
+                                            return Err(anyhow::anyhow!(
+                                                "Failed to create view-only wallet: {}",
+                                                gen_err
+                                            ));
                                         }
                                     }
                                     // wallet_was_opened stays false - new wallet needs full scan
                                 }
                                 Err(e) => {
-                                    error!("🔬 [MONITOR-TRACE] FAILED at Step 7b: HTTP error: {}", e);
-                                    return Err(anyhow::anyhow!("Failed to create view-only wallet: {}", e));
+                                    error!(
+                                        "🔬 [MONITOR-TRACE] FAILED at Step 7b: HTTP error: {}",
+                                        e
+                                    );
+                                    return Err(anyhow::anyhow!(
+                                        "Failed to create view-only wallet: {}",
+                                        e
+                                    ));
                                 }
                             }
                         } else {
                             // Some other error (maybe wallet is locked by another process)
-                            error!("🔬 [MONITOR-TRACE] FAILED at Step 7a: Unexpected error: {}", err_msg);
+                            error!(
+                                "🔬 [MONITOR-TRACE] FAILED at Step 7a: Unexpected error: {}",
+                                err_msg
+                            );
                             return Err(anyhow::anyhow!("Failed to open wallet: {}", err_msg));
                         }
                     }
                 }
                 Err(e) => {
                     error!("🔬 [MONITOR-TRACE] FAILED at Step 7: HTTP error: {}", e);
-                    return Err(anyhow::anyhow!("Failed to open/create view-only wallet: {}", e));
+                    return Err(anyhow::anyhow!(
+                        "Failed to open/create view-only wallet: {}",
+                        e
+                    ));
                 }
             }
 
@@ -1121,24 +1233,35 @@ impl BlockchainMonitor {
             };
 
             let refresh_start = std::time::Instant::now();
-            info!("🔬 [MONITOR-TRACE] Step 8: Sending refresh request (timeout={}s)...", WALLET_REFRESH_TIMEOUT_SECS);
+            info!(
+                "🔬 [MONITOR-TRACE] Step 8: Sending refresh request (timeout={}s)...",
+                WALLET_REFRESH_TIMEOUT_SECS
+            );
 
             // v0.75.0: Wrap refresh in timeout to prevent indefinite blocking
             // Wallet refresh can take a long time for new wallets scanning from restore_height
-            let refresh_future = client.post(&rpc_url)
-                .json(&refresh_payload)
-                .send();
+            let refresh_future = client.post(&rpc_url).json(&refresh_payload).send();
 
             let refresh_response = match tokio::time::timeout(
                 Duration::from_secs(WALLET_REFRESH_TIMEOUT_SECS),
-                refresh_future
-            ).await {
+                refresh_future,
+            )
+            .await
+            {
                 Ok(Ok(resp)) => {
-                    info!("🔬 [MONITOR-TRACE] Step 8: Refresh HTTP {} in {:?}", resp.status(), refresh_start.elapsed());
+                    info!(
+                        "🔬 [MONITOR-TRACE] Step 8: Refresh HTTP {} in {:?}",
+                        resp.status(),
+                        refresh_start.elapsed()
+                    );
                     resp
                 }
                 Ok(Err(e)) => {
-                    error!("🔬 [MONITOR-TRACE] FAILED at Step 8: Refresh HTTP error after {:?}: {}", refresh_start.elapsed(), e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] FAILED at Step 8: Refresh HTTP error after {:?}: {}",
+                        refresh_start.elapsed(),
+                        e
+                    );
                     return Err(anyhow::anyhow!("Failed to send refresh request: {}", e));
                 }
                 Err(_) => {
@@ -1161,8 +1284,15 @@ impl BlockchainMonitor {
             if !refresh_response.status().is_success() {
                 let status = refresh_response.status();
                 let error_text = refresh_response.text().await.unwrap_or_default();
-                error!("🔬 [MONITOR-TRACE] FAILED at Step 8: HTTP {} - {}", status, error_text);
-                return Err(anyhow::anyhow!("Refresh HTTP error {}: {}", status, error_text));
+                error!(
+                    "🔬 [MONITOR-TRACE] FAILED at Step 8: HTTP {} - {}",
+                    status, error_text
+                );
+                return Err(anyhow::anyhow!(
+                    "Refresh HTTP error {}: {}",
+                    status,
+                    error_text
+                ));
             }
 
             let refresh_result: serde_json::Value = match refresh_response.json().await {
@@ -1171,18 +1301,28 @@ impl BlockchainMonitor {
                     json
                 }
                 Err(e) => {
-                    error!("🔬 [MONITOR-TRACE] FAILED at Step 8: JSON parse error: {}", e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] FAILED at Step 8: JSON parse error: {}",
+                        e
+                    );
                     return Err(anyhow::anyhow!("Failed to parse refresh response: {}", e));
                 }
             };
 
             if let Some(error) = refresh_result.get("error") {
-                error!("🔬 [MONITOR-TRACE] FAILED at Step 8: RPC error: {:?}", error);
+                error!(
+                    "🔬 [MONITOR-TRACE] FAILED at Step 8: RPC error: {:?}",
+                    error
+                );
                 return Err(anyhow::anyhow!("Refresh RPC error: {}", error));
             }
 
-            let blocks_fetched = refresh_result["result"]["blocks_fetched"].as_u64().unwrap_or(0);
-            let received_money = refresh_result["result"]["received_money"].as_bool().unwrap_or(false);
+            let blocks_fetched = refresh_result["result"]["blocks_fetched"]
+                .as_u64()
+                .unwrap_or(0);
+            let received_money = refresh_result["result"]["received_money"]
+                .as_bool()
+                .unwrap_or(false);
             info!(
                 "🔬 [MONITOR-TRACE] Step 8 COMPLETE: blocks_fetched={}, received_money={}, elapsed={:?}",
                 blocks_fetched, received_money, refresh_start.elapsed()
@@ -1191,7 +1331,8 @@ impl BlockchainMonitor {
             // Step 8b: Save wallet state to disk (critical for persistence!)
             // This ensures next poll cycle can do incremental sync instead of full rescan
             info!("🔬 [MONITOR-TRACE] Step 8b: Saving wallet state to disk...");
-            let store_response = client.post(&rpc_url)
+            let store_response = client
+                .post(&rpc_url)
                 .json(&serde_json::json!({
                     "jsonrpc": "2.0",
                     "id": "0",
@@ -1204,13 +1345,19 @@ impl BlockchainMonitor {
                 Ok(resp) => {
                     let store_body: serde_json::Value = resp.json().await.unwrap_or_default();
                     if store_body.get("error").is_some() {
-                        warn!("🔬 [MONITOR-TRACE] Step 8b: store failed (non-fatal): {:?}", store_body["error"]);
+                        warn!(
+                            "🔬 [MONITOR-TRACE] Step 8b: store failed (non-fatal): {:?}",
+                            store_body["error"]
+                        );
                     } else {
                         info!("🔬 [MONITOR-TRACE] Step 8b: ✅ Wallet state saved");
                     }
                 }
                 Err(e) => {
-                    warn!("🔬 [MONITOR-TRACE] Step 8b: store HTTP error (non-fatal): {}", e);
+                    warn!(
+                        "🔬 [MONITOR-TRACE] Step 8b: store HTTP error (non-fatal): {}",
+                        e
+                    );
                 }
             }
 
@@ -1223,17 +1370,20 @@ impl BlockchainMonitor {
             });
 
             let balance_start = std::time::Instant::now();
-            let balance_response = match client.post(&rpc_url)
-                .json(&balance_payload)
-                .send()
-                .await
-            {
+            let balance_response = match client.post(&rpc_url).json(&balance_payload).send().await {
                 Ok(resp) => {
-                    info!("🔬 [MONITOR-TRACE] Step 9: get_balance HTTP {} in {:?}", resp.status(), balance_start.elapsed());
+                    info!(
+                        "🔬 [MONITOR-TRACE] Step 9: get_balance HTTP {} in {:?}",
+                        resp.status(),
+                        balance_start.elapsed()
+                    );
                     resp
                 }
                 Err(e) => {
-                    error!("🔬 [MONITOR-TRACE] FAILED at Step 9: get_balance HTTP error: {}", e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] FAILED at Step 9: get_balance HTTP error: {}",
+                        e
+                    );
                     return Err(anyhow::anyhow!("Failed to send get_balance request: {}", e));
                 }
             };
@@ -1242,7 +1392,10 @@ impl BlockchainMonitor {
             if !balance_response.status().is_success() {
                 let status = balance_response.status();
                 let error_text = balance_response.text().await.unwrap_or_default();
-                error!("🔬 [MONITOR-TRACE] FAILED at Step 9: HTTP {} - {}", status, error_text);
+                error!(
+                    "🔬 [MONITOR-TRACE] FAILED at Step 9: HTTP {} - {}",
+                    status, error_text
+                );
                 return Err(anyhow::anyhow!(
                     "get_balance HTTP error {}: {}",
                     status,
@@ -1256,18 +1409,21 @@ impl BlockchainMonitor {
                     json
                 }
                 Err(e) => {
-                    error!("🔬 [MONITOR-TRACE] FAILED at Step 9: JSON parse error: {}", e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] FAILED at Step 9: JSON parse error: {}",
+                        e
+                    );
                     return Err(anyhow::anyhow!("Failed to parse balance response: {}", e));
                 }
             };
 
             // Check for RPC error
             if let Some(error) = balance_result.get("error") {
-                error!("🔬 [MONITOR-TRACE] FAILED at Step 9: RPC error: {:?}", error);
-                return Err(anyhow::anyhow!(
-                    "get_balance RPC error: {}",
+                error!(
+                    "🔬 [MONITOR-TRACE] FAILED at Step 9: RPC error: {:?}",
                     error
-                ));
+                );
+                return Err(anyhow::anyhow!("get_balance RPC error: {}", error));
             }
 
             let total_balance = balance_result["result"]["balance"]
@@ -1311,7 +1467,10 @@ impl BlockchainMonitor {
                 .await
                 .context("Task join error")?
                 {
-                    error!("🔬 [MONITOR-TRACE] Step 10: ⚠️ Failed to update balance_received: {}", e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] Step 10: ⚠️ Failed to update balance_received: {}",
+                        e
+                    );
                 } else {
                     info!("🔬 [MONITOR-TRACE] Step 10: Updated balance_received to {} piconero (total, includes unconfirmed)", total_balance);
                 }
@@ -1323,7 +1482,9 @@ impl BlockchainMonitor {
                         total_balance, unlocked_balance
                     );
 
-                    match db_update_escrow_status_by_str(&self.db, escrow_id, "payment_detected").await {
+                    match db_update_escrow_status_by_str(&self.db, escrow_id, "payment_detected")
+                        .await
+                    {
                         Ok(_) => {
                             info!("🔬 [MONITOR-TRACE] Step 10-EARLY: Status updated to 'payment_detected'");
 
@@ -1338,13 +1499,20 @@ impl BlockchainMonitor {
                             });
                         }
                         Err(e) => {
-                            error!("🔬 [MONITOR-TRACE] Step 10-EARLY: Failed to update status: {}", e);
+                            error!(
+                                "🔬 [MONITOR-TRACE] Step 10-EARLY: Failed to update status: {}",
+                                e
+                            );
                         }
                     }
                 }
 
                 // If unlocked > 0 but < amount, also handle underfunded (partial confirmed payment)
-                if unlocked_balance > 0 && unlocked_balance < escrow.amount as u64 && escrow.status != "underfunded" && escrow.status != "payment_detected" {
+                if unlocked_balance > 0
+                    && unlocked_balance < escrow.amount as u64
+                    && escrow.status != "underfunded"
+                    && escrow.status != "payment_detected"
+                {
                     // Fall through to underfunded handling below
                 } else {
                     // Payment detected but not yet confirmed enough - keep polling
@@ -1365,7 +1533,10 @@ impl BlockchainMonitor {
                 .await
                 .context("Task join error")?
                 {
-                    error!("🔬 [MONITOR-TRACE] Step 10: ⚠️ Failed to update balance_received: {}", e);
+                    error!(
+                        "🔬 [MONITOR-TRACE] Step 10: ⚠️ Failed to update balance_received: {}",
+                        e
+                    );
                 } else {
                     info!("🔬 [MONITOR-TRACE] Step 10: Updated balance_received to {} piconero (unlocked/confirmed)", unlocked_balance);
                 }
@@ -1433,13 +1604,12 @@ impl BlockchainMonitor {
             }
 
             if unlocked_balance > 0 && unlocked_balance >= escrow.amount as u64 {
-                info!(
-                    "🔬 [MONITOR-TRACE] Step 10: ✅ FUNDED! Capturing commitment mask..."
-                );
+                info!("🔬 [MONITOR-TRACE] Step 10: ✅ FUNDED! Capturing commitment mask...");
 
                 // Step 10a: Capture commitment mask from incoming transfers
                 // The mask (blinding factor) is required for CLSAG ring signatures
-                let incoming_response = client.post(&rpc_url)
+                let incoming_response = client
+                    .post(&rpc_url)
                     .json(&serde_json::json!({
                         "jsonrpc": "2.0",
                         "id": "0",
@@ -1456,12 +1626,16 @@ impl BlockchainMonitor {
                 let mut funding_global_index: Option<i32> = None;
                 let mut funding_output_index: Option<i32> = None;
                 let mut funding_output_pubkey: Option<String> = None;
-                let mut funding_tx_pubkey: Option<String> = None;  // v0.8.2: For PKI derivation
+                let mut funding_tx_pubkey: Option<String> = None; // v0.8.2: For PKI derivation
 
                 match incoming_response {
                     Ok(resp) => {
-                        let incoming_json: serde_json::Value = resp.json().await.unwrap_or_default();
-                        info!("🔬 [MONITOR-TRACE] Step 10a: incoming_transfers response: {:?}", incoming_json);
+                        let incoming_json: serde_json::Value =
+                            resp.json().await.unwrap_or_default();
+                        info!(
+                            "🔬 [MONITOR-TRACE] Step 10a: incoming_transfers response: {:?}",
+                            incoming_json
+                        );
 
                         // Extract transfers array
                         if let Some(transfers) = incoming_json["result"]["transfers"].as_array() {
@@ -1493,7 +1667,10 @@ impl BlockchainMonitor {
                         }
                     }
                     Err(e) => {
-                        warn!("🔬 [MONITOR-TRACE] Step 10a: ⚠️ Failed to get incoming_transfers: {}", e);
+                        warn!(
+                            "🔬 [MONITOR-TRACE] Step 10a: ⚠️ Failed to get incoming_transfers: {}",
+                            e
+                        );
                     }
                 }
 
@@ -1504,129 +1681,167 @@ impl BlockchainMonitor {
                     if let Some(tx_hash) = funding_tx_hash.as_ref() {
                         info!("🔬 [MONITOR-TRACE] Step 10b: Deriving commitment mask from view key...");
 
-                    // Step 10b.1: Get tx_pub_key from daemon via get_transactions
-                    // BUG #C5 FIX: Use MONERO_DAEMON_URL env var instead of hardcoded port
-                    let daemon_base = std::env::var("MONERO_DAEMON_URL")
-                        .unwrap_or_else(|_| "http://127.0.0.1:18081".to_string());
-                    let daemon_url = format!("{}/get_transactions", daemon_base);
-                    let daemon_response = client.post(daemon_url)
-                        .json(&serde_json::json!({
-                            "txs_hashes": [tx_hash],
-                            "decode_as_json": true
-                        }))
-                        .send()
-                        .await;
+                        // Step 10b.1: Get tx_pub_key from daemon via get_transactions
+                        // BUG #C5 FIX: Use MONERO_DAEMON_URL env var instead of hardcoded port
+                        let daemon_base = std::env::var("MONERO_DAEMON_URL")
+                            .unwrap_or_else(|_| "http://127.0.0.1:18081".to_string());
+                        let daemon_url = format!("{}/get_transactions", daemon_base);
+                        let daemon_response = client
+                            .post(daemon_url)
+                            .json(&serde_json::json!({
+                                "txs_hashes": [tx_hash],
+                                "decode_as_json": true
+                            }))
+                            .send()
+                            .await;
 
-                    match daemon_response {
-                        Ok(resp) => {
-                            let daemon_json: serde_json::Value = resp.json().await.unwrap_or_default();
+                        match daemon_response {
+                            Ok(resp) => {
+                                let daemon_json: serde_json::Value =
+                                    resp.json().await.unwrap_or_default();
 
-                            // Extract tx_pub_key from tx extra field
-                            // The extra field is in the decoded JSON, look for "extra" array
-                            if let Some(txs) = daemon_json.get("txs").and_then(|t| t.as_array()) {
-                                if let Some(tx) = txs.first() {
-                                    // Try to get extra from as_json parsed version
-                                    if let Some(as_json_str) = tx.get("as_json").and_then(|j| j.as_str()) {
-                                        if let Ok(tx_parsed) = serde_json::from_str::<serde_json::Value>(as_json_str) {
-                                            // Step 10b.1: Extract tx_pub_key from extra field
-                                            let mut tx_pub_key_hex: Option<String> = None;
-                                            if let Some(extra) = tx_parsed.get("extra").and_then(|e| e.as_array()) {
-                                                let extra_bytes: Vec<u8> = extra.iter()
-                                                    .filter_map(|v| v.as_u64().map(|n| n as u8))
-                                                    .collect();
+                                // Extract tx_pub_key from tx extra field
+                                // The extra field is in the decoded JSON, look for "extra" array
+                                if let Some(txs) = daemon_json.get("txs").and_then(|t| t.as_array())
+                                {
+                                    if let Some(tx) = txs.first() {
+                                        // Try to get extra from as_json parsed version
+                                        if let Some(as_json_str) =
+                                            tx.get("as_json").and_then(|j| j.as_str())
+                                        {
+                                            if let Ok(tx_parsed) =
+                                                serde_json::from_str::<serde_json::Value>(
+                                                    as_json_str,
+                                                )
+                                            {
+                                                // Step 10b.1: Extract tx_pub_key from extra field
+                                                let mut tx_pub_key_hex: Option<String> = None;
+                                                if let Some(extra) = tx_parsed
+                                                    .get("extra")
+                                                    .and_then(|e| e.as_array())
+                                                {
+                                                    let extra_bytes: Vec<u8> = extra
+                                                        .iter()
+                                                        .filter_map(|v| v.as_u64().map(|n| n as u8))
+                                                        .collect();
 
-                                                // Look for tag 0x01 (tx_pub_key marker)
-                                                for i in 0..extra_bytes.len() {
-                                                    if extra_bytes[i] == 0x01 && i + 33 <= extra_bytes.len() {
-                                                        let tx_pub_key_bytes = &extra_bytes[i + 1..i + 33];
-                                                        tx_pub_key_hex = Some(hex::encode(tx_pub_key_bytes));
-                                                        // v0.8.2: Store tx_pub_key for PKI derivation
-                                                        funding_tx_pubkey = tx_pub_key_hex.clone();
-                                                        if let Some(ref pk) = tx_pub_key_hex {
-                                                            let display_len = std::cmp::min(16, pk.len());
-                                                            info!("🔬 [MONITOR-TRACE] Step 10b.1: Found tx_pub_key: {}...",
+                                                    // Look for tag 0x01 (tx_pub_key marker)
+                                                    for i in 0..extra_bytes.len() {
+                                                        if extra_bytes[i] == 0x01
+                                                            && i + 33 <= extra_bytes.len()
+                                                        {
+                                                            let tx_pub_key_bytes =
+                                                                &extra_bytes[i + 1..i + 33];
+                                                            tx_pub_key_hex =
+                                                                Some(hex::encode(tx_pub_key_bytes));
+                                                            // v0.8.2: Store tx_pub_key for PKI derivation
+                                                            funding_tx_pubkey =
+                                                                tx_pub_key_hex.clone();
+                                                            if let Some(ref pk) = tx_pub_key_hex {
+                                                                let display_len =
+                                                                    std::cmp::min(16, pk.len());
+                                                                info!("🔬 [MONITOR-TRACE] Step 10b.1: Found tx_pub_key: {}...",
                                                                 &pk[..display_len]);
+                                                            }
+                                                            break;
                                                         }
-                                                        break;
                                                     }
                                                 }
-                                            }
 
-                                            // Step 10b.2: Extract output keys from vout array
-                                            // Supports both old format (target.key) and new tagged_key format (target.tagged_key.key)
-                                            let mut output_keys: Vec<String> = Vec::new();
-                                            if let Some(vout) = tx_parsed.get("vout").and_then(|v| v.as_array()) {
-                                                for vout_entry in vout {
-                                                    // Extract target key from each output
-                                                    if let Some(target) = vout_entry.get("target") {
-                                                        // Try new tagged_key format first (Monero v0.18+)
-                                                        if let Some(tagged_key) = target.get("tagged_key") {
-                                                            if let Some(key) = tagged_key.get("key").and_then(|k| k.as_str()) {
+                                                // Step 10b.2: Extract output keys from vout array
+                                                // Supports both old format (target.key) and new tagged_key format (target.tagged_key.key)
+                                                let mut output_keys: Vec<String> = Vec::new();
+                                                if let Some(vout) =
+                                                    tx_parsed.get("vout").and_then(|v| v.as_array())
+                                                {
+                                                    for vout_entry in vout {
+                                                        // Extract target key from each output
+                                                        if let Some(target) =
+                                                            vout_entry.get("target")
+                                                        {
+                                                            // Try new tagged_key format first (Monero v0.18+)
+                                                            if let Some(tagged_key) =
+                                                                target.get("tagged_key")
+                                                            {
+                                                                if let Some(key) = tagged_key
+                                                                    .get("key")
+                                                                    .and_then(|k| k.as_str())
+                                                                {
+                                                                    output_keys
+                                                                        .push(key.to_string());
+                                                                    continue;
+                                                                }
+                                                            }
+                                                            // Fallback to old format (pre-v0.18)
+                                                            if let Some(key) = target
+                                                                .get("key")
+                                                                .and_then(|k| k.as_str())
+                                                            {
                                                                 output_keys.push(key.to_string());
-                                                                continue;
                                                             }
                                                         }
-                                                        // Fallback to old format (pre-v0.18)
-                                                        if let Some(key) = target.get("key").and_then(|k| k.as_str()) {
-                                                            output_keys.push(key.to_string());
-                                                        }
                                                     }
+                                                    info!("🔬 [MONITOR-TRACE] Step 10b.2: Found {} output keys", output_keys.len());
                                                 }
-                                                info!("🔬 [MONITOR-TRACE] Step 10b.2: Found {} output keys", output_keys.len());
-                                            }
 
-                                            // Step 10b.3: Use automated output detection and mask derivation
-                                            if let Some(ref tx_pub_key) = tx_pub_key_hex {
-                                                if !output_keys.is_empty() {
-                                                    // Use the new automated function to find our output
-                                                    match find_our_output_and_derive_mask(
-                                                        &view_key,
-                                                        tx_pub_key,
-                                                        &multisig_address,
-                                                        &output_keys,
-                                                        None, // encrypted_amounts not needed for mask
-                                                    ) {
-                                                        Ok(result) => {
-                                                            info!("🔬 [MONITOR-TRACE] Step 10b.3: ✅ Found our output at index {}",
+                                                // Step 10b.3: Use automated output detection and mask derivation
+                                                if let Some(ref tx_pub_key) = tx_pub_key_hex {
+                                                    if !output_keys.is_empty() {
+                                                        // Use the new automated function to find our output
+                                                        match find_our_output_and_derive_mask(
+                                                            &view_key,
+                                                            tx_pub_key,
+                                                            &multisig_address,
+                                                            &output_keys,
+                                                            None, // encrypted_amounts not needed for mask
+                                                        ) {
+                                                            Ok(result) => {
+                                                                info!("🔬 [MONITOR-TRACE] Step 10b.3: ✅ Found our output at index {}",
                                                                 result.output_index);
-                                                            info!("🔬 [MONITOR-TRACE] Step 10b.3: ✅ Mask derived successfully (len={})",
+                                                                info!("🔬 [MONITOR-TRACE] Step 10b.3: ✅ Mask derived successfully (len={})",
                                                                 result.commitment_mask.len());
-                                                            funding_mask = Some(result.commitment_mask);
-                                                            funding_output_index = Some(result.output_index as i32);
+                                                                funding_mask =
+                                                                    Some(result.commitment_mask);
+                                                                funding_output_index = Some(
+                                                                    result.output_index as i32,
+                                                                );
+                                                            }
+                                                            Err(e) => {
+                                                                // BUG 2.18 FIX: Do NOT fallback to index 0 - this causes CLSAG failures
+                                                                // If output detection fails, we MUST NOT guess - leave funding_mask = None
+                                                                error!("🔬 [MONITOR-TRACE] Step 10b.3: ❌ CRITICAL: Output detection failed: {}", e);
+                                                                error!("🔬 [MONITOR-TRACE] Step 10b.3: ❌ Cannot derive funding_mask - escrow will require manual re-funding");
+                                                                // Do NOT set funding_mask - leave as None to prevent corrupted escrow
+                                                            }
                                                         }
-                                                        Err(e) => {
-                                                            // BUG 2.18 FIX: Do NOT fallback to index 0 - this causes CLSAG failures
-                                                            // If output detection fails, we MUST NOT guess - leave funding_mask = None
-                                                            error!("🔬 [MONITOR-TRACE] Step 10b.3: ❌ CRITICAL: Output detection failed: {}", e);
-                                                            error!("🔬 [MONITOR-TRACE] Step 10b.3: ❌ Cannot derive funding_mask - escrow will require manual re-funding");
-                                                            // Do NOT set funding_mask - leave as None to prevent corrupted escrow
-                                                        }
+                                                    } else {
+                                                        // BUG 2.18 FIX: Do NOT fallback to index 0 when output keys are missing
+                                                        // This would guess the wrong output and cause CLSAG signature failures
+                                                        error!("🔬 [MONITOR-TRACE] Step 10b.2: ❌ CRITICAL: No output keys found in transaction");
+                                                        error!("🔬 [MONITOR-TRACE] Step 10b.2: ❌ Cannot safely derive funding_mask without output verification");
+                                                        // Leave funding_mask as None - escrow will not be signable but won't be corrupted
                                                     }
-                                                } else {
-                                                    // BUG 2.18 FIX: Do NOT fallback to index 0 when output keys are missing
-                                                    // This would guess the wrong output and cause CLSAG signature failures
-                                                    error!("🔬 [MONITOR-TRACE] Step 10b.2: ❌ CRITICAL: No output keys found in transaction");
-                                                    error!("🔬 [MONITOR-TRACE] Step 10b.2: ❌ Cannot safely derive funding_mask without output verification");
-                                                    // Leave funding_mask as None - escrow will not be signable but won't be corrupted
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+                            Err(e) => {
+                                warn!("🔬 [MONITOR-TRACE] Step 10b: Daemon request failed: {}", e);
+                            }
                         }
-                        Err(e) => {
-                            warn!("🔬 [MONITOR-TRACE] Step 10b: Daemon request failed: {}", e);
-                        }
-                    }
                     } // Close if let Some(tx_hash)
                 } // Close if funding_mask.is_none()
 
                 // Step 10c: Store commitment data in database if found
                 // BUG 2.19 FIX: ALL fields must be present - no fallback to 0!
-                if let (Some(mask), Some(tx_hash), Some(output_idx), Some(global_idx)) =
-                    (&funding_mask, &funding_tx_hash, funding_output_index, funding_global_index)
-                {
+                if let (Some(mask), Some(tx_hash), Some(output_idx), Some(global_idx)) = (
+                    &funding_mask,
+                    &funding_tx_hash,
+                    funding_output_index,
+                    funding_global_index,
+                ) {
                     info!("🔬 [MONITOR-TRACE] Step 10c: Storing commitment data in DB (output_index={}, global_index={})...",
                         output_idx, global_idx);
                     let escrow_id_str = escrow_id.to_string();
@@ -1634,12 +1849,15 @@ impl BlockchainMonitor {
                     let tx_hash_clone = tx_hash.clone();
                     let global_index = global_idx;
                     let pubkey_clone = funding_output_pubkey.clone();
-                    let tx_pubkey_clone = funding_tx_pubkey.clone();  // v0.8.2: For PKI derivation
+                    let tx_pubkey_clone = funding_tx_pubkey.clone(); // v0.8.2: For PKI derivation
                     let db_pool = self.db.clone();
 
                     // v0.8.2: Log tx_pub_key storage
                     if let Some(ref tx_pk) = tx_pubkey_clone {
-                        info!("🔬 [MONITOR-TRACE] Step 10c: Storing tx_pub_key for PKI: {}...", &tx_pk[..16.min(tx_pk.len())]);
+                        info!(
+                            "🔬 [MONITOR-TRACE] Step 10c: Storing tx_pub_key for PKI: {}...",
+                            &tx_pk[..16.min(tx_pk.len())]
+                        );
                     }
 
                     match tokio::task::spawn_blocking(move || {
@@ -1649,10 +1867,10 @@ impl BlockchainMonitor {
                             escrow_id_str,
                             &mask_clone,
                             &tx_hash_clone,
-                            output_idx,  // Now using auto-detected output_index
+                            output_idx, // Now using auto-detected output_index
                             global_index,
-                            pubkey_clone.as_deref(),  // Output pubkey for auto-PKI
-                            tx_pubkey_clone.as_deref(),  // v0.8.2: TX pubkey R for PKI derivation
+                            pubkey_clone.as_deref(), // Output pubkey for auto-PKI
+                            tx_pubkey_clone.as_deref(), // v0.8.2: TX pubkey R for PKI derivation
                         )
                     })
                     .await
@@ -1671,7 +1889,9 @@ impl BlockchainMonitor {
                     }
                 } else {
                     // BUG 2.19: Log which field is missing - helps debug funding detection issues
-                    error!("🔬 [MONITOR-TRACE] Step 10c: ❌ CRITICAL - Missing required funding data!");
+                    error!(
+                        "🔬 [MONITOR-TRACE] Step 10c: ❌ CRITICAL - Missing required funding data!"
+                    );
                     error!("🔬 [MONITOR-TRACE] Step 10c: funding_mask={}, funding_tx_hash={}, funding_output_index={:?}, funding_global_index={:?}",
                         funding_mask.is_some(), funding_tx_hash.is_some(), funding_output_index, funding_global_index);
                     error!("🔬 [MONITOR-TRACE] Step 10c: ❌ Escrow will NOT be signable - re-fund required after fix");
@@ -1697,7 +1917,10 @@ impl BlockchainMonitor {
                             });
                         }
                         Err(e) => {
-                            error!("🔬 [MONITOR-TRACE] FAILED at Step 10d: DB update error: {}", e);
+                            error!(
+                                "🔬 [MONITOR-TRACE] FAILED at Step 10d: DB update error: {}",
+                                e
+                            );
                             return Err(e.context("Failed to update escrow status to funded"));
                         }
                     }
@@ -1706,7 +1929,10 @@ impl BlockchainMonitor {
                 }
 
                 // EaaS: No Order table - escrow status is the source of truth
-                info!("🔬 [MONITOR-TRACE] Step 11: Escrow {} funded (EaaS mode)", escrow_id);
+                info!(
+                    "🔬 [MONITOR-TRACE] Step 11: Escrow {} funded (EaaS mode)",
+                    escrow_id
+                );
 
                 // v0.75.0: Clear any failure tracking on success
                 self.clear_consecutive_failures(escrow_id);
@@ -1716,7 +1942,10 @@ impl BlockchainMonitor {
         }
 
         // CUSTODIAL MODE: Use server-managed wallet with monero-wallet-rpc
-        info!("🔍 [CUSTODIAL] Using server-managed wallet for escrow {}", escrow_id);
+        info!(
+            "🔍 [CUSTODIAL] Using server-managed wallet for escrow {}",
+            escrow_id
+        );
 
         let wallet_filename = format!("buyer_temp_escrow_{}", escrow_id);
         // Use first available wallet-rpc port for the network
@@ -1737,7 +1966,8 @@ impl BlockchainMonitor {
             }
         });
 
-        client.post(&rpc_url)
+        client
+            .post(&rpc_url)
             .json(&open_payload)
             .send()
             .await
@@ -1750,7 +1980,8 @@ impl BlockchainMonitor {
             "method": "refresh"
         });
 
-        client.post(&rpc_url)
+        client
+            .post(&rpc_url)
             .json(&refresh_payload)
             .send()
             .await
@@ -1763,13 +1994,16 @@ impl BlockchainMonitor {
             "method": "get_balance"
         });
 
-        let response = client.post(&rpc_url)
+        let response = client
+            .post(&rpc_url)
             .json(&balance_payload)
             .send()
             .await
             .context("Failed to send get_balance request")?;
 
-        let balance_result: serde_json::Value = response.json().await
+        let balance_result: serde_json::Value = response
+            .json()
+            .await
             .context("Failed to parse balance response")?;
 
         let total_balance = balance_result["result"]["balance"]
@@ -1801,7 +2035,10 @@ impl BlockchainMonitor {
 
                 info!("Escrow {} funded (EaaS mode)", escrow_id);
             } else {
-                info!("Escrow {} already at '{}' - not regressing to funded", escrow_id, escrow.status);
+                info!(
+                    "Escrow {} already at '{}' - not regressing to funded",
+                    escrow_id, escrow.status
+                );
             }
             // Keep existing post-funded logic below (WebSocket notification etc.)
 
@@ -1852,13 +2089,20 @@ impl BlockchainMonitor {
                     buyer_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Payment Received - Awaiting Shipment".to_string(),
-                    format!("Escrow {} is funded. Vendor will now ship your order.", short_id),
+                    format!(
+                        "Escrow {} is funded. Vendor will now ship your order.",
+                        short_id
+                    ),
                     Some(link.clone()),
                     None,
                 );
                 match Notification::create(buyer_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %eid_for_notif, user_id = %buyer_id, "[MONITOR-NOTIF] ✅ Buyer notification created"),
-                    Err(e) => tracing::error!(escrow_id = %eid_for_notif, user_id = %buyer_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create buyer notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %eid_for_notif, user_id = %buyer_id, "[MONITOR-NOTIF] ✅ Buyer notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %eid_for_notif, user_id = %buyer_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create buyer notification")
+                    }
                 }
 
                 // 2. VENDOR notification (IT'S YOUR TURN)
@@ -1866,13 +2110,20 @@ impl BlockchainMonitor {
                     vendor_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Payment Received - Ship Now".to_string(),
-                    format!("Escrow {} funded! Ship the order and click 'Confirm Shipped'.", short_id),
+                    format!(
+                        "Escrow {} funded! Ship the order and click 'Confirm Shipped'.",
+                        short_id
+                    ),
                     Some(link.clone()),
                     None,
                 );
                 match Notification::create(vendor_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %eid_for_notif, user_id = %vendor_id, "[MONITOR-NOTIF] ✅ Vendor notification created"),
-                    Err(e) => tracing::error!(escrow_id = %eid_for_notif, user_id = %vendor_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create vendor notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %eid_for_notif, user_id = %vendor_id, "[MONITOR-NOTIF] ✅ Vendor notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %eid_for_notif, user_id = %vendor_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create vendor notification")
+                    }
                 }
 
                 // 3. ARBITER notification
@@ -1880,13 +2131,20 @@ impl BlockchainMonitor {
                     arbiter_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Escrow Funded - Monitoring".to_string(),
-                    format!("Escrow {} is funded. Monitor for potential disputes.", short_id),
+                    format!(
+                        "Escrow {} is funded. Monitor for potential disputes.",
+                        short_id
+                    ),
                     Some(link),
                     None,
                 );
                 match Notification::create(arbiter_notif, &mut conn) {
-                    Ok(_) => tracing::info!(escrow_id = %eid_for_notif, user_id = %arbiter_id, "[MONITOR-NOTIF] ✅ Arbiter notification created"),
-                    Err(e) => tracing::error!(escrow_id = %eid_for_notif, user_id = %arbiter_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create arbiter notification"),
+                    Ok(_) => {
+                        tracing::info!(escrow_id = %eid_for_notif, user_id = %arbiter_id, "[MONITOR-NOTIF] ✅ Arbiter notification created")
+                    }
+                    Err(e) => {
+                        tracing::error!(escrow_id = %eid_for_notif, user_id = %arbiter_id, error = %e, "[MONITOR-NOTIF] ❌ Failed to create arbiter notification")
+                    }
                 }
             });
 
@@ -2050,7 +2308,7 @@ impl BlockchainMonitor {
         info!(
             "Review invitation sent to buyer {} for completed transaction {} (vendor: {})",
             escrow.buyer_id,
-            &tx_hash[..8],  // Only log first 8 chars for privacy
+            &tx_hash[..8], // Only log first 8 chars for privacy
             escrow.vendor_id
         );
 
@@ -2073,13 +2331,14 @@ impl BlockchainMonitor {
             // (recovery: re-extract TX data if first extraction failed)
             escrows
                 .filter(
-                    status.eq("created")
-                    .or(status.eq("payment_detected"))
-                    .or(status.eq("funded"))
-                    .or(
-                        status.eq("shipped").or(status.eq("releasing"))
-                            .and(funding_output_pubkey.is_null())
-                    )
+                    status
+                        .eq("created")
+                        .or(status.eq("payment_detected"))
+                        .or(status.eq("funded"))
+                        .or(status
+                            .eq("shipped")
+                            .or(status.eq("releasing"))
+                            .and(funding_output_pubkey.is_null())),
                 )
                 .filter(multisig_address.is_not_null())
                 .select(id)

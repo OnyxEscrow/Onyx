@@ -17,7 +17,7 @@ pub fn sanitize_uuid(uuid: &uuid::Uuid) -> String {
     if uuid_str.len() < 12 {
         return "<invalid-uuid>".to_string();
     }
-    format!("{}...{}", &uuid_str[..8], &uuid_str[uuid_str.len()-4..])
+    format!("{}...{}", &uuid_str[..8], &uuid_str[uuid_str.len() - 4..])
 }
 
 /// Sanitize une adresse Monero pour les logs
@@ -30,7 +30,7 @@ pub fn sanitize_address(address: &str) -> String {
     if address.len() < 6 {
         return "<invalid-address>".to_string();
     }
-    format!("{}...{}", &address[..2], &address[address.len()-3..])
+    format!("{}...{}", &address[..2], &address[address.len() - 3..])
 }
 
 /// Sanitize un montant XMR (optionnel, si vraiment paranoid)
@@ -54,7 +54,7 @@ pub fn sanitize_txid(txid: &str) -> String {
     if txid.len() < 16 {
         return "[invalid_txid]".to_string();
     }
-    format!("{}...{}", &txid[..8], &txid[txid.len()-4..])
+    format!("{}...{}", &txid[..8], &txid[txid.len() - 4..])
 }
 
 /// Sanitize a broadcast transaction hash with confirmation context
@@ -141,7 +141,7 @@ pub fn sanitize_hex_data(data: &str, label: &str) -> String {
     if data.len() < 8 {
         return format!("[{}:invalid]", label);
     }
-    format!("[{}:{}...{}]", label, &data[..4], &data[data.len()-4..])
+    format!("[{}:{}...{}]", label, &data[..4], &data[data.len() - 4..])
 }
 
 // ============================================================================
@@ -157,7 +157,7 @@ pub fn sanitize_escrow_id(id: &str) -> String {
         sanitize_uuid(&uuid)
     } else if id.len() >= 12 {
         // Fallback for non-UUID string IDs
-        format!("{}...{}", &id[..8], &id[id.len()-4..])
+        format!("{}...{}", &id[..8], &id[id.len() - 4..])
     } else {
         "[invalid_escrow_id]".to_string()
     }
@@ -250,8 +250,14 @@ mod tests {
     fn test_sanitize_rpc_url() {
         // Should always return redacted
         assert_eq!(sanitize_rpc_url("http://127.0.0.1:18082"), "[rpc_endpoint]");
-        assert_eq!(sanitize_rpc_url("http://localhost:18082/json_rpc"), "[rpc_endpoint]");
-        assert_eq!(sanitize_rpc_url("http://abcdef.onion:18082"), "[rpc_endpoint]");
+        assert_eq!(
+            sanitize_rpc_url("http://localhost:18082/json_rpc"),
+            "[rpc_endpoint]"
+        );
+        assert_eq!(
+            sanitize_rpc_url("http://abcdef.onion:18082"),
+            "[rpc_endpoint]"
+        );
     }
 
     #[test]
@@ -315,7 +321,10 @@ mod tests {
         let user = user_log_context("user12345-6789-0123-4567-890efus0001", "logged_in");
         assert!(user.contains("[user:user1234...0001]"));
 
-        let tx = tx_log_context("abc123def456789012345678901234567890123456789012345678901234wxyz", "broadcast");
+        let tx = tx_log_context(
+            "abc123def456789012345678901234567890123456789012345678901234wxyz",
+            "broadcast",
+        );
         assert!(tx.contains("[tx:abc123de...wxyz]"));
         assert!(tx.contains("broadcast"));
     }

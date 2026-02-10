@@ -303,7 +303,10 @@ fn test_multiple_release_attempts() {
     }
 
     // Exactly one should succeed
-    let successes = results.iter().filter(|r| **r == ActionResult::Success).count();
+    let successes = results
+        .iter()
+        .filter(|r| **r == ActionResult::Success)
+        .count();
     assert_eq!(successes, 1, "Exactly one release should succeed");
 
     // Final state is Released
@@ -331,7 +334,10 @@ fn test_interleaved_release_refund() {
     }
 
     // Exactly one should succeed (the first one)
-    let successes = results.iter().filter(|r| **r == ActionResult::Success).count();
+    let successes = results
+        .iter()
+        .filter(|r| **r == ActionResult::Success)
+        .count();
     assert_eq!(successes, 1, "Exactly one action should succeed");
 
     // First action wins (release at index 0)
@@ -437,7 +443,11 @@ fn test_sequence_tracker_counts() {
     let tracker = SequenceTracker::new();
 
     tracker.record("e1", EscrowAction::Release, ActionResult::Success);
-    tracker.record("e1", EscrowAction::Refund, ActionResult::RaceConditionDetected);
+    tracker.record(
+        "e1",
+        EscrowAction::Refund,
+        ActionResult::RaceConditionDetected,
+    );
     tracker.record("e2", EscrowAction::Release, ActionResult::Success);
 
     assert_eq!(tracker.count_successes(), 2);
@@ -559,7 +569,11 @@ fn test_many_escrows_parallel_simulation() {
 
     // Each escrow in terminal state
     for escrow in &escrows {
-        assert!(escrow.is_terminal(), "Escrow {} should be terminal", escrow.id);
+        assert!(
+            escrow.is_terminal(),
+            "Escrow {} should be terminal",
+            escrow.id
+        );
     }
 }
 

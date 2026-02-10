@@ -9,7 +9,7 @@
 use anyhow::{Context, Result};
 use diesel::prelude::*;
 
-use crate::config::{get_release_fee_bps, get_refund_fee_bps};
+use crate::config::{get_refund_fee_bps, get_release_fee_bps};
 use crate::models::marketplace_client::MarketplaceClient;
 
 /// Resolved fee configuration for a specific escrow transaction.

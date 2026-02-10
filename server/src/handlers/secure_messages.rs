@@ -56,9 +56,9 @@ const RATE_LIMIT_PER_HOUR: i64 = 50;
 /// Request to create/update messaging keypair
 #[derive(Debug, Deserialize)]
 pub struct CreateKeypairRequest {
-    pub public_key: String,              // X25519 public key (base64)
-    pub encrypted_private_key: String,   // Encrypted with password (base64)
-    pub key_salt: String,                // Salt for key derivation (base64)
+    pub public_key: String,            // X25519 public key (base64)
+    pub encrypted_private_key: String, // Encrypted with password (base64)
+    pub key_salt: String,              // Salt for key derivation (base64)
     pub csrf_token: String,
 }
 
@@ -66,10 +66,10 @@ pub struct CreateKeypairRequest {
 #[derive(Debug, Deserialize)]
 pub struct SendMessageRequest {
     pub recipient_id: String,
-    pub encrypted_content: String,       // ChaCha20Poly1305 ciphertext (base64)
-    pub nonce: String,                   // 12-byte nonce (base64)
+    pub encrypted_content: String, // ChaCha20Poly1305 ciphertext (base64)
+    pub nonce: String,             // 12-byte nonce (base64)
     pub sender_ephemeral_pubkey: String, // X25519 ephemeral public key
-    pub expires_in_hours: Option<i64>,   // Optional TTL
+    pub expires_in_hours: Option<i64>, // Optional TTL
     pub csrf_token: String,
 }
 
@@ -157,12 +157,10 @@ fn get_user_id(session: &Session) -> Result<String, HttpResponse> {
     session
         .get::<String>("user_id")
         .map_err(|_| {
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Session error"))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error("Session error"))
         })?
         .ok_or_else(|| {
-            HttpResponse::Unauthorized()
-                .json(ApiResponse::<()>::error("Authentication required"))
+            HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Authentication required"))
         })
 }
 
@@ -173,36 +171,63 @@ fn validate_base64_field(value: &str, name: &str, max_len: usize) -> Result<(), 
             .json(ApiResponse::<()>::error(format!("{} is required", name))));
     }
     if value.len() > max_len {
-        return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} exceeds maximum size", name))));
+        return Err(
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
+                "{} exceeds maximum size",
+                name
+            ))),
+        );
     }
     // Basic base64 validation
-    if !value.chars().all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=') {
-        return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} is not valid base64", name))));
+    if !value
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '+' || c == '/' || c == '=')
+    {
+        return Err(
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
+                "{} is not valid base64",
+                name
+            ))),
+        );
     }
     Ok(())
 }
 
 /// Validate encrypted private key field (JSON format with ciphertext and iv)
-fn validate_encrypted_key_field(value: &str, name: &str, max_len: usize) -> Result<(), HttpResponse> {
+fn validate_encrypted_key_field(
+    value: &str,
+    name: &str,
+    max_len: usize,
+) -> Result<(), HttpResponse> {
     if value.is_empty() {
         return Err(HttpResponse::BadRequest()
             .json(ApiResponse::<()>::error(format!("{} is required", name))));
     }
     if value.len() > max_len {
-        return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} exceeds maximum size", name))));
+        return Err(
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
+                "{} exceeds maximum size",
+                name
+            ))),
+        );
     }
     // Validate JSON format: {"ciphertext":"...","iv":"..."}
     if !value.starts_with('{') || !value.ends_with('}') {
-        return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} must be JSON format", name))));
+        return Err(
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
+                "{} must be JSON format",
+                name
+            ))),
+        );
     }
     // Basic check for required fields
     if !value.contains("ciphertext") || !value.contains("iv") {
-        return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} missing required fields", name))));
+        return Err(
+            HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
+                "{} missing required fields",
+                name
+            ))),
+        );
     }
     Ok(())
 }
@@ -222,8 +247,7 @@ pub async fn create_keypair(
 ) -> impl Responder {
     // CSRF validation
     if !validate_csrf_token(&session, &req.csrf_token) {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("Invalid CSRF token"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error("Invalid CSRF token"));
     }
 
     // Auth check
@@ -238,7 +262,9 @@ pub async fn create_keypair(
         return resp;
     }
     // Encrypted private key is JSON format {"ciphertext":"...","iv":"..."}, allow 1024
-    if let Err(resp) = validate_encrypted_key_field(&req.encrypted_private_key, "encrypted_private_key", 1024) {
+    if let Err(resp) =
+        validate_encrypted_key_field(&req.encrypted_private_key, "encrypted_private_key", 1024)
+    {
         return resp;
     }
     if let Err(resp) = validate_base64_field(&req.key_salt, "key_salt", 64) {
@@ -283,10 +309,7 @@ pub async fn create_keypair(
 }
 
 /// GET /api/secure-messages/keypair - Get own keypair for decryption setup
-pub async fn get_own_keypair(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn get_own_keypair(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     let user_id = match get_user_id(&session) {
         Ok(id) => id,
         Err(resp) => return resp,
@@ -302,21 +325,18 @@ pub async fn get_own_keypair(
     };
 
     match MessageKeypair::get_active_for_user(&user_id, &mut conn) {
-        Ok(Some(keypair)) => {
-            HttpResponse::Ok().json(ApiResponse::success(KeypairResponse {
-                id: keypair.id,
-                public_key: keypair.public_key,
-                encrypted_private_key: keypair.encrypted_private_key,
-                key_salt: keypair.key_salt,
-                created_at: keypair.created_at,
-            }))
-        }
-        Ok(None) => {
-            HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("No keypair found. Create one first."))
-        }
+        Ok(Some(keypair)) => HttpResponse::Ok().json(ApiResponse::success(KeypairResponse {
+            id: keypair.id,
+            public_key: keypair.public_key,
+            encrypted_private_key: keypair.encrypted_private_key,
+            key_salt: keypair.key_salt,
+            created_at: keypair.created_at,
+        })),
+        Ok(None) => HttpResponse::NotFound().json(ApiResponse::<()>::error(
+            "No keypair found. Create one first.",
+        )),
         Err(e) => {
-            error!("Failed to get keypair: {:?}", e);  // Debug format for full error chain
+            error!("Failed to get keypair: {:?}", e); // Debug format for full error chain
             HttpResponse::InternalServerError()
                 .json(ApiResponse::<()>::error("Failed to retrieve keypair"))
         }
@@ -349,24 +369,20 @@ pub async fn get_user_pubkey(
     let user = match User::find_by_id(&mut conn, target_user_id.clone()) {
         Ok(u) => u,
         Err(_) => {
-            return HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("User not found"));
+            return HttpResponse::NotFound().json(ApiResponse::<()>::error("User not found"));
         }
     };
 
     // Get public key
     match MessageKeypair::get_public_key_for_user(&target_user_id, &mut conn) {
-        Ok(Some(pubkey)) => {
-            HttpResponse::Ok().json(ApiResponse::success(PublicKeyResponse {
-                user_id: target_user_id,
-                username: user.username,
-                public_key: pubkey,
-            }))
-        }
-        Ok(None) => {
-            HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("User has not set up secure messaging"))
-        }
+        Ok(Some(pubkey)) => HttpResponse::Ok().json(ApiResponse::success(PublicKeyResponse {
+            user_id: target_user_id,
+            username: user.username,
+            public_key: pubkey,
+        })),
+        Ok(None) => HttpResponse::NotFound().json(ApiResponse::<()>::error(
+            "User has not set up secure messaging",
+        )),
         Err(e) => {
             error!("Failed to get public key: {}", e);
             HttpResponse::InternalServerError()
@@ -384,8 +400,7 @@ pub async fn send_message(
 ) -> impl Responder {
     // CSRF validation
     if !validate_csrf_token(&session, &req.csrf_token) {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("Invalid CSRF token"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error("Invalid CSRF token"));
     }
 
     let sender_id = match get_user_id(&session) {
@@ -402,14 +417,20 @@ pub async fn send_message(
         return HttpResponse::BadRequest()
             .json(ApiResponse::<()>::error("Cannot send message to yourself"));
     }
-    if let Err(resp) = validate_base64_field(&req.encrypted_content, "encrypted_content", MAX_MESSAGE_SIZE) {
+    if let Err(resp) = validate_base64_field(
+        &req.encrypted_content,
+        "encrypted_content",
+        MAX_MESSAGE_SIZE,
+    ) {
         return resp;
     }
     if let Err(resp) = validate_base64_field(&req.nonce, "nonce", 24) {
         return resp;
     }
     // P-256 ephemeral public key is 65 bytes = ~88 base64 chars, allow 128
-    if let Err(resp) = validate_base64_field(&req.sender_ephemeral_pubkey, "sender_ephemeral_pubkey", 128) {
+    if let Err(resp) =
+        validate_base64_field(&req.sender_ephemeral_pubkey, "sender_ephemeral_pubkey", 128)
+    {
         return resp;
     }
 
@@ -432,8 +453,7 @@ pub async fn send_message(
     };
 
     if User::find_by_id(&mut conn, req.recipient_id.clone()).is_err() {
-        return HttpResponse::NotFound()
-            .json(ApiResponse::<()>::error("Recipient not found"));
+        return HttpResponse::NotFound().json(ApiResponse::<()>::error("Recipient not found"));
     }
 
     // Calculate expiry if provided
@@ -520,8 +540,7 @@ pub async fn get_conversation(
     let other_user = match User::find_by_id(&mut conn, other_user_id.clone()) {
         Ok(u) => u,
         Err(_) => {
-            return HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("User not found"));
+            return HttpResponse::NotFound().json(ApiResponse::<()>::error("User not found"));
         }
     };
 
@@ -531,14 +550,15 @@ pub async fn get_conversation(
         .unwrap_or(false);
 
     // Get messages
-    let messages = match SecureMessage::get_conversation(&user_id, &other_user_id, limit, offset, &mut conn) {
-        Ok(msgs) => msgs,
-        Err(e) => {
-            error!("Failed to load conversation: {}", e);
-            return HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error("Failed to load conversation"));
-        }
-    };
+    let messages =
+        match SecureMessage::get_conversation(&user_id, &other_user_id, limit, offset, &mut conn) {
+            Ok(msgs) => msgs,
+            Err(e) => {
+                error!("Failed to load conversation: {}", e);
+                return HttpResponse::InternalServerError()
+                    .json(ApiResponse::<()>::error("Failed to load conversation"));
+            }
+        };
 
     // Convert to DTOs with read status
     let message_dtos: Vec<SecureMessageDto> = messages
@@ -561,7 +581,8 @@ pub async fn get_conversation(
         .collect();
 
     // Mark received messages as read
-    if let Err(e) = MessageReadReceipt::mark_conversation_read(&user_id, &other_user_id, &mut conn) {
+    if let Err(e) = MessageReadReceipt::mark_conversation_read(&user_id, &other_user_id, &mut conn)
+    {
         warn!("Failed to mark messages as read: {}", e);
     }
 
@@ -577,10 +598,7 @@ pub async fn get_conversation(
 }
 
 /// GET /api/secure-messages/conversations - List all conversations
-pub async fn list_conversations(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn list_conversations(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     let user_id = match get_user_id(&session) {
         Ok(id) => id,
         Err(resp) => return resp,
@@ -640,8 +658,7 @@ pub async fn mark_message_read(
         .unwrap_or("");
 
     if !validate_csrf_token(&session, csrf_token) {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("Invalid CSRF token"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error("Invalid CSRF token"));
     }
 
     let user_id = match get_user_id(&session) {
@@ -679,14 +696,10 @@ pub async fn mark_message_read(
             }
             HttpResponse::Ok().json(ApiResponse::success(true))
         }
-        Some(_) => {
-            HttpResponse::Forbidden()
-                .json(ApiResponse::<()>::error("Cannot mark others' messages as read"))
-        }
-        None => {
-            HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("Message not found"))
-        }
+        Some(_) => HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "Cannot mark others' messages as read",
+        )),
+        None => HttpResponse::NotFound().json(ApiResponse::<()>::error("Message not found")),
     }
 }
 
@@ -704,8 +717,7 @@ pub async fn delete_message(
         .unwrap_or("");
 
     if !validate_csrf_token(&session, csrf_token) {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("Invalid CSRF token"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error("Invalid CSRF token"));
     }
 
     let user_id = match get_user_id(&session) {
@@ -729,10 +741,9 @@ pub async fn delete_message(
             info!("Message soft-deleted");
             HttpResponse::Ok().json(ApiResponse::success(true))
         }
-        Ok(false) => {
-            HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("Message not found or not authorized"))
-        }
+        Ok(false) => HttpResponse::NotFound().json(ApiResponse::<()>::error(
+            "Message not found or not authorized",
+        )),
         Err(e) => {
             error!("Failed to delete message: {}", e);
             HttpResponse::InternalServerError()
@@ -742,10 +753,7 @@ pub async fn delete_message(
 }
 
 /// GET /api/secure-messages/unread-count - Get unread message count
-pub async fn get_unread_count(
-    pool: web::Data<DbPool>,
-    session: Session,
-) -> impl Responder {
+pub async fn get_unread_count(pool: web::Data<DbPool>, session: Session) -> impl Responder {
     let user_id = match get_user_id(&session) {
         Ok(id) => id,
         Err(resp) => return resp,
@@ -761,9 +769,7 @@ pub async fn get_unread_count(
     };
 
     match SecureMessage::count_unread_for_user(&user_id, &mut conn) {
-        Ok(count) => {
-            HttpResponse::Ok().json(ApiResponse::success(UnreadCountResponse { count }))
-        }
+        Ok(count) => HttpResponse::Ok().json(ApiResponse::success(UnreadCountResponse { count })),
         Err(e) => {
             error!("Failed to count unread: {}", e);
             HttpResponse::InternalServerError()

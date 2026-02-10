@@ -48,9 +48,8 @@ pub fn encrypt_data(
     let mut key = derive_shared_key(my_private_key_hex, peer_public_key_hex)?;
 
     // Create cipher
-    let cipher = ChaCha20Poly1305::new_from_slice(&key).map_err(|e| {
-        CryptoError::InternalError(format!("Cipher init failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&key)
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
@@ -125,9 +124,8 @@ pub fn decrypt_data(
         .map_err(|e| CryptoError::InternalError(format!("Invalid base64: {}", e)))?;
 
     // Create cipher
-    let cipher = ChaCha20Poly1305::new_from_slice(&key).map_err(|e| {
-        CryptoError::InternalError(format!("Cipher init failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&key)
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
 
     // Decrypt
     let plaintext = cipher
@@ -149,9 +147,8 @@ pub fn encrypt_bytes(
     plaintext: &[u8],
     encryption_key: &[u8; 32],
 ) -> CryptoResult<(Vec<u8>, [u8; NONCE_SIZE])> {
-    let cipher = ChaCha20Poly1305::new_from_slice(encryption_key).map_err(|e| {
-        CryptoError::InternalError(format!("Cipher init failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(encryption_key)
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
     getrandom::getrandom(&mut nonce_bytes).map_err(|e| {
@@ -172,9 +169,8 @@ pub fn decrypt_bytes(
     nonce: &[u8; NONCE_SIZE],
     decryption_key: &[u8; 32],
 ) -> CryptoResult<Vec<u8>> {
-    let cipher = ChaCha20Poly1305::new_from_slice(decryption_key).map_err(|e| {
-        CryptoError::InternalError(format!("Cipher init failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(decryption_key)
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
 
     let nonce = Nonce::from_slice(nonce);
 
@@ -196,11 +192,8 @@ mod tests {
         let plaintext = "Secret FROST partial signature data!";
 
         // Alice encrypts for Bob
-        let encrypted = encrypt_data(
-            plaintext,
-            &alice.private_key_hex,
-            &bob.public_key_hex,
-        ).unwrap();
+        let encrypted =
+            encrypt_data(plaintext, &alice.private_key_hex, &bob.public_key_hex).unwrap();
 
         assert!(!encrypted.encrypted_blob.is_empty());
         assert_eq!(encrypted.nonce_hex.len(), NONCE_SIZE * 2); // hex encoding
@@ -212,7 +205,8 @@ mod tests {
             &encrypted.nonce_hex,
             &encrypted.ephemeral_pubkey_hex, // Alice's pubkey
             &bob.private_key_hex,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(decrypted, plaintext);
     }
@@ -237,11 +231,8 @@ mod tests {
         let plaintext = "Secret data";
 
         // Alice encrypts for Bob
-        let encrypted = encrypt_data(
-            plaintext,
-            &alice.private_key_hex,
-            &bob.public_key_hex,
-        ).unwrap();
+        let encrypted =
+            encrypt_data(plaintext, &alice.private_key_hex, &bob.public_key_hex).unwrap();
 
         // Eve tries to decrypt (should fail)
         let result = decrypt_data(
@@ -263,7 +254,8 @@ mod tests {
             "Original message",
             &alice.private_key_hex,
             &bob.public_key_hex,
-        ).unwrap();
+        )
+        .unwrap();
 
         // Tamper with the ciphertext
         let tampered = format!("X{}", &encrypted.encrypted_blob[1..]);
@@ -283,11 +275,7 @@ mod tests {
         let alice = generate_ephemeral_keypair().unwrap();
         let bob = generate_ephemeral_keypair().unwrap();
 
-        let encrypted = encrypt_data(
-            "Test",
-            &alice.private_key_hex,
-            &bob.public_key_hex,
-        ).unwrap();
+        let encrypted = encrypt_data("Test", &alice.private_key_hex, &bob.public_key_hex).unwrap();
 
         // Wrong nonce length
         let result = decrypt_data(

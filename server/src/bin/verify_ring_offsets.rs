@@ -53,9 +53,8 @@ fn main() {
 
             // Expected absolute indices from our escrow
             let expected: Vec<u64> = vec![
-                9610827, 9630869, 9636385, 9638860, 9641094, 9645904,
-                9647165, 9648564, 9650921, 9652186, 9653759, 9655459,
-                9655591, 9661294, 9661666, 9672434
+                9610827, 9630869, 9636385, 9638860, 9641094, 9645904, 9647165, 9648564, 9650921,
+                9652186, 9653759, 9655459, 9655591, 9661294, 9661666, 9672434,
             ];
 
             println!("\nVerification:");
@@ -63,13 +62,19 @@ fn main() {
             for (i, (actual, expected)) in absolutes.iter().zip(expected.iter()).enumerate() {
                 let status = if actual == expected { "✓" } else { "✗" };
                 if actual != expected {
-                    println!("  [{}] {} actual={} expected={}", i, status, actual, expected);
+                    println!(
+                        "  [{}] {} actual={} expected={}",
+                        i, status, actual, expected
+                    );
                     all_match = false;
                 }
             }
 
             if all_match {
-                println!("  ✅ All {} ring indices match expected values!", absolutes.len());
+                println!(
+                    "  ✅ All {} ring indices match expected values!",
+                    absolutes.len()
+                );
             } else {
                 println!("  ❌ Ring index mismatch detected!");
             }

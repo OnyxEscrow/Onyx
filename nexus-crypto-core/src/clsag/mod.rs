@@ -45,7 +45,6 @@ pub use hash::{compute_mixing_coefficients, compute_round_hash};
 
 // Re-export signing functions
 pub use sign::{
-    sign_clsag_partial, sign_clsag_complete,
-    compute_pseudo_out, compute_mask_delta,
+    compute_mask_delta, compute_pseudo_out, sign_clsag_complete, sign_clsag_partial,
     PartialClsagSignature,
 };

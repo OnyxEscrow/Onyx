@@ -17,6 +17,7 @@
 //! 4. Coordinator validates and exchanges multisig_info strings
 //! 5. Clients finalize multisig locally using received infos
 
+use actix::Addr;
 use monero_marketplace_common::{
     error::{Error, MoneroError, Result},
     types::{MoneroConfig, MultisigInfo},
@@ -26,7 +27,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{error, info, warn};
-use actix::Addr;
 
 use crate::db::DbPool;
 use crate::models::escrow::Escrow;
@@ -93,7 +93,10 @@ impl CoordinationState {
             "sync_round1_complete" => Ok(CoordinationState::SyncRound1Complete),
             "sync_round2_complete" => Ok(CoordinationState::SyncRound2Complete),
             "ready" => Ok(CoordinationState::Ready),
-            _ => Err(Error::InvalidInput(format!("Invalid coordination state: {}", s))),
+            _ => Err(Error::InvalidInput(format!(
+                "Invalid coordination state: {}",
+                s
+            ))),
         }
     }
 
@@ -170,7 +173,10 @@ impl EscrowCoordinator {
     ///
     /// Constructs EscrowCoordination from escrows.multisig_phase + wallet_rpc_configs
     fn load_coordination(&self, escrow_id: &str) -> Result<EscrowCoordination> {
-        let mut conn = self.db.get().map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
 
         // Load escrow record
         let escrow = Escrow::find_by_id(&mut conn, escrow_id.to_string())
@@ -186,7 +192,8 @@ impl EscrowCoordinator {
         let mut arbiter_rpc_url = None;
 
         for config in rpc_configs {
-            let decrypted_url = config.decrypt_url(&self.encryption_key)
+            let decrypted_url = config
+                .decrypt_url(&self.encryption_key)
                 .map_err(|e| Error::Internal(format!("Failed to decrypt RPC URL: {}", e)))?;
 
             match config.role.as_str() {
@@ -199,8 +206,9 @@ impl EscrowCoordinator {
 
         // Parse multisig state from JSON
         let multisig_infos = if let Some(json) = &escrow.multisig_state_json {
-            serde_json::from_str(json)
-                .map_err(|e| Error::Internal(format!("Failed to parse multisig_state_json: {}", e)))?
+            serde_json::from_str(json).map_err(|e| {
+                Error::Internal(format!("Failed to parse multisig_state_json: {}", e))
+            })?
         } else {
             HashMap::new()
         };
@@ -274,7 +282,8 @@ impl EscrowCoordinator {
             Error::MoneroRpc(format!("RPC unreachable: {}", e))
         })?;
 
-        self.store_wallet_registration(escrow_id, role, rpc_url).await
+        self.store_wallet_registration(escrow_id, role, rpc_url)
+            .await
     }
 
     /// Test-only version: skip RPC validation
@@ -301,7 +310,8 @@ impl EscrowCoordinator {
         // TEST ONLY: Skip RPC connectivity check (no Monero daemon in unit tests)
         // Production version ALWAYS validates RPC connectivity
 
-        self.store_wallet_registration(escrow_id, role, rpc_url).await
+        self.store_wallet_registration(escrow_id, role, rpc_url)
+            .await
     }
 
     /// Shared logic for storing wallet registration
@@ -313,10 +323,13 @@ impl EscrowCoordinator {
         role: EscrowRole,
         rpc_url: String,
     ) -> Result<()> {
-        use uuid::Uuid;
         use crate::schema::escrows;
+        use uuid::Uuid;
 
-        let mut conn = self.db.get().map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
 
         // 1. Save encrypted RPC URL to wallet_rpc_configs
         let wallet_id = Uuid::new_v4().to_string();
@@ -329,9 +342,14 @@ impl EscrowCoordinator {
             None, // rpc_user
             None, // rpc_password
             &self.encryption_key,
-        ).map_err(|e| Error::Internal(format!("Failed to save RPC config: {}", e)))?;
+        )
+        .map_err(|e| Error::Internal(format!("Failed to save RPC config: {}", e)))?;
 
-        info!("✅ Saved {} RPC config for escrow {}", role.as_str(), escrow_id);
+        info!(
+            "✅ Saved {} RPC config for escrow {}",
+            role.as_str(),
+            escrow_id
+        );
 
         // 2. Check if all 3 wallets are now registered
         let rpc_configs = WalletRpcConfig::find_by_escrow(&mut conn, escrow_id)
@@ -344,10 +362,16 @@ impl EscrowCoordinator {
 
         // 3. Update multisig_phase in escrows table
         let new_phase = if has_buyer && has_seller && has_arbiter {
-            info!("✅ All 3 wallets registered for escrow {}, ready to prepare multisig", escrow_id);
+            info!(
+                "✅ All 3 wallets registered for escrow {}, ready to prepare multisig",
+                escrow_id
+            );
             "all_registered"
         } else {
-            info!("⏳ Waiting for remaining participants for escrow {} (registered: {:?})", escrow_id, roles);
+            info!(
+                "⏳ Waiting for remaining participants for escrow {} (registered: {:?})",
+                escrow_id, roles
+            );
             "awaiting_registrations"
         };
 
@@ -366,7 +390,10 @@ impl EscrowCoordinator {
                 escrow_id: escrow_id.to_string(),
                 step: 2,
             });
-            info!("📡 Sent EscrowProgress step 2 notification for escrow {}", escrow_id);
+            info!(
+                "📡 Sent EscrowProgress step 2 notification for escrow {}",
+                escrow_id
+            );
         }
 
         Ok(())
@@ -408,7 +435,10 @@ impl EscrowCoordinator {
             escrow_id: escrow_id.to_string(),
             step: 3,
         });
-        info!("📡 Sent EscrowProgress step 3 notification for escrow {}", escrow_id);
+        info!(
+            "📡 Sent EscrowProgress step 3 notification for escrow {}",
+            escrow_id
+        );
 
         // Get coordination state from database
         let coord = self.load_coordination(escrow_id)?;
@@ -437,12 +467,8 @@ impl EscrowCoordinator {
         info!("🔧 Requesting prepare_multisig from all participants...");
 
         // Request prepare_multisig from each wallet (executed on CLIENT side)
-        let buyer_info = self
-            .request_prepare_multisig(&buyer_url, "buyer")
-            .await?;
-        let seller_info = self
-            .request_prepare_multisig(&seller_url, "seller")
-            .await?;
+        let buyer_info = self.request_prepare_multisig(&buyer_url, "buyer").await?;
+        let seller_info = self.request_prepare_multisig(&seller_url, "seller").await?;
         let arbiter_info = self
             .request_prepare_multisig(&arbiter_url, "arbiter")
             .await?;
@@ -462,7 +488,10 @@ impl EscrowCoordinator {
             .map_err(|e| Error::Internal(format!("Failed to serialize multisig_infos: {}", e)))?;
 
         use crate::schema::escrows;
-        let mut conn = self.db.get().map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
 
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id)))
             .set((
@@ -483,7 +512,10 @@ impl EscrowCoordinator {
             escrow_id: escrow_id.to_string(),
             step: 4,
         });
-        info!("📡 Sent EscrowProgress step 4 notification for escrow {}", escrow_id);
+        info!(
+            "📡 Sent EscrowProgress step 4 notification for escrow {}",
+            escrow_id
+        );
 
         // Exchange: each participant receives the other 2
         Ok(MultisigExchangeResult {
@@ -494,10 +526,7 @@ impl EscrowCoordinator {
     }
 
     /// Get coordination status for an escrow
-    pub async fn get_coordination_status(
-        &self,
-        escrow_id: &str,
-    ) -> Result<EscrowCoordination> {
+    pub async fn get_coordination_status(&self, escrow_id: &str) -> Result<EscrowCoordination> {
         self.load_coordination(escrow_id)
     }
 
@@ -510,7 +539,10 @@ impl EscrowCoordinator {
     /// **CRITICAL:** This method connects to CLIENT's wallet-rpc and asks it to
     /// execute prepare_multisig. The server NEVER executes this itself.
     async fn request_prepare_multisig(&self, rpc_url: &str, role: &str) -> Result<String> {
-        info!("📡 Requesting prepare_multisig from {} at {}", role, rpc_url);
+        info!(
+            "📡 Requesting prepare_multisig from {} at {}",
+            role, rpc_url
+        );
 
         let config = MoneroConfig {
             rpc_url: rpc_url.to_string(),
@@ -531,9 +563,7 @@ impl EscrowCoordinator {
                 MoneroError::AlreadyMultisig => {
                     Error::InvalidState(format!("{} wallet already in multisig mode", role))
                 }
-                MoneroError::WalletLocked => {
-                    Error::Wallet(format!("{} wallet is locked", role))
-                }
+                MoneroError::WalletLocked => Error::Wallet(format!("{} wallet is locked", role)),
                 _ => Error::MoneroRpc(format!("prepare_multisig failed for {}: {}", role, e)),
             }
         })?;
@@ -602,8 +632,8 @@ mod tests {
 
     #[actix::test]
     async fn test_coordinator_creation() {
-        use actix::Actor;
         use crate::websocket::WebSocketServer;
+        use actix::Actor;
         let pool = create_test_db_pool();
         let encryption_key = vec![0u8; 32]; // Dummy key for test
         let ws_server = WebSocketServer::default().start();
@@ -615,10 +645,7 @@ mod tests {
     async fn test_escrow_role_conversion() {
         assert_eq!(EscrowRole::from_str("buyer").unwrap(), EscrowRole::Buyer);
         assert_eq!(EscrowRole::from_str("BUYER").unwrap(), EscrowRole::Buyer);
-        assert_eq!(
-            EscrowRole::from_str("seller").unwrap(),
-            EscrowRole::Seller
-        );
+        assert_eq!(EscrowRole::from_str("seller").unwrap(), EscrowRole::Seller);
         assert_eq!(
             EscrowRole::from_str("arbiter").unwrap(),
             EscrowRole::Arbiter
@@ -629,8 +656,8 @@ mod tests {
     #[tokio::test]
     #[ignore] // TODO: Rewrite for stateless v0.4.0 design
     async fn test_coordination_state_transitions() {
-        use actix::Actor;
         use crate::websocket::WebSocketServer;
+        use actix::Actor;
         let pool = create_test_db_pool();
         let encryption_key = vec![0u8; 32];
         let ws_server = WebSocketServer::default().start();
@@ -647,7 +674,10 @@ mod tests {
             .await
             .unwrap();
 
-        let status = coordinator.get_coordination_status(escrow_id).await.unwrap();
+        let status = coordinator
+            .get_coordination_status(escrow_id)
+            .await
+            .unwrap();
         assert_eq!(status.state, CoordinationState::AwaitingRegistrations);
 
         // Register seller (still waiting for arbiter)
@@ -660,7 +690,10 @@ mod tests {
             .await
             .unwrap();
 
-        let status = coordinator.get_coordination_status(escrow_id).await.unwrap();
+        let status = coordinator
+            .get_coordination_status(escrow_id)
+            .await
+            .unwrap();
         assert_eq!(status.state, CoordinationState::AwaitingRegistrations);
 
         // Register arbiter (all 3 registered → AllRegistered)
@@ -673,7 +706,10 @@ mod tests {
             .await
             .unwrap();
 
-        let status = coordinator.get_coordination_status(escrow_id).await.unwrap();
+        let status = coordinator
+            .get_coordination_status(escrow_id)
+            .await
+            .unwrap();
         assert_eq!(status.state, CoordinationState::AllRegistered);
         assert!(status.buyer_rpc_url.is_some());
         assert!(status.seller_rpc_url.is_some());
@@ -682,8 +718,8 @@ mod tests {
 
     #[actix::test]
     async fn test_multisig_info_validation() {
-        use actix::Actor;
         use crate::websocket::WebSocketServer;
+        use actix::Actor;
         let pool = create_test_db_pool();
         let encryption_key = vec![0u8; 32];
         let ws_server = WebSocketServer::default().start();

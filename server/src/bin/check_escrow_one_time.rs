@@ -25,7 +25,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}'", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -36,14 +39,20 @@ impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherCon
 fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
-    let escrow_id = std::env::args().nth(1).unwrap_or_else(|| "ef57f177-f873-40c3-a175-4ab87c195ad8".to_string());
-    let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
+    let escrow_id = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "ef57f177-f873-40c3-a175-4ab87c195ad8".to_string());
+    let database_url =
+        std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY").unwrap_or_default();
 
     let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
 
     let pool = if encryption_key.is_empty() {
-        r2d2::Pool::builder().max_size(1).build(manager).context("Failed to create pool")?
+        r2d2::Pool::builder()
+            .max_size(1)
+            .build(manager)
+            .context("Failed to create pool")?
     } else {
         r2d2::Pool::builder()
             .max_size(1)

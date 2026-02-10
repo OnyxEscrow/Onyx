@@ -63,11 +63,7 @@ fn test_buyer_vendor_sum_is_one() {
 
     // λ₁ + λ₂ = 1 (fundamental Lagrange property)
     let sum = lambda_buyer + lambda_vendor;
-    assert_eq!(
-        sum,
-        Scalar::ONE,
-        "Sum of Lagrange coefficients should be 1"
-    );
+    assert_eq!(sum, Scalar::ONE, "Sum of Lagrange coefficients should be 1");
 }
 
 // ============================================================================
@@ -103,11 +99,7 @@ fn test_buyer_arbiter_sum_is_one() {
 
     // λ₁ + λ₂ = 1
     let sum = lambda_buyer + lambda_arbiter;
-    assert_eq!(
-        sum,
-        Scalar::ONE,
-        "Sum of Lagrange coefficients should be 1"
-    );
+    assert_eq!(sum, Scalar::ONE, "Sum of Lagrange coefficients should be 1");
 }
 
 // ============================================================================
@@ -139,11 +131,7 @@ fn test_vendor_arbiter_sum_is_one() {
 
     // λ₁ + λ₂ = 1
     let sum = lambda_vendor + lambda_arbiter;
-    assert_eq!(
-        sum,
-        Scalar::ONE,
-        "Sum of Lagrange coefficients should be 1"
-    );
+    assert_eq!(sum, Scalar::ONE, "Sum of Lagrange coefficients should be 1");
 }
 
 // ============================================================================
@@ -169,20 +157,12 @@ fn test_scalar_inverse() {
     // 2 * (1/2) = 1
     let two = Scalar::from(2u64);
     let half = two.invert();
-    assert_eq!(
-        two * half,
-        Scalar::ONE,
-        "2 * (1/2) should equal 1"
-    );
+    assert_eq!(two * half, Scalar::ONE, "2 * (1/2) should equal 1");
 
     // 3 * (1/3) = 1
     let three = Scalar::from(3u64);
     let third = three.invert();
-    assert_eq!(
-        three * third,
-        Scalar::ONE,
-        "3 * (1/3) should equal 1"
-    );
+    assert_eq!(three * third, Scalar::ONE, "3 * (1/3) should equal 1");
 }
 
 #[test]
@@ -192,11 +172,7 @@ fn test_scalar_division() {
     let b = Scalar::from(2u64);
 
     let result = a * b.invert();
-    assert_eq!(
-        result,
-        Scalar::from(3u64),
-        "6 / 2 should equal 3"
-    );
+    assert_eq!(result, Scalar::from(3u64), "6 / 2 should equal 3");
 }
 
 #[test]
@@ -206,11 +182,7 @@ fn test_negative_scalar_division() {
     let neg_one = -Scalar::ONE;
 
     let result = one * neg_one.invert();
-    assert_eq!(
-        result,
-        neg_one,
-        "1 / (-1) should equal -1"
-    );
+    assert_eq!(result, neg_one, "1 / (-1) should equal -1");
 }
 
 // ============================================================================
@@ -250,10 +222,10 @@ fn test_key_reconstruction_all_pairs_consistent() {
 
     // Generate a "true" secret and shares on a line through it
     let true_secret = rng.gen_scalar(); // f(0) = s
-    let slope = rng.gen_scalar();       // random slope
+    let slope = rng.gen_scalar(); // random slope
 
     // Shares: f(x) = s + slope * x
-    let share1 = true_secret + slope;              // f(1)
+    let share1 = true_secret + slope; // f(1)
     let share2 = true_secret + Scalar::from(2u64) * slope; // f(2)
     let share3 = true_secret + Scalar::from(3u64) * slope; // f(3)
 
@@ -270,9 +242,18 @@ fn test_key_reconstruction_all_pairs_consistent() {
     let recon_va = l2_va * share2 + l3_va * share3;
 
     // All reconstructions should equal the true secret
-    assert_eq!(recon_bv, true_secret, "Buyer+Vendor should reconstruct secret");
-    assert_eq!(recon_ba, true_secret, "Buyer+Arbiter should reconstruct secret");
-    assert_eq!(recon_va, true_secret, "Vendor+Arbiter should reconstruct secret");
+    assert_eq!(
+        recon_bv, true_secret,
+        "Buyer+Vendor should reconstruct secret"
+    );
+    assert_eq!(
+        recon_ba, true_secret,
+        "Buyer+Arbiter should reconstruct secret"
+    );
+    assert_eq!(
+        recon_va, true_secret,
+        "Vendor+Arbiter should reconstruct secret"
+    );
 }
 
 // ============================================================================
@@ -296,7 +277,11 @@ fn test_large_indices() {
     let (l1, l2) = compute_lagrange_pair(1000, 2000);
 
     // Sum should still be 1
-    assert_eq!(l1 + l2, Scalar::ONE, "Sum should be 1 even for large indices");
+    assert_eq!(
+        l1 + l2,
+        Scalar::ONE,
+        "Sum should be 1 even for large indices"
+    );
 }
 
 #[test]
@@ -329,8 +314,8 @@ fn test_lagrange_applied_to_points() {
     let ki = (pki1 * lambda1) + (pki2 * lambda2);
 
     // Verify computation is valid (non-identity for random points)
-    use curve25519_dalek::traits::Identity;
     use curve25519_dalek::edwards::EdwardsPoint;
+    use curve25519_dalek::traits::Identity;
     assert_ne!(
         ki,
         EdwardsPoint::identity(),

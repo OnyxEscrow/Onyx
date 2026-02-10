@@ -91,7 +91,10 @@ fn hash_to_point(data: [u8; 32]) -> EdwardsPoint {
 }
 
 fn main() {
-    println!("=== ESCROW #{} CRYPTOGRAPHIC VALIDATION ===\n", &ESCROW_ID[..8]);
+    println!(
+        "=== ESCROW #{} CRYPTOGRAPHIC VALIDATION ===\n",
+        &ESCROW_ID[..8]
+    );
 
     // ========================================================================
     // STEP 1: Verify Lagrange reconstruction (already verified, but confirm)
@@ -111,7 +114,10 @@ fn main() {
     let computed_pubkey = &group_secret * ED25519_BASEPOINT_TABLE;
 
     println!("  group_secret = {}", hex::encode(group_secret.as_bytes()));
-    println!("  computed_pubkey = {}", hex::encode(computed_pubkey.compress().as_bytes()));
+    println!(
+        "  computed_pubkey = {}",
+        hex::encode(computed_pubkey.compress().as_bytes())
+    );
     println!("  expected_pubkey = {}", GROUP_PUBKEY);
 
     if computed_pubkey.compress().as_bytes() == &hex_to_bytes(GROUP_PUBKEY)[..] {
@@ -141,7 +147,10 @@ fn main() {
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     println!("  view_key = {}...", &VIEW_KEY_PRIV[..16]);
-    println!("  shared_secret (8*a*R) = {}", hex::encode(&shared_secret_bytes));
+    println!(
+        "  shared_secret (8*a*R) = {}",
+        hex::encode(&shared_secret_bytes)
+    );
 
     // Hash to derivation scalar
     let mut hasher = Keccak256::new();
@@ -150,7 +159,11 @@ fn main() {
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation = Scalar::from_bytes_mod_order(derivation_hash);
 
-    println!("  output_index = {} (varint: {:02x?})", OUTPUT_INDEX, encode_varint(OUTPUT_INDEX));
+    println!(
+        "  output_index = {} (varint: {:02x?})",
+        OUTPUT_INDEX,
+        encode_varint(OUTPUT_INDEX)
+    );
     println!("  derivation (d) = {}", hex::encode(derivation.as_bytes()));
 
     // ========================================================================
@@ -185,7 +198,10 @@ fn main() {
     println!("--------------------------");
 
     let output_secret = derivation + group_secret;
-    println!("  x = d + group_secret = {}", hex::encode(output_secret.as_bytes()));
+    println!(
+        "  x = d + group_secret = {}",
+        hex::encode(output_secret.as_bytes())
+    );
 
     // Verify: x * G should equal P
     let x_times_g = &output_secret * ED25519_BASEPOINT_TABLE;
@@ -193,7 +209,10 @@ fn main() {
         println!("  ✅ Verification: x * G = P (CORRECT)");
     } else {
         println!("  ❌ Verification FAILED: x * G ≠ P");
-        println!("     x * G = {}", hex::encode(x_times_g.compress().as_bytes()));
+        println!(
+            "     x * G = {}",
+            hex::encode(x_times_g.compress().as_bytes())
+        );
     }
 
     // ========================================================================
@@ -219,8 +238,14 @@ fn main() {
     let weighted_vendor = lambda_vendor * vendor_share;
     let weighted_buyer = lambda_buyer * buyer_share;
 
-    println!("  λ_vendor * s_vendor = {}", hex::encode(weighted_vendor.as_bytes()));
-    println!("  λ_buyer * s_buyer = {}", hex::encode(weighted_buyer.as_bytes()));
+    println!(
+        "  λ_vendor * s_vendor = {}",
+        hex::encode(weighted_vendor.as_bytes())
+    );
+    println!(
+        "  λ_buyer * s_buyer = {}",
+        hex::encode(weighted_buyer.as_bytes())
+    );
 
     // First signer includes derivation
     let x_eff_first = derivation + weighted_vendor;
@@ -231,12 +256,24 @@ fn main() {
     let pki_second = x_eff_second * hp;
 
     println!("\n  First signer (vendor with derivation):");
-    println!("    x_eff = d + λ_v*s_v = {}", hex::encode(x_eff_first.as_bytes()));
-    println!("    PKI_first = {}", hex::encode(pki_first.compress().as_bytes()));
+    println!(
+        "    x_eff = d + λ_v*s_v = {}",
+        hex::encode(x_eff_first.as_bytes())
+    );
+    println!(
+        "    PKI_first = {}",
+        hex::encode(pki_first.compress().as_bytes())
+    );
 
     println!("\n  Second signer (buyer without derivation):");
-    println!("    x_eff = λ_b*s_b = {}", hex::encode(x_eff_second.as_bytes()));
-    println!("    PKI_second = {}", hex::encode(pki_second.compress().as_bytes()));
+    println!(
+        "    x_eff = λ_b*s_b = {}",
+        hex::encode(x_eff_second.as_bytes())
+    );
+    println!(
+        "    PKI_second = {}",
+        hex::encode(pki_second.compress().as_bytes())
+    );
 
     // ========================================================================
     // STEP 8: Verify aggregation
@@ -270,8 +307,14 @@ fn main() {
     println!("group_secret:    {}", hex::encode(group_secret.as_bytes()));
     println!("output_secret:   {}", hex::encode(output_secret.as_bytes()));
     println!("\nPKI values (for server verification):");
-    println!("  PKI_vendor (first):  {}", hex::encode(pki_first.compress().as_bytes()));
-    println!("  PKI_buyer (second):  {}", hex::encode(pki_second.compress().as_bytes()));
+    println!(
+        "  PKI_vendor (first):  {}",
+        hex::encode(pki_first.compress().as_bytes())
+    );
+    println!(
+        "  PKI_buyer (second):  {}",
+        hex::encode(pki_second.compress().as_bytes())
+    );
 
     // ========================================================================
     // STEP 9: Compare with DB values
@@ -283,7 +326,8 @@ fn main() {
     // Values from read_escrow output
     const DB_BUYER_PKI: &str = "41ec4f7f9c9e5c995e80d387ea785c04a6a1c97ecf4b3d9fb725d513b5512a36";
     const DB_VENDOR_PKI: &str = "bf9e270c02dc7ca3dca6409924f62fac8fea0dc68dc42d484decf90303648a92";
-    const DB_AGGREGATED_KI: &str = "3d7828c8b4aec911a19ecd916894d95a56cfc9ee14705be7d6cba7154cc4c733";
+    const DB_AGGREGATED_KI: &str =
+        "3d7828c8b4aec911a19ecd916894d95a56cfc9ee14705be7d6cba7154cc4c733";
     const DB_TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c013175fb5612009da9";
 
     println!("\n  TX Public Key (R):");

@@ -50,7 +50,8 @@ impl TestClient {
 
     /// Login as test user via debug endpoint
     async fn test_login(&mut self, user_id: &str, username: &str, role: &str) -> Result<()> {
-        let resp = self.client
+        let resp = self
+            .client
             .post(&format!("{}/api/debug/test-login", BASE_URL))
             .json(&json!({
                 "user_id": user_id,
@@ -94,7 +95,8 @@ impl TestClient {
 
     /// Make authenticated POST request with JSON body
     async fn post_json(&self, path: &str, body: Value) -> Result<reqwest::Response> {
-        let mut req = self.client
+        let mut req = self
+            .client
             .post(&format!("{}{}", BASE_URL, path))
             .header("X-CSRF-Token", TEST_CSRF_TOKEN)
             .json(&body);
@@ -167,7 +169,9 @@ async fn test_debug_login_endpoint() -> Result<()> {
     let mut client = TestClient::new();
 
     // Login as buyer
-    client.test_login(TEST_BUYER_ID, "test_buyer", "buyer").await?;
+    client
+        .test_login(TEST_BUYER_ID, "test_buyer", "buyer")
+        .await?;
 
     // Verify session by calling whoami
     let resp = client.get("/api/auth/whoami").await?;
@@ -201,7 +205,9 @@ async fn test_create_escrow_via_api() -> Result<()> {
     let mut client = TestClient::new();
 
     // Login as vendor to create listing
-    client.test_login(TEST_VENDOR_ID, "test_vendor", "vendor").await?;
+    client
+        .test_login(TEST_VENDOR_ID, "test_vendor", "vendor")
+        .await?;
 
     // TODO: Create listing
     // TODO: Login as buyer
@@ -231,7 +237,9 @@ async fn test_submit_partial_key_image() -> Result<()> {
     // For now, we test the endpoint structure
 
     let mut client = TestClient::new();
-    client.test_login(TEST_BUYER_ID, "test_buyer", "buyer").await?;
+    client
+        .test_login(TEST_BUYER_ID, "test_buyer", "buyer")
+        .await?;
 
     // Use a known escrow ID (from previous test or database)
     let escrow_id = "1eb1ceb7-4f7e-4c2b-bc7d-8e2f3a4b5c6d"; // Placeholder
@@ -239,13 +247,15 @@ async fn test_submit_partial_key_image() -> Result<()> {
     // Mock partial key image (32 bytes hex = 64 chars)
     let mock_pki = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
 
-    let resp = client.post_json(
-        &format!("/api/v2/escrow/{}/submit-partial-key-image", escrow_id),
-        json!({
-            "role": "buyer",
-            "partial_key_image": mock_pki
-        })
-    ).await?;
+    let resp = client
+        .post_json(
+            &format!("/api/v2/escrow/{}/submit-partial-key-image", escrow_id),
+            json!({
+                "role": "buyer",
+                "partial_key_image": mock_pki
+            }),
+        )
+        .await?;
 
     // We expect 404 (escrow not found) or 400 (validation) since escrow doesn't exist
     // But NOT 401 (unauthorized) if auth bypass works
@@ -292,13 +302,17 @@ async fn test_broadcast_flow_with_diagnostics() -> Result<()> {
     println!("Testing escrow: {}", escrow_id);
 
     // Login as buyer (usually the one who confirms receipt)
-    client.test_login(TEST_BUYER_ID, "test_buyer", "buyer").await?;
+    client
+        .test_login(TEST_BUYER_ID, "test_buyer", "buyer")
+        .await?;
 
     // Attempt broadcast
-    let resp = client.post_json(
-        &format!("/api/v2/escrow/{}/broadcast-tx", escrow_id),
-        json!({})
-    ).await?;
+    let resp = client
+        .post_json(
+            &format!("/api/v2/escrow/{}/broadcast-tx", escrow_id),
+            json!({}),
+        )
+        .await?;
 
     let status = resp.status();
     let body = resp.text().await?;
@@ -341,7 +355,10 @@ async fn test_debug_broadcast_endpoint() -> Result<()> {
     println!("Testing debug broadcast for escrow: {}", escrow_id);
 
     let resp = client
-        .post(&format!("{}/api/debug/escrow/{}/broadcast", BASE_URL, escrow_id))
+        .post(&format!(
+            "{}/api/debug/escrow/{}/broadcast",
+            BASE_URL, escrow_id
+        ))
         .send()
         .await?;
 

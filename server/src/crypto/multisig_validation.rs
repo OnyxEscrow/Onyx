@@ -163,7 +163,9 @@ impl MultisigChallenge {
     note = "Use SqliteChallengeStore for persistent storage. In-memory store loses data on restart."
 )]
 pub struct ChallengeStore {
-    pub(crate) challenges: std::sync::Arc<std::sync::Mutex<std::collections::HashMap<(Uuid, Uuid), MultisigChallenge>>>,
+    pub(crate) challenges: std::sync::Arc<
+        std::sync::Mutex<std::collections::HashMap<(Uuid, Uuid), MultisigChallenge>>,
+    >,
 }
 
 #[allow(deprecated)]
@@ -173,7 +175,9 @@ impl ChallengeStore {
             "ChallengeStore::new() is deprecated. Use SqliteChallengeStore::new(pool) instead."
         );
         Self {
-            challenges: std::sync::Arc::new(std::sync::Mutex::new(std::collections::HashMap::new())),
+            challenges: std::sync::Arc::new(
+                std::sync::Mutex::new(std::collections::HashMap::new()),
+            ),
         }
     }
 
@@ -263,23 +267,22 @@ pub fn verify_multisig_submission(
         );
     }
 
-    let sig_bytes: [u8; 64] = signature.try_into()
+    let sig_bytes: [u8; 64] = signature
+        .try_into()
         .map_err(|_| anyhow::anyhow!("Invalid signature length"))?;
     let sig = Signature::from_bytes(&sig_bytes);
 
     // 4. Verify signature
     let message = challenge.message();
 
-    public_key
-        .verify(&message, &sig)
-        .map_err(|e| {
-            anyhow::anyhow!(
-                "Signature verification failed: {}. \
+    public_key.verify(&message, &sig).map_err(|e| {
+        anyhow::anyhow!(
+            "Signature verification failed: {}. \
                  This means the submitter does not control the private key \
                  for the submitted multisig_info.",
-                e
-            )
-        })?;
+            e
+        )
+    })?;
 
     tracing::info!(
         "✅ Multisig submission verified for escrow {}",
@@ -327,7 +330,7 @@ fn extract_public_key_from_multisig_info(multisig_info: &str) -> Result<Verifyin
     // Decode hex
     let bytes = hex::decode(hex_data).context(
         "multisig_info is not valid hex after 'MultisigV1' prefix. \
-         Expected format: MultisigV1[hex_data]"
+         Expected format: MultisigV1[hex_data]",
     )?;
 
     // Extract first 32 bytes as public key
@@ -454,11 +457,8 @@ mod tests {
         let signature = signing_key.sign(&message);
 
         // Verify submission
-        let result = verify_multisig_submission(
-            &multisig_info,
-            signature.to_bytes().as_ref(),
-            &challenge,
-        );
+        let result =
+            verify_multisig_submission(&multisig_info, signature.to_bytes().as_ref(), &challenge);
 
         assert!(result.is_ok());
         Ok(())
@@ -490,7 +490,10 @@ mod tests {
         );
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Signature verification failed"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Signature verification failed"));
         Ok(())
     }
 
@@ -513,11 +516,8 @@ mod tests {
         let signature = signing_key.sign(&message);
 
         // Verification should fail due to expiry
-        let result = verify_multisig_submission(
-            &multisig_info,
-            signature.to_bytes().as_ref(),
-            &challenge,
-        );
+        let result =
+            verify_multisig_submission(&multisig_info, signature.to_bytes().as_ref(), &challenge);
 
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("expired"));

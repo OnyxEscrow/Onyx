@@ -14,15 +14,18 @@ use server::coordination::{DbMultisigCoordinator, EscrowCoordinator};
 use server::db::{create_pool, DatabaseConfig, DatabaseManager};
 use server::handlers::{
     airgap_dispute, analytics, api_keys, auth, batch, client_fees, dispute_evidence, docs,
-    encrypted_relay, escrow, escrow_chat, fees, frost_escrow, monero_validator, monitoring, multisig,
-    multisig_challenge, multisig_wallet, noncustodial, notifications, secure_messages, sync, user,
-    wallet, wasm_multisig, webhooks,
+    encrypted_relay, escrow, escrow_chat, fees, frost_escrow, monero_validator, monitoring,
+    multisig, multisig_challenge, multisig_wallet, noncustodial, notifications, secure_messages,
+    sync, user, wallet, wasm_multisig, webhooks,
 };
 use server::middleware::{
-    admin_auth::AdminAuth, idempotency::IdempotencyMiddleware, rate_limit::RateLimitMiddleware,
+    admin_auth::AdminAuth,
+    idempotency::IdempotencyMiddleware,
+    new_api_key_rate_limit_storage,
+    rate_limit::RateLimitMiddleware,
     registration_rate_limit::new_registration_rate_limit_storage,
-    security_headers::{CspNonceMiddleware, SecurityHeadersMiddleware}, ConnectionManager,
-    new_api_key_rate_limit_storage, RequireApiKey, RequestIdMiddleware,
+    security_headers::{CspNonceMiddleware, SecurityHeadersMiddleware},
+    ConnectionManager, RequestIdMiddleware, RequireApiKey,
 };
 use server::services::escrow::EscrowOrchestrator;
 use server::services::sync_proxy::SyncProxyService;
@@ -33,6 +36,7 @@ use server::websocket::{WebSocketServer, WebSocketSession};
 mod dependencies;
 mod security;
 use crate::security::placeholder_validator;
+use server::config::XmrUsdRate;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
@@ -40,7 +44,6 @@ use tera::Tera;
 use time::Duration;
 use tokio::sync::Mutex;
 use tracing::{info, warn};
-use server::config::XmrUsdRate;
 use uuid::Uuid;
 
 async fn health_check() -> impl Responder {
@@ -102,7 +105,9 @@ mod debug_endpoints {
 
         // Validate UUID format
         if uuid::Uuid::parse_str(&body.user_id).is_err() {
-            return Err(ApiError::BadRequest("Invalid user_id UUID format".to_string()));
+            return Err(ApiError::BadRequest(
+                "Invalid user_id UUID format".to_string(),
+            ));
         }
 
         // Validate role
@@ -115,15 +120,18 @@ mod debug_endpoints {
         }
 
         // Create user in DB if doesn't exist
-        let mut conn = pool.get().map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        let mut conn = pool
+            .get()
+            .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
         let user_id_clone = body.user_id.clone();
         let username_clone = body.username.clone();
         let role_clone = body.role.clone();
 
         // Check if user exists - if so, just create session, don't try to create user
-        let existing_user = actix_web::web::block(move || {
-            User::find_by_id(&mut conn, user_id_clone)
-        }).await.map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?;
+        let existing_user =
+            actix_web::web::block(move || User::find_by_id(&mut conn, user_id_clone))
+                .await
+                .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?;
 
         match existing_user {
             Ok(_user) => {
@@ -133,7 +141,9 @@ mod debug_endpoints {
                 );
             }
             Err(_) => {
-                let mut conn = pool.get().map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+                let mut conn = pool
+                    .get()
+                    .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
                 let user_id = body.user_id.clone();
                 let username = body.username.clone();
                 let role = body.role.clone();
@@ -148,7 +158,8 @@ mod debug_endpoints {
                         wallet_id: None,
                     };
                     User::create(&mut conn, new_user)
-                }).await
+                })
+                .await
                 .map_err(|e| ApiError::Internal(format!("DB insert error: {}", e)))?
                 .map_err(|e| ApiError::Internal(format!("User creation error: {}", e)))?;
 
@@ -195,11 +206,26 @@ fn configure_debug_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api/debug")
             .route("/escrow/{id}", web::get().to(escrow::debug_escrow_info))
-            .route("/escrow/{id}/reset-status", web::post().to(escrow::debug_reset_escrow_status))
-            .route("/escrow/{id}/broadcast", web::post().to(escrow::debug_broadcast_transaction))
-            .route("/escrow/{id}/broadcast_cli", web::post().to(escrow::broadcast_via_cli))
-            .route("/escrow/{id}/broadcast_dispute_cli", web::post().to(escrow::broadcast_dispute_cli))
-            .route("/test-login", web::post().to(debug_endpoints::debug_test_login)),
+            .route(
+                "/escrow/{id}/reset-status",
+                web::post().to(escrow::debug_reset_escrow_status),
+            )
+            .route(
+                "/escrow/{id}/broadcast",
+                web::post().to(escrow::debug_broadcast_transaction),
+            )
+            .route(
+                "/escrow/{id}/broadcast_cli",
+                web::post().to(escrow::broadcast_via_cli),
+            )
+            .route(
+                "/escrow/{id}/broadcast_dispute_cli",
+                web::post().to(escrow::broadcast_dispute_cli),
+            )
+            .route(
+                "/test-login",
+                web::post().to(debug_endpoints::debug_test_login),
+            ),
     );
     tracing::warn!("DEBUG ENDPOINTS ENABLED - These routes are exposed:");
     tracing::warn!("  - GET  /api/debug/escrow/{{id}}");
@@ -295,8 +321,8 @@ async fn main() -> Result<()> {
     // 2. Initialize unified telemetry (logging + Sentry + Jaeger)
     // OPS-001: Sentry error tracking (if SENTRY_DSN is set)
     // OPS-002: Jaeger distributed tracing (if ENABLE_JAEGER=true)
-    let _telemetry_guard = server::telemetry::init_telemetry()
-        .context("Failed to initialize telemetry")?;
+    let _telemetry_guard =
+        server::telemetry::init_telemetry().context("Failed to initialize telemetry")?;
 
     info!("Starting Monero Marketplace Server");
 
@@ -310,7 +336,9 @@ async fn main() -> Result<()> {
     }
 
     // 2.5 Start wallet-rpc processes with watchdog supervision
-    let watchdog = Arc::new(WalletRpcWatchdog::new(server::watchdog::WatchdogConfig::from_env()));
+    let watchdog = Arc::new(WalletRpcWatchdog::new(
+        server::watchdog::WatchdogConfig::from_env(),
+    ));
 
     watchdog
         .start_all_processes()
@@ -368,7 +396,9 @@ async fn main() -> Result<()> {
         .unwrap_or(false);
 
     if skip_integrity {
-        tracing::warn!("⚠️  SKIP_DB_INTEGRITY_CHECK=true - Skipping database integrity verification");
+        tracing::warn!(
+            "⚠️  SKIP_DB_INTEGRITY_CHECK=true - Skipping database integrity verification"
+        );
     } else {
         db_manager
             .verify_integrity(&db_config.database_path)
@@ -598,7 +628,7 @@ async fn main() -> Result<()> {
                 let hash_clone = password_hash.clone();
                 web::block(move || {
                     use diesel::prelude::*;
-                    use server::schema::users::dsl::{users, username, password_hash};
+                    use server::schema::users::dsl::{password_hash, username, users};
                     diesel::update(users.filter(username.eq("arbiter_system")))
                         .set(password_hash.eq(hash_clone))
                         .execute(&mut conn)
@@ -729,10 +759,10 @@ async fn main() -> Result<()> {
     info!("MultisigAutoCoordinator background service started (5s polling interval)");
 
     // 9.5. Initialize Redis pool and ArbiterAutoDkg for automated arbiter DKG
+    use secrecy::SecretString;
     use server::redis_pool::init_redis_pool;
     use server::services::arbiter_auto_dkg::ArbiterAutoDkg;
     use server::services::arbiter_watchdog::ArbiterKeyVault;
-    use secrecy::SecretString;
 
     let arbiter_auto_dkg: Option<Arc<ArbiterAutoDkg>> = match init_redis_pool() {
         Ok(redis_pool) => {
@@ -741,14 +771,20 @@ async fn main() -> Result<()> {
             // Get arbiter vault master password (optional for auto-DKG)
             match std::env::var("ARBITER_VAULT_MASTER_PASSWORD") {
                 Ok(password) => {
-                    match ArbiterKeyVault::new(redis_pool.clone(), SecretString::new(password.into())) {
+                    match ArbiterKeyVault::new(
+                        redis_pool.clone(),
+                        SecretString::new(password.into()),
+                    ) {
                         Ok(key_vault) => {
                             let auto_dkg = Arc::new(ArbiterAutoDkg::new(pool.clone(), key_vault));
                             info!("✅ ArbiterAutoDkg initialized - arbiter will auto-generate DKG packages");
                             Some(auto_dkg)
                         }
                         Err(e) => {
-                            warn!("ArbiterKeyVault init failed: {} - arbiter auto-DKG disabled", e);
+                            warn!(
+                                "ArbiterKeyVault init failed: {} - arbiter auto-DKG disabled",
+                                e
+                            );
                             None
                         }
                     }
@@ -771,27 +807,25 @@ async fn main() -> Result<()> {
     use server::services::arbiter_watchdog::{ArbiterWatchdog, WatchdogConfig};
 
     match init_redis_pool() {
-        Ok(redis_pool) => {
-            match WatchdogConfig::from_env() {
-                Ok(watchdog_config) => {
-                    match ArbiterWatchdog::new(pool.clone(), redis_pool, watchdog_config).await {
-                        Ok(watchdog) => {
-                            let watchdog_arc = Arc::new(watchdog);
-                            tokio::spawn(async move {
-                                watchdog_arc.run().await;
-                            });
-                            info!("✅ ArbiterWatchdog started - monitoring for auto-signing");
-                        }
-                        Err(e) => {
-                            warn!("ArbiterWatchdog init failed: {} - auto-signing disabled", e);
-                        }
+        Ok(redis_pool) => match WatchdogConfig::from_env() {
+            Ok(watchdog_config) => {
+                match ArbiterWatchdog::new(pool.clone(), redis_pool, watchdog_config).await {
+                    Ok(watchdog) => {
+                        let watchdog_arc = Arc::new(watchdog);
+                        tokio::spawn(async move {
+                            watchdog_arc.run().await;
+                        });
+                        info!("✅ ArbiterWatchdog started - monitoring for auto-signing");
+                    }
+                    Err(e) => {
+                        warn!("ArbiterWatchdog init failed: {} - auto-signing disabled", e);
                     }
                 }
-                Err(e) => {
-                    warn!("WatchdogConfig init failed: {} - auto-signing disabled", e);
-                }
             }
-        }
+            Err(e) => {
+                warn!("WatchdogConfig init failed: {} - auto-signing disabled", e);
+            }
+        },
         Err(e) => {
             warn!("Redis not available - ArbiterWatchdog disabled: {}", e);
         }
@@ -839,9 +873,12 @@ async fn main() -> Result<()> {
     // Initialize Redis pool for idempotency middleware (shared across workers)
     // Pool creation is lazy — actual Redis connections happen on first use.
     // The IdempotencyMiddleware fails-open if Redis is unreachable at runtime.
-    let idempotency_redis_pool: server::redis_pool::RedisPool = init_redis_pool()
-        .unwrap_or_else(|e| {
-            warn!("Redis pool init warning (idempotency will fail-open): {}", e);
+    let idempotency_redis_pool: server::redis_pool::RedisPool =
+        init_redis_pool().unwrap_or_else(|e| {
+            warn!(
+                "Redis pool init warning (idempotency will fail-open): {}",
+                e
+            );
             // Create pool with default URL anyway — middleware degrades gracefully
             let cfg = deadpool_redis::Config::from_url("redis://127.0.0.1:6379");
             cfg.create_pool(Some(deadpool_redis::Runtime::Tokio1))
@@ -959,7 +996,9 @@ async fn main() -> Result<()> {
             // Swagger UI static files
             .service(fs::Files::new("/swagger", "./server/static/swagger").index_file("index.html"))
             // Developer Portal
-            .service(fs::Files::new("/developers", "./docs/developer-portal").index_file("index.html"))
+            .service(
+                fs::Files::new("/developers", "./docs/developer-portal").index_file("index.html"),
+            )
             // SPA assets (React build output)
             .service(fs::Files::new("/assets", "./static/app/assets"))
             // EaaS SPA: Serve React app for all frontend routes
@@ -984,8 +1023,8 @@ async fn main() -> Result<()> {
                     ))
                     .service(auth::register)
                     .service(auth::login)
-                    .service(auth::login_json)      // JSON API for SPA
-                    .service(auth::register_json)   // JSON API for SPA
+                    .service(auth::login_json) // JSON API for SPA
+                    .service(auth::register_json) // JSON API for SPA
                     .service(auth::whoami)
                     .service(auth::logout)
                     .route("/recover", web::post().to(auth::recover_account)),
@@ -1007,19 +1046,40 @@ async fn main() -> Result<()> {
             // ============================================================================
             .service(
                 web::scope("/api/v1")
-                    .wrap(RequireApiKey::new(web::Data::new(pool.clone()), api_key_rate_limit.clone()))
+                    .wrap(RequireApiKey::new(
+                        web::Data::new(pool.clone()),
+                        api_key_rate_limit.clone(),
+                    ))
                     .wrap(IdempotencyMiddleware::new(idempotency_redis_pool.clone()))
                     // Escrow CRUD (scoped to API key owner)
                     .route("/escrows/create", web::post().to(user::create_escrow))
                     .route("/escrows/{id}", web::get().to(escrow::get_escrow))
                     .route("/escrows/{id}/join", web::post().to(user::join_escrow))
-                    .route("/escrows/{id}/deliver", web::post().to(user::mark_delivered))
-                    .route("/escrows/{id}/confirm", web::post().to(user::confirm_delivery))
-                    .route("/escrows/{id}/dispute", web::post().to(escrow::initiate_dispute))
-                    .route("/escrows/{id}/resolve", web::post().to(escrow::resolve_dispute))
-                    .route("/escrows/{id}/release", web::post().to(escrow::release_funds))
+                    .route(
+                        "/escrows/{id}/deliver",
+                        web::post().to(user::mark_delivered),
+                    )
+                    .route(
+                        "/escrows/{id}/confirm",
+                        web::post().to(user::confirm_delivery),
+                    )
+                    .route(
+                        "/escrows/{id}/dispute",
+                        web::post().to(escrow::initiate_dispute),
+                    )
+                    .route(
+                        "/escrows/{id}/resolve",
+                        web::post().to(escrow::resolve_dispute),
+                    )
+                    .route(
+                        "/escrows/{id}/release",
+                        web::post().to(escrow::release_funds),
+                    )
                     .route("/escrows/{id}/refund", web::post().to(escrow::refund_funds))
-                    .route("/escrows/{id}/funding-notification", web::post().to(escrow::notify_funding))
+                    .route(
+                        "/escrows/{id}/funding-notification",
+                        web::post().to(escrow::notify_funding),
+                    )
                     // Batch operations (B2B)
                     .route("/escrows/batch", web::post().to(batch::batch_operations))
                     // FROST DKG + Signing (B2B path)
@@ -1031,7 +1091,7 @@ async fn main() -> Result<()> {
                     // Analytics
                     .configure(analytics::configure_analytics_routes)
                     // User escrow listing
-                    .route("/user/escrows", web::get().to(user::get_user_escrows))
+                    .route("/user/escrows", web::get().to(user::get_user_escrows)),
             )
             // ============================================================================
             // EaaS Core API - Escrow-as-a-Service Endpoints (Session + API Key dual-auth)
@@ -1161,30 +1221,75 @@ async fn main() -> Result<()> {
                     .service(notifications::mark_read_by_link)
                     // Secure E2E Messaging endpoints (X25519 ECDH + ChaCha20Poly1305)
                     // NOTE: Static routes MUST come before wildcard {id} routes
-                    .route("/secure-messages/keypair", web::post().to(secure_messages::create_keypair))
-                    .route("/secure-messages/keypair", web::get().to(secure_messages::get_own_keypair))
-                    .route("/secure-messages/pubkey/{user_id}", web::get().to(secure_messages::get_user_pubkey))
-                    .route("/secure-messages/send", web::post().to(secure_messages::send_message))
-                    .route("/secure-messages/conversations", web::get().to(secure_messages::list_conversations))
-                    .route("/secure-messages/unread-count", web::get().to(secure_messages::get_unread_count))
-                    .route("/secure-messages/conversation/{user_id}", web::get().to(secure_messages::get_conversation))
-                    .route("/secure-messages/{id}/read", web::post().to(secure_messages::mark_message_read))
-                    .route("/secure-messages/{id}", web::delete().to(secure_messages::delete_message))
+                    .route(
+                        "/secure-messages/keypair",
+                        web::post().to(secure_messages::create_keypair),
+                    )
+                    .route(
+                        "/secure-messages/keypair",
+                        web::get().to(secure_messages::get_own_keypair),
+                    )
+                    .route(
+                        "/secure-messages/pubkey/{user_id}",
+                        web::get().to(secure_messages::get_user_pubkey),
+                    )
+                    .route(
+                        "/secure-messages/send",
+                        web::post().to(secure_messages::send_message),
+                    )
+                    .route(
+                        "/secure-messages/conversations",
+                        web::get().to(secure_messages::list_conversations),
+                    )
+                    .route(
+                        "/secure-messages/unread-count",
+                        web::get().to(secure_messages::get_unread_count),
+                    )
+                    .route(
+                        "/secure-messages/conversation/{user_id}",
+                        web::get().to(secure_messages::get_conversation),
+                    )
+                    .route(
+                        "/secure-messages/{id}/read",
+                        web::post().to(secure_messages::mark_message_read),
+                    )
+                    .route(
+                        "/secure-messages/{id}",
+                        web::delete().to(secure_messages::delete_message),
+                    )
                     // User endpoints
                     .route("/user/escrows", web::get().to(user::get_user_escrows))
-                    .route("/user/escrows/dashboard", web::get().to(user::get_user_escrows_dashboard))
+                    .route(
+                        "/user/escrows/dashboard",
+                        web::get().to(user::get_user_escrows_dashboard),
+                    )
                     // Escrow creation and state transitions
                     .route("/escrows/create", web::post().to(user::create_escrow))
                     // EaaS endpoints
-                    .route("/escrows/{id}/public", web::get().to(user::get_escrow_public))
+                    .route(
+                        "/escrows/{id}/public",
+                        web::get().to(user::get_escrow_public),
+                    )
                     .route("/escrows/{id}/join", web::post().to(user::join_escrow))
-                    .route("/escrows/{id}/lobby-status", web::get().to(user::get_lobby_status))
+                    .route(
+                        "/escrows/{id}/lobby-status",
+                        web::get().to(user::get_lobby_status),
+                    )
                     .route("/escrows/{id}/start-dkg", web::post().to(user::start_dkg))
                     .route("/escrow/{id}/deliver", web::post().to(user::mark_delivered))
-                    .route("/escrow/{id}/confirm", web::post().to(user::confirm_delivery))
+                    .route(
+                        "/escrow/{id}/confirm",
+                        web::post().to(user::confirm_delivery),
+                    )
                     // Arbiter endpoints
-                    .route("/arbiter/disputes", web::get().to(user::get_arbiter_disputes))
-                    .route("/arbiter/disputes/{id}", web::get().to(user::get_arbiter_dispute_detail))
+                    .route(
+                        "/arbiter/disputes",
+                        web::get().to(user::get_arbiter_disputes),
+                    )
+                    .route(
+                        "/arbiter/disputes/{id}",
+                        web::get().to(user::get_arbiter_dispute_detail),
+                    )
                     // Escrow signing
                     .route(
                         "/v2/escrow/{id}/sign-action",
@@ -1213,10 +1318,7 @@ async fn main() -> Result<()> {
                         web::post().to(escrow::submit_nonce_commitment),
                     )
                     // Round-robin CLSAG signing
-                    .route(
-                        "/v2/escrow/{id}",
-                        web::get().to(escrow::get_escrow_details),
-                    )
+                    .route("/v2/escrow/{id}", web::get().to(escrow::get_escrow_details))
                     // Partial key image submission (MUST be called before signing)
                     .route(
                         "/v2/escrow/{id}/submit-partial-key-image",

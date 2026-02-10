@@ -23,7 +23,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -48,7 +51,7 @@ fn main() -> Result<()> {
     // - Global index: 9647632 (correct)
     // - Mask: derived from tx_pub_key c3725cf1289a79e3034cc7b9024ffcce704c347866c923f3b632ae6c3d28b5ce at output_index 1
     let correct_output_index = 1i32;
-    let correct_amount = 3000000000i64;  // 0.003 XMR
+    let correct_amount = 3000000000i64; // 0.003 XMR
     let correct_mask = "408126310ce0de53c918bbb6a993897eb92f753b0828fe6430d30dabcf1fb904";
 
     let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());

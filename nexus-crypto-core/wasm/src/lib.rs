@@ -14,9 +14,9 @@
 //! - **Encryption**: `generate_keypair`, `encrypt_data`, `decrypt_data`
 //! - **Utilities**: `sha3_256`, `is_valid_hex`, `bytes_to_hex`, `hex_to_bytes`
 
-use wasm_bindgen::prelude::*;
 use serde::Serialize;
 use std::collections::BTreeMap;
+use wasm_bindgen::prelude::*;
 
 /// Initialize panic hook for better error messages in browser console
 #[wasm_bindgen(start)]
@@ -72,13 +72,14 @@ pub fn frost_dkg_part2(
     let packages: BTreeMap<String, String> = serde_json::from_str(round1_packages_json)
         .map_err(|e| JsError::new(&format!("Invalid JSON: {}", e)))?;
 
-    let result = dkg_part2(secret_package_hex, &packages)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let result =
+        dkg_part2(secret_package_hex, &packages).map_err(|e| JsError::new(&format!("{:?}", e)))?;
 
     // CRITICAL: Use serialize_maps_as_objects(true) to convert BTreeMap to JS plain object
     // instead of JS Map. Object.keys() returns [] for Map objects!
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
-    result.serialize(&serializer)
+    result
+        .serialize(&serializer)
         .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
 }
 
@@ -237,14 +238,10 @@ pub fn compute_partial_key_image(
 /// # Returns
 /// Aggregated key image as hex string (32 bytes)
 #[wasm_bindgen]
-pub fn aggregate_key_images(
-    pki1_hex: &str,
-    pki2_hex: &str,
-) -> Result<String, JsError> {
+pub fn aggregate_key_images(pki1_hex: &str, pki2_hex: &str) -> Result<String, JsError> {
     use nexus_crypto_core::keys::aggregate_partial_key_images;
 
-    aggregate_partial_key_images(pki1_hex, pki2_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+    aggregate_partial_key_images(pki1_hex, pki2_hex).map_err(|e| JsError::new(&format!("{:?}", e)))
 }
 
 // ============================================================================
@@ -260,13 +257,10 @@ pub fn aggregate_key_images(
 /// JSON: `{ "commitment_hash": "hex...", "r_public": "hex...", "r_prime_public": "hex...",
 ///          "r_secret": "hex...", "r_prime_secret": "hex..." }`
 #[wasm_bindgen]
-pub fn generate_nonce_commitment(
-    multisig_pub_key_hex: &str,
-) -> Result<JsValue, JsError> {
+pub fn generate_nonce_commitment(multisig_pub_key_hex: &str) -> Result<JsValue, JsError> {
     use nexus_crypto_core::nonce::generate_nonce_commitment as gen_nonce;
 
-    let result = gen_nonce(multisig_pub_key_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let result = gen_nonce(multisig_pub_key_hex).map_err(|e| JsError::new(&format!("{:?}", e)))?;
 
     // Manually serialize
     #[derive(Serialize)]
@@ -318,14 +312,10 @@ pub fn verify_nonce_commitment(
 /// # Returns
 /// Aggregated nonce as hex string (32 bytes)
 #[wasm_bindgen]
-pub fn aggregate_nonces(
-    r1_hex: &str,
-    r2_hex: &str,
-) -> Result<String, JsError> {
+pub fn aggregate_nonces(r1_hex: &str, r2_hex: &str) -> Result<String, JsError> {
     use nexus_crypto_core::nonce::aggregate_nonces as agg;
 
-    agg(r1_hex, r2_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+    agg(r1_hex, r2_hex).map_err(|e| JsError::new(&format!("{:?}", e)))
 }
 
 // ============================================================================
@@ -340,8 +330,7 @@ pub fn aggregate_nonces(
 pub fn generate_keypair() -> Result<JsValue, JsError> {
     use nexus_crypto_core::encryption::generate_ephemeral_keypair;
 
-    let result = generate_ephemeral_keypair()
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let result = generate_ephemeral_keypair().map_err(|e| JsError::new(&format!("{:?}", e)))?;
 
     // Wrap in Serialize struct
     #[derive(Serialize)]
@@ -416,8 +405,13 @@ pub fn decrypt_data(
 ) -> Result<String, JsError> {
     use nexus_crypto_core::encryption::decrypt_data as decrypt;
 
-    decrypt(encrypted_blob_base64, nonce_hex, peer_public_key_hex, my_private_key_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+    decrypt(
+        encrypted_blob_base64,
+        nonce_hex,
+        peer_public_key_hex,
+        my_private_key_hex,
+    )
+    .map_err(|e| JsError::new(&format!("{:?}", e)))
 }
 
 // ============================================================================
@@ -442,17 +436,14 @@ pub fn decrypt_data(
 /// - AEAD provides confidentiality + integrity
 /// - NEVER log the plaintext key_package
 #[wasm_bindgen]
-pub fn encrypt_key_for_backup(
-    key_package_hex: &str,
-    password: &str,
-) -> Result<String, JsError> {
+pub fn encrypt_key_for_backup(key_package_hex: &str, password: &str) -> Result<String, JsError> {
     use nexus_crypto_core::encryption::backup::encrypt_key_for_backup as encrypt_backup;
 
-    let key_package = hex::decode(key_package_hex)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let key_package =
+        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
 
-    let encrypted = encrypt_backup(&key_package, password)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let encrypted =
+        encrypt_backup(&key_package, password).map_err(|e| JsError::new(&format!("{:?}", e)))?;
 
     Ok(hex::encode(encrypted))
 }
@@ -472,17 +463,14 @@ pub fn encrypt_key_for_backup(
 /// - Backup data is corrupted or tampered with
 /// - Backup data is truncated
 #[wasm_bindgen]
-pub fn decrypt_key_from_backup(
-    encrypted_hex: &str,
-    password: &str,
-) -> Result<String, JsError> {
+pub fn decrypt_key_from_backup(encrypted_hex: &str, password: &str) -> Result<String, JsError> {
     use nexus_crypto_core::encryption::backup::decrypt_key_from_backup as decrypt_backup;
 
-    let encrypted = hex::decode(encrypted_hex)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let encrypted =
+        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
 
-    let decrypted = decrypt_backup(&encrypted, password)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let decrypted =
+        decrypt_backup(&encrypted, password).map_err(|e| JsError::new(&format!("{:?}", e)))?;
 
     Ok(hex::encode(decrypted))
 }
@@ -506,8 +494,8 @@ pub fn decrypt_key_from_backup(
 pub fn derive_backup_id(key_package_hex: &str) -> Result<String, JsError> {
     use nexus_crypto_core::encryption::backup::derive_backup_id as derive_id;
 
-    let key_package = hex::decode(key_package_hex)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let key_package =
+        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
 
     Ok(derive_id(&key_package))
 }
@@ -526,8 +514,8 @@ pub fn derive_backup_id(key_package_hex: &str) -> Result<String, JsError> {
 pub fn verify_backup_password(encrypted_hex: &str, password: &str) -> Result<bool, JsError> {
     use nexus_crypto_core::encryption::backup::verify_backup_password as verify;
 
-    let encrypted = hex::decode(encrypted_hex)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let encrypted =
+        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
 
     Ok(verify(&encrypted, password))
 }
@@ -563,10 +551,9 @@ pub fn get_version() -> String {
 /// Hash as hex string (64 chars = 32 bytes)
 #[wasm_bindgen]
 pub fn sha3_256(data_hex: &str) -> Result<String, JsError> {
-    use sha3::{Sha3_256, Digest};
+    use sha3::{Digest, Sha3_256};
 
-    let data = hex::decode(data_hex)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let data = hex::decode(data_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
 
     let mut hasher = Sha3_256::new();
     hasher.update(&data);
@@ -590,8 +577,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// Convert hex string to bytes
 #[wasm_bindgen]
 pub fn hex_to_bytes(hex_str: &str) -> Result<Vec<u8>, JsError> {
-    hex::decode(hex_str)
-        .map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))
+    hex::decode(hex_str).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))
 }
 
 /// Compute Lagrange coefficient for participant in 2-of-3 signing

@@ -29,16 +29,19 @@ const TX_PUB_KEY_R: &str = "f328e5ae72ba19d163b5cbea369cfeb67f1290dc34271acb2842
 const SHARED_VIEW_KEY: &str = "d4f2f1cc764d4acc97a849ed525cf56e66de9657812920f1e001197a166d5909";
 
 /// Funding Commitment Mask (z) - the blinding factor for the output commitment
-const FUNDING_COMMITMENT_MASK: &str = "689d9955dcd9b994bccb690d42477ae2ec2cb8634f5fab62e08641fa01f57f09";
+const FUNDING_COMMITMENT_MASK: &str =
+    "689d9955dcd9b994bccb690d42477ae2ec2cb8634f5fab62e08641fa01f57f09";
 
 /// Output 0 (the escrow output being spent)
 const OUTPUT_0_PUBKEY: &str = "8cd680c84b7f2e999fbf6b29c832df99ceae81ee0104718cad5d0fc1457f8bd3";
-const OUTPUT_0_COMMITMENT: &str = "85046c4a1e7b7d6a1ebaef7dd36a62d36378e56b7c1d4c118613892cb086885b";
+const OUTPUT_0_COMMITMENT: &str =
+    "85046c4a1e7b7d6a1ebaef7dd36a62d36378e56b7c1d4c118613892cb086885b";
 const OUTPUT_INDEX: u64 = 0;
 
 /// Output 1 (change output - not used in escrow)
 const OUTPUT_1_PUBKEY: &str = "c446e94d12ff95bcc20abc43821b67fa26e5832c9fadc1a91e5fb714ba0f4367";
-const OUTPUT_1_COMMITMENT: &str = "d5e62020fd7418758719856154bd22ebdfb716d920685d1630e418393e987a35";
+const OUTPUT_1_COMMITMENT: &str =
+    "d5e62020fd7418758719856154bd22ebdfb716d920685d1630e418393e987a35";
 
 fn hex_to_bytes32(hex: &str) -> Result<[u8; 32], String> {
     let bytes = hex::decode(hex).map_err(|e| format!("Invalid hex: {}", e))?;
@@ -141,19 +144,31 @@ fn main() {
 
     let hp_p = hash_to_point(hex_to_bytes32(OUTPUT_0_PUBKEY).unwrap());
     println!("Output Public Key (P): {}", OUTPUT_0_PUBKEY);
-    println!("Hp(P):                 {}", hex::encode(hp_p.compress().to_bytes()));
+    println!(
+        "Hp(P):                 {}",
+        hex::encode(hp_p.compress().to_bytes())
+    );
 
     println!("\n═══════════════════════════════════════════════════════════════════");
     println!("STEP 2: Lagrange Coefficients for Buyer(1) + Vendor(2)");
     println!("═══════════════════════════════════════════════════════════════════\n");
 
     let indices = [1u32, 2u32];
-    let lambda_buyer = lagrange_coefficient(1, &indices);  // λ₁ = 2
+    let lambda_buyer = lagrange_coefficient(1, &indices); // λ₁ = 2
     let lambda_vendor = lagrange_coefficient(2, &indices); // λ₂ = -1
 
-    println!("λ_buyer (index 1):  {}", hex::encode(lambda_buyer.as_bytes()));
-    println!("λ_vendor (index 2): {}", hex::encode(lambda_vendor.as_bytes()));
-    println!("λ_buyer + λ_vendor: {}", hex::encode((lambda_buyer + lambda_vendor).as_bytes()));
+    println!(
+        "λ_buyer (index 1):  {}",
+        hex::encode(lambda_buyer.as_bytes())
+    );
+    println!(
+        "λ_vendor (index 2): {}",
+        hex::encode(lambda_vendor.as_bytes())
+    );
+    println!(
+        "λ_buyer + λ_vendor: {}",
+        hex::encode((lambda_buyer + lambda_vendor).as_bytes())
+    );
 
     let expected_lambda_buyer = Scalar::from(2u64);
     let expected_lambda_vendor = -Scalar::ONE;
@@ -173,7 +188,10 @@ fn main() {
     // This matches Monero's key derivation
     let shared_secret_point = (view_key_shared * tx_pub_r).mul_by_cofactor();
     let shared_secret_bytes = shared_secret_point.compress().to_bytes();
-    println!("Shared secret (8*a*R): {}", hex::encode(&shared_secret_bytes));
+    println!(
+        "Shared secret (8*a*R): {}",
+        hex::encode(&shared_secret_bytes)
+    );
 
     // Compute derivation scalar: H_s(shared_secret || varint(output_index))
     let mut hasher = Keccak256::new();
@@ -184,7 +202,10 @@ fn main() {
 
     println!("Derivation scalar (d): {}", hex::encode(&derivation_hash));
     println!();
-    println!("Formula: d = H_s(8 * a_shared * R || varint({}))", OUTPUT_INDEX);
+    println!(
+        "Formula: d = H_s(8 * a_shared * R || varint({}))",
+        OUTPUT_INDEX
+    );
 
     println!("\n═══════════════════════════════════════════════════════════════════");
     println!("STEP 4: Verify Output Public Key Matches Derivation");
@@ -199,7 +220,10 @@ fn main() {
 
     // P - d*G should equal the spend public key B if derivation is correct
     let spend_pub_derived = output_0_p - d_g;
-    println!("P - d*G (should be B): {}", hex::encode(spend_pub_derived.compress().to_bytes()));
+    println!(
+        "P - d*G (should be B): {}",
+        hex::encode(spend_pub_derived.compress().to_bytes())
+    );
     println!();
     println!("This should match the FROST group public key from DKG.");
 
@@ -231,7 +255,10 @@ fn main() {
     // If pseudo_out_mask = 0, then D = z * Hp(P)
     let d_point_with_z = funding_mask_z * hp_p;
     println!("Funding mask (z):      {}", FUNDING_COMMITMENT_MASK);
-    println!("D = z * Hp(P):         {}", hex::encode(d_point_with_z.compress().to_bytes()));
+    println!(
+        "D = z * Hp(P):         {}",
+        hex::encode(d_point_with_z.compress().to_bytes())
+    );
     println!();
     println!("Note: If pseudo_out_mask ≠ 0, D = (z - pseudo_out_mask) * Hp(P)");
 
@@ -264,10 +291,19 @@ fn main() {
     println!();
     println!("REFERENCE VALUES FOR TESTING:");
     println!("────────────────────────────────────────────────────────────────────");
-    println!("Hp(P):              {}", hex::encode(hp_p.compress().to_bytes()));
+    println!(
+        "Hp(P):              {}",
+        hex::encode(hp_p.compress().to_bytes())
+    );
     println!("Derivation (d):     {}", hex::encode(&derivation_hash));
-    println!("D = z*Hp(P):        {}", hex::encode(d_point_with_z.compress().to_bytes()));
-    println!("P - d*G (group B):  {}", hex::encode(spend_pub_derived.compress().to_bytes()));
+    println!(
+        "D = z*Hp(P):        {}",
+        hex::encode(d_point_with_z.compress().to_bytes())
+    );
+    println!(
+        "P - d*G (group B):  {}",
+        hex::encode(spend_pub_derived.compress().to_bytes())
+    );
     println!();
     println!("Use these values to validate WASM/JavaScript signing:");
     println!("1. Verify WASM computes same Hp(P)");

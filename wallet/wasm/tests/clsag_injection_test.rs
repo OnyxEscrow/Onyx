@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod clsag_injection_tests {
-    use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::edwards::CompressedEdwardsY;
+    use curve25519_dalek::scalar::Scalar;
     use monero_generators_mirror::hash_to_point;
 
     /// Reference values from stagenet TX e12e8dbe2be8185f7eb820f4060d1194192d267600b46ba26fd81120c5b8388e
@@ -12,7 +12,8 @@ mod clsag_injection_tests {
     const REF_C1: &str = "9befd25f674e7a3207c80a90ba8805bf127020d0b68460258bb72ac85f75d404";
     const REF_D: &str = "ee877f2032f7e6dc83a62c93830dd90a916dd687cd2f1a170f07b47c31ad744f";
     const REF_PSEUDO_OUT: &str = "fbd69d820616ac0b220209885aa720a63c50402ba95f6ba2c710157ef06d8604";
-    const REF_OUTPUT_PUBKEY: &str = "8bd836ba891eb996b835a06227fb38bc8f996c4f3f00fe27ef9af6fd1fd210d2";
+    const REF_OUTPUT_PUBKEY: &str =
+        "8bd836ba891eb996b835a06227fb38bc8f996c4f3f00fe27ef9af6fd1fd210d2";
 
     fn hex_to_bytes(hex: &str) -> [u8; 32] {
         let bytes = hex::decode(hex).expect("Invalid hex");
@@ -40,7 +41,8 @@ mod clsag_injection_tests {
             hp_hex.to_lowercase(),
             REF_HP_P.to_lowercase(),
             "hash_to_point(P) mismatch!\nExpected: {}\nGot: {}",
-            REF_HP_P, hp_hex
+            REF_HP_P,
+            hp_hex
         );
     }
 
@@ -74,7 +76,11 @@ mod clsag_injection_tests {
         assert_eq!(lambda_vendor, expected_vendor, "λ_vendor should be -1");
 
         // Verify λ_buyer + λ_vendor = 1
-        assert_eq!(lambda_buyer + lambda_vendor, Scalar::ONE, "Lagrange sum should be 1");
+        assert_eq!(
+            lambda_buyer + lambda_vendor,
+            Scalar::ONE,
+            "Lagrange sum should be 1"
+        );
     }
 
     #[test]

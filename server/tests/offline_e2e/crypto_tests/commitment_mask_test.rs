@@ -23,10 +23,8 @@ use crate::mock_infrastructure::DeterministicRng;
 /// H generator constant from Monero's rctTypes.h
 /// This is the "alternate basepoint" for Pedersen commitments
 const H_BYTES: [u8; 32] = [
-    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-    0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-    0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
+    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
 ];
 
 /// Get the H point (alternate generator)
@@ -104,7 +102,10 @@ fn test_commitment_different_masks() {
     let c1 = compute_commitment(&mask1, amount);
     let c2 = compute_commitment(&mask2, amount);
 
-    assert_ne!(c1, c2, "Different masks should produce different commitments");
+    assert_ne!(
+        c1, c2,
+        "Different masks should produce different commitments"
+    );
 }
 
 #[test]
@@ -118,7 +119,10 @@ fn test_commitment_different_amounts() {
     let c1 = compute_commitment(&mask, amount1);
     let c2 = compute_commitment(&mask, amount2);
 
-    assert_ne!(c1, c2, "Different amounts should produce different commitments");
+    assert_ne!(
+        c1, c2,
+        "Different amounts should produce different commitments"
+    );
 }
 
 #[test]
@@ -185,7 +189,10 @@ fn test_commitment_subtraction() {
     let expected_amount = amount1 - amount2;
     let expected = compute_commitment(&expected_mask, expected_amount);
 
-    assert_eq!(c_diff, expected, "Commitment subtraction should be homomorphic");
+    assert_eq!(
+        c_diff, expected,
+        "Commitment subtraction should be homomorphic"
+    );
 }
 
 #[test]
@@ -203,7 +210,7 @@ fn test_transaction_balance() {
 
     // Output
     let output_amount = 970_000_000_000u64; // 0.97 XMR
-    let fee = 30_000_000_000u64;            // 0.03 XMR
+    let fee = 30_000_000_000u64; // 0.03 XMR
 
     // For balance: output_mask = input_mask (if no change)
     // But typically: output_mask is chosen, then we adjust
@@ -224,7 +231,10 @@ fn test_transaction_balance() {
     let excess = c_input - c_output - c_fee;
     let expected_excess = mask_diff * ED25519_BASEPOINT_POINT;
 
-    assert_eq!(excess, expected_excess, "Transaction balance should produce mask*G excess");
+    assert_eq!(
+        excess, expected_excess,
+        "Transaction balance should produce mask*G excess"
+    );
 }
 
 // ============================================================================
@@ -276,7 +286,10 @@ fn test_multi_output_balance() {
     let total_amount = amount1 + amount2 + fee;
     let expected = compute_commitment(&total_mask, total_amount);
 
-    assert_eq!(pseudo_out, expected, "Multi-output pseudo_out should balance");
+    assert_eq!(
+        pseudo_out, expected,
+        "Multi-output pseudo_out should balance"
+    );
 }
 
 // ============================================================================
@@ -311,7 +324,10 @@ fn test_mask_delta_for_dummy_output() {
     let input_amount = output_amount + fee;
     let expected = compute_commitment(&input_mask, input_amount);
 
-    assert_eq!(pseudo_out, expected, "Dummy output mask should balance commitment");
+    assert_eq!(
+        pseudo_out, expected,
+        "Dummy output mask should balance commitment"
+    );
 }
 
 // ============================================================================
@@ -329,7 +345,10 @@ fn test_cofactor_multiplication() {
 
     // 8*P should be different from P (unless P is in subgroup of order 1)
     // For random points, this should be true
-    assert_ne!(point, cofactored, "8*P should differ from P for random points");
+    assert_ne!(
+        point, cofactored,
+        "8*P should differ from P for random points"
+    );
 
     // But cofactored/8 (if we could compute it) should give back P
     // This is implicit in how CLSAG stores D_inv8 = D/8
@@ -379,7 +398,10 @@ fn test_mask_derivation_unique_per_index() {
     let mask0 = derive_mask(&shared_secret, 0);
     let mask1 = derive_mask(&shared_secret, 1);
 
-    assert_ne!(mask0, mask1, "Different indices should produce different masks");
+    assert_ne!(
+        mask0, mask1,
+        "Different indices should produce different masks"
+    );
 }
 
 /// Derive a mask from shared secret and output index
@@ -451,7 +473,10 @@ fn test_commitment_difference_reveals_nothing() {
 
     // Even with same amount, commitments are different (due to different masks)
     // This is the hiding property
-    assert_ne!(c1, c2, "Same amount with different masks should hide the amount");
+    assert_ne!(
+        c1, c2,
+        "Same amount with different masks should hide the amount"
+    );
 }
 
 #[test]

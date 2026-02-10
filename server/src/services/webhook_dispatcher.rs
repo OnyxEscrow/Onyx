@@ -24,7 +24,9 @@ use tracing::{error, info, warn};
 
 use crate::db::DbPool;
 use crate::models::webhook::{Webhook, WebhookEventType};
-use crate::models::webhook_delivery::{DeliveryStatus, NewWebhookDelivery, WebhookDelivery, MAX_ATTEMPTS};
+use crate::models::webhook_delivery::{
+    DeliveryStatus, NewWebhookDelivery, WebhookDelivery, MAX_ATTEMPTS,
+};
 
 /// HTTP client timeout for webhook delivery
 const DELIVERY_TIMEOUT_SECS: u64 = 30;
@@ -84,11 +86,15 @@ impl WebhookDispatcher {
     ///
     /// This is the main entry point for triggering webhooks.
     /// It finds all active webhooks subscribed to the event and schedules delivery.
-    pub async fn emit_event(&self, event_type: WebhookEventType, data: serde_json::Value) -> Result<Vec<String>> {
+    pub async fn emit_event(
+        &self,
+        event_type: WebhookEventType,
+        data: serde_json::Value,
+    ) -> Result<Vec<String>> {
         let payload = WebhookPayload::new(event_type, data);
         let event_type_str = payload.event_type.clone();
-        let payload_json = serde_json::to_string(&payload)
-            .context("Failed to serialize webhook payload")?;
+        let payload_json =
+            serde_json::to_string(&payload).context("Failed to serialize webhook payload")?;
 
         // Get all active webhooks subscribed to this event
         let mut conn = self.pool.get().context("Failed to get DB connection")?;
@@ -185,7 +191,12 @@ impl WebhookDispatcher {
 
                 if (200..300).contains(&status_code) {
                     // Success
-                    WebhookDelivery::mark_success(&delivery.id, status_code, Some(&body), &mut conn)?;
+                    WebhookDelivery::mark_success(
+                        &delivery.id,
+                        status_code,
+                        Some(&body),
+                        &mut conn,
+                    )?;
                     Webhook::record_success(&webhook.id, &mut conn)?;
 
                     info!(
@@ -219,7 +230,8 @@ impl WebhookDispatcher {
             Err(e) => {
                 // Network/timeout error
                 let error_msg = e.to_string();
-                let is_final = WebhookDelivery::mark_failed(&delivery.id, None, &error_msg, &mut conn)?;
+                let is_final =
+                    WebhookDelivery::mark_failed(&delivery.id, None, &error_msg, &mut conn)?;
                 let was_disabled = Webhook::record_failure(&webhook.id, &error_msg, &mut conn)?;
 
                 warn!(
@@ -243,8 +255,8 @@ impl WebhookDispatcher {
         type HmacSha256 = Hmac<Sha256>;
 
         let message = format!("{}.{}", timestamp, payload);
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
-            .expect("HMAC can take key of any size");
+        let mut mac =
+            HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
         mac.update(message.as_bytes());
 
         let result = mac.finalize();
@@ -311,15 +323,15 @@ impl WebhookDispatcher {
     pub async fn retry_delivery(&self, delivery_id: &str) -> Result<()> {
         let mut conn = self.pool.get().context("Failed to get DB connection")?;
 
-        let delivery = WebhookDelivery::find_by_id(delivery_id, &mut conn)?
-            .context("Delivery not found")?;
+        let delivery =
+            WebhookDelivery::find_by_id(delivery_id, &mut conn)?.context("Delivery not found")?;
 
         if delivery.attempt_count >= MAX_ATTEMPTS {
             anyhow::bail!("Maximum retry attempts reached");
         }
 
-        let webhook = Webhook::find_by_id(&delivery.webhook_id, &mut conn)?
-            .context("Webhook not found")?;
+        let webhook =
+            Webhook::find_by_id(&delivery.webhook_id, &mut conn)?.context("Webhook not found")?;
 
         if webhook.is_active == 0 {
             anyhow::bail!("Webhook is disabled");
@@ -337,7 +349,11 @@ impl WebhookDispatcher {
 }
 
 /// Build a standard escrow webhook payload
-pub fn build_escrow_payload(escrow_id: &str, event_type: &str, extra: serde_json::Value) -> serde_json::Value {
+pub fn build_escrow_payload(
+    escrow_id: &str,
+    event_type: &str,
+    extra: serde_json::Value,
+) -> serde_json::Value {
     serde_json::json!({
         "escrow_id": escrow_id,
         "event": event_type,

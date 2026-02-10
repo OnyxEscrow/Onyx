@@ -22,7 +22,7 @@ const STANDARD_ADDRESS_LEN: usize = 95;
 const INTEGRATED_ADDRESS_LEN: usize = 106;
 
 /// Mainnet standard address prefix
-const MAINNET_STANDARD_PREFIX: u8 = 18;  // '4' in base58
+const MAINNET_STANDARD_PREFIX: u8 = 18; // '4' in base58
 
 /// Mainnet subaddress prefix
 const MAINNET_SUBADDRESS_PREFIX: u8 = 42; // '8' in base58
@@ -31,7 +31,7 @@ const MAINNET_SUBADDRESS_PREFIX: u8 = 42; // '8' in base58
 const MAINNET_INTEGRATED_PREFIX: u8 = 19; // '4' in base58 (different checksum)
 
 /// Testnet standard address prefix
-const TESTNET_STANDARD_PREFIX: u8 = 53;  // '9' in base58
+const TESTNET_STANDARD_PREFIX: u8 = 53; // '9' in base58
 
 /// Testnet subaddress prefix
 const TESTNET_SUBADDRESS_PREFIX: u8 = 63; // 'A' in base58
@@ -350,19 +350,31 @@ fn test_all_valid_prefixes() {
 
     // Mainnet standard (4)
     let addr = format!("4{}", &suffix);
-    assert!(validate_address(&addr).is_valid, "Prefix '4' should be valid");
+    assert!(
+        validate_address(&addr).is_valid,
+        "Prefix '4' should be valid"
+    );
 
     // Mainnet subaddress (8)
     let addr = format!("8{}", &suffix);
-    assert!(validate_address(&addr).is_valid, "Prefix '8' should be valid");
+    assert!(
+        validate_address(&addr).is_valid,
+        "Prefix '8' should be valid"
+    );
 
     // Testnet standard (9)
     let addr = format!("9{}", &suffix);
-    assert!(validate_address(&addr).is_valid, "Prefix '9' should be valid");
+    assert!(
+        validate_address(&addr).is_valid,
+        "Prefix '9' should be valid"
+    );
 
     // Testnet subaddress (A)
     let addr = format!("A{}", &suffix);
-    assert!(validate_address(&addr).is_valid, "Prefix 'A' should be valid");
+    assert!(
+        validate_address(&addr).is_valid,
+        "Prefix 'A' should be valid"
+    );
 }
 
 #[test]
@@ -544,10 +556,7 @@ fn test_validation_consistent_for_random_input() {
 
     for _ in 0..100 {
         let random_bytes = rng.gen_32_bytes();
-        let random_str: String = random_bytes
-            .iter()
-            .map(|b| format!("{:02x}", b))
-            .collect();
+        let random_str: String = random_bytes.iter().map(|b| format!("{:02x}", b)).collect();
 
         let r1 = validate_address(&random_str);
         let r2 = validate_address(&random_str);

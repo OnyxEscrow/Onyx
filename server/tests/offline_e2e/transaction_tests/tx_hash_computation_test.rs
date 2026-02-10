@@ -21,11 +21,14 @@ fn test_keccak256_empty() {
     let result: [u8; 32] = hasher.finalize().into();
 
     // Known Keccak256 of empty string
-    let expected = hex::decode(
-        "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-    ).unwrap();
+    let expected =
+        hex::decode("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").unwrap();
 
-    assert_eq!(&result[..], &expected[..], "Empty hash should match known value");
+    assert_eq!(
+        &result[..],
+        &expected[..],
+        "Empty hash should match known value"
+    );
 }
 
 #[test]
@@ -43,7 +46,10 @@ fn test_keccak256_different_inputs() {
     let hash1: [u8; 32] = Keccak256::digest(b"input1").into();
     let hash2: [u8; 32] = Keccak256::digest(b"input2").into();
 
-    assert_ne!(hash1, hash2, "Different inputs should produce different hashes");
+    assert_ne!(
+        hash1, hash2,
+        "Different inputs should produce different hashes"
+    );
 }
 
 // ============================================================================
@@ -194,8 +200,8 @@ fn compute_full_tx_hash(tx_bytes: &[u8]) -> TxHashResult {
     let third = tx_bytes.len() / 3;
 
     let prefix_bytes = &tx_bytes[..third];
-    let base_bytes = &tx_bytes[third..third*2];
-    let prunable_bytes = &tx_bytes[third*2..];
+    let base_bytes = &tx_bytes[third..third * 2];
+    let prunable_bytes = &tx_bytes[third * 2..];
 
     let prefix_hash = compute_prefix_hash(prefix_bytes);
     let base_hash = compute_base_hash(base_bytes);
@@ -289,7 +295,10 @@ fn test_clsag_message_sensitive_to_bp() {
     let msg1 = compute_clsag_message(&prefix_hash, &base_hash, &bp_hash1);
     let msg2 = compute_clsag_message(&prefix_hash, &base_hash, &bp_hash2);
 
-    assert_ne!(msg1, msg2, "Different BP should produce different CLSAG message");
+    assert_ne!(
+        msg1, msg2,
+        "Different BP should produce different CLSAG message"
+    );
 }
 
 // ============================================================================
@@ -345,7 +354,10 @@ fn test_three_hash_concat() {
     concat.extend_from_slice(&h3);
     let result2: [u8; 32] = Keccak256::digest(&concat).into();
 
-    assert_eq!(result1, result2, "Incremental and batch concat should be equivalent");
+    assert_eq!(
+        result1, result2,
+        "Incremental and batch concat should be equivalent"
+    );
 }
 
 // ============================================================================

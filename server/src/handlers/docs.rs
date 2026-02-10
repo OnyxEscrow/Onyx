@@ -28,8 +28,9 @@ pub async fn serve_openapi_spec_json() -> impl Responder {
         Ok(spec) => HttpResponse::Ok()
             .content_type("application/json")
             .json(spec),
-        Err(e) => HttpResponse::InternalServerError()
-            .body(format!("Failed to parse OpenAPI spec: {}", e)),
+        Err(e) => {
+            HttpResponse::InternalServerError().body(format!("Failed to parse OpenAPI spec: {}", e))
+        }
     }
 }
 
@@ -274,9 +275,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_openapi_spec_served() {
-        let app = test::init_service(
-            App::new().service(serve_openapi_spec)
-        ).await;
+        let app = test::init_service(App::new().service(serve_openapi_spec)).await;
 
         let req = test::TestRequest::get()
             .uri("/docs/openapi.yaml")
@@ -292,51 +291,46 @@ mod tests {
 
     #[actix_web::test]
     async fn test_swagger_ui_served() {
-        let app = test::init_service(
-            App::new().service(serve_swagger_ui)
-        ).await;
+        let app = test::init_service(App::new().service(serve_swagger_ui)).await;
 
-        let req = test::TestRequest::get()
-            .uri("/docs/swagger")
-            .to_request();
+        let req = test::TestRequest::get().uri("/docs/swagger").to_request();
         let resp = test::call_service(&app, req).await;
 
         assert!(resp.status().is_success());
-        assert!(resp.headers().get("content-type").unwrap()
-            .to_str().unwrap().contains("text/html"));
+        assert!(resp
+            .headers()
+            .get("content-type")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .contains("text/html"));
     }
 
     #[actix_web::test]
     async fn test_redoc_ui_served() {
-        let app = test::init_service(
-            App::new().service(serve_redoc_ui)
-        ).await;
+        let app = test::init_service(App::new().service(serve_redoc_ui)).await;
 
-        let req = test::TestRequest::get()
-            .uri("/docs/redoc")
-            .to_request();
+        let req = test::TestRequest::get().uri("/docs/redoc").to_request();
         let resp = test::call_service(&app, req).await;
 
         assert!(resp.status().is_success());
-        assert!(resp.headers().get("content-type").unwrap()
-            .to_str().unwrap().contains("text/html"));
+        assert!(resp
+            .headers()
+            .get("content-type")
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .contains("text/html"));
     }
 
     #[actix_web::test]
     async fn test_docs_redirect() {
-        let app = test::init_service(
-            App::new().service(redirect_to_swagger)
-        ).await;
+        let app = test::init_service(App::new().service(redirect_to_swagger)).await;
 
-        let req = test::TestRequest::get()
-            .uri("/docs")
-            .to_request();
+        let req = test::TestRequest::get().uri("/docs").to_request();
         let resp = test::call_service(&app, req).await;
 
         assert_eq!(resp.status(), actix_web::http::StatusCode::FOUND);
-        assert_eq!(
-            resp.headers().get("location").unwrap(),
-            "/api/docs/swagger"
-        );
+        assert_eq!(resp.headers().get("location").unwrap(), "/api/docs/swagger");
     }
 }

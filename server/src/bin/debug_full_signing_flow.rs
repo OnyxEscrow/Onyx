@@ -9,9 +9,9 @@ use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::Identity;
-use sha3::{Digest, Keccak256};
 use rand::rngs::OsRng;
 use rand::RngCore;
+use sha3::{Digest, Keccak256};
 
 // ============================================================================
 // KNOWN VALUES FROM ESCROW #ef57f177-f873-40c3-a175-4ab87c195ad8
@@ -142,7 +142,10 @@ fn main() {
     let group_secret = lambda_buyer * buyer_share + lambda_vendor * vendor_share;
     println!("1.1 Lagrange Reconstruction:");
     println!("    λ_buyer = 2, λ_vendor = -1 mod L");
-    println!("    group_secret = {}", hex::encode(group_secret.as_bytes()));
+    println!(
+        "    group_secret = {}",
+        hex::encode(group_secret.as_bytes())
+    );
 
     // Verify group_secret * G = group_pubkey
     let computed_pubkey = &group_secret * ED25519_BASEPOINT_TABLE;
@@ -162,7 +165,11 @@ fn main() {
     let derivation = Scalar::from_bytes_mod_order(derivation_hash);
 
     println!("\n1.2 Derivation:");
-    println!("    d = H_s(8*a*R || varint({})) = {}", OUTPUT_INDEX, hex::encode(derivation.as_bytes()));
+    println!(
+        "    d = H_s(8*a*R || varint({})) = {}",
+        OUTPUT_INDEX,
+        hex::encode(derivation.as_bytes())
+    );
 
     // Verify one_time_pubkey = d*G + B
     let d_point = &derivation * ED25519_BASEPOINT_TABLE;
@@ -171,7 +178,10 @@ fn main() {
         println!("    ✅ P = d*G + B matches DB one_time_pubkey");
     } else {
         println!("    ❌ FAILED: P = d*G + B ≠ DB one_time_pubkey");
-        println!("       Computed: {}", hex::encode(computed_otp.compress().as_bytes()));
+        println!(
+            "       Computed: {}",
+            hex::encode(computed_otp.compress().as_bytes())
+        );
         println!("       DB:       {}", DB_ONE_TIME_PUBKEY);
         return;
     }
@@ -179,7 +189,10 @@ fn main() {
     // Full output secret
     let output_secret = derivation + group_secret;
     println!("\n1.3 Output Secret:");
-    println!("    x = d + group_secret = {}", hex::encode(output_secret.as_bytes()));
+    println!(
+        "    x = d + group_secret = {}",
+        hex::encode(output_secret.as_bytes())
+    );
 
     // Hash to point
     let hp = hash_to_point(one_time_pubkey.compress().to_bytes());
@@ -189,7 +202,10 @@ fn main() {
     // Correct key image
     let key_image = output_secret * hp;
     println!("\n1.5 Key Image:");
-    println!("    KI = x * Hp(P) = {}", hex::encode(key_image.compress().as_bytes()));
+    println!(
+        "    KI = x * Hp(P) = {}",
+        hex::encode(key_image.compress().as_bytes())
+    );
 
     // ========================================================================
     // PHASE 2: Simulate PKI computation (what WASM should do)
@@ -202,20 +218,35 @@ fn main() {
     let x_eff_vendor = derivation + lambda_vendor * vendor_share;
     let pki_vendor = x_eff_vendor * hp;
     println!("2.1 Vendor PKI (first signer, WITH derivation):");
-    println!("    x_eff = d + λ_v * s_v = {}", hex::encode(x_eff_vendor.as_bytes()));
-    println!("    PKI_vendor = {}", hex::encode(pki_vendor.compress().as_bytes()));
+    println!(
+        "    x_eff = d + λ_v * s_v = {}",
+        hex::encode(x_eff_vendor.as_bytes())
+    );
+    println!(
+        "    PKI_vendor = {}",
+        hex::encode(pki_vendor.compress().as_bytes())
+    );
 
     // Second signer (buyer) WITHOUT derivation
     let x_eff_buyer = lambda_buyer * buyer_share;
     let pki_buyer = x_eff_buyer * hp;
     println!("\n2.2 Buyer PKI (second signer, NO derivation):");
-    println!("    x_eff = λ_b * s_b = {}", hex::encode(x_eff_buyer.as_bytes()));
-    println!("    PKI_buyer = {}", hex::encode(pki_buyer.compress().as_bytes()));
+    println!(
+        "    x_eff = λ_b * s_b = {}",
+        hex::encode(x_eff_buyer.as_bytes())
+    );
+    println!(
+        "    PKI_buyer = {}",
+        hex::encode(pki_buyer.compress().as_bytes())
+    );
 
     // Aggregation
     let aggregated_ki = pki_vendor + pki_buyer;
     println!("\n2.3 Aggregated Key Image:");
-    println!("    KI_agg = PKI_v + PKI_b = {}", hex::encode(aggregated_ki.compress().as_bytes()));
+    println!(
+        "    KI_agg = PKI_v + PKI_b = {}",
+        hex::encode(aggregated_ki.compress().as_bytes())
+    );
 
     if aggregated_ki == key_image {
         println!("    ✅ KI_agg = KI (correct!)");
@@ -232,16 +263,25 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════════\n");
 
     // escrow-show.js uses λ=1 and NO derivation for BOTH signers
-    let wrong_pki_vendor = vendor_share * hp;  // λ=1, no derivation
-    let wrong_pki_buyer = buyer_share * hp;    // λ=1, no derivation
+    let wrong_pki_vendor = vendor_share * hp; // λ=1, no derivation
+    let wrong_pki_buyer = buyer_share * hp; // λ=1, no derivation
     let wrong_ki = wrong_pki_vendor + wrong_pki_buyer;
 
     println!("3.1 Wrong Vendor PKI (λ=1, no derivation):");
-    println!("    PKI_vendor_wrong = {}", hex::encode(wrong_pki_vendor.compress().as_bytes()));
+    println!(
+        "    PKI_vendor_wrong = {}",
+        hex::encode(wrong_pki_vendor.compress().as_bytes())
+    );
     println!("\n3.2 Wrong Buyer PKI (λ=1, no derivation):");
-    println!("    PKI_buyer_wrong = {}", hex::encode(wrong_pki_buyer.compress().as_bytes()));
+    println!(
+        "    PKI_buyer_wrong = {}",
+        hex::encode(wrong_pki_buyer.compress().as_bytes())
+    );
     println!("\n3.3 Wrong Aggregated KI:");
-    println!("    KI_wrong = {}", hex::encode(wrong_ki.compress().as_bytes()));
+    println!(
+        "    KI_wrong = {}",
+        hex::encode(wrong_ki.compress().as_bytes())
+    );
     println!("    ❌ This will NEVER match the correct KI!");
 
     // ========================================================================
@@ -264,8 +304,8 @@ fn main() {
             ring_keys.push(one_time_pubkey);
             // Real commitment for our output
             let mask = random_scalar();
-            let commitment = &mask * ED25519_BASEPOINT_TABLE +
-                            &Scalar::from(AMOUNT) * hash_to_point([0u8; 32]); // H point
+            let commitment =
+                &mask * ED25519_BASEPOINT_TABLE + &Scalar::from(AMOUNT) * hash_to_point([0u8; 32]); // H point
             ring_commitments.push(commitment);
         } else {
             // Random decoys
@@ -277,7 +317,11 @@ fn main() {
     println!("4.1 Ring Setup:");
     println!("    Ring size: {}", ring_size);
     println!("    Signer index: {}", signer_index);
-    println!("    ring[{}] = P = {}", signer_index, hex::encode(ring_keys[signer_index].compress().as_bytes()));
+    println!(
+        "    ring[{}] = P = {}",
+        signer_index,
+        hex::encode(ring_keys[signer_index].compress().as_bytes())
+    );
 
     // Generate nonces
     let alpha = random_scalar();
@@ -286,7 +330,10 @@ fn main() {
 
     println!("\n4.2 Nonces:");
     println!("    α (random) = {}", hex::encode(alpha.as_bytes()));
-    println!("    α*Hp(P) = {}", hex::encode(alpha_hp.compress().as_bytes()));
+    println!(
+        "    α*Hp(P) = {}",
+        hex::encode(alpha_hp.compress().as_bytes())
+    );
     println!("    α*G = {}", hex::encode(alpha_g.compress().as_bytes()));
 
     // Compute pseudo_out and mask delta
@@ -301,7 +348,10 @@ fn main() {
 
     println!("\n4.3 Mask/Commitment:");
     println!("    mask_delta = {}", hex::encode(mask_delta.as_bytes()));
-    println!("    D = mask_delta * Hp(P) = {}", hex::encode(d_clsag.compress().as_bytes()));
+    println!(
+        "    D = mask_delta * Hp(P) = {}",
+        hex::encode(d_clsag.compress().as_bytes())
+    );
     println!("    D_inv8 = {}", hex::encode(d_inv8.compress().as_bytes()));
 
     // ========================================================================
@@ -365,7 +415,11 @@ fn main() {
 
     let c_next = keccak256_to_scalar(&round_buffer);
     println!("\n5.2 Initial Challenge:");
-    println!("    c[{}] = {}", (signer_index + 1) % ring_size, hex::encode(c_next.as_bytes()));
+    println!(
+        "    c[{}] = {}",
+        (signer_index + 1) % ring_size,
+        hex::encode(c_next.as_bytes())
+    );
 
     // Compute s-value for signer (the main response)
     // s = α - c_p * x - c_c * mask_delta
@@ -379,7 +433,11 @@ fn main() {
     println!("\n5.3 Signer Response:");
     println!("    c_p = c * mu_P = {}", hex::encode(c_p.as_bytes()));
     println!("    c_c = c * mu_C = {}", hex::encode(c_c.as_bytes()));
-    println!("    s[{}] = α - c_p*x - c_c*z = {}", signer_index, hex::encode(s_signer.as_bytes()));
+    println!(
+        "    s[{}] = α - c_p*x - c_c*z = {}",
+        signer_index,
+        hex::encode(s_signer.as_bytes())
+    );
 
     // ========================================================================
     // PHASE 6: Verify CLSAG equation
@@ -393,19 +451,29 @@ fn main() {
     // R' = s*Hp(P) + c_p*I + c_c*D
 
     let l_prime = &s_signer * ED25519_BASEPOINT_TABLE
-                + c_p * ring_keys[signer_index]
-                + c_c * (ring_commitments[signer_index] - pseudo_out);
+        + c_p * ring_keys[signer_index]
+        + c_c * (ring_commitments[signer_index] - pseudo_out);
 
-    let r_prime = s_signer * hp
-                + c_p * key_image
-                + c_c * d_clsag;
+    let r_prime = s_signer * hp + c_p * key_image + c_c * d_clsag;
 
     println!("6.1 Verification Points:");
-    println!("    L' = s*G + c_p*P + c_c*(C-pseudo) = {}", hex::encode(l_prime.compress().as_bytes()));
-    println!("    R' = s*Hp + c_p*I + c_c*D = {}", hex::encode(r_prime.compress().as_bytes()));
+    println!(
+        "    L' = s*G + c_p*P + c_c*(C-pseudo) = {}",
+        hex::encode(l_prime.compress().as_bytes())
+    );
+    println!(
+        "    R' = s*Hp + c_p*I + c_c*D = {}",
+        hex::encode(r_prime.compress().as_bytes())
+    );
     println!("\n    Expected:");
-    println!("    L = α*G = {}", hex::encode(alpha_g.compress().as_bytes()));
-    println!("    R = α*Hp = {}", hex::encode(alpha_hp.compress().as_bytes()));
+    println!(
+        "    L = α*G = {}",
+        hex::encode(alpha_g.compress().as_bytes())
+    );
+    println!(
+        "    R = α*Hp = {}",
+        hex::encode(alpha_hp.compress().as_bytes())
+    );
 
     if l_prime == alpha_g && r_prime == alpha_hp {
         println!("\n    ✅ CLSAG VERIFICATION PASSED!");
@@ -433,7 +501,7 @@ fn main() {
     // Replace key_image with wrong_ki in the buffer
     let ki_offset = 32 + (ring_size * 32) + (ring_size * 32); // After domain + ring_keys + ring_commits
     let wrong_ki_bytes = wrong_ki.compress().to_bytes();
-    agg_buffer[ki_offset..ki_offset+32].copy_from_slice(&wrong_ki_bytes);
+    agg_buffer[ki_offset..ki_offset + 32].copy_from_slice(&wrong_ki_bytes);
 
     let wrong_mu_p = keccak256_to_scalar(&agg_buffer);
     agg_buffer[10] = b'1';
@@ -442,7 +510,10 @@ fn main() {
     println!("7.1 Wrong mu values (computed with wrong KI):");
     println!("    wrong_mu_P = {}", hex::encode(wrong_mu_p.as_bytes()));
     println!("    wrong_mu_C = {}", hex::encode(wrong_mu_c.as_bytes()));
-    println!("    (Compare to correct mu_P = {}...)", &hex::encode(mu_p.as_bytes())[..16]);
+    println!(
+        "    (Compare to correct mu_P = {}...)",
+        &hex::encode(mu_p.as_bytes())[..16]
+    );
 
     // If signature was computed with correct x but wrong mu:
     let wrong_c_p = c_at_signer * wrong_mu_p;
@@ -454,16 +525,22 @@ fn main() {
 
     // Verify with CORRECT key_image but wrong s:
     let verify_l = &wrong_s * ED25519_BASEPOINT_TABLE
-                 + wrong_c_p * ring_keys[signer_index]
-                 + wrong_c_c * (ring_commitments[signer_index] - pseudo_out);
+        + wrong_c_p * ring_keys[signer_index]
+        + wrong_c_c * (ring_commitments[signer_index] - pseudo_out);
 
     let verify_r = wrong_s * hp
                  + wrong_c_p * key_image  // Verifier uses correct KI
                  + wrong_c_c * d_clsag;
 
     println!("\n7.3 Verification with wrong signature:");
-    println!("    L_verify = {}", hex::encode(verify_l.compress().as_bytes()));
-    println!("    R_verify = {}", hex::encode(verify_r.compress().as_bytes()));
+    println!(
+        "    L_verify = {}",
+        hex::encode(verify_l.compress().as_bytes())
+    );
+    println!(
+        "    R_verify = {}",
+        hex::encode(verify_r.compress().as_bytes())
+    );
 
     if verify_l == alpha_g && verify_r == alpha_hp {
         println!("    ✅ Would pass (unexpected!)");
@@ -492,9 +569,18 @@ fn main() {
     println!("CORRECT VALUES FOR THIS ESCROW:");
     println!("================================");
     println!("one_time_pubkey: {}", DB_ONE_TIME_PUBKEY);
-    println!("key_image:       {}", hex::encode(key_image.compress().as_bytes()));
-    println!("PKI_vendor:      {}", hex::encode(pki_vendor.compress().as_bytes()));
-    println!("PKI_buyer:       {}", hex::encode(pki_buyer.compress().as_bytes()));
+    println!(
+        "key_image:       {}",
+        hex::encode(key_image.compress().as_bytes())
+    );
+    println!(
+        "PKI_vendor:      {}",
+        hex::encode(pki_vendor.compress().as_bytes())
+    );
+    println!(
+        "PKI_buyer:       {}",
+        hex::encode(pki_buyer.compress().as_bytes())
+    );
     println!("");
     println!("FIX REQUIRED:");
     println!("=============");

@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 
 use serde::{Deserialize, Serialize};
 
-use super::{DeterministicRng, MockBlockchain, test_fixtures::*};
+use super::{test_fixtures::*, DeterministicRng, MockBlockchain};
 
 /// Mock RPC error types (matching Monero's error codes)
 #[derive(Clone, Debug)]
@@ -195,7 +195,10 @@ impl MockMoneroRpc {
             pending_transfers: Vec::new(),
         };
 
-        self.wallets.lock().unwrap().insert(name.to_string(), wallet);
+        self.wallets
+            .lock()
+            .unwrap()
+            .insert(name.to_string(), wallet);
         Ok(())
     }
 
@@ -234,7 +237,9 @@ impl MockMoneroRpc {
         let wallet_name = current.as_ref().ok_or(MockRpcError::WalletNotFound)?;
 
         let wallets = self.wallets.lock().unwrap();
-        let wallet = wallets.get(wallet_name).ok_or(MockRpcError::WalletNotFound)?;
+        let wallet = wallets
+            .get(wallet_name)
+            .ok_or(MockRpcError::WalletNotFound)?;
 
         Ok(BalanceResponse {
             balance: wallet.balance,
@@ -255,7 +260,9 @@ impl MockMoneroRpc {
         let wallet_name = current.as_ref().ok_or(MockRpcError::WalletNotFound)?;
 
         let wallets = self.wallets.lock().unwrap();
-        let wallet = wallets.get(wallet_name).ok_or(MockRpcError::WalletNotFound)?;
+        let wallet = wallets
+            .get(wallet_name)
+            .ok_or(MockRpcError::WalletNotFound)?;
 
         Ok(wallet.address.clone())
     }
@@ -270,7 +277,9 @@ impl MockMoneroRpc {
         let wallet_name = current.as_ref().ok_or(MockRpcError::WalletNotFound)?;
 
         let wallets = self.wallets.lock().unwrap();
-        let wallet = wallets.get(wallet_name).ok_or(MockRpcError::WalletNotFound)?;
+        let wallet = wallets
+            .get(wallet_name)
+            .ok_or(MockRpcError::WalletNotFound)?;
 
         Ok(MultisigInfo {
             multisig: wallet.is_multisig,
@@ -302,7 +311,9 @@ impl MockMoneroRpc {
         let wallet_name = current.as_ref().ok_or(MockRpcError::WalletNotFound)?;
 
         let mut wallets = self.wallets.lock().unwrap();
-        let wallet = wallets.get_mut(wallet_name).ok_or(MockRpcError::WalletNotFound)?;
+        let wallet = wallets
+            .get_mut(wallet_name)
+            .ok_or(MockRpcError::WalletNotFound)?;
 
         wallet.is_multisig = true;
         wallet.multisig_threshold = threshold;
@@ -328,7 +339,9 @@ impl MockMoneroRpc {
         let wallet_name = current.as_ref().ok_or(MockRpcError::WalletNotFound)?;
 
         let mut wallets = self.wallets.lock().unwrap();
-        let wallet = wallets.get_mut(wallet_name).ok_or(MockRpcError::WalletNotFound)?;
+        let wallet = wallets
+            .get_mut(wallet_name)
+            .ok_or(MockRpcError::WalletNotFound)?;
 
         if infos.len() >= (wallet.multisig_total - 1) as usize {
             wallet.multisig_ready = true;
@@ -359,7 +372,10 @@ impl MockMoneroRpc {
                 address: String::new(),
             })
         } else {
-            Err(MockRpcError::Custom(-1, format!("Transaction {} not found", txid)))
+            Err(MockRpcError::Custom(
+                -1,
+                format!("Transaction {} not found", txid),
+            ))
         }
     }
 

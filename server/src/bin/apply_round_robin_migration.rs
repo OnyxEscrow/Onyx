@@ -17,8 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
 
     println!("📂 Database: {}", database_url);
 
@@ -30,25 +29,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create connection pool with SQLCipher
     let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
-    let pool = r2d2::Pool::builder()
-        .max_size(1)
-        .build(manager)?;
+    let pool = r2d2::Pool::builder().max_size(1).build(manager)?;
 
     let mut conn = pool.get()?;
 
     // Set encryption key (same as server does)
-    diesel::sql_query(format!("PRAGMA key = '{}';", encryption_key))
-        .execute(&mut conn)?;
+    diesel::sql_query(format!("PRAGMA key = '{}';", encryption_key)).execute(&mut conn)?;
 
     println!("✅ Successfully connected to encrypted database");
     println!();
 
     // Check if columns already exist
     println!("🔍 Checking if round-robin columns already exist...");
-    let check_result = diesel::sql_query(
-        "SELECT partial_tx FROM escrows LIMIT 1"
-    )
-    .execute(&mut conn);
+    let check_result =
+        diesel::sql_query("SELECT partial_tx FROM escrows LIMIT 1").execute(&mut conn);
 
     if check_result.is_ok() {
         println!("⚠️  Round-robin columns already exist! Migration was already applied.");
@@ -81,8 +75,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   ✅ signing_started_at added");
 
     println!("🔨 Step 5/5: Adding signing_phase column...");
-    diesel::sql_query("ALTER TABLE escrows ADD COLUMN signing_phase TEXT DEFAULT 'awaiting_initiation'")
-        .execute(&mut conn)?;
+    diesel::sql_query(
+        "ALTER TABLE escrows ADD COLUMN signing_phase TEXT DEFAULT 'awaiting_initiation'",
+    )
+    .execute(&mut conn)?;
     println!("   ✅ signing_phase added");
 
     println!();

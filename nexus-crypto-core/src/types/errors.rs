@@ -231,7 +231,10 @@ impl fmt::Display for CryptoError {
             CryptoError::InvalidIdentifier(msg) => {
                 write!(f, "Invalid FROST identifier: {msg}")
             }
-            CryptoError::InvalidThreshold { threshold, max_signers } => {
+            CryptoError::InvalidThreshold {
+                threshold,
+                max_signers,
+            } => {
                 write!(f, "Invalid threshold {threshold}/{max_signers}: threshold must be >= 2 and <= max_signers")
             }
             CryptoError::Round1VerificationFailed(msg) => {
@@ -241,10 +244,16 @@ impl fmt::Display for CryptoError {
                 write!(f, "FROST round 2 verification failed: {msg}")
             }
             CryptoError::MissingRound1Packages { expected, received } => {
-                write!(f, "Missing round 1 packages: expected {expected}, got {received}")
+                write!(
+                    f,
+                    "Missing round 1 packages: expected {expected}, got {received}"
+                )
             }
             CryptoError::MissingRound2Packages { expected, received } => {
-                write!(f, "Missing round 2 packages: expected {expected}, got {received}")
+                write!(
+                    f,
+                    "Missing round 2 packages: expected {expected}, got {received}"
+                )
             }
             CryptoError::KeyPackageExtractionFailed(msg) => {
                 write!(f, "Key package extraction failed: {msg}")
@@ -257,8 +266,14 @@ impl fmt::Display for CryptoError {
             CryptoError::MaskDerivationFailed(msg) => {
                 write!(f, "Commitment mask derivation failed: {msg}")
             }
-            CryptoError::OutputNotFound { tx_hash, output_index } => {
-                write!(f, "Output {output_index} not found in transaction {tx_hash}")
+            CryptoError::OutputNotFound {
+                tx_hash,
+                output_index,
+            } => {
+                write!(
+                    f,
+                    "Output {output_index} not found in transaction {tx_hash}"
+                )
             }
             CryptoError::AmountDecodeFailed(msg) => {
                 write!(f, "Encrypted amount decode failed: {msg}")
@@ -272,7 +287,10 @@ impl fmt::Display for CryptoError {
                 write!(f, "Ring size {actual} too small, minimum is {minimum}")
             }
             CryptoError::SignerIndexOutOfBounds { index, ring_size } => {
-                write!(f, "Signer index {index} out of bounds for ring size {ring_size}")
+                write!(
+                    f,
+                    "Signer index {index} out of bounds for ring size {ring_size}"
+                )
             }
             CryptoError::PartialSignatureFailed(msg) => {
                 write!(f, "Partial signature creation failed: {msg}")
@@ -306,13 +324,19 @@ impl fmt::Display for CryptoError {
 
             // Address
             CryptoError::ChecksumMismatch { expected, actual } => {
-                write!(f, "Address checksum mismatch: expected {expected}, got {actual}")
+                write!(
+                    f,
+                    "Address checksum mismatch: expected {expected}, got {actual}"
+                )
             }
             CryptoError::NetworkMismatch { expected, actual } => {
                 write!(f, "Network mismatch: expected {expected}, got {actual}")
             }
             CryptoError::InvalidAddressLength { expected, actual } => {
-                write!(f, "Invalid address length: expected {expected}, got {actual}")
+                write!(
+                    f,
+                    "Invalid address length: expected {expected}, got {actual}"
+                )
             }
             CryptoError::InvalidAddressPrefix(prefix) => {
                 write!(f, "Invalid address prefix: {prefix}")
@@ -358,8 +382,15 @@ impl fmt::Display for CryptoError {
             CryptoError::HexDecodeFailed(msg) => {
                 write!(f, "Hex decode failed: {msg}")
             }
-            CryptoError::InvalidLength { field, expected, actual } => {
-                write!(f, "Invalid {field} length: expected {expected}, got {actual}")
+            CryptoError::InvalidLength {
+                field,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "Invalid {field} length: expected {expected}, got {actual}"
+                )
             }
             CryptoError::JsonError(msg) => {
                 write!(f, "JSON error: {msg}")

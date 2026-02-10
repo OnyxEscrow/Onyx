@@ -16,7 +16,9 @@ use crate::db::DbPool;
 use crate::models::escrow::Escrow;
 use crate::models::webhook::WebhookEventType;
 use crate::repositories::MultisigStateRepository;
-use crate::services::webhook_dispatcher::{WebhookDispatcher, build_escrow_payload, emit_webhook_nonblocking};
+use crate::services::webhook_dispatcher::{
+    build_escrow_payload, emit_webhook_nonblocking, WebhookDispatcher,
+};
 use crate::websocket::{NotifyUser, WebSocketServer, WsEvent};
 
 /// Timeout monitoring service
@@ -136,11 +138,9 @@ impl TimeoutMonitor {
     async fn check_expired_escrows(&self) -> Result<()> {
         let mut conn = self.db.get().context("Failed to get DB connection")?;
 
-        let expired_escrows = tokio::task::spawn_blocking(move || {
-            Escrow::find_expired(&mut conn)
-        })
-        .await
-        .context("Task join error")??;
+        let expired_escrows = tokio::task::spawn_blocking(move || Escrow::find_expired(&mut conn))
+            .await
+            .context("Task join error")??;
 
         if expired_escrows.is_empty() {
             return Ok(());
@@ -162,7 +162,8 @@ impl TimeoutMonitor {
             // Handle based on current status
             match escrow.status.as_str() {
                 "created" => {
-                    self.handle_multisig_setup_timeout(escrow_id, escrow).await?;
+                    self.handle_multisig_setup_timeout(escrow_id, escrow)
+                        .await?;
                 }
                 "funded" => {
                     self.handle_funded_timeout(escrow_id, escrow).await?;
@@ -214,7 +215,10 @@ impl TimeoutMonitor {
             return Ok(());
         }
 
-        info!("Found {} escrows approaching expiration", expiring_escrows.len());
+        info!(
+            "Found {} escrows approaching expiration",
+            expiring_escrows.len()
+        );
 
         for escrow in expiring_escrows {
             let escrow_id = escrow
@@ -222,9 +226,7 @@ impl TimeoutMonitor {
                 .parse::<Uuid>()
                 .context("Failed to parse escrow_id")?;
 
-            let expires_in_secs = escrow
-                .seconds_until_expiration()
-                .unwrap_or(0);
+            let expires_in_secs = escrow.seconds_until_expiration().unwrap_or(0);
 
             info!(
                 "Sending expiration warning for escrow {}: {}s remaining",
@@ -269,10 +271,14 @@ impl TimeoutMonitor {
             emit_webhook_nonblocking(
                 Arc::clone(dispatcher),
                 WebhookEventType::EscrowCancelled,
-                build_escrow_payload(&escrow_id.to_string(), "escrow.cancelled", serde_json::json!({
-                    "reason": "Multisig setup not completed within 1 hour",
-                    "cancelled_at_status": "created",
-                })),
+                build_escrow_payload(
+                    &escrow_id.to_string(),
+                    "escrow.cancelled",
+                    serde_json::json!({
+                        "reason": "Multisig setup not completed within 1 hour",
+                        "cancelled_at_status": "created",
+                    }),
+                ),
             );
         }
 
@@ -321,10 +327,13 @@ impl TimeoutMonitor {
                 "Shipping Deadline Approaching".to_string(),
                 "Please ship the order soon or buyer may request a refund.".to_string(),
                 Some(escrow_link),
-                Some(serde_json::json!({
-                    "escrow_id": escrow_id_str,
-                    "event": "shipping_deadline_warning"
-                }).to_string()),
+                Some(
+                    serde_json::json!({
+                        "escrow_id": escrow_id_str,
+                        "event": "shipping_deadline_warning"
+                    })
+                    .to_string(),
+                ),
             );
 
             let _ = Notification::create(notification, &mut conn);
@@ -337,7 +346,8 @@ impl TimeoutMonitor {
                 escrow_id,
                 status: "funded".to_string(),
                 expires_in_secs: 0, // Already expired
-                action_required: "Ship the order immediately or buyer can request refund".to_string(),
+                action_required: "Ship the order immediately or buyer can request refund"
+                    .to_string(),
             },
         });
 
@@ -392,7 +402,8 @@ impl TimeoutMonitor {
             .context("Task join error")??;
 
             // Send notification to buyer about grace period
-            let shortfall_xmr = (escrow.amount - escrow.balance_received) as f64 / 1_000_000_000_000.0;
+            let shortfall_xmr =
+                (escrow.amount - escrow.balance_received) as f64 / 1_000_000_000_000.0;
             let received_xmr = escrow.balance_received as f64 / 1_000_000_000_000.0;
 
             let db_pool = self.db.clone();
@@ -429,14 +440,14 @@ impl TimeoutMonitor {
                 escrow_id,
                 balance_received: escrow.balance_received as u64,
                 amount_required: escrow.amount as u64,
-                grace_period_ends_at: chrono::Utc::now().naive_utc() + chrono::Duration::seconds(grace_period_secs),
+                grace_period_ends_at: chrono::Utc::now().naive_utc()
+                    + chrono::Duration::seconds(grace_period_secs),
             });
 
             info!(
                 escrow_id = %escrow_id,
                 "Grace period started for underfunded escrow (48 hours remaining)"
             );
-
         } else if escrow.is_grace_period_expired() {
             // Grace period expired - transition to cancelled_recoverable
             info!(
@@ -477,11 +488,14 @@ impl TimeoutMonitor {
                         received_xmr
                     ),
                     Some(format!("/escrow/{}", escrow_id_for_notif)),
-                    Some(serde_json::json!({
-                        "escrow_id": escrow_id_for_notif,
-                        "event": "refund_available",
-                        "balance_recoverable": balance_recoverable
-                    }).to_string()),
+                    Some(
+                        serde_json::json!({
+                            "escrow_id": escrow_id_for_notif,
+                            "event": "refund_available",
+                            "balance_recoverable": balance_recoverable
+                        })
+                        .to_string(),
+                    ),
                 );
 
                 let _ = Notification::create(notification, &mut conn);
@@ -499,11 +513,15 @@ impl TimeoutMonitor {
                 emit_webhook_nonblocking(
                     Arc::clone(dispatcher),
                     WebhookEventType::EscrowCancelled,
-                    build_escrow_payload(&escrow_id.to_string(), "escrow.cancelled", serde_json::json!({
-                        "reason": "Grace period expired - underfunded",
-                        "balance_recoverable": escrow.balance_received,
-                        "status": "cancelled_recoverable",
-                    })),
+                    build_escrow_payload(
+                        &escrow_id.to_string(),
+                        "escrow.cancelled",
+                        serde_json::json!({
+                            "reason": "Grace period expired - underfunded",
+                            "balance_recoverable": escrow.balance_received,
+                            "status": "cancelled_recoverable",
+                        }),
+                    ),
                 );
             }
 
@@ -523,7 +541,11 @@ impl TimeoutMonitor {
     /// No auto-action taken as funds are already on blockchain
     async fn handle_transaction_timeout(&self, escrow_id: Uuid, escrow: Escrow) -> Result<()> {
         let tx_hash = escrow.transaction_hash.as_ref().ok_or_else(|| {
-            anyhow::anyhow!("Escrow {} in {} status but no tx_hash", escrow_id, escrow.status)
+            anyhow::anyhow!(
+                "Escrow {} in {} status but no tx_hash",
+                escrow_id,
+                escrow.status
+            )
         })?;
 
         warn!(
@@ -533,9 +555,8 @@ impl TimeoutMonitor {
         );
 
         // Calculate hours pending
-        let secs_since_activity = (chrono::Utc::now().naive_utc()
-            - escrow.last_activity_at)
-            .num_seconds();
+        let secs_since_activity =
+            (chrono::Utc::now().naive_utc() - escrow.last_activity_at).num_seconds();
         let hours_pending = (secs_since_activity / 3600) as u64;
 
         // Send stuck transaction alert
@@ -567,11 +588,10 @@ impl TimeoutMonitor {
 
         let mut conn = self.db.get().context("Failed to get DB connection")?;
 
-        let pending_releases = tokio::task::spawn_blocking(move || {
-            Escrow::find_pending_auto_release(&mut conn)
-        })
-        .await
-        .context("Task join error")??;
+        let pending_releases =
+            tokio::task::spawn_blocking(move || Escrow::find_pending_auto_release(&mut conn))
+                .await
+                .context("Task join error")??;
 
         if pending_releases.is_empty() {
             return Ok(());
@@ -637,10 +657,13 @@ impl TimeoutMonitor {
                     "Auto-Release Triggered".to_string(),
                     "You didn't confirm receipt. Funds are being released to vendor.".to_string(),
                     Some(escrow_link),
-                    Some(serde_json::json!({
-                        "escrow_id": escrow_id_for_notif,
-                        "event": "auto_release_triggered"
-                    }).to_string()),
+                    Some(
+                        serde_json::json!({
+                            "escrow_id": escrow_id_for_notif,
+                            "event": "auto_release_triggered"
+                        })
+                        .to_string(),
+                    ),
                 );
 
                 let _ = Notification::create(notification, &mut conn2);
@@ -666,10 +689,14 @@ impl TimeoutMonitor {
                 emit_webhook_nonblocking(
                     Arc::clone(dispatcher),
                     WebhookEventType::EscrowReleased,
-                    build_escrow_payload(&escrow_id.to_string(), "escrow.released", serde_json::json!({
-                        "reason": "auto_release_buyer_timeout",
-                        "status": "releasing",
-                    })),
+                    build_escrow_payload(
+                        &escrow_id.to_string(),
+                        "escrow.released",
+                        serde_json::json!({
+                            "reason": "auto_release_buyer_timeout",
+                            "status": "releasing",
+                        }),
+                    ),
                 );
             }
 
@@ -737,7 +764,9 @@ impl TimeoutMonitor {
             escrow_id,
             arbiter_id,
             days_in_dispute,
-            action_taken: "Dispute auto-escalated. Buyer refund enabled. Visit /orders to claim refund.".to_string(),
+            action_taken:
+                "Dispute auto-escalated. Buyer refund enabled. Visit /orders to claim refund."
+                    .to_string(),
         });
 
         // Send specific notification to buyer about refund availability
@@ -828,10 +857,7 @@ impl TimeoutMonitor {
             return Ok(());
         }
 
-        info!(
-            "Found {} stuck multisig setup(s)",
-            stuck_escrow_ids.len()
-        );
+        info!("Found {} stuck multisig setup(s)", stuck_escrow_ids.len());
 
         for escrow_id_str in stuck_escrow_ids {
             let escrow_id = escrow_id_str
@@ -843,9 +869,12 @@ impl TimeoutMonitor {
             let escrow_id_clone = escrow_id_str.clone();
 
             let escrow_result = tokio::task::spawn_blocking(move || {
-                use diesel::prelude::*;
                 use crate::schema::escrows::dsl::*;
-                escrows.find(escrow_id_clone).first::<Escrow>(&mut conn).optional()
+                use diesel::prelude::*;
+                escrows
+                    .find(escrow_id_clone)
+                    .first::<Escrow>(&mut conn)
+                    .optional()
             })
             .await
             .context("Task join error")??;
@@ -854,7 +883,8 @@ impl TimeoutMonitor {
                 match repo.load_snapshot(&escrow_id_str) {
                     Ok(Some(snapshot)) => {
                         let minutes_stuck = (chrono::Utc::now().naive_utc().timestamp()
-                            - escrow.multisig_updated_at as i64) / 60;
+                            - escrow.multisig_updated_at as i64)
+                            / 60;
 
                         warn!(
                             "Stuck multisig setup detected for escrow {}: {} minutes with no progress",

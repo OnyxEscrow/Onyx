@@ -54,10 +54,10 @@ use tracing::{info, warn};
 /// ```
 pub fn aggregate_partial_key_images(pki1_hex: &str, pki2_hex: &str) -> Result<String> {
     // Decode hex to bytes
-    let pki1_bytes = hex::decode(pki1_hex)
-        .context("Failed to decode first partial key image from hex")?;
-    let pki2_bytes = hex::decode(pki2_hex)
-        .context("Failed to decode second partial key image from hex")?;
+    let pki1_bytes =
+        hex::decode(pki1_hex).context("Failed to decode first partial key image from hex")?;
+    let pki2_bytes =
+        hex::decode(pki2_hex).context("Failed to decode second partial key image from hex")?;
 
     // Validate length (32 bytes for compressed Edwards point)
     if pki1_bytes.len() != 32 {
@@ -136,15 +136,15 @@ pub fn aggregate_partial_key_images_with_lagrange(
     signer1_role: &str,
     signer2_role: &str,
 ) -> Result<String> {
+    use curve25519_dalek::edwards::EdwardsPoint;
     use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::traits::Identity;
-    use curve25519_dalek::edwards::EdwardsPoint;
 
     // Decode hex to bytes
-    let pki1_bytes = hex::decode(pki1_hex)
-        .context("Failed to decode first partial key image from hex")?;
-    let pki2_bytes = hex::decode(pki2_hex)
-        .context("Failed to decode second partial key image from hex")?;
+    let pki1_bytes =
+        hex::decode(pki1_hex).context("Failed to decode first partial key image from hex")?;
+    let pki2_bytes =
+        hex::decode(pki2_hex).context("Failed to decode second partial key image from hex")?;
 
     // Validate length
     if pki1_bytes.len() != 32 || pki2_bytes.len() != 32 {
@@ -242,7 +242,10 @@ pub fn aggregate_partial_key_images_with_lagrange(
 /// ## Historical Note
 /// This function was added in v0.29.0 based on a misunderstanding of multisig.
 /// It has NEVER been called in production and should be removed in v0.40.0.
-#[deprecated(since = "0.31.0", note = "INCORRECT: Use aggregate_partial_key_images(pki1, pki2) instead - 2 PKIs only")]
+#[deprecated(
+    since = "0.31.0",
+    note = "INCORRECT: Use aggregate_partial_key_images(pki1, pki2) instead - 2 PKIs only"
+)]
 #[allow(dead_code)]
 pub fn aggregate_three_partial_key_images(
     pki_buyer_hex: &str,
@@ -250,8 +253,8 @@ pub fn aggregate_three_partial_key_images(
     pki_arbiter_hex: &str,
 ) -> Result<String> {
     // Decode all three PKIs
-    let pki_buyer_bytes = hex::decode(pki_buyer_hex)
-        .context("Failed to decode buyer partial key image from hex")?;
+    let pki_buyer_bytes =
+        hex::decode(pki_buyer_hex).context("Failed to decode buyer partial key image from hex")?;
     let pki_vendor_bytes = hex::decode(pki_vendor_hex)
         .context("Failed to decode vendor partial key image from hex")?;
     let pki_arbiter_bytes = hex::decode(pki_arbiter_hex)
@@ -259,13 +262,22 @@ pub fn aggregate_three_partial_key_images(
 
     // Validate lengths
     if pki_buyer_bytes.len() != 32 {
-        anyhow::bail!("Invalid buyer PKI length: expected 32 bytes, got {}", pki_buyer_bytes.len());
+        anyhow::bail!(
+            "Invalid buyer PKI length: expected 32 bytes, got {}",
+            pki_buyer_bytes.len()
+        );
     }
     if pki_vendor_bytes.len() != 32 {
-        anyhow::bail!("Invalid vendor PKI length: expected 32 bytes, got {}", pki_vendor_bytes.len());
+        anyhow::bail!(
+            "Invalid vendor PKI length: expected 32 bytes, got {}",
+            pki_vendor_bytes.len()
+        );
     }
     if pki_arbiter_bytes.len() != 32 {
-        anyhow::bail!("Invalid arbiter PKI length: expected 32 bytes, got {}", pki_arbiter_bytes.len());
+        anyhow::bail!(
+            "Invalid arbiter PKI length: expected 32 bytes, got {}",
+            pki_arbiter_bytes.len()
+        );
     }
 
     // Convert to fixed-size arrays
@@ -316,8 +328,7 @@ pub fn aggregate_three_partial_key_images(
 /// * `Err(...)` - If invalid format or not a valid point
 pub fn validate_partial_key_image(pki_hex: &str) -> Result<()> {
     // Decode hex to bytes
-    let pki_bytes = hex::decode(pki_hex)
-        .context("Failed to decode partial key image from hex")?;
+    let pki_bytes = hex::decode(pki_hex).context("Failed to decode partial key image from hex")?;
 
     // Validate length (32 bytes for compressed Edwards point)
     if pki_bytes.len() != 32 {
@@ -478,8 +489,8 @@ pub fn add_derivation_to_key_image(
     view_key_hex: &str,
     output_index: u64,
 ) -> Result<String> {
-    use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::edwards::EdwardsPoint;
+    use curve25519_dalek::scalar::Scalar;
     use monero_generators_mirror::hash_to_point;
     use sha3::{Digest, Keccak256};
 
@@ -496,10 +507,13 @@ pub fn add_derivation_to_key_image(
     }
 
     // Decode aggregated key image
-    let ki_bytes = hex::decode(aggregated_ki_hex)
-        .context("Failed to decode aggregated key image")?;
+    let ki_bytes =
+        hex::decode(aggregated_ki_hex).context("Failed to decode aggregated key image")?;
     if ki_bytes.len() != 32 {
-        anyhow::bail!("Invalid aggregated key image length: expected 32, got {}", ki_bytes.len());
+        anyhow::bail!(
+            "Invalid aggregated key image length: expected 32, got {}",
+            ki_bytes.len()
+        );
     }
     let mut ki_arr = [0u8; 32];
     ki_arr.copy_from_slice(&ki_bytes);
@@ -508,10 +522,12 @@ pub fn add_derivation_to_key_image(
         .ok_or_else(|| anyhow::anyhow!("Aggregated key image is not a valid Edwards point"))?;
 
     // Decode one-time pubkey P
-    let p_bytes = hex::decode(one_time_pubkey_hex)
-        .context("Failed to decode one-time pubkey")?;
+    let p_bytes = hex::decode(one_time_pubkey_hex).context("Failed to decode one-time pubkey")?;
     if p_bytes.len() != 32 {
-        anyhow::bail!("Invalid one-time pubkey length: expected 32, got {}", p_bytes.len());
+        anyhow::bail!(
+            "Invalid one-time pubkey length: expected 32, got {}",
+            p_bytes.len()
+        );
     }
     let mut p_arr = [0u8; 32];
     p_arr.copy_from_slice(&p_bytes);
@@ -520,10 +536,12 @@ pub fn add_derivation_to_key_image(
         .ok_or_else(|| anyhow::anyhow!("One-time pubkey is not a valid Edwards point"))?;
 
     // Decode TX pubkey R
-    let r_bytes = hex::decode(tx_pubkey_hex)
-        .context("Failed to decode TX pubkey")?;
+    let r_bytes = hex::decode(tx_pubkey_hex).context("Failed to decode TX pubkey")?;
     if r_bytes.len() != 32 {
-        anyhow::bail!("Invalid TX pubkey length: expected 32, got {}", r_bytes.len());
+        anyhow::bail!(
+            "Invalid TX pubkey length: expected 32, got {}",
+            r_bytes.len()
+        );
     }
     let mut r_arr = [0u8; 32];
     r_arr.copy_from_slice(&r_bytes);
@@ -532,10 +550,12 @@ pub fn add_derivation_to_key_image(
         .ok_or_else(|| anyhow::anyhow!("TX pubkey is not a valid Edwards point"))?;
 
     // Decode view key a
-    let a_bytes = hex::decode(view_key_hex)
-        .context("Failed to decode view key")?;
+    let a_bytes = hex::decode(view_key_hex).context("Failed to decode view key")?;
     if a_bytes.len() != 32 {
-        anyhow::bail!("Invalid view key length: expected 32, got {}", a_bytes.len());
+        anyhow::bail!(
+            "Invalid view key length: expected 32, got {}",
+            a_bytes.len()
+        );
     }
     let mut a_arr = [0u8; 32];
     a_arr.copy_from_slice(&a_bytes);
@@ -611,6 +631,9 @@ mod tests {
         // x² = (y² - 1) / (d*y² + 1) yields a non-quadratic residue
         let invalid = "0200000000000000000000000000000000000000000000000000000000000080";
         let result = aggregate_partial_key_images(invalid, invalid);
-        assert!(result.is_err(), "Invalid Edwards point should fail aggregation");
+        assert!(
+            result.is_err(),
+            "Invalid Edwards point should fail aggregation"
+        );
     }
 }

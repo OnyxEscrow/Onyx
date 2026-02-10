@@ -66,8 +66,8 @@ impl IdempotencyMiddleware {
             required_paths: vec![
                 "/api/escrows/create".to_string(),
                 "/api/v1/escrows/create".to_string(),
-                "/api/v1/escrows/".to_string(),   // Prefix match: release, refund, dispute, etc.
-                "/api/escrow/".to_string(),        // Prefix match for escrow operations
+                "/api/v1/escrows/".to_string(), // Prefix match: release, refund, dispute, etc.
+                "/api/escrow/".to_string(),     // Prefix match for escrow operations
             ],
         }
     }

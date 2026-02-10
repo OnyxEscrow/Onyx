@@ -73,13 +73,12 @@ fn init_jaeger_tracer() -> Result<opentelemetry_sdk::trace::Tracer> {
     let tracer = opentelemetry_otlp::new_pipeline()
         .tracing()
         .with_exporter(exporter)
-        .with_trace_config(
-            opentelemetry_sdk::trace::Config::default()
-                .with_resource(opentelemetry_sdk::Resource::new(vec![
-                    opentelemetry::KeyValue::new("service.name", "nexus-server"),
-                    opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
-                ])),
-        )
+        .with_trace_config(opentelemetry_sdk::trace::Config::default().with_resource(
+            opentelemetry_sdk::Resource::new(vec![
+                opentelemetry::KeyValue::new("service.name", "nexus-server"),
+                opentelemetry::KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
+            ]),
+        ))
         .install_batch(opentelemetry_sdk::runtime::Tokio)
         .context("Failed to install OpenTelemetry tracer")?;
 

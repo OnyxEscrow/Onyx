@@ -14,7 +14,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         diesel::sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -45,7 +48,9 @@ fn decode_monero_address(address: &str) -> Result<[u8; 32]> {
     fn b58_decode_block(block: &str, size: usize) -> Result<Vec<u8>> {
         let mut n: u128 = 0;
         for c in block.chars() {
-            let idx = ALPHABET.iter().position(|&x| x == c as u8)
+            let idx = ALPHABET
+                .iter()
+                .position(|&x| x == c as u8)
                 .ok_or_else(|| anyhow::anyhow!("Invalid base58 character: {}", c))?;
             n = n * 58 + idx as u128;
         }
@@ -81,7 +86,9 @@ fn main() -> Result<()> {
 
     if args.len() < 2 {
         println!("Usage: {} <escrow_id> [--dry-run]", args[0]);
-        println!("\nFixes frost_group_pubkey by extracting correct spend pubkey from multisig_address");
+        println!(
+            "\nFixes frost_group_pubkey by extracting correct spend pubkey from multisig_address"
+        );
         return Ok(());
     }
 
@@ -117,17 +124,25 @@ fn main() -> Result<()> {
         .load(&mut *conn)
         .context("Failed to query escrow")?;
 
-    let row = rows.into_iter().next()
+    let row = rows
+        .into_iter()
+        .next()
         .ok_or_else(|| anyhow::anyhow!("Escrow not found: {}", escrow_id))?;
 
-    let address = row.multisig_address
+    let address = row
+        .multisig_address
         .ok_or_else(|| anyhow::anyhow!("No multisig_address set"))?;
 
-    let current_pubkey = row.frost_group_pubkey
+    let current_pubkey = row
+        .frost_group_pubkey
         .unwrap_or_else(|| "NOT SET".to_string());
 
     println!("Escrow ID: {}", escrow_id);
-    println!("Multisig Address: {}...{}", &address[..12], &address[address.len()-8..]);
+    println!(
+        "Multisig Address: {}...{}",
+        &address[..12],
+        &address[address.len() - 8..]
+    );
     println!();
     println!("Current frost_group_pubkey: {}", current_pubkey);
 
@@ -159,7 +174,10 @@ fn main() -> Result<()> {
             break;
         }
     }
-    println!("  Diverge at position: {} (first {} chars match)", diverge_pos, diverge_pos);
+    println!(
+        "  Diverge at position: {} (first {} chars match)",
+        diverge_pos, diverge_pos
+    );
     println!();
 
     if dry_run {

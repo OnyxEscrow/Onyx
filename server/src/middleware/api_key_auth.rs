@@ -166,13 +166,12 @@ where
             // Validate key format
             if !raw_key.starts_with("nxs_") {
                 warn!("Invalid API key format received");
-                return Ok(req.into_response(
-                    HttpResponse::Unauthorized()
-                        .json(serde_json::json!({
-                            "error": "Invalid API key format",
-                            "message": "API key must start with 'nxs_'"
-                        }))
-                ).map_into_right_body());
+                return Ok(req
+                    .into_response(HttpResponse::Unauthorized().json(serde_json::json!({
+                        "error": "Invalid API key format",
+                        "message": "API key must start with 'nxs_'"
+                    })))
+                    .map_into_right_body());
             }
 
             // 2. Validate key against database
@@ -180,13 +179,14 @@ where
                 Ok(c) => c,
                 Err(e) => {
                     tracing::error!("Database connection error: {}", e);
-                    return Ok(req.into_response(
-                        HttpResponse::InternalServerError()
-                            .json(serde_json::json!({
+                    return Ok(req
+                        .into_response(HttpResponse::InternalServerError().json(
+                            serde_json::json!({
                                 "error": "Internal server error",
                                 "message": "Database unavailable"
-                            }))
-                    ).map_into_right_body());
+                            }),
+                        ))
+                        .map_into_right_body());
                 }
             };
 
@@ -194,23 +194,23 @@ where
                 Ok(Some(key)) => key,
                 Ok(None) => {
                     warn!("Invalid or expired API key used");
-                    return Ok(req.into_response(
-                        HttpResponse::Unauthorized()
-                            .json(serde_json::json!({
-                                "error": "Invalid API key",
-                                "message": "API key is invalid, inactive, or expired"
-                            }))
-                    ).map_into_right_body());
+                    return Ok(req
+                        .into_response(HttpResponse::Unauthorized().json(serde_json::json!({
+                            "error": "Invalid API key",
+                            "message": "API key is invalid, inactive, or expired"
+                        })))
+                        .map_into_right_body());
                 }
                 Err(e) => {
                     tracing::error!("API key validation error: {}", e);
-                    return Ok(req.into_response(
-                        HttpResponse::InternalServerError()
-                            .json(serde_json::json!({
+                    return Ok(req
+                        .into_response(HttpResponse::InternalServerError().json(
+                            serde_json::json!({
                                 "error": "Internal server error",
                                 "message": "Key validation failed"
-                            }))
-                    ).map_into_right_body());
+                            }),
+                        ))
+                        .map_into_right_body());
                 }
             };
 
@@ -227,7 +227,9 @@ where
                     Err(poisoned) => poisoned.into_inner(),
                 };
 
-                let requests = storage.entry(key_record.id.clone()).or_insert_with(Vec::new);
+                let requests = storage
+                    .entry(key_record.id.clone())
+                    .or_insert_with(Vec::new);
 
                 // Clean old requests outside 60-second window
                 requests.retain(|&timestamp| now - timestamp < 60);
@@ -279,7 +281,9 @@ where
             });
 
             // 5. Parse scopes from metadata JSON (fallback to wildcard)
-            let scopes = key_record.metadata.as_ref()
+            let scopes = key_record
+                .metadata
+                .as_ref()
                 .and_then(|m| serde_json::from_str::<serde_json::Value>(m).ok())
                 .and_then(|v| v.get("scopes").cloned())
                 .and_then(|s| serde_json::from_value::<Vec<String>>(s).ok())
@@ -328,7 +332,8 @@ where
             );
             headers.insert(
                 actix_web::http::header::HeaderName::from_static("x-ratelimit-reset"),
-                actix_web::http::header::HeaderValue::from_str(&reset_timestamp.to_string()).unwrap(),
+                actix_web::http::header::HeaderValue::from_str(&reset_timestamp.to_string())
+                    .unwrap(),
             );
 
             Ok(res.map_into_left_body())
@@ -431,12 +436,11 @@ where
 
             // Validate key format
             if !raw_key.starts_with("nxs_") {
-                return Ok(req.into_response(
-                    HttpResponse::Unauthorized()
-                        .json(serde_json::json!({
-                            "error": "Invalid API key format"
-                        }))
-                ).map_into_right_body());
+                return Ok(req
+                    .into_response(HttpResponse::Unauthorized().json(serde_json::json!({
+                        "error": "Invalid API key format"
+                    })))
+                    .map_into_right_body());
             }
 
             // Validate against database
@@ -451,12 +455,11 @@ where
             let key_record = match ApiKey::validate(&mut conn, &raw_key) {
                 Ok(Some(key)) => key,
                 Ok(None) => {
-                    return Ok(req.into_response(
-                        HttpResponse::Unauthorized()
-                            .json(serde_json::json!({
-                                "error": "Invalid API key"
-                            }))
-                    ).map_into_right_body());
+                    return Ok(req
+                        .into_response(HttpResponse::Unauthorized().json(serde_json::json!({
+                            "error": "Invalid API key"
+                        })))
+                        .map_into_right_body());
                 }
                 Err(_) => {
                     let res = svc.call(req).await?;
@@ -476,7 +479,9 @@ where
                     Ok(guard) => guard,
                     Err(poisoned) => poisoned.into_inner(),
                 };
-                let requests = storage.entry(key_record.id.clone()).or_insert_with(Vec::new);
+                let requests = storage
+                    .entry(key_record.id.clone())
+                    .or_insert_with(Vec::new);
                 requests.retain(|&timestamp| now - timestamp < 60);
                 if requests.len() >= rate_limit as usize {
                     true
@@ -487,17 +492,21 @@ where
             };
 
             if is_rate_limited {
-                return Ok(req.into_response(
-                    HttpResponse::TooManyRequests()
-                        .insert_header(("Retry-After", "60"))
-                        .json(serde_json::json!({
-                            "error": "Rate limit exceeded"
-                        }))
-                ).map_into_right_body());
+                return Ok(req
+                    .into_response(
+                        HttpResponse::TooManyRequests()
+                            .insert_header(("Retry-After", "60"))
+                            .json(serde_json::json!({
+                                "error": "Rate limit exceeded"
+                            })),
+                    )
+                    .map_into_right_body());
             }
 
             // Parse scopes from metadata JSON (fallback to wildcard)
-            let scopes = key_record.metadata.as_ref()
+            let scopes = key_record
+                .metadata
+                .as_ref()
                 .and_then(|m| serde_json::from_str::<serde_json::Value>(m).ok())
                 .and_then(|v| v.get("scopes").cloned())
                 .and_then(|s| serde_json::from_value::<Vec<String>>(s).ok())

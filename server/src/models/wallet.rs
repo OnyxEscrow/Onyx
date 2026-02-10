@@ -180,7 +180,11 @@ impl Wallet {
 
     /// Set daily withdrawal limit
     /// v0.47.0: Changed parameter to i64 to support mainnet amounts
-    pub fn set_daily_limit(conn: &mut SqliteConnection, wallet_id: &str, limit_atomic: i64) -> Result<()> {
+    pub fn set_daily_limit(
+        conn: &mut SqliteConnection,
+        wallet_id: &str,
+        limit_atomic: i64,
+    ) -> Result<()> {
         diesel::update(wallets::table.filter(wallets::id.eq(wallet_id)))
             .set(wallets::daily_limit_atomic.eq(limit_atomic))
             .execute(conn)
@@ -190,7 +194,11 @@ impl Wallet {
 
     /// Set monthly withdrawal limit
     /// v0.47.0: Changed parameter to i64 to support mainnet amounts
-    pub fn set_monthly_limit(conn: &mut SqliteConnection, wallet_id: &str, limit_atomic: i64) -> Result<()> {
+    pub fn set_monthly_limit(
+        conn: &mut SqliteConnection,
+        wallet_id: &str,
+        limit_atomic: i64,
+    ) -> Result<()> {
         diesel::update(wallets::table.filter(wallets::id.eq(wallet_id)))
             .set(wallets::monthly_limit_atomic.eq(limit_atomic))
             .execute(conn)

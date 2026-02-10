@@ -107,10 +107,7 @@ impl DisputeEvidence {
     }
 
     /// Find evidence by ID
-    pub fn find_by_id(
-        conn: &mut SqliteConnection,
-        evidence_id: &str,
-    ) -> QueryResult<Option<Self>> {
+    pub fn find_by_id(conn: &mut SqliteConnection, evidence_id: &str) -> QueryResult<Option<Self>> {
         dispute_evidence::table
             .filter(dispute_evidence::id.eq(evidence_id))
             .first(conn)
@@ -118,10 +115,7 @@ impl DisputeEvidence {
     }
 
     /// Count evidence for an escrow
-    pub fn count_by_escrow(
-        conn: &mut SqliteConnection,
-        escrow_id_val: &str,
-    ) -> QueryResult<i64> {
+    pub fn count_by_escrow(conn: &mut SqliteConnection, escrow_id_val: &str) -> QueryResult<i64> {
         dispute_evidence::table
             .filter(dispute_evidence::escrow_id.eq(escrow_id_val))
             .count()
@@ -129,14 +123,9 @@ impl DisputeEvidence {
     }
 
     /// Delete evidence by ID
-    pub fn delete_by_id(
-        conn: &mut SqliteConnection,
-        evidence_id: &str,
-    ) -> QueryResult<usize> {
-        diesel::delete(
-            dispute_evidence::table.filter(dispute_evidence::id.eq(evidence_id)),
-        )
-        .execute(conn)
+    pub fn delete_by_id(conn: &mut SqliteConnection, evidence_id: &str) -> QueryResult<usize> {
+        diesel::delete(dispute_evidence::table.filter(dispute_evidence::id.eq(evidence_id)))
+            .execute(conn)
     }
 
     /// Get uploader role as enum

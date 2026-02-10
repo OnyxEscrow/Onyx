@@ -11,10 +11,8 @@ fn main() -> Result<()> {
 
     dotenvy::dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL")
-        .context("DATABASE_URL must be set")?;
-    let encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY must be set")?;
+    let database_url = env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
+    let encryption_key = env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY must be set")?;
 
     let pool = server::db::create_pool(&database_url, &encryption_key)
         .context("Failed to create connection pool")?;
@@ -121,7 +119,9 @@ fn main() -> Result<()> {
     let mut skipped = 0;
 
     for stmt in &alter_statements {
-        let col_name = stmt.split("ADD COLUMN ").nth(1)
+        let col_name = stmt
+            .split("ADD COLUMN ")
+            .nth(1)
             .and_then(|s| s.split_whitespace().next())
             .unwrap_or("unknown");
 
@@ -163,7 +163,9 @@ fn main() -> Result<()> {
     ];
 
     for stmt in &frost_signing_alters {
-        let col_name = stmt.split("ADD COLUMN ").nth(1)
+        let col_name = stmt
+            .split("ADD COLUMN ")
+            .nth(1)
             .and_then(|s| s.split_whitespace().next())
             .unwrap_or("unknown");
 

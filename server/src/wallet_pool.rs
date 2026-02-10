@@ -33,8 +33,8 @@
 //! - Timeout-based locking to prevent resource exhaustion
 //! - Atomic operations with proper error recovery
 
-use anyhow::{Context, Result};
 use crate::config::get_wallet_password;
+use anyhow::{Context, Result};
 use monero_marketplace_common::types::MoneroConfig;
 use monero_marketplace_wallet::client::MoneroClient;
 use std::collections::HashMap;
@@ -196,8 +196,7 @@ impl WalletPool {
                 instance.acquire(self.default_lock_duration);
                 info!(
                     port = instance.port,
-                    attempt,
-                    "Acquired RPC instance after waiting"
+                    attempt, "Acquired RPC instance after waiting"
                 );
                 return Ok(instance.port);
             }
@@ -268,7 +267,10 @@ impl WalletPool {
         let wallet_name = self.wallet_filename(escrow_id, role);
 
         // Open the wallet from disk
-        match client.open_wallet(&wallet_name, &get_wallet_password()).await {
+        match client
+            .open_wallet(&wallet_name, &get_wallet_password())
+            .await
+        {
             Ok(_) => {
                 info!(
                     escrow_id = %escrow_id,
@@ -370,17 +372,20 @@ mod tests {
 
     #[test]
     fn test_wallet_filename_generation() {
-        let pool = WalletPool::new(
-            vec![18082],
-            PathBuf::from("/tmp/wallets"),
-        );
+        let pool = WalletPool::new(vec![18082], PathBuf::from("/tmp/wallets"));
 
         let escrow_id = Uuid::parse_str("ac506a15-9ab8-4819-bab7-20787705dd15").unwrap();
 
         let buyer_name = pool.wallet_filename(escrow_id, WalletRole::Buyer);
-        assert_eq!(buyer_name, "buyer_temp_escrow_ac506a15-9ab8-4819-bab7-20787705dd15");
+        assert_eq!(
+            buyer_name,
+            "buyer_temp_escrow_ac506a15-9ab8-4819-bab7-20787705dd15"
+        );
 
         let vendor_name = pool.wallet_filename(escrow_id, WalletRole::Vendor);
-        assert_eq!(vendor_name, "vendor_temp_escrow_ac506a15-9ab8-4819-bab7-20787705dd15");
+        assert_eq!(
+            vendor_name,
+            "vendor_temp_escrow_ac506a15-9ab8-4819-bab7-20787705dd15"
+        );
     }
 }

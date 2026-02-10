@@ -114,8 +114,8 @@ fn compute_challenge(
     ring_commitments: &[EdwardsPoint],
     pseudo_out: &EdwardsPoint,
     tx_prefix_hash: &[u8; 32],
-    _key_image: &EdwardsPoint,  // NOT included in round hash
-    _d_inv8: &EdwardsPoint,     // NOT included in round hash
+    _key_image: &EdwardsPoint, // NOT included in round hash
+    _d_inv8: &EdwardsPoint,    // NOT included in round hash
     l_point: &EdwardsPoint,
     r_point: &EdwardsPoint,
 ) -> Scalar {
@@ -168,7 +168,7 @@ async fn main() {
                 absolute_idx += offset;
                 ring_indices.push(absolute_idx);
             }
-            key_image_pos = pos;  // Save key image position
+            key_image_pos = pos; // Save key image position
             pos += 32; // key image
         }
     }
@@ -229,26 +229,26 @@ async fn main() {
     let ring_size = 16usize;
     let mut s_values = Vec::new();
     for i in 0..ring_size {
-        let s = bytes_to_scalar(&tx[pos..pos+32]);
+        let s = bytes_to_scalar(&tx[pos..pos + 32]);
         s_values.push(s);
         if i < 3 || i == ring_size - 1 {
-            println!("s[{}]: {}...", i, &hex::encode(&tx[pos..pos+32])[..16]);
+            println!("s[{}]: {}...", i, &hex::encode(&tx[pos..pos + 32])[..16]);
         } else if i == 3 {
             println!("...");
         }
         pos += 32;
     }
 
-    let c1 = bytes_to_scalar(&tx[pos..pos+32]);
-    println!("c1: {}", hex::encode(&tx[pos..pos+32]));
+    let c1 = bytes_to_scalar(&tx[pos..pos + 32]);
+    println!("c1: {}", hex::encode(&tx[pos..pos + 32]));
     pos += 32;
 
-    let d_inv8 = bytes_to_point(&tx[pos..pos+32]).expect("Invalid D");
-    println!("D (inv8): {}", hex::encode(&tx[pos..pos+32]));
+    let d_inv8 = bytes_to_point(&tx[pos..pos + 32]).expect("Invalid D");
+    println!("D (inv8): {}", hex::encode(&tx[pos..pos + 32]));
     pos += 32;
 
     // pseudo_out
-    let pseudo_out_bytes = &tx[pos..pos+32];
+    let pseudo_out_bytes = &tx[pos..pos + 32];
     let pseudo_out = bytes_to_point(pseudo_out_bytes).expect("Invalid pseudo_out");
     println!("pseudo_out: {}", hex::encode(pseudo_out_bytes));
     pos += 32;
@@ -259,8 +259,8 @@ async fn main() {
     po_hasher.update(pseudo_out_bytes);
     let pseudo_outs_hash: [u8; 32] = po_hasher.finalize().into();
 
-    let hash0 = Scalar::from_bytes_mod_order(tx_prefix_hash).to_bytes();  // sc_reduce32(prefix)
-    let hash1 = Scalar::from_bytes_mod_order(ss_hash).to_bytes();         // sc_reduce32(ss_hash)
+    let hash0 = Scalar::from_bytes_mod_order(tx_prefix_hash).to_bytes(); // sc_reduce32(prefix)
+    let hash1 = Scalar::from_bytes_mod_order(ss_hash).to_bytes(); // sc_reduce32(ss_hash)
     let hash2 = Scalar::from_bytes_mod_order(pseudo_outs_hash).to_bytes(); // sc_reduce32(pseudo_hash)
 
     let mut final_hasher = Keccak256::new();
@@ -269,11 +269,19 @@ async fn main() {
     final_hasher.update(&hash2);
     let clsag_message: [u8; 32] = final_hasher.finalize().into();
 
-    println!("\nFull CLSAG message (get_pre_mlsag_hash): {}", hex::encode(&clsag_message));
+    println!(
+        "\nFull CLSAG message (get_pre_mlsag_hash): {}",
+        hex::encode(&clsag_message)
+    );
 
     // Key image from prefix (parsed dynamically earlier)
-    let key_image = bytes_to_point(&tx[key_image_pos..key_image_pos+32]).expect("Invalid key image");
-    println!("key_image (from TX at pos {}): {}", key_image_pos, hex::encode(&tx[key_image_pos..key_image_pos+32]));
+    let key_image =
+        bytes_to_point(&tx[key_image_pos..key_image_pos + 32]).expect("Invalid key image");
+    println!(
+        "key_image (from TX at pos {}): {}",
+        key_image_pos,
+        hex::encode(&tx[key_image_pos..key_image_pos + 32])
+    );
 
     // Fetch ring members
     println!("\nFetching ring members from daemon...");
@@ -293,10 +301,14 @@ async fn main() {
         .await
         .expect("JSON parse failed");
 
-    let ring_keys: Vec<EdwardsPoint> = resp.outs.iter()
+    let ring_keys: Vec<EdwardsPoint> = resp
+        .outs
+        .iter()
         .map(|o| hex_to_point(&o.key).expect("Invalid ring key"))
         .collect();
-    let ring_commitments: Vec<EdwardsPoint> = resp.outs.iter()
+    let ring_commitments: Vec<EdwardsPoint> = resp
+        .outs
+        .iter()
         .map(|o| hex_to_point(&o.mask).expect("Invalid ring commitment"))
         .collect();
 
@@ -316,10 +328,14 @@ async fn main() {
 
     // D = d_inv8 * 8 (recovering original D)
     let d_original = Scalar::from(8u64) * d_inv8;
-    println!("D_original: {}...", &hex::encode(d_original.compress().to_bytes())[..16]);
+    println!(
+        "D_original: {}...",
+        &hex::encode(d_original.compress().to_bytes())[..16]
+    );
 
     // HP values
-    let hp_values: Vec<EdwardsPoint> = ring_keys.iter()
+    let hp_values: Vec<EdwardsPoint> = ring_keys
+        .iter()
         .map(|k| hash_to_point(k.compress().to_bytes()))
         .collect();
 
@@ -344,13 +360,13 @@ async fn main() {
         let commitment_diff = ring_commitments[i] - pseudo_out;
         let l_point = EdwardsPoint::multiscalar_mul(
             &[s_values[i], c_p, c_c],
-            &[g, ring_keys[i], commitment_diff]
+            &[g, ring_keys[i], commitment_diff],
         );
 
         // R[i] = s[i]*Hp(P[i]) + c_p*I + c_c*D
         let r_point = EdwardsPoint::multiscalar_mul(
             &[s_values[i], c_p, c_c],
-            &[hp_values[i], key_image, d_original]
+            &[hp_values[i], key_image, d_original],
         );
 
         // Compute c_next = H(..., L, R) using FULL CLSAG message
@@ -358,7 +374,7 @@ async fn main() {
             &ring_keys,
             &ring_commitments,
             &pseudo_out,
-            &clsag_message,  // CRITICAL: Use full CLSAG message, not just tx_prefix_hash!
+            &clsag_message, // CRITICAL: Use full CLSAG message, not just tx_prefix_hash!
             &key_image,
             &d_inv8,
             &l_point,
@@ -367,8 +383,13 @@ async fn main() {
 
         if step < 2 || step == ring_size - 1 {
             let next_idx = (i + 1) % ring_size;
-            println!("Step {}: i={}, compute c[{}] = {}...",
-                step, i, next_idx, &hex::encode(c_next.to_bytes())[..16]);
+            println!(
+                "Step {}: i={}, compute c[{}] = {}...",
+                step,
+                i,
+                next_idx,
+                &hex::encode(c_next.to_bytes())[..16]
+            );
         } else if step == 2 {
             println!("...");
         }
@@ -381,8 +402,14 @@ async fn main() {
     let computed_c1_bytes = c_current.to_bytes();
 
     println!("\nRing closure check:");
-    println!("  Expected c1: {}...", &hex::encode(&expected_c1_bytes)[..16]);
-    println!("  Computed c1: {}...", &hex::encode(&computed_c1_bytes)[..16]);
+    println!(
+        "  Expected c1: {}...",
+        &hex::encode(&expected_c1_bytes)[..16]
+    );
+    println!(
+        "  Computed c1: {}...",
+        &hex::encode(&computed_c1_bytes)[..16]
+    );
 
     if expected_c1_bytes == computed_c1_bytes {
         println!("✅ CLSAG RING CLOSED SUCCESSFULLY!");

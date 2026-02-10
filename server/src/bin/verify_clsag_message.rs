@@ -44,7 +44,8 @@ fn main() {
     println!("Input count: {}", input_count);
 
     for _ in 0..input_count {
-        let input_type = tx[pos]; pos += 1;
+        let input_type = tx[pos];
+        pos += 1;
         if input_type == 0x02 {
             let _amount = read_varint(&tx, &mut pos);
             let key_offset_count = read_varint(&tx, &mut pos);
@@ -60,7 +61,8 @@ fn main() {
 
     for _ in 0..output_count {
         let _amount = read_varint(&tx, &mut pos);
-        let output_type = tx[pos]; pos += 1;
+        let output_type = tx[pos];
+        pos += 1;
         if output_type == 0x03 {
             pos += 33; // key + view_tag
         }
@@ -78,7 +80,8 @@ fn main() {
     println!("  {}", hex::encode(&tx_prefix_hash));
 
     // Parse RCT base
-    let rct_type = tx[pos]; pos += 1;
+    let rct_type = tx[pos];
+    pos += 1;
     let fee = read_varint(&tx, &mut pos);
     println!("\nRCT type: {} (should be 6 for BulletproofPlus)", rct_type);
     println!("Fee: {} atomic units", fee);
@@ -181,8 +184,14 @@ fn main() {
     println!("  {}", hex::encode(&mlsag_message));
 
     println!("\n=== Comparison ===");
-    println!("tx_prefix_hash used in signing: {}", hex::encode(&tx_prefix_hash));
-    println!("Full CLSAG message should be:   {}", hex::encode(&mlsag_message));
+    println!(
+        "tx_prefix_hash used in signing: {}",
+        hex::encode(&tx_prefix_hash)
+    );
+    println!(
+        "Full CLSAG message should be:   {}",
+        hex::encode(&mlsag_message)
+    );
 
     if tx_prefix_hash == mlsag_message {
         println!("\n⚠️  They are the SAME - this is suspicious!");

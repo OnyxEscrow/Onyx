@@ -11,5 +11,5 @@
 //! - Provider failover
 //! - State machine validation
 
-pub mod swap_flow_test;
 pub mod swap_failure_test;
+pub mod swap_flow_test;

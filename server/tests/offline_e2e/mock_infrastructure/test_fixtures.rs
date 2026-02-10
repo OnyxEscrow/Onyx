@@ -7,12 +7,12 @@
 //! - Valid/invalid Monero addresses
 //! - Transaction blobs for structure validation
 
+use super::DeterministicRng;
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT,
     edwards::{CompressedEdwardsY, EdwardsPoint},
     scalar::Scalar,
 };
-use super::DeterministicRng;
 
 /// Standard ring size for Monero v6 (Bulletproofs+)
 pub const RING_SIZE: usize = 16;
@@ -257,7 +257,8 @@ impl KeyImageFixture {
             }
             KeyImageInvalidType::ZeroPoint => {
                 // Identity point (0, 1) compressed
-                fixture.buyer_pki = "0100000000000000000000000000000000000000000000000000000000000000".to_string();
+                fixture.buyer_pki =
+                    "0100000000000000000000000000000000000000000000000000000000000000".to_string();
             }
         }
 
@@ -356,7 +357,8 @@ impl ClsagFixture {
             }
             ClsagInvalidType::MismatchedRingData => {
                 fixture.ring_keys.pop();
-                fixture.description = "Mismatched ring data (15 keys vs 16 commitments)".to_string();
+                fixture.description =
+                    "Mismatched ring data (15 keys vs 16 commitments)".to_string();
             }
             ClsagInvalidType::CorruptedC1 => {
                 fixture.c1 = "00".repeat(32);
@@ -416,11 +418,11 @@ impl TransactionFixture {
             version: 2,
             unlock_time: 0,
             num_inputs: 1,
-            num_outputs: 2, // Minimum 2 outputs required
+            num_outputs: 2,                 // Minimum 2 outputs required
             output_types: vec![0x03, 0x03], // txout_to_tagged_key
             extra_length: 34 + (rng.gen_range(10) as usize), // ~34-44 bytes
-            rct_type: 6, // BulletproofPlus
-            fee: 30000000, // ~0.00003 XMR typical fee
+            rct_type: 6,                    // BulletproofPlus
+            fee: 30000000,                  // ~0.00003 XMR typical fee
             should_be_valid: true,
             description: "Valid RCT v6 transaction".to_string(),
         }

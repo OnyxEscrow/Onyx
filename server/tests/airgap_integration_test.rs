@@ -1,3 +1,4 @@
+use ed25519_dalek::{Signer, SigningKey};
 /// Integration tests for Air-Gap Dispute Resolution (TM-001)
 ///
 /// Tests the complete workflow:
@@ -5,9 +6,7 @@
 /// 2. Arbiter reviews offline and signs decision
 /// 3. Server imports and validates decision
 /// 4. Escrow state transitions correctly
-
 use server::services::airgap::{ArbiterDecision, ArbiterResolution, DisputeRequest};
-use ed25519_dalek::{Signer, SigningKey};
 use uuid::Uuid;
 
 /// Helper: Generate random 32 bytes
@@ -34,8 +33,7 @@ fn test_complete_airgap_workflow() {
     };
 
     // Step 2: Serialize for QR export
-    let json = serde_json::to_string_pretty(&dispute)
-        .expect("Failed to serialize dispute");
+    let json = serde_json::to_string_pretty(&dispute).expect("Failed to serialize dispute");
 
     assert!(json.len() < 2000, "QR payload too large");
 
@@ -47,7 +45,7 @@ fn test_complete_airgap_workflow() {
     let decision = ArbiterDecision {
         escrow_id: dispute.escrow_id,
         nonce: dispute.nonce.clone(),
-        decision: ArbiterResolution::Vendor,  // Corrected: Vendor not PayVendor
+        decision: ArbiterResolution::Vendor, // Corrected: Vendor not PayVendor
         reason: "Evidence supports vendor claim".to_string(),
         signed_tx_hex: "cafebabe".to_string(),
         decision_signature: hex::encode(signature.to_bytes()),
@@ -55,8 +53,8 @@ fn test_complete_airgap_workflow() {
     };
 
     // Step 4: Serialize decision for QR import
-    let decision_json = serde_json::to_string_pretty(&decision)
-        .expect("Failed to serialize decision");
+    let decision_json =
+        serde_json::to_string_pretty(&decision).expect("Failed to serialize decision");
 
     assert!(decision_json.len() < 2000, "Decision QR payload too large");
 
@@ -70,7 +68,9 @@ fn test_complete_airgap_workflow() {
     let sig = ed25519_dalek::Signature::from_bytes(&sig_bytes);
 
     assert!(
-        verifying_key.verify_strict(message.as_bytes(), &sig).is_ok(),
+        verifying_key
+            .verify_strict(message.as_bytes(), &sig)
+            .is_ok(),
         "Signature verification failed"
     );
 }
@@ -99,7 +99,7 @@ fn test_qr_size_constraints() {
         buyer_id: Uuid::new_v4(),
         vendor_id: Uuid::new_v4(),
         amount: 1_000_000_000_000,
-        buyer_claim: "A".repeat(500), // Large claim
+        buyer_claim: "A".repeat(500),           // Large claim
         vendor_response: Some("B".repeat(500)), // Large response
         dispute_opened_at: chrono::Utc::now().timestamp(),
         evidence_file_count: 99,

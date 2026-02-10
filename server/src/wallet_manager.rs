@@ -7,17 +7,17 @@ use monero_marketplace_common::{
 };
 use monero_marketplace_wallet::MoneroClient;
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Arc;
 use thiserror::Error;
-use tracing::{info, error, debug, warn};
-use uuid::Uuid;
 use tokio::sync::Mutex as TokioMutex;
-use std::path::Path;
+use tracing::{debug, error, info, warn};
+use uuid::Uuid;
 
 use crate::config::{get_fee_reserve, get_wallet_password};
 use crate::db::DbPool;
-use crate::repositories::MultisigStateRepository;
 use crate::models::multisig_state::{MultisigPhase, MultisigSnapshot};
+use crate::repositories::MultisigStateRepository;
 use crate::wallet_pool::{WalletPool, WalletRole as PoolWalletRole};
 
 // Global mutex to ensure only ONE wallet creation happens at a time across the entire server
@@ -264,7 +264,9 @@ impl WalletManager {
         match role {
             WalletRole::Buyer => {
                 // Ports 18082, 18085, 18088... (indices 0, 3, 6, 9...)
-                let buyer_rpcs: Vec<MoneroConfig> = self.rpc_configs.iter()
+                let buyer_rpcs: Vec<MoneroConfig> = self
+                    .rpc_configs
+                    .iter()
                     .enumerate()
                     .filter(|(i, _)| i % 3 == 0)
                     .map(|(_, config)| config.clone())
@@ -276,10 +278,12 @@ impl WalletManager {
 
                 let index = self.buyer_rpc_index.fetch_add(1, Ordering::SeqCst) % buyer_rpcs.len();
                 Ok(buyer_rpcs[index].clone())
-            },
+            }
             WalletRole::Vendor => {
                 // Ports 18083, 18086, 18089... (indices 1, 4, 7, 10...)
-                let vendor_rpcs: Vec<MoneroConfig> = self.rpc_configs.iter()
+                let vendor_rpcs: Vec<MoneroConfig> = self
+                    .rpc_configs
+                    .iter()
                     .enumerate()
                     .filter(|(i, _)| i % 3 == 1)
                     .map(|(_, config)| config.clone())
@@ -289,12 +293,15 @@ impl WalletManager {
                     return Err(WalletManagerError::NoAvailableRpc);
                 }
 
-                let index = self.vendor_rpc_index.fetch_add(1, Ordering::SeqCst) % vendor_rpcs.len();
+                let index =
+                    self.vendor_rpc_index.fetch_add(1, Ordering::SeqCst) % vendor_rpcs.len();
                 Ok(vendor_rpcs[index].clone())
-            },
+            }
             WalletRole::Arbiter => {
                 // Ports 18084, 18087, 18090... (indices 2, 5, 8, 11...)
-                let arbiter_rpcs: Vec<MoneroConfig> = self.rpc_configs.iter()
+                let arbiter_rpcs: Vec<MoneroConfig> = self
+                    .rpc_configs
+                    .iter()
                     .enumerate()
                     .filter(|(i, _)| i % 3 == 2)
                     .map(|(_, config)| config.clone())
@@ -414,7 +421,10 @@ impl WalletManager {
         };
         let id = instance.id;
         self.wallets.insert(id, instance);
-        info!("✅ Created arbiter wallet instance: {} (address: {})", id, wallet_address);
+        info!(
+            "✅ Created arbiter wallet instance: {} (address: {})",
+            id, wallet_address
+        );
         Ok(id)
     }
 
@@ -492,10 +502,9 @@ impl WalletManager {
             .map_err(|e| WalletManagerError::InvalidRpcUrl(format!("Failed to connect: {}", e)))?;
 
         // Verify wallet is accessible
-        let wallet_info = rpc_client
-            .get_wallet_info()
-            .await
-            .map_err(|e| WalletManagerError::InvalidRpcUrl(format!("Cannot access wallet: {}", e)))?;
+        let wallet_info = rpc_client.get_wallet_info().await.map_err(|e| {
+            WalletManagerError::InvalidRpcUrl(format!("Cannot access wallet: {}", e))
+        })?;
 
         let wallet_id = Uuid::new_v4();
 
@@ -522,10 +531,12 @@ impl WalletManager {
             if let (Some(ref pool), Some(ref key)) = (&self.db_pool, &self.encryption_key) {
                 use crate::models::wallet_rpc_config::WalletRpcConfig;
 
-                let mut conn = pool.get()
-                    .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                        format!("Failed to get DB connection: {}", e)
-                    )))?;
+                let mut conn = pool.get().map_err(|e| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to get DB connection: {}",
+                        e
+                    )))
+                })?;
 
                 let role_str = match role {
                     WalletRole::Buyer => "buyer",
@@ -542,11 +553,13 @@ impl WalletManager {
                     rpc_user_clone.as_deref(),
                     rpc_password_clone.as_deref(),
                     key,
-                ).map_err(|e| {
+                )
+                .map_err(|e| {
                     error!(escrow_id, error = %e, "Failed to persist RPC config");
-                    WalletManagerError::RpcError(CommonError::MoneroRpc(
-                        format!("Failed to persist RPC config: {}", e)
-                    ))
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to persist RPC config: {}",
+                        e
+                    )))
                 })?;
 
                 info!(
@@ -564,7 +577,10 @@ impl WalletManager {
             "✅ Registered client wallet: id={}, role={:?}, address={}",
             wallet_id, role, wallet_info.address
         );
-        info!("🔒 NON-CUSTODIAL: Client controls private keys at {}", rpc_url);
+        info!(
+            "🔒 NON-CUSTODIAL: Client controls private keys at {}",
+            rpc_url
+        );
 
         Ok(wallet_id)
     }
@@ -626,7 +642,11 @@ impl WalletManager {
         since = "0.3.0",
         note = "Use EscrowCoordinator with client wallets instead. This custodial mode will be removed in v0.4.0. See DOX/guides/MIGRATION-TO-NONCUSTODIAL.md"
     )]
-    pub async fn create_temporary_wallet(&mut self, escrow_id: Uuid, role: &str) -> Result<Uuid, WalletManagerError> {
+    pub async fn create_temporary_wallet(
+        &mut self,
+        escrow_id: Uuid,
+        role: &str,
+    ) -> Result<Uuid, WalletManagerError> {
         // ⚠️ DEPRECATION WARNING
         warn!(
             "⚠️  DEPRECATED: create_temporary_wallet() is CUSTODIAL and will be removed in v0.4.0. \
@@ -642,10 +662,12 @@ impl WalletManager {
             "buyer" => WalletRole::Buyer,
             "vendor" => WalletRole::Vendor,
             "arbiter" => WalletRole::Arbiter,
-            _ => return Err(WalletManagerError::InvalidState {
-                expected: "buyer, vendor, or arbiter".to_string(),
-                actual: role.to_string(),
-            }),
+            _ => {
+                return Err(WalletManagerError::InvalidState {
+                    expected: "buyer, vendor, or arbiter".to_string(),
+                    actual: role.to_string(),
+                })
+            }
         };
 
         // PRODUCTION SCALABILITY: Use role-based RPC assignment instead of round-robin
@@ -662,11 +684,19 @@ impl WalletManager {
         let keys_path = Path::new("/var/monero/wallets").join(format!("{}.keys", wallet_filename));
 
         if wallet_path.exists() || keys_path.exists() {
-            warn!("🗑️  Found existing wallet files for {}, deleting before recreation", wallet_filename);
+            warn!(
+                "🗑️  Found existing wallet files for {}, deleting before recreation",
+                wallet_filename
+            );
             let _ = std::fs::remove_file(&wallet_path);
             let _ = std::fs::remove_file(&keys_path);
-            let _ = std::fs::remove_file(Path::new("/var/monero/wallets").join(format!("{}.address.txt", wallet_filename)));
-            info!("✅ Cleaned up orphaned wallet files for {}", wallet_filename);
+            let _ = std::fs::remove_file(
+                Path::new("/var/monero/wallets").join(format!("{}.address.txt", wallet_filename)),
+            );
+            info!(
+                "✅ Cleaned up orphaned wallet files for {}",
+                wallet_filename
+            );
         }
 
         // Create RPC client
@@ -684,18 +714,30 @@ impl WalletManager {
         // Retry loop for wallet creation with exponential backoff
         let address = loop {
             attempts += 1;
-            info!("🔄 Wallet creation attempt {}/{} for role={}", attempts, max_attempts, role);
+            info!(
+                "🔄 Wallet creation attempt {}/{} for role={}",
+                attempts, max_attempts, role
+            );
 
             // Create new wallet in the RPC (or open if exists)
-            let creation_result = match rpc_client.create_wallet(&wallet_filename, &get_wallet_password()).await {
+            let creation_result = match rpc_client
+                .create_wallet(&wallet_filename, &get_wallet_password())
+                .await
+            {
                 Ok(_) => {
                     info!("✅ Created new temporary wallet: {}", wallet_filename);
                     Ok(())
                 }
                 Err(e) => {
                     // Wallet might already exist, try to open it
-                    warn!("Wallet creation failed (might exist): {:?}, trying to open", e);
-                    match rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await {
+                    warn!(
+                        "Wallet creation failed (might exist): {:?}, trying to open",
+                        e
+                    );
+                    match rpc_client
+                        .open_wallet(&wallet_filename, &get_wallet_password())
+                        .await
+                    {
                         Ok(_) => {
                             info!("✅ Opened existing wallet: {}", wallet_filename);
                             Ok(())
@@ -709,7 +751,11 @@ impl WalletManager {
                 Ok(_) => {
                     // CRITICAL: Enable multisig experimental BEFORE any multisig operations
                     // This must be done immediately after wallet creation/opening
-                    match rpc_client.rpc().set_attribute("enable-multisig-experimental", "1").await {
+                    match rpc_client
+                        .rpc()
+                        .set_attribute("enable-multisig-experimental", "1")
+                        .await
+                    {
                         Ok(_) => {
                             info!("✅ Multisig experimental enabled for {}", wallet_filename);
 
@@ -717,10 +763,16 @@ impl WalletManager {
                             // Monero wallet RPC requires this for the setting to be persisted
                             match rpc_client.close_wallet().await {
                                 Ok(_) => {
-                                    info!("🔒 Wallet closed to persist multisig experimental setting");
-                                    tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                                    info!(
+                                        "🔒 Wallet closed to persist multisig experimental setting"
+                                    );
+                                    tokio::time::sleep(tokio::time::Duration::from_millis(500))
+                                        .await;
 
-                                    match rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await {
+                                    match rpc_client
+                                        .open_wallet(&wallet_filename, &get_wallet_password())
+                                        .await
+                                    {
                                         Ok(_) => {
                                             info!("✅ Wallet reopened - multisig experimental setting active");
                                         }
@@ -753,13 +805,19 @@ impl WalletManager {
                         }
                         Err(e) => {
                             last_error = Some(WalletManagerError::from(e));
-                            warn!("❌ Failed to get wallet address (attempt {}/{})", attempts, max_attempts);
+                            warn!(
+                                "❌ Failed to get wallet address (attempt {}/{})",
+                                attempts, max_attempts
+                            );
                         }
                     }
                 }
                 Err(e) => {
                     last_error = Some(WalletManagerError::from(e));
-                    warn!("❌ Failed to create/open wallet (attempt {}/{})", attempts, max_attempts);
+                    warn!(
+                        "❌ Failed to create/open wallet (attempt {}/{})",
+                        attempts, max_attempts
+                    );
                 }
             }
 
@@ -878,13 +936,13 @@ impl WalletManager {
         info!("📂 Opening wallet file: {}", wallet_filename);
 
         // 6. Open wallet from disk
-        match rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await {
+        match rpc_client
+            .open_wallet(&wallet_filename, &get_wallet_password())
+            .await
+        {
             Ok(_) => info!("✅ Wallet opened successfully: {}", wallet_filename),
             Err(e) => {
-                error!(
-                    "❌ Failed to open wallet '{}': {:?}",
-                    wallet_filename, e
-                );
+                error!("❌ Failed to open wallet '{}': {:?}", wallet_filename, e);
                 return Err(WalletManagerError::RpcError(CommonError::MoneroRpc(
                     format!("Failed to open wallet '{}': {:?}", wallet_filename, e),
                 )));
@@ -917,7 +975,10 @@ impl WalletManager {
 
         info!(
             "✅ Reopened wallet for signing: wallet_id={}, role={:?}, address={}, port={:?}",
-            wallet_id, role, &address[..10], rpc_port
+            wallet_id,
+            role,
+            &address[..10],
+            rpc_port
         );
 
         Ok(wallet_id)
@@ -965,7 +1026,10 @@ impl WalletManager {
                     e
                 )))
             })?;
-            info!("✅ Closed wallet {} and released RPC port {}", wallet_id, port);
+            info!(
+                "✅ Closed wallet {} and released RPC port {}",
+                wallet_id, port
+            );
         } else {
             info!("✅ Closed wallet {} (no pool release)", wallet_id);
         }
@@ -1100,7 +1164,10 @@ impl WalletManager {
         buyer_wallet
             .rpc_client
             .rpc()
-            .import_multisig_info(vec![vendor_export.info.clone(), arbiter_export.info.clone()])
+            .import_multisig_info(vec![
+                vendor_export.info.clone(),
+                arbiter_export.info.clone(),
+            ])
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
@@ -1188,7 +1255,10 @@ impl WalletManager {
     ) -> Result<(), WalletManagerError> {
         // Skip if persistence not enabled
         let Some(ref repo) = self.multisig_repo else {
-            debug!("Multisig persistence not enabled, skipping save for escrow {}", escrow_id);
+            debug!(
+                "Multisig persistence not enabled, skipping save for escrow {}",
+                escrow_id
+            );
             return Ok(());
         };
 
@@ -1197,8 +1267,8 @@ impl WalletManager {
         let mut rpc_urls = HashMap::new();
 
         // ✅ FIX: Filter wallets by escrow_id for isolation
-        let escrow_uuid = Uuid::parse_str(escrow_id)
-            .map_err(|e| WalletManagerError::InvalidState {
+        let escrow_uuid =
+            Uuid::parse_str(escrow_id).map_err(|e| WalletManagerError::InvalidState {
                 expected: "Valid UUID for escrow_id".to_string(),
                 actual: format!("Parse error: {}", e),
             })?;
@@ -1222,13 +1292,13 @@ impl WalletManager {
         let snapshot = MultisigSnapshot::new(phase.clone(), wallet_ids, rpc_urls);
 
         // Persist to database
-        repo.save_phase(escrow_id, &phase, &snapshot)
-            .map_err(|e| {
-                error!(escrow_id, error = %e, "Failed to persist multisig state");
-                WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Persistence failed: {}", e),
-                ))
-            })?;
+        repo.save_phase(escrow_id, &phase, &snapshot).map_err(|e| {
+            error!(escrow_id, error = %e, "Failed to persist multisig state");
+            WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                "Persistence failed: {}",
+                e
+            )))
+        })?;
 
         debug!(escrow_id, phase = ?phase, "✅ Multisig state persisted");
         Ok(())
@@ -1263,19 +1333,34 @@ impl WalletManager {
         info_from_all: Vec<MultisigInfo>,
     ) -> Result<(), WalletManagerError> {
         let escrow_id_str = escrow_id.to_string();
-        info!("🔄 Round 1/2: Exchanging multisig info (make_multisig) for escrow {}", escrow_id);
+        info!(
+            "🔄 Round 1/2: Exchanging multisig info (make_multisig) for escrow {}",
+            escrow_id
+        );
 
         if info_from_all.len() != 3 {
             return Err(WalletManagerError::RpcError(CommonError::MoneroRpc(
-                format!("Expected 3 prepare_infos, got {}", info_from_all.len())
+                format!("Expected 3 prepare_infos, got {}", info_from_all.len()),
             )));
         }
 
         // Debug: Log incoming prepare_infos
         info!("🔍 Incoming prepare_infos:");
-        info!("   [0] Buyer:   {}... ({} chars)", &info_from_all[0].multisig_info[..30], info_from_all[0].multisig_info.len());
-        info!("   [1] Vendor:  {}... ({} chars)", &info_from_all[1].multisig_info[..30], info_from_all[1].multisig_info.len());
-        info!("   [2] Arbiter: {}... ({} chars)", &info_from_all[2].multisig_info[..30], info_from_all[2].multisig_info.len());
+        info!(
+            "   [0] Buyer:   {}... ({} chars)",
+            &info_from_all[0].multisig_info[..30],
+            info_from_all[0].multisig_info.len()
+        );
+        info!(
+            "   [1] Vendor:  {}... ({} chars)",
+            &info_from_all[1].multisig_info[..30],
+            info_from_all[1].multisig_info.len()
+        );
+        info!(
+            "   [2] Arbiter: {}... ({} chars)",
+            &info_from_all[2].multisig_info[..30],
+            info_from_all[2].multisig_info.len()
+        );
 
         // info_from_all arrives in order: [buyer, vendor, arbiter]
         // We need to match by role to ensure each wallet gets the correct OTHER 2 prepare_infos
@@ -1285,36 +1370,53 @@ impl WalletManager {
         let mut round1_results = Vec::new();
 
         // Import SHA256 once for all iterations
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         for role in &[WalletRole::Buyer, WalletRole::Vendor, WalletRole::Arbiter] {
             // ✅ FIX: Find wallet with this role AND escrow_id for isolation
-            let wallet = self.wallets.values_mut()
+            let wallet = self
+                .wallets
+                .values_mut()
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
-                .ok_or_else(|| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Wallet with role {:?} for escrow {} not found", role, escrow_id)
-                )))?;
+                .ok_or_else(|| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Wallet with role {:?} for escrow {} not found",
+                        role, escrow_id
+                    )))
+                })?;
 
             // Determine which prepare_infos to use (the OTHER 2)
             let mut other_infos: Vec<String> = match role {
                 WalletRole::Buyer => {
                     // Buyer gets vendor + arbiter prepare_infos (indices 1, 2)
-                    vec![info_from_all[1].multisig_info.clone(), info_from_all[2].multisig_info.clone()]
-                },
+                    vec![
+                        info_from_all[1].multisig_info.clone(),
+                        info_from_all[2].multisig_info.clone(),
+                    ]
+                }
                 WalletRole::Vendor => {
                     // Vendor gets buyer + arbiter prepare_infos (indices 0, 2)
-                    vec![info_from_all[0].multisig_info.clone(), info_from_all[2].multisig_info.clone()]
-                },
+                    vec![
+                        info_from_all[0].multisig_info.clone(),
+                        info_from_all[2].multisig_info.clone(),
+                    ]
+                }
                 WalletRole::Arbiter => {
                     // Arbiter gets buyer + vendor prepare_infos (indices 0, 1)
-                    vec![info_from_all[0].multisig_info.clone(), info_from_all[1].multisig_info.clone()]
-                },
+                    vec![
+                        info_from_all[0].multisig_info.clone(),
+                        info_from_all[1].multisig_info.clone(),
+                    ]
+                }
             };
 
             // ✅ CRITICAL FIX: Sort prepare_infos alphabetically for deterministic ordering
             // Monero's multisig crypto may be sensitive to the ORDER of inputs
             other_infos.sort();
-            info!("   📊 Sorted prepare_infos for {:?} (alphabetical order for determinism)", role);
+            info!(
+                "   📊 Sorted prepare_infos for {:?} (alphabetical order for determinism)",
+                role
+            );
 
             // ✅ CRITICAL FIX: Ensure the CORRECT wallet is open before make_multisig
             // Monero RPC can only have ONE wallet open at a time per instance
@@ -1326,27 +1428,44 @@ impl WalletManager {
             };
             let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
 
-            info!("🔒 Round 1: Ensuring {:?} wallet is open before make_multisig", role);
+            info!(
+                "🔒 Round 1: Ensuring {:?} wallet is open before make_multisig",
+                role
+            );
 
             // Step 1: Close any currently open wallet
-            wallet.rpc_client.close_wallet().await
+            wallet
+                .rpc_client
+                .close_wallet()
+                .await
                 .map_err(|e| {
-                    warn!("close_wallet warning for {:?}: {:?} (may be already closed)", role, e);
+                    warn!(
+                        "close_wallet warning for {:?}: {:?} (may be already closed)",
+                        role, e
+                    );
                     e
                 })
                 .ok(); // Ignore errors - wallet may already be closed
 
             // Step 2: Open the CORRECT wallet
-            wallet.rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to open {:?} wallet '{}': {:?}", role, wallet_filename, e)
-                )))?;
+            wallet
+                .rpc_client
+                .open_wallet(&wallet_filename, &get_wallet_password())
+                .await
+                .map_err(|e| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to open {:?} wallet '{}': {:?}",
+                        role, wallet_filename, e
+                    )))
+                })?;
 
             // Step 3: VERIFY the correct wallet is open by checking FULL address
-            let current_address = wallet.rpc_client.get_address().await
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to get address for {:?}: {:?}", role, e)
-                )))?;
+            let current_address = wallet.rpc_client.get_address().await.map_err(|e| {
+                WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                    "Failed to get address for {:?}: {:?}",
+                    role, e
+                )))
+            })?;
 
             // ✅ VALIDATION RIGOUREUSE: Log FULL address + SHA256 hash
             let mut hasher = Sha256::new();
@@ -1359,7 +1478,11 @@ impl WalletManager {
             info!("   📁 Wallet file: {}", wallet_filename);
 
             // ✅ VALIDATION RIGOUREUSE: Log FULL prepare_infos BEFORE sort
-            info!("📤 {:?} receiving {} prepare_infos BEFORE sort:", role, other_infos.len());
+            info!(
+                "📤 {:?} receiving {} prepare_infos BEFORE sort:",
+                role,
+                other_infos.len()
+            );
             for (i, info) in other_infos.iter().enumerate() {
                 let mut hasher = Sha256::new();
                 hasher.update(info.as_bytes());
@@ -1392,7 +1515,10 @@ impl WalletManager {
 
             info!("📋 {:?} Round 1 result (FULL validation):", role);
             info!("   📍 Multisig address: {}", result.address);
-            info!("   📊 multisig_info length: {} bytes", result.multisig_info.len());
+            info!(
+                "   📊 multisig_info length: {} bytes",
+                result.multisig_info.len()
+            );
             info!("   🔐 multisig_info SHA256: {}", multisig_info_hash);
             info!("   📝 multisig_info FULL: {}", result.multisig_info);
 
@@ -1405,7 +1531,10 @@ impl WalletManager {
 
             // ✅ CRITICAL FIX: Close wallet after make_multisig to reset RPC cache
             wallet.rpc_client.close_wallet().await.ok();
-            info!("🔒 {:?} wallet closed after make_multisig (cache reset)", role);
+            info!(
+                "🔒 {:?} wallet closed after make_multisig (cache reset)",
+                role
+            );
 
             // ✅ VALIDATION RIGOUREUSE: Délai 10s entre appels (sauf après Arbiter)
             let role_idx = match role {
@@ -1419,13 +1548,19 @@ impl WalletManager {
             }
         }
 
-        info!("✅ Round 1/3 complete: make_multisig successful, collected {} multisig_infos", round1_results.len());
+        info!(
+            "✅ Round 1/3 complete: make_multisig successful, collected {} multisig_infos",
+            round1_results.len()
+        );
 
         // ROUND 2/3: First exchange_multisig_keys call
         // For 2-of-3 multisig in v0.18.4.3, need TWO rounds of exchange_multisig_keys
         // Reference: https://www.getmonero.org/resources/developer-guides/wallet-rpc.html
         info!("🔄 Round 2/3: First exchange_multisig_keys (generates Round 2 infos)...");
-        info!("🔍 DEBUG: round1_results contains {} multisig_infos", round1_results.len());
+        info!(
+            "🔍 DEBUG: round1_results contains {} multisig_infos",
+            round1_results.len()
+        );
 
         // Log all round1 multisig_info for debugging
         for (idx, info) in round1_results.iter().enumerate() {
@@ -1435,22 +1570,35 @@ impl WalletManager {
                 2 => "Arbiter",
                 _ => "Unknown",
             };
-            info!("🔍 DEBUG: round1_results[{}] ({}) = {} chars, starts with: {}",
-                idx, role_name, info.len(), &info[..50.min(info.len())]);
+            info!(
+                "🔍 DEBUG: round1_results[{}] ({}) = {} chars, starts with: {}",
+                idx,
+                role_name,
+                info.len(),
+                &info[..50.min(info.len())]
+            );
         }
 
         // round1_results is in deterministic order: [buyer, vendor, arbiter]
         // Each wallet must call exchange_multisig_keys with the OTHER 2 multisig_infos from round1
         let mut round2_results: Vec<String> = Vec::new();
 
-        for (role_idx, role) in [WalletRole::Buyer, WalletRole::Vendor, WalletRole::Arbiter].iter().enumerate() {
+        for (role_idx, role) in [WalletRole::Buyer, WalletRole::Vendor, WalletRole::Arbiter]
+            .iter()
+            .enumerate()
+        {
             // Find wallet with this role
             // ✅ FIX: Find wallet with this role AND escrow_id for isolation (Round 2)
-            let wallet = self.wallets.values_mut()
+            let wallet = self
+                .wallets
+                .values_mut()
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
-                .ok_or_else(|| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Wallet with role {:?} for escrow {} not found in Round 2", role, escrow_id)
-                )))?;
+                .ok_or_else(|| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Wallet with role {:?} for escrow {} not found in Round 2",
+                        role, escrow_id
+                    )))
+                })?;
 
             // Get the OTHER 2 multisig_infos (exclude this wallet's own)
             let other_round1_infos: Vec<String> = round1_results
@@ -1468,37 +1616,65 @@ impl WalletManager {
             };
             let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
 
-            info!("🔒 Round 2: Ensuring {:?} wallet is open before exchange_multisig_keys", role);
+            info!(
+                "🔒 Round 2: Ensuring {:?} wallet is open before exchange_multisig_keys",
+                role
+            );
 
             // Step 1: Close any currently open wallet
-            wallet.rpc_client.close_wallet().await
+            wallet
+                .rpc_client
+                .close_wallet()
+                .await
                 .map_err(|e| {
-                    warn!("close_wallet warning for {:?}: {:?} (may be already closed)", role, e);
+                    warn!(
+                        "close_wallet warning for {:?}: {:?} (may be already closed)",
+                        role, e
+                    );
                     e
                 })
                 .ok(); // Ignore errors
 
             // Step 2: Open the CORRECT wallet
-            wallet.rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to open {:?} wallet '{}' in Round 2: {:?}", role, wallet_filename, e)
-                )))?;
+            wallet
+                .rpc_client
+                .open_wallet(&wallet_filename, &get_wallet_password())
+                .await
+                .map_err(|e| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to open {:?} wallet '{}' in Round 2: {:?}",
+                        role, wallet_filename, e
+                    )))
+                })?;
 
             // Step 3: VERIFY the correct wallet is open
-            let current_address = wallet.rpc_client.get_address().await
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to get address for {:?} in Round 2: {:?}", role, e)
-                )))?;
+            let current_address = wallet.rpc_client.get_address().await.map_err(|e| {
+                WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                    "Failed to get address for {:?} in Round 2: {:?}",
+                    role, e
+                )))
+            })?;
 
-            info!("✅ {:?} wallet VERIFIED open (Round 2): address={}, file={}",
-                role, &current_address[..15], wallet_filename);
+            info!(
+                "✅ {:?} wallet VERIFIED open (Round 2): address={}, file={}",
+                role,
+                &current_address[..15],
+                wallet_filename
+            );
 
-            info!("📤 {:?} calling exchange_multisig_keys (Round 2) with {} infos",
-                role, other_round1_infos.len());
+            info!(
+                "📤 {:?} calling exchange_multisig_keys (Round 2) with {} infos",
+                role,
+                other_round1_infos.len()
+            );
 
             for (i, info) in other_round1_infos.iter().enumerate() {
-                info!("  🔍 multisig_info[{}] = {} chars, starts with: {}",
-                    i, info.len(), &info[..30.min(info.len())]);
+                info!(
+                    "  🔍 multisig_info[{}] = {} chars, starts with: {}",
+                    i,
+                    info.len(),
+                    &info[..30.min(info.len())]
+                );
             }
 
             // ✅ ROUND 2: First exchange_multisig_keys call
@@ -1507,22 +1683,27 @@ impl WalletManager {
                 .rpc_client
                 .multisig()
                 .exchange_multisig_keys(other_round1_infos.clone())
-                .await {
-                    Ok(r) => {
-                        let addr_display = if r.address.is_empty() {
-                            "(empty)".to_string()
-                        } else {
-                            r.address.chars().take(15).collect::<String>()
-                        };
-                        info!("✅ {:?} wallet round 2 SUCCESS: address={}, multisig_info_len={}",
-                            role, addr_display, r.multisig_info.len());
-                        r
-                    },
-                    Err(e) => {
-                        error!("❌ {:?} wallet round 2 FAILED: {:?}", role, e);
-                        return Err(WalletManagerError::from(e));
-                    }
-                };
+                .await
+            {
+                Ok(r) => {
+                    let addr_display = if r.address.is_empty() {
+                        "(empty)".to_string()
+                    } else {
+                        r.address.chars().take(15).collect::<String>()
+                    };
+                    info!(
+                        "✅ {:?} wallet round 2 SUCCESS: address={}, multisig_info_len={}",
+                        role,
+                        addr_display,
+                        r.multisig_info.len()
+                    );
+                    r
+                }
+                Err(e) => {
+                    error!("❌ {:?} wallet round 2 FAILED: {:?}", role, e);
+                    return Err(WalletManagerError::from(e));
+                }
+            };
 
             // Collect Round 2 multisig_info for the next exchange
             round2_results.push(result.multisig_info.clone());
@@ -1542,17 +1723,30 @@ impl WalletManager {
                 2 => "Arbiter",
                 _ => "Unknown",
             };
-            info!("🔍 DEBUG: round2_results[{}] ({}) = {} chars, starts with: {}",
-                idx, role_name, info.len(), &info[..50.min(info.len())]);
+            info!(
+                "🔍 DEBUG: round2_results[{}] ({}) = {} chars, starts with: {}",
+                idx,
+                role_name,
+                info.len(),
+                &info[..50.min(info.len())]
+            );
         }
 
-        for (role_idx, role) in [WalletRole::Buyer, WalletRole::Vendor, WalletRole::Arbiter].iter().enumerate() {
+        for (role_idx, role) in [WalletRole::Buyer, WalletRole::Vendor, WalletRole::Arbiter]
+            .iter()
+            .enumerate()
+        {
             // ✅ FIX: Find wallet with this role AND escrow_id for isolation (Round 3)
-            let wallet = self.wallets.values_mut()
+            let wallet = self
+                .wallets
+                .values_mut()
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
-                .ok_or_else(|| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Wallet with role {:?} for escrow {} not found in Round 3", role, escrow_id)
-                )))?;
+                .ok_or_else(|| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Wallet with role {:?} for escrow {} not found in Round 3",
+                        role, escrow_id
+                    )))
+                })?;
 
             // Get the OTHER 2 multisig_infos from Round 2 (exclude this wallet's own)
             let other_round2_infos: Vec<String> = round2_results
@@ -1569,23 +1763,39 @@ impl WalletManager {
             };
             let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
 
-            info!("🔒 Round 3: Ensuring {:?} wallet is open before final exchange_multisig_keys", role);
+            info!(
+                "🔒 Round 3: Ensuring {:?} wallet is open before final exchange_multisig_keys",
+                role
+            );
 
             // Step 1: Close any currently open wallet
             wallet.rpc_client.close_wallet().await.ok();
 
             // Step 2: Open the CORRECT wallet
-            wallet.rpc_client.open_wallet(&wallet_filename, &get_wallet_password()).await
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to open {:?} wallet '{}' in Round 3: {:?}", role, wallet_filename, e)
-                )))?;
+            wallet
+                .rpc_client
+                .open_wallet(&wallet_filename, &get_wallet_password())
+                .await
+                .map_err(|e| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to open {:?} wallet '{}' in Round 3: {:?}",
+                        role, wallet_filename, e
+                    )))
+                })?;
 
-            info!("📤 {:?} calling exchange_multisig_keys (Round 3 - FINAL) with {} infos",
-                role, other_round2_infos.len());
+            info!(
+                "📤 {:?} calling exchange_multisig_keys (Round 3 - FINAL) with {} infos",
+                role,
+                other_round2_infos.len()
+            );
 
             for (i, info) in other_round2_infos.iter().enumerate() {
-                info!("  🔍 multisig_info[{}] = {} chars, starts with: {}",
-                    i, info.len(), &info[..30.min(info.len())]);
+                info!(
+                    "  🔍 multisig_info[{}] = {} chars, starts with: {}",
+                    i,
+                    info.len(),
+                    &info[..30.min(info.len())]
+                );
             }
 
             // ✅ ROUND 3: Second exchange_multisig_keys call (FINALIZATION)
@@ -1593,16 +1803,21 @@ impl WalletManager {
                 .rpc_client
                 .multisig()
                 .exchange_multisig_keys(other_round2_infos.clone())
-                .await {
-                    Ok(r) => {
-                        info!("✅ {:?} wallet round 3 SUCCESS (FINALIZED): address={}", role, &r.address[..15]);
-                        r
-                    },
-                    Err(e) => {
-                        error!("❌ {:?} wallet round 3 FAILED: {:?}", role, e);
-                        return Err(WalletManagerError::from(e));
-                    }
-                };
+                .await
+            {
+                Ok(r) => {
+                    info!(
+                        "✅ {:?} wallet round 3 SUCCESS (FINALIZED): address={}",
+                        role,
+                        &r.address[..15]
+                    );
+                    r
+                }
+                Err(e) => {
+                    error!("❌ {:?} wallet round 3 FAILED: {:?}", role, e);
+                    return Err(WalletManagerError::from(e));
+                }
+            };
 
             // Update state with final address
             wallet.multisig_state = MultisigState::Ready {
@@ -1636,10 +1851,15 @@ impl WalletManager {
         info!("Finalizing multisig for escrow {}", escrow_id);
 
         // DEBUG: Log all wallets and their states
-        info!("🔍 DEBUG finalize_multisig: Total wallets in manager = {}", self.wallets.len());
+        info!(
+            "🔍 DEBUG finalize_multisig: Total wallets in manager = {}",
+            self.wallets.len()
+        );
         for (wallet_id, wallet) in self.wallets.iter() {
-            info!("  Wallet {:?} ({}): escrow={:?}, state={:?}",
-                wallet.role, wallet_id, wallet.escrow_id, wallet.multisig_state);
+            info!(
+                "  Wallet {:?} ({}): escrow={:?}, state={:?}",
+                wallet.role, wallet_id, wallet.escrow_id, wallet.multisig_state
+            );
         }
 
         // ✅ FIX: Filter wallets by escrow_id to isolate concurrent escrows
@@ -1651,31 +1871,41 @@ impl WalletManager {
             }
 
             if let MultisigState::Ready { address } = &wallet.multisig_state {
-                info!("  Found Ready wallet (escrow={}) with address: {}",
-                    escrow_id, &address[..15.min(address.len())]);
+                info!(
+                    "  Found Ready wallet (escrow={}) with address: {}",
+                    escrow_id,
+                    &address[..15.min(address.len())]
+                );
                 addresses.insert(address.clone());
             }
         }
 
-        info!("🔍 DEBUG finalize_multisig: Found {} unique multisig addresses", addresses.len());
+        info!(
+            "🔍 DEBUG finalize_multisig: Found {} unique multisig addresses",
+            addresses.len()
+        );
         for (idx, addr) in addresses.iter().enumerate() {
             info!("  Address {}: {}", idx, &addr[..15.min(addr.len())]);
         }
 
         if addresses.len() != 1 {
-            error!("❌ Address mismatch: expected 1 unique address, found {}", addresses.len());
+            error!(
+                "❌ Address mismatch: expected 1 unique address, found {}",
+                addresses.len()
+            );
             return Err(WalletManagerError::AddressMismatch {
                 addresses: addresses.into_iter().collect(),
             });
         }
 
-        let multisig_address = addresses
-            .into_iter()
-            .next()
-            .ok_or(WalletManagerError::InvalidState {
-                expected: "at least one wallet in Ready state".to_string(),
-                actual: "none".to_string(),
-            })?;
+        let multisig_address =
+            addresses
+                .into_iter()
+                .next()
+                .ok_or(WalletManagerError::InvalidState {
+                    expected: "at least one wallet in Ready state".to_string(),
+                    actual: "none".to_string(),
+                })?;
 
         // Persist state: Ready phase
         let phase = MultisigPhase::Ready {
@@ -1717,15 +1947,18 @@ impl WalletManager {
         // PRODUCTION: Reopen wallets for signing (they were closed after multisig setup)
         info!("🔓 Reopening 3 wallets for transaction signing...");
 
-        let buyer_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
+        let buyer_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
             .await?;
         info!("✅ Reopened buyer wallet: {}", buyer_id);
 
-        let _vendor_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
+        let _vendor_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
             .await?;
         info!("✅ Reopened vendor wallet: {}", _vendor_id);
 
-        let arbiter_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
+        let arbiter_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
             .await?;
         info!("✅ Reopened arbiter wallet: {}", arbiter_id);
 
@@ -1733,41 +1966,71 @@ impl WalletManager {
         info!("🔄 Synchronizing multisig outputs before transaction...");
 
         // Export multisig info from all 3 wallets
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
-        let buyer_info = buyer_wallet.rpc_client.rpc().export_multisig_info().await
+        let buyer_info = buyer_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let vendor_wallet = self.wallets.get(&_vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&_vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(_vendor_id))?;
-        let vendor_info = vendor_wallet.rpc_client.rpc().export_multisig_info().await
+        let vendor_info = vendor_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let arbiter_wallet = self.wallets.get(&arbiter_id)
+        let arbiter_wallet = self
+            .wallets
+            .get(&arbiter_id)
             .ok_or(WalletManagerError::WalletNotFound(arbiter_id))?;
-        let arbiter_info = arbiter_wallet.rpc_client.rpc().export_multisig_info().await
+        let arbiter_info = arbiter_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
         info!("📤 Exported multisig info from 3 wallets");
 
         // Import on each wallet
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
-        buyer_wallet.rpc_client.rpc()
+        buyer_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![vendor_info.info.clone(), arbiter_info.info.clone()])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let vendor_wallet = self.wallets.get(&_vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&_vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(_vendor_id))?;
-        vendor_wallet.rpc_client.rpc()
+        vendor_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![buyer_info.info.clone(), arbiter_info.info.clone()])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let arbiter_wallet = self.wallets.get(&arbiter_id)
+        let arbiter_wallet = self
+            .wallets
+            .get(&arbiter_id)
             .ok_or(WalletManagerError::WalletNotFound(arbiter_id))?;
-        arbiter_wallet.rpc_client.rpc()
+        arbiter_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![buyer_info.info, vendor_info.info])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
@@ -1775,12 +2038,22 @@ impl WalletManager {
         info!("✅ Multisig outputs synchronized");
 
         // Get wallet balance and adjust amount for fees
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
-        let (total_balance, unlocked_balance) = buyer_wallet.rpc_client.rpc().get_balance().await
-            .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
+        let (total_balance, unlocked_balance) =
+            buyer_wallet
+                .rpc_client
+                .rpc()
+                .get_balance()
+                .await
+                .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        info!("Wallet balance: total={}, unlocked={}", total_balance, unlocked_balance);
+        info!(
+            "Wallet balance: total={}, unlocked={}",
+            total_balance, unlocked_balance
+        );
 
         // Fee reserve from centralized config (default 0.0001 XMR)
         let fee_reserve = get_fee_reserve();
@@ -1910,15 +2183,18 @@ impl WalletManager {
         // PRODUCTION: Reopen wallets for signing (they were closed after multisig setup)
         info!("🔓 Reopening 3 wallets for refund transaction signing...");
 
-        let _buyer_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
+        let _buyer_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
             .await?;
         info!("✅ Reopened buyer wallet: {}", _buyer_id);
 
-        let vendor_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
+        let vendor_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
             .await?;
         info!("✅ Reopened vendor wallet: {}", vendor_id);
 
-        let arbiter_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
+        let arbiter_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
             .await?;
         info!("✅ Reopened arbiter wallet: {}", arbiter_id);
 
@@ -2044,11 +2320,14 @@ impl WalletManager {
         // 1. Reopen wallets for signing
         info!("🔓 Reopening 3 wallets for vendor transaction prep...");
 
-        let buyer_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
+        let buyer_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
             .await?;
-        let vendor_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
+        let vendor_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Vendor)
             .await?;
-        let arbiter_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
+        let arbiter_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Arbiter)
             .await?;
 
         info!("✅ Reopened 3 wallets");
@@ -2056,39 +2335,69 @@ impl WalletManager {
         // 2. Synchronize multisig info
         info!("🔄 Synchronizing multisig outputs...");
 
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
-        let buyer_info = buyer_wallet.rpc_client.rpc().export_multisig_info().await
+        let buyer_info = buyer_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let vendor_wallet = self.wallets.get(&vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(vendor_id))?;
-        let vendor_info = vendor_wallet.rpc_client.rpc().export_multisig_info().await
+        let vendor_info = vendor_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let arbiter_wallet = self.wallets.get(&arbiter_id)
+        let arbiter_wallet = self
+            .wallets
+            .get(&arbiter_id)
             .ok_or(WalletManagerError::WalletNotFound(arbiter_id))?;
-        let arbiter_info = arbiter_wallet.rpc_client.rpc().export_multisig_info().await
+        let arbiter_info = arbiter_wallet
+            .rpc_client
+            .rpc()
+            .export_multisig_info()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
         // Import on each wallet
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
-        buyer_wallet.rpc_client.rpc()
+        buyer_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![vendor_info.info.clone(), arbiter_info.info.clone()])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let vendor_wallet = self.wallets.get(&vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(vendor_id))?;
-        vendor_wallet.rpc_client.rpc()
+        vendor_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![buyer_info.info.clone(), arbiter_info.info.clone()])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
-        let arbiter_wallet = self.wallets.get(&arbiter_id)
+        let arbiter_wallet = self
+            .wallets
+            .get(&arbiter_id)
             .ok_or(WalletManagerError::WalletNotFound(arbiter_id))?;
-        arbiter_wallet.rpc_client.rpc()
+        arbiter_wallet
+            .rpc_client
+            .rpc()
             .import_multisig_info(vec![buyer_info.info, vendor_info.info])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
@@ -2096,9 +2405,15 @@ impl WalletManager {
         info!("✅ Multisig outputs synchronized");
 
         // 3. Get balance and adjust for fees
-        let vendor_wallet = self.wallets.get(&vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(vendor_id))?;
-        let (_total_balance, unlocked_balance) = vendor_wallet.rpc_client.rpc().get_balance().await
+        let (_total_balance, unlocked_balance) = vendor_wallet
+            .rpc_client
+            .rpc()
+            .get_balance()
+            .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
         info!("Wallet unlocked balance: {}", unlocked_balance);
@@ -2127,16 +2442,20 @@ impl WalletManager {
         // 4. Create transaction with VENDOR wallet (auto-signs with 1st signature)
         info!("📝 Creating transaction with vendor wallet (auto-signing)...");
 
-        let vendor_wallet = self.wallets.get(&vendor_id)
+        let vendor_wallet = self
+            .wallets
+            .get(&vendor_id)
             .ok_or(WalletManagerError::WalletNotFound(vendor_id))?;
 
         let create_result = vendor_wallet
             .rpc_client
             .rpc()
-            .transfer_multisig(vec![monero_marketplace_common::types::TransferDestination {
-                address: destination_address.clone(),
-                amount: adjusted_amount,
-            }])
+            .transfer_multisig(vec![
+                monero_marketplace_common::types::TransferDestination {
+                    address: destination_address.clone(),
+                    amount: adjusted_amount,
+                },
+            ])
             .await
             .map_err(|e| WalletManagerError::RpcError(convert_monero_error(e)))?;
 
@@ -2182,7 +2501,8 @@ impl WalletManager {
         );
 
         // 1. Reopen buyer wallet
-        let buyer_id = self.reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
+        let buyer_id = self
+            .reopen_wallet_for_signing(escrow_id, WalletRole::Buyer)
             .await?;
 
         info!("✅ Reopened buyer wallet: {}", buyer_id);
@@ -2190,7 +2510,9 @@ impl WalletManager {
         // 2. Buyer signs the vendor-signed transaction (adds 2nd signature)
         info!("✍️ Adding buyer signature to vendor-signed transaction...");
 
-        let buyer_wallet = self.wallets.get(&buyer_id)
+        let buyer_wallet = self
+            .wallets
+            .get(&buyer_id)
             .ok_or(WalletManagerError::WalletNotFound(buyer_id))?;
 
         let buyer_signed = buyer_wallet
@@ -2376,14 +2698,13 @@ impl WalletManager {
         info!("Starting multisig wallet recovery from database");
 
         // Query all active escrows
-        let snapshots = repo
-            .find_active_escrows()
-            .map_err(|e| {
-                error!(error = %e, "Failed to query active escrows from database");
-                WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Recovery query failed: {}", e),
-                ))
-            })?;
+        let snapshots = repo.find_active_escrows().map_err(|e| {
+            error!(error = %e, "Failed to query active escrows from database");
+            WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                "Recovery query failed: {}",
+                e
+            )))
+        })?;
 
         if snapshots.is_empty() {
             info!("No active escrows found to recover");
@@ -2445,32 +2766,45 @@ impl WalletManager {
 
         // Load RPC configs from database
         let db_query_start = std::time::Instant::now();
-        let rpc_configs = if let (Some(ref pool), Some(ref key)) = (&self.db_pool, &self.encryption_key) {
-            use crate::models::wallet_rpc_config::WalletRpcConfig;
+        let rpc_configs =
+            if let (Some(ref pool), Some(ref key)) = (&self.db_pool, &self.encryption_key) {
+                use crate::models::wallet_rpc_config::WalletRpcConfig;
 
-            let mut conn = pool.get()
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to get DB connection during recovery: {}", e)
-                )))?;
+                let mut conn = pool.get().map_err(|e| {
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to get DB connection during recovery: {}",
+                        e
+                    )))
+                })?;
 
-            WalletRpcConfig::find_by_escrow(&mut conn, escrow_id)
-                .map_err(|e| {
+                WalletRpcConfig::find_by_escrow(&mut conn, escrow_id).map_err(|e| {
                     warn!(escrow_id, error = %e, "Failed to load RPC configs from DB");
-                    WalletManagerError::RpcError(CommonError::MoneroRpc(
-                        format!("Failed to load RPC configs: {}", e)
-                    ))
+                    WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                        "Failed to load RPC configs: {}",
+                        e
+                    )))
                 })?
-        } else {
-            warn!(escrow_id, "Cannot recover: persistence not enabled (no db_pool or encryption_key)");
-            return Err(WalletManagerError::InvalidState {
-                expected: "Persistence enabled for recovery".to_string(),
-                actual: "No db_pool or encryption_key".to_string(),
-            });
-        };
-        info!("⏱️  [{}] DB query: {:?}", escrow_id, db_query_start.elapsed());
+            } else {
+                warn!(
+                    escrow_id,
+                    "Cannot recover: persistence not enabled (no db_pool or encryption_key)"
+                );
+                return Err(WalletManagerError::InvalidState {
+                    expected: "Persistence enabled for recovery".to_string(),
+                    actual: "No db_pool or encryption_key".to_string(),
+                });
+            };
+        info!(
+            "⏱️  [{}] DB query: {:?}",
+            escrow_id,
+            db_query_start.elapsed()
+        );
 
         if rpc_configs.is_empty() {
-            warn!(escrow_id, "No RPC configs found in database for this escrow");
+            warn!(
+                escrow_id,
+                "No RPC configs found in database for this escrow"
+            );
             return Err(WalletManagerError::InvalidState {
                 expected: "At least one RPC config".to_string(),
                 actual: "No RPC configs in database".to_string(),
@@ -2480,11 +2814,13 @@ impl WalletManager {
         // Reconstruct wallet instances from RPC configs
         for rpc_config in rpc_configs {
             let wallet_start = std::time::Instant::now();
-            let wallet_uuid = uuid::Uuid::parse_str(&rpc_config.wallet_id.clone().unwrap_or_default())
-                .map_err(|e| WalletManagerError::InvalidState {
-                    expected: "Valid wallet UUID".to_string(),
-                    actual: format!("Invalid UUID: {}", e),
-                })?;
+            let wallet_uuid = uuid::Uuid::parse_str(
+                &rpc_config.wallet_id.clone().unwrap_or_default(),
+            )
+            .map_err(|e| WalletManagerError::InvalidState {
+                expected: "Valid wallet UUID".to_string(),
+                actual: format!("Invalid UUID: {}", e),
+            })?;
 
             let role = match rpc_config.role.as_str() {
                 "buyer" => WalletRole::Buyer,
@@ -2507,16 +2843,24 @@ impl WalletManager {
                     ))
                 })?;
 
-            let rpc_user = rpc_config.decrypt_user(encryption_key)
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to decrypt RPC user: {}", e)
-                )))?;
+            let rpc_user = rpc_config.decrypt_user(encryption_key).map_err(|e| {
+                WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                    "Failed to decrypt RPC user: {}",
+                    e
+                )))
+            })?;
 
-            let rpc_password = rpc_config.decrypt_password(encryption_key)
-                .map_err(|e| WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to decrypt RPC password: {}", e)
-                )))?;
-            info!("⏱️  [{}] Decrypt (3 fields): {:?}", escrow_id, decrypt_start.elapsed());
+            let rpc_password = rpc_config.decrypt_password(encryption_key).map_err(|e| {
+                WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
+                    "Failed to decrypt RPC password: {}",
+                    e
+                )))
+            })?;
+            info!(
+                "⏱️  [{}] Decrypt (3 fields): {:?}",
+                escrow_id,
+                decrypt_start.elapsed()
+            );
 
             // Reconnect to wallet RPC
             let rpc_connect_start = std::time::Instant::now();
@@ -2534,7 +2878,11 @@ impl WalletManager {
                         format!("Failed to reconnect to {} wallet RPC: {}", rpc_config.role, e),
                     ))
                 })?;
-            info!("⏱️  [{}] RPC client connect: {:?}", escrow_id, rpc_connect_start.elapsed());
+            info!(
+                "⏱️  [{}] RPC client connect: {:?}",
+                escrow_id,
+                rpc_connect_start.elapsed()
+            );
 
             // Verify wallet is accessible
             let rpc_call_start = std::time::Instant::now();
@@ -2547,7 +2895,11 @@ impl WalletManager {
                         format!("Failed to get wallet info: {}", e),
                     ))
                 })?;
-            info!("⏱️  [{}] RPC get_wallet_info: {:?}", escrow_id, rpc_call_start.elapsed());
+            info!(
+                "⏱️  [{}] RPC get_wallet_info: {:?}",
+                escrow_id,
+                rpc_call_start.elapsed()
+            );
 
             // Determine multisig state from phase
             let multisig_state = match &snapshot.phase {
@@ -2577,8 +2929,8 @@ impl WalletManager {
                 .and_then(|s| s.parse::<u16>().ok());
 
             // Parse escrow_id for wallet recovery
-            let escrow_uuid = Uuid::parse_str(escrow_id)
-                .map_err(|e| WalletManagerError::InvalidState {
+            let escrow_uuid =
+                Uuid::parse_str(escrow_id).map_err(|e| WalletManagerError::InvalidState {
                     expected: "Valid UUID for escrow_id in recovery".to_string(),
                     actual: format!("Parse error: {}", e),
                 })?;
@@ -2602,7 +2954,8 @@ impl WalletManager {
                 use crate::models::wallet_rpc_config::WalletRpcConfig;
                 let mut conn = pool.get().ok();
                 if let Some(mut c) = conn {
-                    let _ = WalletRpcConfig::update_last_connected(&mut c, &wallet_uuid.to_string());
+                    let _ =
+                        WalletRpcConfig::update_last_connected(&mut c, &wallet_uuid.to_string());
                 }
             }
 
@@ -2613,10 +2966,19 @@ impl WalletManager {
                 address = %wallet_info.address,
                 "✅ Wallet instance recovered and reconnected"
             );
-            info!("⏱️  [{}] TOTAL for 1 wallet ({:?}): {:?}", escrow_id, role, wallet_start.elapsed());
+            info!(
+                "⏱️  [{}] TOTAL for 1 wallet ({:?}): {:?}",
+                escrow_id,
+                role,
+                wallet_start.elapsed()
+            );
         }
 
-        info!("⏱️  [{}] TOTAL ESCROW RECOVERY: {:?}", escrow_id, total_start.elapsed());
+        info!(
+            "⏱️  [{}] TOTAL ESCROW RECOVERY: {:?}",
+            escrow_id,
+            total_start.elapsed()
+        );
         Ok(())
     }
 }
@@ -2684,10 +3046,7 @@ impl WalletManager {
             .values()
             .find(|w| w.role == WalletRole::Arbiter)
             .ok_or_else(|| {
-                CommonError::Internal(format!(
-                    "Arbiter wallet not found for escrow {}",
-                    escrow_id
-                ))
+                CommonError::Internal(format!("Arbiter wallet not found for escrow {}", escrow_id))
             })?;
 
         // Get co-signer role based on resolution
@@ -2743,7 +3102,10 @@ impl WalletManager {
     /// This creates fake wallet entries in the wallets HashMap to allow
     /// testing release/refund flows without real multisig setup.
     pub async fn dev_create_mock_multisig(&mut self, escrow_id: Uuid) -> Result<(), CommonError> {
-        info!("DEV: Creating mock multisig wallets for escrow {}", escrow_id);
+        info!(
+            "DEV: Creating mock multisig wallets for escrow {}",
+            escrow_id
+        );
 
         // For each role, create a WalletInstance with mock data
         let roles = [
@@ -2757,8 +3119,9 @@ impl WalletManager {
             let mock_address = format!("mock_address_{}_{}", escrow_id, role_str);
 
             // Create a mock RPC client with the first available config
-            let rpc_client = MoneroClient::new(self.rpc_configs[0].clone())
-                .map_err(|e| CommonError::Internal(format!("Failed to create mock RPC client: {}", e)))?;
+            let rpc_client = MoneroClient::new(self.rpc_configs[0].clone()).map_err(|e| {
+                CommonError::Internal(format!("Failed to create mock RPC client: {}", e))
+            })?;
 
             let wallet_instance = WalletInstance {
                 id: wallet_uuid,
@@ -2768,13 +3131,16 @@ impl WalletManager {
                 multisig_state: MultisigState::Ready {
                     address: mock_address, // Mark as ready so release can proceed
                 },
-                rpc_port: None, // Mock wallets don't track ports
+                rpc_port: None,             // Mock wallets don't track ports
                 escrow_id: Some(escrow_id), // ✅ Link to escrow for mock testing
             };
 
             self.wallets.insert(wallet_uuid, wallet_instance);
 
-            info!("DEV: Created mock {} wallet (id={}) for escrow {}", role_str, wallet_uuid, escrow_id);
+            info!(
+                "DEV: Created mock {} wallet (id={}) for escrow {}",
+                role_str, wallet_uuid, escrow_id
+            );
         }
 
         info!("DEV: Mock multisig setup complete for escrow {}", escrow_id);
@@ -2915,26 +3281,28 @@ mod tests {
     async fn test_finalize_multisig_with_multiple_escrows() {
         // Setup WalletManager
         let config = MoneroConfig::default();
-        let mut manager = WalletManager::new(vec![config.clone()]).expect("Failed to create manager");
+        let mut manager =
+            WalletManager::new(vec![config.clone()]).expect("Failed to create manager");
 
         // Create two escrow IDs
         let escrow1_id = Uuid::new_v4();
         let escrow2_id = Uuid::new_v4();
 
         // Helper to create a mock wallet instance
-        let create_mock_wallet = |role: WalletRole, escrow_id: Uuid, address: &str| -> WalletInstance {
-            WalletInstance {
-                id: Uuid::new_v4(),
-                role,
-                rpc_client: MoneroClient::new(config.clone()).unwrap(), // Dummy client
-                address: "individual_address".to_string(),
-                multisig_state: MultisigState::Ready {
-                    address: address.to_string(),
-                },
-                rpc_port: None,
-                escrow_id: Some(escrow_id),
-            }
-        };
+        let create_mock_wallet =
+            |role: WalletRole, escrow_id: Uuid, address: &str| -> WalletInstance {
+                WalletInstance {
+                    id: Uuid::new_v4(),
+                    role,
+                    rpc_client: MoneroClient::new(config.clone()).unwrap(), // Dummy client
+                    address: "individual_address".to_string(),
+                    multisig_state: MultisigState::Ready {
+                        address: address.to_string(),
+                    },
+                    rpc_port: None,
+                    escrow_id: Some(escrow_id),
+                }
+            };
 
         // Populate manager with wallets for Escrow 1 (Address: "multisig_addr_1")
         let wallets1 = vec![

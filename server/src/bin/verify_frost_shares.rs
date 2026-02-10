@@ -19,10 +19,10 @@ fn main() {
     let buyer_bytes = hex::decode(buyer_share_hex).expect("buyer hex");
     let group_pubkey_bytes = hex::decode(group_pubkey_hex).expect("group_pubkey hex");
 
-    let vendor_share = Scalar::from_canonical_bytes(vendor_bytes.try_into().unwrap())
-        .expect("vendor scalar");
-    let buyer_share = Scalar::from_canonical_bytes(buyer_bytes.try_into().unwrap())
-        .expect("buyer scalar");
+    let vendor_share =
+        Scalar::from_canonical_bytes(vendor_bytes.try_into().unwrap()).expect("vendor scalar");
+    let buyer_share =
+        Scalar::from_canonical_bytes(buyer_bytes.try_into().unwrap()).expect("buyer scalar");
 
     println!("Vendor share: {}", vendor_share_hex);
     println!("Buyer share:  {}", buyer_share_hex);
@@ -45,9 +45,18 @@ fn main() {
     let group_secret = buyer_contrib + vendor_contrib;
 
     println!("\nReconstruction:");
-    println!("  λ_buyer * buyer_share   = {}", hex::encode(buyer_contrib.as_bytes()));
-    println!("  λ_vendor * vendor_share = {}", hex::encode(vendor_contrib.as_bytes()));
-    println!("  group_secret (sum)      = {}", hex::encode(group_secret.as_bytes()));
+    println!(
+        "  λ_buyer * buyer_share   = {}",
+        hex::encode(buyer_contrib.as_bytes())
+    );
+    println!(
+        "  λ_vendor * vendor_share = {}",
+        hex::encode(vendor_contrib.as_bytes())
+    );
+    println!(
+        "  group_secret (sum)      = {}",
+        hex::encode(group_secret.as_bytes())
+    );
 
     // Compute group_secret * G
     let computed_pubkey = &group_secret * ED25519_BASEPOINT_TABLE;

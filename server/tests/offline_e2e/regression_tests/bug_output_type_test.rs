@@ -35,7 +35,7 @@ const REQUIRED_OUTPUT_TYPE: u8 = OUTPUT_TYPE_TXOUT_TO_TAGGED_KEY;
 
 #[derive(Debug, Clone)]
 pub struct TransactionOutput {
-    pub amount: u64,       // 0 for RingCT
+    pub amount: u64, // 0 for RingCT
     pub output_type: u8,
     pub public_key: [u8; 32],
     pub view_tag: Option<u8>, // Only for type 0x03
@@ -101,7 +101,9 @@ fn validate_output(output: &TransactionOutput) -> Result<(), OutputValidationErr
 }
 
 /// Validate all outputs in a transaction
-fn validate_transaction_outputs(outputs: &[TransactionOutput]) -> Result<(), OutputValidationError> {
+fn validate_transaction_outputs(
+    outputs: &[TransactionOutput],
+) -> Result<(), OutputValidationError> {
     for output in outputs {
         validate_output(output)?;
     }
@@ -398,7 +400,11 @@ fn test_hf15_requirement() {
         if valid_types.contains(&t) {
             assert!(result.is_ok(), "Type 0x{:02X} should be valid post-HF15", t);
         } else {
-            assert!(result.is_err(), "Type 0x{:02X} should be invalid post-HF15", t);
+            assert!(
+                result.is_err(),
+                "Type 0x{:02X} should be invalid post-HF15",
+                t
+            );
         }
     }
 }

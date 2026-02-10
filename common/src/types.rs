@@ -254,7 +254,7 @@ pub struct PrepareMultisigResult {
 /// Make multisig result (step 2/6)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MakeMultisigResult {
-    pub address: String,       // Multisig address (starts with "4" on mainnet, "5" on testnet)
+    pub address: String, // Multisig address (starts with "4" on mainnet, "5" on testnet)
     pub multisig_info: String, // Info for next step (export/import)
 }
 

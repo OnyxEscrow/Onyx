@@ -355,11 +355,13 @@ fn test_rogue_key_attack_prevented() {
     });
 
     // Now honest reveals
-    session.process_reveal(NonceReveal {
-        signer_id: "honest".to_string(),
-        nonce_r: honest_r,
-        nonce_s: honest_s,
-    }).unwrap();
+    session
+        .process_reveal(NonceReveal {
+            signer_id: "honest".to_string(),
+            nonce_r: honest_r,
+            nonce_s: honest_s,
+        })
+        .unwrap();
 
     // Attacker tries to reveal different nonces (to manipulate final sig)
     let malicious_r = rng.gen_32_bytes();
@@ -404,7 +406,10 @@ fn test_different_nonces_different_hashes() {
     let hash1 = compute_commitment(&r1, &s1);
     let hash2 = compute_commitment(&r2, &s2);
 
-    assert_ne!(hash1, hash2, "Different nonces should produce different hashes");
+    assert_ne!(
+        hash1, hash2,
+        "Different nonces should produce different hashes"
+    );
 }
 
 #[test]

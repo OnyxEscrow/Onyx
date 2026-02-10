@@ -83,8 +83,8 @@ impl WalletRpcConfig {
         use crate::crypto::encryption::encrypt_field;
 
         // Encrypt all sensitive fields
-        let rpc_url_encrypted = encrypt_field(rpc_url, encryption_key)
-            .context("Failed to encrypt RPC URL")?;
+        let rpc_url_encrypted =
+            encrypt_field(rpc_url, encryption_key).context("Failed to encrypt RPC URL")?;
 
         let rpc_user_encrypted = rpc_user
             .map(|u| encrypt_field(u, encryption_key))
@@ -130,14 +130,14 @@ impl WalletRpcConfig {
     ///
     /// # Errors
     /// Database query fails
-    pub fn find_by_escrow(
-        conn: &mut SqliteConnection,
-        escrow_id: &str,
-    ) -> Result<Vec<Self>> {
+    pub fn find_by_escrow(conn: &mut SqliteConnection, escrow_id: &str) -> Result<Vec<Self>> {
         wallet_rpc_configs::table
             .filter(wallet_rpc_configs::escrow_id.eq(escrow_id))
             .load(conn)
-            .context(format!("Failed to load RPC configs for escrow {}", escrow_id))
+            .context(format!(
+                "Failed to load RPC configs for escrow {}",
+                escrow_id
+            ))
     }
 
     /// Find wallet RPC config by wallet ID
@@ -152,10 +152,7 @@ impl WalletRpcConfig {
     /// # Errors
     /// - Not found
     /// - Database query fails
-    pub fn find_by_wallet_id(
-        conn: &mut SqliteConnection,
-        wallet_id: &str,
-    ) -> Result<Self> {
+    pub fn find_by_wallet_id(conn: &mut SqliteConnection, wallet_id: &str) -> Result<Self> {
         wallet_rpc_configs::table
             .filter(wallet_rpc_configs::wallet_id.eq(wallet_id))
             .first(conn)
@@ -176,8 +173,7 @@ impl WalletRpcConfig {
     pub fn decrypt_url(&self, encryption_key: &[u8]) -> Result<String> {
         use crate::crypto::encryption::decrypt_field;
 
-        decrypt_field(&self.rpc_url_encrypted, encryption_key)
-            .context("Failed to decrypt RPC URL")
+        decrypt_field(&self.rpc_url_encrypted, encryption_key).context("Failed to decrypt RPC URL")
     }
 
     /// Decrypt the RPC username (if present)
@@ -239,16 +235,18 @@ impl WalletRpcConfig {
     ///
     /// # Errors
     /// Database update fails
-    pub fn update_last_connected(
-        conn: &mut SqliteConnection,
-        wallet_id: &str,
-    ) -> Result<()> {
+    pub fn update_last_connected(conn: &mut SqliteConnection, wallet_id: &str) -> Result<()> {
         let now = chrono::Utc::now().timestamp();
 
-        diesel::update(wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)))
-            .set(wallet_rpc_configs::last_connected_at.eq(Some(now as i32)))
-            .execute(conn)
-            .context(format!("Failed to update last_connected_at for wallet {}", wallet_id))?;
+        diesel::update(
+            wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)),
+        )
+        .set(wallet_rpc_configs::last_connected_at.eq(Some(now as i32)))
+        .execute(conn)
+        .context(format!(
+            "Failed to update last_connected_at for wallet {}",
+            wallet_id
+        ))?;
 
         Ok(())
     }
@@ -272,13 +270,18 @@ impl WalletRpcConfig {
         wallet_id: &str,
         error_message: Option<&str>,
     ) -> Result<()> {
-        diesel::update(wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)))
-            .set((
-                wallet_rpc_configs::connection_attempts.eq(wallet_rpc_configs::connection_attempts + 1),
-                wallet_rpc_configs::last_error.eq(error_message),
-            ))
-            .execute(conn)
-            .context(format!("Failed to increment connection_attempts for wallet {}", wallet_id))?;
+        diesel::update(
+            wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)),
+        )
+        .set((
+            wallet_rpc_configs::connection_attempts.eq(wallet_rpc_configs::connection_attempts + 1),
+            wallet_rpc_configs::last_error.eq(error_message),
+        ))
+        .execute(conn)
+        .context(format!(
+            "Failed to increment connection_attempts for wallet {}",
+            wallet_id
+        ))?;
 
         Ok(())
     }
@@ -297,13 +300,12 @@ impl WalletRpcConfig {
     ///
     /// # Errors
     /// Database delete fails
-    pub fn delete(
-        conn: &mut SqliteConnection,
-        wallet_id: &str,
-    ) -> Result<()> {
-        diesel::delete(wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)))
-            .execute(conn)
-            .context(format!("Failed to delete wallet RPC config {}", wallet_id))?;
+    pub fn delete(conn: &mut SqliteConnection, wallet_id: &str) -> Result<()> {
+        diesel::delete(
+            wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)),
+        )
+        .execute(conn)
+        .context(format!("Failed to delete wallet RPC config {}", wallet_id))?;
 
         Ok(())
     }

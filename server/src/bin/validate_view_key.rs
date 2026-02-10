@@ -8,7 +8,10 @@ fn main() {
 
     if args.len() != 3 {
         eprintln!("Usage: {} <view_key_hex> <monero_address>", args[0]);
-        eprintln!("Example: {} 4b3bc2178a190ac1062b99f2326f27d561f6ace301cf4c6df0827b8580456c03 5664Q...", args[0]);
+        eprintln!(
+            "Example: {} 4b3bc2178a190ac1062b99f2326f27d561f6ace301cf4c6df0827b8580456c03 5664Q...",
+            args[0]
+        );
         std::process::exit(1);
     }
 

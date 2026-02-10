@@ -146,9 +146,9 @@ pub fn encrypt_key_for_backup(key_package: &[u8], password: &str) -> CryptoResul
     })?;
 
     let nonce = Nonce::from_slice(&nonce_bytes);
-    let ciphertext = cipher.encrypt(nonce, key_package).map_err(|e| {
-        CryptoError::EncryptionFailed(format!("Encryption failed: {}", e))
-    })?;
+    let ciphertext = cipher
+        .encrypt(nonce, key_package)
+        .map_err(|e| CryptoError::EncryptionFailed(format!("Encryption failed: {}", e)))?;
 
     // Zeroize sensitive data
     derived_key.zeroize();
@@ -312,7 +312,10 @@ pub const fn encrypted_size(plaintext_len: usize) -> usize {
 /// - Memory: 64 MiB
 /// - Iterations: 3
 /// - Parallelism: 4
-fn derive_key_from_password(password: &str, salt: &[u8; SALT_SIZE]) -> CryptoResult<[u8; KEY_SIZE]> {
+fn derive_key_from_password(
+    password: &str,
+    salt: &[u8; SALT_SIZE],
+) -> CryptoResult<[u8; KEY_SIZE]> {
     // Build Argon2id instance with our parameters
     let params = Params::new(
         ARGON2_MEMORY_KIB,
@@ -320,9 +323,7 @@ fn derive_key_from_password(password: &str, salt: &[u8; SALT_SIZE]) -> CryptoRes
         ARGON2_PARALLELISM,
         Some(KEY_SIZE),
     )
-    .map_err(|e| {
-        CryptoError::InternalError(format!("Argon2 params invalid: {}", e))
-    })?;
+    .map_err(|e| CryptoError::InternalError(format!("Argon2 params invalid: {}", e)))?;
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
@@ -330,9 +331,7 @@ fn derive_key_from_password(password: &str, salt: &[u8; SALT_SIZE]) -> CryptoRes
     let mut output_key = [0u8; KEY_SIZE];
     argon2
         .hash_password_into(password.as_bytes(), salt, &mut output_key)
-        .map_err(|e| {
-            CryptoError::InternalError(format!("Argon2 key derivation failed: {}", e))
-        })?;
+        .map_err(|e| CryptoError::InternalError(format!("Argon2 key derivation failed: {}", e)))?;
 
     Ok(output_key)
 }

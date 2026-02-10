@@ -1,8 +1,8 @@
+use super::traits::ConnectionLimiter;
 use anyhow::{anyhow, Result};
 use dashmap::DashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
-use super::traits::ConnectionLimiter;
 
 /// Manages WebSocket connection limits per user and globally.
 ///
@@ -53,11 +53,17 @@ impl ConnectionManager {
         // Check global connection limit
         let current_global = self.global_connections.load(Ordering::SeqCst);
         if current_global >= self.max_global {
-            return Err(anyhow!("Server is at capacity (global limit: {})", self.max_global));
+            return Err(anyhow!(
+                "Server is at capacity (global limit: {})",
+                self.max_global
+            ));
         }
 
         // Check per-user connection limit
-        let mut user_entry = self.user_connections.entry(user_id.to_string()).or_insert(0);
+        let mut user_entry = self
+            .user_connections
+            .entry(user_id.to_string())
+            .or_insert(0);
         if *user_entry >= self.max_per_user {
             let current = *user_entry;
             return Err(anyhow!(
@@ -77,12 +83,14 @@ impl ConnectionManager {
         loop {
             if global >= self.max_global {
                 // Global limit was exceeded, roll back user increment
-                self.user_connections
-                    .alter(user_id, |_, mut v| {
-                        v = v.saturating_sub(1);
-                        v
-                    });
-                return Err(anyhow!("Server is at capacity (global limit: {})", self.max_global));
+                self.user_connections.alter(user_id, |_, mut v| {
+                    v = v.saturating_sub(1);
+                    v
+                });
+                return Err(anyhow!(
+                    "Server is at capacity (global limit: {})",
+                    self.max_global
+                ));
             }
 
             match self.global_connections.compare_exchange(
@@ -218,10 +226,7 @@ mod tests {
         // 6th should fail
         let result = manager.try_acquire("user6");
         assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("at capacity"));
+        assert!(result.unwrap_err().to_string().contains("at capacity"));
     }
 
     #[test]

@@ -1,4 +1,6 @@
-use crate::schema::{escrow_chat_keypairs, escrow_chat_read_receipts, messages, secure_escrow_messages};
+use crate::schema::{
+    escrow_chat_keypairs, escrow_chat_read_receipts, messages, secure_escrow_messages,
+};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -38,7 +40,10 @@ impl EscrowMessage {
             .first(conn)
     }
 
-    pub fn find_by_escrow(conn: &mut SqliteConnection, escrow_id_param: &str) -> QueryResult<Vec<Self>> {
+    pub fn find_by_escrow(
+        conn: &mut SqliteConnection,
+        escrow_id_param: &str,
+    ) -> QueryResult<Vec<Self>> {
         messages::table
             .filter(messages::escrow_id.eq(escrow_id_param))
             .order(messages::created_at.asc())
@@ -130,7 +135,10 @@ pub struct EscrowKeypairsDto {
 
 impl EscrowMessageKeypair {
     /// Upsert a keypair (replace if already exists for this escrow+user)
-    pub fn register(conn: &mut SqliteConnection, new: NewEscrowMessageKeypair) -> QueryResult<Self> {
+    pub fn register(
+        conn: &mut SqliteConnection,
+        new: NewEscrowMessageKeypair,
+    ) -> QueryResult<Self> {
         // Try to find existing
         let existing = escrow_chat_keypairs::table
             .filter(escrow_chat_keypairs::escrow_id.eq(&new.escrow_id))
@@ -140,9 +148,11 @@ impl EscrowMessageKeypair {
 
         if let Some(existing) = existing {
             // Update public key
-            diesel::update(escrow_chat_keypairs::table.filter(escrow_chat_keypairs::id.eq(&existing.id)))
-                .set(escrow_chat_keypairs::public_key.eq(&new.public_key))
-                .execute(conn)?;
+            diesel::update(
+                escrow_chat_keypairs::table.filter(escrow_chat_keypairs::id.eq(&existing.id)),
+            )
+            .set(escrow_chat_keypairs::public_key.eq(&new.public_key))
+            .execute(conn)?;
             escrow_chat_keypairs::table
                 .filter(escrow_chat_keypairs::id.eq(&existing.id))
                 .first(conn)
@@ -157,7 +167,10 @@ impl EscrowMessageKeypair {
     }
 
     /// Get all keypairs for an escrow as a DTO with usernames
-    pub fn get_keypairs_dto(conn: &mut SqliteConnection, escrow_id: &str) -> QueryResult<EscrowKeypairsDto> {
+    pub fn get_keypairs_dto(
+        conn: &mut SqliteConnection,
+        escrow_id: &str,
+    ) -> QueryResult<EscrowKeypairsDto> {
         let keypairs: Vec<Self> = escrow_chat_keypairs::table
             .filter(escrow_chat_keypairs::escrow_id.eq(escrow_id))
             .load(conn)?;
@@ -328,7 +341,10 @@ impl SecureEscrowMessage {
     }
 
     /// Export all messages for dispute evidence (returns raw encrypted data)
-    pub fn export_for_dispute(conn: &mut SqliteConnection, escrow_id: &str) -> QueryResult<Vec<Self>> {
+    pub fn export_for_dispute(
+        conn: &mut SqliteConnection,
+        escrow_id: &str,
+    ) -> QueryResult<Vec<Self>> {
         secure_escrow_messages::table
             .filter(secure_escrow_messages::escrow_id.eq(escrow_id))
             .order(secure_escrow_messages::created_at.asc())
@@ -336,7 +352,12 @@ impl SecureEscrowMessage {
     }
 
     /// Convert to DTO with role-specific encrypted content
-    pub fn to_dto_for_role(&self, role: &str, current_user_id: &str, is_read: bool) -> SecureEscrowMessageDto {
+    pub fn to_dto_for_role(
+        &self,
+        role: &str,
+        current_user_id: &str,
+        is_read: bool,
+    ) -> SecureEscrowMessageDto {
         let encrypted_content = match role {
             "buyer" => self.encrypted_content_buyer.clone(),
             "vendor" => self.encrypted_content_vendor.clone(),
@@ -385,7 +406,11 @@ pub struct NewEscrowMessageReadReceipt {
 }
 
 impl EscrowMessageReadReceipt {
-    pub fn is_read_by_user(conn: &mut SqliteConnection, message_id: &str, user_id: &str) -> QueryResult<bool> {
+    pub fn is_read_by_user(
+        conn: &mut SqliteConnection,
+        message_id: &str,
+        user_id: &str,
+    ) -> QueryResult<bool> {
         let count: i64 = escrow_chat_read_receipts::table
             .filter(escrow_chat_read_receipts::message_id.eq(message_id))
             .filter(escrow_chat_read_receipts::user_id.eq(user_id))
@@ -394,7 +419,11 @@ impl EscrowMessageReadReceipt {
         Ok(count > 0)
     }
 
-    pub fn mark_read(conn: &mut SqliteConnection, message_id: &str, user_id: &str) -> QueryResult<()> {
+    pub fn mark_read(
+        conn: &mut SqliteConnection,
+        message_id: &str,
+        user_id: &str,
+    ) -> QueryResult<()> {
         // Check if already read
         let already_read = Self::is_read_by_user(conn, message_id, user_id)?;
         if already_read {

@@ -210,9 +210,8 @@ pub fn extract_public_keys(address: &str) -> CryptoResult<([u8; 32], [u8; 32])> 
 ///
 /// Subaddresses start with 8 (mainnet), 7 (stagenet), or B (testnet).
 pub fn is_subaddress(address: &str) -> CryptoResult<bool> {
-    let decoded = decode_check(address).map_err(|e| {
-        CryptoError::Base58DecodeFailed(format!("{:?}", e))
-    })?;
+    let decoded =
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
 
     if decoded.is_empty() {
         return Err(CryptoError::InvalidLength {
@@ -235,9 +234,8 @@ pub fn is_integrated_address(address: &str) -> CryptoResult<bool> {
         return Ok(false);
     }
 
-    let decoded = decode_check(address).map_err(|e| {
-        CryptoError::Base58DecodeFailed(format!("{:?}", e))
-    })?;
+    let decoded =
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
 
     if decoded.is_empty() {
         return Err(CryptoError::InvalidLength {
@@ -260,9 +258,8 @@ pub fn extract_payment_id(address: &str) -> CryptoResult<Option<[u8; 8]>> {
         return Ok(None);
     }
 
-    let decoded = decode_check(address).map_err(|e| {
-        CryptoError::Base58DecodeFailed(format!("{:?}", e))
-    })?;
+    let decoded =
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
 
     // Integrated address: [net: 1][spend: 32][view: 32][payment_id: 8] = 73 bytes
     if decoded.len() != DECODED_INTEGRATED_LENGTH {
@@ -404,13 +401,19 @@ mod tests {
     fn test_invalid_length() {
         let short = "4AdUndXHHZ6cfufTM";
         let result = validate_address(short);
-        assert!(matches!(result, Err(CryptoError::InvalidAddressLength { .. })));
+        assert!(matches!(
+            result,
+            Err(CryptoError::InvalidAddressLength { .. })
+        ));
     }
 
     #[test]
     fn test_empty_address() {
         let result = validate_address("");
-        assert!(matches!(result, Err(CryptoError::InvalidAddressLength { .. })));
+        assert!(matches!(
+            result,
+            Err(CryptoError::InvalidAddressLength { .. })
+        ));
     }
 
     #[test]

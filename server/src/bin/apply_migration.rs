@@ -17,8 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
 
     println!("📂 Database: {}", database_url);
 
@@ -30,25 +29,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create connection pool with SQLCipher
     let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
-    let pool = r2d2::Pool::builder()
-        .max_size(1)
-        .build(manager)?;
+    let pool = r2d2::Pool::builder().max_size(1).build(manager)?;
 
     let mut conn = pool.get()?;
 
     // Set encryption key (same as server does)
-    diesel::sql_query(format!("PRAGMA key = '{}';", encryption_key))
-        .execute(&mut conn)?;
+    diesel::sql_query(format!("PRAGMA key = '{}';", encryption_key)).execute(&mut conn)?;
 
     println!("✅ Successfully connected to encrypted database");
     println!();
 
     // Check if columns already exist
     println!("🔍 Checking if columns already exist...");
-    let check_result = diesel::sql_query(
-        "SELECT buyer_temp_wallet_id FROM escrows LIMIT 1"
-    )
-    .execute(&mut conn);
+    let check_result =
+        diesel::sql_query("SELECT buyer_temp_wallet_id FROM escrows LIMIT 1").execute(&mut conn);
 
     if check_result.is_ok() {
         println!("⚠️  Columns already exist! Migration was already applied.");
@@ -77,16 +71,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("🔨 Step 4/4: Creating indexes for performance...");
 
-    diesel::sql_query("CREATE INDEX idx_escrows_buyer_temp_wallet ON escrows(buyer_temp_wallet_id)")
-        .execute(&mut conn)?;
+    diesel::sql_query(
+        "CREATE INDEX idx_escrows_buyer_temp_wallet ON escrows(buyer_temp_wallet_id)",
+    )
+    .execute(&mut conn)?;
     println!("   ✅ idx_escrows_buyer_temp_wallet created");
 
-    diesel::sql_query("CREATE INDEX idx_escrows_vendor_temp_wallet ON escrows(vendor_temp_wallet_id)")
-        .execute(&mut conn)?;
+    diesel::sql_query(
+        "CREATE INDEX idx_escrows_vendor_temp_wallet ON escrows(vendor_temp_wallet_id)",
+    )
+    .execute(&mut conn)?;
     println!("   ✅ idx_escrows_vendor_temp_wallet created");
 
-    diesel::sql_query("CREATE INDEX idx_escrows_arbiter_temp_wallet ON escrows(arbiter_temp_wallet_id)")
-        .execute(&mut conn)?;
+    diesel::sql_query(
+        "CREATE INDEX idx_escrows_arbiter_temp_wallet ON escrows(arbiter_temp_wallet_id)",
+    )
+    .execute(&mut conn)?;
     println!("   ✅ idx_escrows_arbiter_temp_wallet created");
 
     println!();

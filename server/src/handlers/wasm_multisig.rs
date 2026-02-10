@@ -1,13 +1,13 @@
-use actix_web::{post, get, web, HttpResponse};
-use anyhow::Context;
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use crate::crypto::view_key::validate_view_key_matches_address;
 use crate::db::DbPool;
+use crate::handlers::error_codes;
 use crate::logging::sanitize::{sanitize_address, sanitize_escrow_id, sanitize_view_key};
 use crate::models::escrow::Escrow;
 use crate::models::wasm_multisig_info::{SqliteWasmMultisigStore, WasmMultisigInfoRow};
-use crate::handlers::error_codes;
-use crate::crypto::view_key::validate_view_key_matches_address;
+use actix_web::{get, post, web, HttpResponse};
+use anyhow::Context;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 
 // Re-export SQLite store for use in main.rs
 pub use crate::models::wasm_multisig_info::SqliteWasmMultisigStore as WasmMultisigStoreSqlite;
@@ -94,7 +94,7 @@ impl WasmMultisigStore {
 #[derive(Deserialize)]
 pub struct SubmitInfoRequest {
     pub escrow_id: String,
-    pub role: String,  // "buyer", "vendor", or "arbiter"
+    pub role: String, // "buyer", "vendor", or "arbiter"
     pub multisig_info: String,
     /// Private view key component for this participant (64 hex chars)
     /// Required for Monero multisig: b_shared = b_buyer + b_vendor + b_arbiter (mod l)
@@ -133,7 +133,9 @@ pub async fn submit_multisig_info(
         }
         tracing::info!(
             "🔑 [WASM Submit] Escrow {} - Role {} with view key: {}",
-            sanitize_escrow_id(&req.escrow_id), req.role, sanitize_view_key(vk)
+            sanitize_escrow_id(&req.escrow_id),
+            req.role,
+            sanitize_view_key(vk)
         );
     }
 
@@ -315,7 +317,9 @@ pub async fn finalize_multisig(
     let pool_for_query = pool.clone();
 
     let existing_escrow = match tokio::task::spawn_blocking(move || {
-        let mut conn = pool_for_query.get().context("Failed to get DB connection")?;
+        let mut conn = pool_for_query
+            .get()
+            .context("Failed to get DB connection")?;
 
         use crate::schema::escrows::dsl::*;
         use diesel::prelude::*;
@@ -330,7 +334,11 @@ pub async fn finalize_multisig(
     {
         Ok(Ok(addr)) => addr,
         Ok(Err(e)) => {
-            tracing::error!("❌ [WASM Finalize] Failed to query escrow {}: {}", sanitize_escrow_id(&req.escrow_id), e);
+            tracing::error!(
+                "❌ [WASM Finalize] Failed to query escrow {}: {}",
+                sanitize_escrow_id(&req.escrow_id),
+                e
+            );
             return HttpResponse::InternalServerError().json(serde_json::json!({
                 "success": false,
                 "error": format!("Failed to query escrow: {}", e)
@@ -367,8 +375,14 @@ pub async fn finalize_multisig(
             let pool_for_view_key = pool.clone();
 
             match tokio::task::spawn_blocking(move || {
-                let mut conn = pool_for_view_key.get().context("Failed to get DB connection")?;
-                Escrow::update_multisig_view_key(&mut conn, escrow_id_for_view_key, &view_key_for_update)?;
+                let mut conn = pool_for_view_key
+                    .get()
+                    .context("Failed to get DB connection")?;
+                Escrow::update_multisig_view_key(
+                    &mut conn,
+                    escrow_id_for_view_key,
+                    &view_key_for_update,
+                )?;
                 Ok::<_, anyhow::Error>(())
             })
             .await
@@ -387,7 +401,10 @@ pub async fn finalize_multisig(
                     );
                 }
                 Err(e) => {
-                    tracing::error!("❌ [WASM Finalize] Task join error updating view key: {}", e);
+                    tracing::error!(
+                        "❌ [WASM Finalize] Task join error updating view key: {}",
+                        e
+                    );
                 }
             }
         }
@@ -409,7 +426,9 @@ pub async fn finalize_multisig(
     let pool_for_update = pool.clone();
 
     match tokio::task::spawn_blocking(move || {
-        let mut conn = pool_for_update.get().context("Failed to get DB connection")?;
+        let mut conn = pool_for_update
+            .get()
+            .context("Failed to get DB connection")?;
 
         // Save address
         Escrow::update_multisig_address(&mut conn, escrow_id_clone.clone(), &address_clone)?;

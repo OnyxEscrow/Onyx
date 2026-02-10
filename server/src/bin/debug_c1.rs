@@ -30,14 +30,18 @@ fn read_varint(data: &[u8], pos: &mut usize) -> u64 {
 
 fn hex_to_point(hex: &str) -> Option<EdwardsPoint> {
     let bytes = hex::decode(hex).ok()?;
-    if bytes.len() != 32 { return None; }
+    if bytes.len() != 32 {
+        return None;
+    }
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     CompressedEdwardsY(arr).decompress()
 }
 
 fn bytes_to_point(bytes: &[u8]) -> Option<EdwardsPoint> {
-    if bytes.len() != 32 { return None; }
+    if bytes.len() != 32 {
+        return None;
+    }
     let mut arr = [0u8; 32];
     arr.copy_from_slice(bytes);
     CompressedEdwardsY(arr).decompress()
@@ -146,7 +150,8 @@ async fn main() {
 
     let mut ring_indices = Vec::new();
     for _ in 0..input_count {
-        let input_type = tx[pos]; pos += 1;
+        let input_type = tx[pos];
+        pos += 1;
         if input_type == 0x02 {
             let _amount = read_varint(&tx, &mut pos);
             let key_offset_count = read_varint(&tx, &mut pos);
@@ -163,8 +168,11 @@ async fn main() {
     let output_count = read_varint(&tx, &mut pos);
     for _ in 0..output_count {
         let _amount = read_varint(&tx, &mut pos);
-        let output_type = tx[pos]; pos += 1;
-        if output_type == 0x03 { pos += 33; }
+        let output_type = tx[pos];
+        pos += 1;
+        if output_type == 0x03 {
+            pos += 33;
+        }
     }
 
     let extra_len = read_varint(&tx, &mut pos);
@@ -178,7 +186,8 @@ async fn main() {
     println!("tx_prefix_hash: {}", hex::encode(&tx_prefix_hash));
 
     // Skip RCT base
-    let _rct_type = tx[pos]; pos += 1;
+    let _rct_type = tx[pos];
+    pos += 1;
     let _fee = read_varint(&tx, &mut pos);
     pos += (output_count * 8) as usize;
     pos += (output_count * 32) as usize;
@@ -197,18 +206,18 @@ async fn main() {
     let ring_size = 16usize;
     let mut s_values = Vec::new();
     for _ in 0..ring_size {
-        s_values.push(bytes_to_scalar(&tx[pos..pos+32]));
+        s_values.push(bytes_to_scalar(&tx[pos..pos + 32]));
         pos += 32;
     }
 
-    let c1 = bytes_to_scalar(&tx[pos..pos+32]);
-    println!("c1 from TX: {}", hex::encode(&tx[pos..pos+32]));
+    let c1 = bytes_to_scalar(&tx[pos..pos + 32]);
+    println!("c1 from TX: {}", hex::encode(&tx[pos..pos + 32]));
     pos += 32;
 
-    let d_inv8 = bytes_to_point(&tx[pos..pos+32]).expect("D");
+    let d_inv8 = bytes_to_point(&tx[pos..pos + 32]).expect("D");
     pos += 32;
 
-    let pseudo_out = bytes_to_point(&tx[pos..pos+32]).expect("pseudo_out");
+    let pseudo_out = bytes_to_point(&tx[pos..pos + 32]).expect("pseudo_out");
 
     let key_image_hex = "519fb41ca66e83829266552db6d7d57f421282611a3fe643bcc82d435275b18a";
     let key_image = hex_to_point(key_image_hex).expect("key image");
@@ -230,20 +239,31 @@ async fn main() {
         .await
         .expect("JSON");
 
-    let ring_keys: Vec<EdwardsPoint> = resp.outs.iter()
+    let ring_keys: Vec<EdwardsPoint> = resp
+        .outs
+        .iter()
         .map(|o| hex_to_point(&o.key).unwrap())
         .collect();
-    let ring_commitments: Vec<EdwardsPoint> = resp.outs.iter()
+    let ring_commitments: Vec<EdwardsPoint> = resp
+        .outs
+        .iter()
         .map(|o| hex_to_point(&o.mask).unwrap())
         .collect();
 
-    let (mu_p, mu_c) = compute_mu(&ring_keys, &ring_commitments, &key_image, &d_inv8, &pseudo_out);
+    let (mu_p, mu_c) = compute_mu(
+        &ring_keys,
+        &ring_commitments,
+        &key_image,
+        &d_inv8,
+        &pseudo_out,
+    );
     println!("mu_P: {}", hex::encode(mu_p.to_bytes()));
     println!("mu_C: {}", hex::encode(mu_c.to_bytes()));
 
     let d_original = Scalar::from(8u64) * d_inv8;
 
-    let hp_values: Vec<EdwardsPoint> = ring_keys.iter()
+    let hp_values: Vec<EdwardsPoint> = ring_keys
+        .iter()
         .map(|k| hash_to_point(k.compress().to_bytes()))
         .collect();
 
@@ -264,20 +284,25 @@ async fn main() {
         let commitment_diff = ring_commitments[i] - pseudo_out;
         let l_point = EdwardsPoint::multiscalar_mul(
             &[s_values[i], c_p, c_c],
-            &[g, ring_keys[i], commitment_diff]
+            &[g, ring_keys[i], commitment_diff],
         );
         let r_point = EdwardsPoint::multiscalar_mul(
             &[s_values[i], c_p, c_c],
-            &[hp_values[i], key_image, d_original]
+            &[hp_values[i], key_image, d_original],
         );
 
         let c_next = compute_challenge(
-            &ring_keys, &ring_commitments, &pseudo_out, &tx_prefix_hash,
-            &l_point, &r_point
+            &ring_keys,
+            &ring_commitments,
+            &pseudo_out,
+            &tx_prefix_hash,
+            &l_point,
+            &r_point,
         );
 
         if i == real_index || i == 0 || i == 1 {
-            println!("i={:2}: c_in={:.16}... L={:.16}... R={:.16}... c_out={:.16}...",
+            println!(
+                "i={:2}: c_in={:.16}... L={:.16}... R={:.16}... c_out={:.16}...",
                 i,
                 hex::encode(&c_current.to_bytes())[..16].to_string(),
                 hex::encode(l_point.compress().as_bytes())[..16].to_string(),

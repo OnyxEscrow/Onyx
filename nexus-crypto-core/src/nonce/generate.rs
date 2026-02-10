@@ -62,8 +62,9 @@ pub struct NonceCommitmentResult {
 /// - `CryptoOperation` if RNG fails
 pub fn generate_nonce_commitment(multisig_pub_key: &str) -> CryptoResult<NonceCommitmentResult> {
     // Validate multisig public key
-    let pubkey_bytes = hex::decode(multisig_pub_key)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {}", e)))?;
+    let pubkey_bytes = hex::decode(multisig_pub_key).map_err(|e| {
+        CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {}", e))
+    })?;
 
     if pubkey_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -124,8 +125,9 @@ pub fn generate_nonce_commitment_deterministic(
     multisig_pub_key: &str,
     seed: &[u8; 32],
 ) -> CryptoResult<NonceCommitmentResult> {
-    let pubkey_bytes = hex::decode(multisig_pub_key)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {}", e)))?;
+    let pubkey_bytes = hex::decode(multisig_pub_key).map_err(|e| {
+        CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {}", e))
+    })?;
 
     if pubkey_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -175,9 +177,9 @@ mod tests {
 
         // Verify all fields are present and have correct lengths
         assert_eq!(result.commitment_hash.len(), 64); // Keccak256 = 32 bytes = 64 hex
-        assert_eq!(result.r_public.len(), 64);        // Edwards point = 32 bytes
-        assert_eq!(result.r_prime_public.len(), 64);  // Edwards point = 32 bytes
-        assert_eq!(result.alpha_secret.len(), 64);    // Scalar = 32 bytes
+        assert_eq!(result.r_public.len(), 64); // Edwards point = 32 bytes
+        assert_eq!(result.r_prime_public.len(), 64); // Edwards point = 32 bytes
+        assert_eq!(result.alpha_secret.len(), 64); // Scalar = 32 bytes
     }
 
     #[test]
@@ -196,7 +198,12 @@ mod tests {
         let result = generate_nonce_commitment("1234"); // Too short
         assert!(result.is_err());
 
-        if let Err(CryptoError::InvalidLength { field, expected, actual }) = result {
+        if let Err(CryptoError::InvalidLength {
+            field,
+            expected,
+            actual,
+        }) = result
+        {
             assert_eq!(field, "multisig_pub_key");
             assert_eq!(expected, 32);
             assert_eq!(actual, 2); // "1234" decodes to 2 bytes
@@ -207,7 +214,9 @@ mod tests {
 
     #[test]
     fn test_invalid_pubkey_hex() {
-        let result = generate_nonce_commitment("not_valid_hex_not_valid_hex_not_valid_hex_not_valid_hex_not_valid_");
+        let result = generate_nonce_commitment(
+            "not_valid_hex_not_valid_hex_not_valid_hex_not_valid_hex_not_valid_",
+        );
         assert!(result.is_err());
     }
 }

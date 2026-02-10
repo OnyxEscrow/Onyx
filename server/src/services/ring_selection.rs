@@ -6,8 +6,8 @@
 //!
 //! Reference: Monero source code - src/wallet/wallet2.cpp gamma_picker
 
-use rand_distr::{Distribution, Gamma};
 use rand::rngs::OsRng;
+use rand_distr::{Distribution, Gamma};
 
 /// Shape parameter (α) from Monero reference implementation
 /// Derived from empirical analysis of output spend times

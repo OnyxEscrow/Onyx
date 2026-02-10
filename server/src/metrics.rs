@@ -16,8 +16,8 @@
 
 use once_cell::sync::Lazy;
 use prometheus::{
-    opts, register_counter_vec, register_gauge, register_gauge_vec,
-    CounterVec, Encoder, Gauge, GaugeVec, HistogramOpts, HistogramVec, TextEncoder,
+    opts, register_counter_vec, register_gauge, register_gauge_vec, CounterVec, Encoder, Gauge,
+    GaugeVec, HistogramOpts, HistogramVec, TextEncoder,
 };
 
 // =============================================================================
@@ -28,10 +28,15 @@ use prometheus::{
 /// Labels: method, endpoint, status
 pub static HTTP_REQUEST_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_http_request_duration_seconds", "HTTP request duration in seconds")
-            .namespace("nexus")
-            .buckets(vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]),
-        &["method", "endpoint", "status"]
+        HistogramOpts::new(
+            "nexus_http_request_duration_seconds",
+            "HTTP request duration in seconds",
+        )
+        .namespace("nexus")
+        .buckets(vec![
+            0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0,
+        ]),
+        &["method", "endpoint", "status"],
     )
     .expect("Failed to create HTTP_REQUEST_DURATION metric")
 });
@@ -49,10 +54,13 @@ pub static HTTP_REQUESTS_TOTAL: Lazy<CounterVec> = Lazy::new(|| {
 /// HTTP request size histogram (bytes)
 pub static HTTP_REQUEST_SIZE: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_http_request_size_bytes", "HTTP request size in bytes")
-            .namespace("nexus")
-            .buckets(vec![100.0, 1000.0, 10000.0, 100000.0, 1000000.0]),
-        &["method", "endpoint"]
+        HistogramOpts::new(
+            "nexus_http_request_size_bytes",
+            "HTTP request size in bytes",
+        )
+        .namespace("nexus")
+        .buckets(vec![100.0, 1000.0, 10000.0, 100000.0, 1000000.0]),
+        &["method", "endpoint"],
     )
     .expect("Failed to create HTTP_REQUEST_SIZE metric")
 });
@@ -102,18 +110,21 @@ pub static ESCROWS_ACTIVE: Lazy<GaugeVec> = Lazy::new(|| {
 /// Escrow amount histogram (in atomic units)
 pub static ESCROW_AMOUNT: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_escrow_amount_atomic", "Escrow amounts in atomic units (piconero)")
-            .namespace("nexus")
-            // Buckets: 0.001 XMR to 100 XMR in atomic units
-            .buckets(vec![
-                1_000_000_000.0,       // 0.001 XMR
-                10_000_000_000.0,      // 0.01 XMR
-                100_000_000_000.0,     // 0.1 XMR
-                1_000_000_000_000.0,   // 1 XMR
-                10_000_000_000_000.0,  // 10 XMR
-                100_000_000_000_000.0  // 100 XMR
-            ]),
-        &["type"]
+        HistogramOpts::new(
+            "nexus_escrow_amount_atomic",
+            "Escrow amounts in atomic units (piconero)",
+        )
+        .namespace("nexus")
+        // Buckets: 0.001 XMR to 100 XMR in atomic units
+        .buckets(vec![
+            1_000_000_000.0,       // 0.001 XMR
+            10_000_000_000.0,      // 0.01 XMR
+            100_000_000_000.0,     // 0.1 XMR
+            1_000_000_000_000.0,   // 1 XMR
+            10_000_000_000_000.0,  // 10 XMR
+            100_000_000_000_000.0, // 100 XMR
+        ]),
+        &["type"],
     )
     .expect("Failed to create ESCROW_AMOUNT metric")
 });
@@ -139,10 +150,13 @@ pub static WEBHOOKS_DELIVERED_TOTAL: Lazy<CounterVec> = Lazy::new(|| {
 /// Webhook delivery latency histogram
 pub static WEBHOOK_DELIVERY_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_webhook_delivery_duration_seconds", "Webhook delivery duration in seconds")
-            .namespace("nexus")
-            .buckets(vec![0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0]),
-        &["event_type"]
+        HistogramOpts::new(
+            "nexus_webhook_delivery_duration_seconds",
+            "Webhook delivery duration in seconds",
+        )
+        .namespace("nexus")
+        .buckets(vec![0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0]),
+        &["event_type"],
     )
     .expect("Failed to create WEBHOOK_DELIVERY_DURATION metric")
 });
@@ -245,10 +259,13 @@ pub static WEBSOCKET_MESSAGES_SENT: Lazy<CounterVec> = Lazy::new(|| {
 /// Labels: operation (select, insert, update, delete)
 pub static DB_QUERY_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_db_query_duration_seconds", "Database query duration in seconds")
-            .namespace("nexus")
-            .buckets(vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]),
-        &["operation"]
+        HistogramOpts::new(
+            "nexus_db_query_duration_seconds",
+            "Database query duration in seconds",
+        )
+        .namespace("nexus")
+        .buckets(vec![0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0]),
+        &["operation"],
     )
     .expect("Failed to create DB_QUERY_DURATION metric")
 });
@@ -274,10 +291,13 @@ pub static DB_POOL_CONNECTIONS: Lazy<GaugeVec> = Lazy::new(|| {
 /// Labels: method
 pub static WALLET_RPC_DURATION: Lazy<HistogramVec> = Lazy::new(|| {
     HistogramVec::new(
-        HistogramOpts::new("nexus_wallet_rpc_duration_seconds", "Wallet RPC request duration")
-            .namespace("nexus")
-            .buckets(vec![0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0]),
-        &["method"]
+        HistogramOpts::new(
+            "nexus_wallet_rpc_duration_seconds",
+            "Wallet RPC request duration",
+        )
+        .namespace("nexus")
+        .buckets(vec![0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0]),
+        &["method"],
     )
     .expect("Failed to create WALLET_RPC_DURATION metric")
 });

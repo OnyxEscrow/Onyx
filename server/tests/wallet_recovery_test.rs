@@ -8,12 +8,12 @@
 
 #[cfg(test)]
 mod wallet_recovery_tests {
+    use anyhow::Result;
+    use monero_marketplace_common::types::MoneroConfig;
     use server::db::create_pool;
     use server::models::wallet_rpc_config::WalletRpcConfig;
     use server::repositories::MultisigStateRepository;
     use server::wallet_manager::{WalletManager, WalletRole};
-    use monero_marketplace_common::types::MoneroConfig;
-    use anyhow::Result;
 
     /// Test encryption key for tests
     fn test_encryption_key() -> Vec<u8> {
@@ -47,14 +47,16 @@ mod wallet_recovery_tests {
         let rpc_user = Some("testuser".to_string());
         let rpc_password = Some("testpass".to_string());
 
-        let wallet_id = wm.register_client_wallet_rpc(
-            escrow_id,
-            WalletRole::Buyer,
-            rpc_url.to_string(),
-            rpc_user.clone(),
-            rpc_password.clone(),
-            "automatic", // Enable persistence
-        ).await;
+        let wallet_id = wm
+            .register_client_wallet_rpc(
+                escrow_id,
+                WalletRole::Buyer,
+                rpc_url.to_string(),
+                rpc_user.clone(),
+                rpc_password.clone(),
+                "automatic", // Enable persistence
+            )
+            .await;
 
         // Should succeed (will fail if RPC not available, but config should persist)
         assert!(wallet_id.is_ok() || wallet_id.is_err()); // Either case is valid
@@ -149,9 +151,7 @@ mod wallet_recovery_tests {
             ("arbiter".to_string(), Uuid::new_v4()),
         ]);
 
-        let rpc_urls = HashMap::from([
-            ("buyer".to_string(), "http://127.0.0.1:18082".to_string()),
-        ]);
+        let rpc_urls = HashMap::from([("buyer".to_string(), "http://127.0.0.1:18082".to_string())]);
 
         let phase = MultisigPhase::Preparing {
             completed: vec!["buyer".to_string()],

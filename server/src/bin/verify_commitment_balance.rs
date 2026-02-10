@@ -4,15 +4,15 @@ use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
 
 const H_BYTES: [u8; 32] = [
-    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-    0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-    0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
+    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
 ];
 
 fn hex_to_point(hex: &str) -> Option<EdwardsPoint> {
     let bytes = hex::decode(hex).ok()?;
-    if bytes.len() != 32 { return None; }
+    if bytes.len() != 32 {
+        return None;
+    }
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);
     CompressedEdwardsY(arr).decompress()
@@ -42,22 +42,44 @@ fn main() {
     let sum_out = outpk0 + outpk1;
     let expected = sum_out + fee_h;
 
-    println!("fee * H:             {}", hex::encode(fee_h.compress().to_bytes()));
-    println!("sum(outPk):          {}", hex::encode(sum_out.compress().to_bytes()));
-    println!("sum(outPk) + fee*H:  {}", hex::encode(expected.compress().to_bytes()));
+    println!(
+        "fee * H:             {}",
+        hex::encode(fee_h.compress().to_bytes())
+    );
+    println!(
+        "sum(outPk):          {}",
+        hex::encode(sum_out.compress().to_bytes())
+    );
+    println!(
+        "sum(outPk) + fee*H:  {}",
+        hex::encode(expected.compress().to_bytes())
+    );
     println!("pseudo_out:          {}", pseudo_out_hex);
 
     let balance_ok = expected.compress() == pseudo_out.compress();
-    println!("\nBalance check: {}", if balance_ok { "✅ BALANCED" } else { "❌ NOT BALANCED" });
+    println!(
+        "\nBalance check: {}",
+        if balance_ok {
+            "✅ BALANCED"
+        } else {
+            "❌ NOT BALANCED"
+        }
+    );
 
     if !balance_ok {
         // Check what the difference is
         let diff = pseudo_out - expected;
-        println!("Difference:          {}", hex::encode(diff.compress().to_bytes()));
+        println!(
+            "Difference:          {}",
+            hex::encode(diff.compress().to_bytes())
+        );
 
         // Check negative difference
         let neg_diff = expected - pseudo_out;
-        println!("Neg Difference:      {}", hex::encode(neg_diff.compress().to_bytes()));
+        println!(
+            "Neg Difference:      {}",
+            hex::encode(neg_diff.compress().to_bytes())
+        );
 
         // Also check if maybe it's just outPk[0] + fee*H (single output case)
         let single_expected = outpk0 + fee_h;
@@ -67,7 +89,10 @@ fn main() {
 
         // Check what pseudo_out - outPk[0] - fee*H equals (should be outPk[1] if balanced)
         let remainder = pseudo_out - outpk0 - fee_h;
-        println!("\npseudo - outPk[0] - fee*H = {}", hex::encode(remainder.compress().to_bytes()));
+        println!(
+            "\npseudo - outPk[0] - fee*H = {}",
+            hex::encode(remainder.compress().to_bytes())
+        );
         println!("Expected outPk[1]:          {}", outpk1_hex);
 
         if remainder.compress() == outpk1.compress() {

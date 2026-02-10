@@ -98,9 +98,8 @@ impl WatchdogConfig {
             network: network.clone(),
             base_port,
             daemon_address: format!("127.0.0.1:{}", daemon_port),
-            wallet_dir: std::env::var("WALLET_DIR").unwrap_or_else(|_| {
-                format!("./{}-wallets", network)
-            }),
+            wallet_dir: std::env::var("WALLET_DIR")
+                .unwrap_or_else(|_| format!("./{}-wallets", network)),
             ..Default::default()
         }
     }
@@ -135,14 +134,21 @@ impl WalletRpcWatchdog {
         for (port, role) in roles {
             // Check if already running
             if self.is_healthy(port).await {
-                info!("wallet-rpc {} already running on port {}", role.as_str(), port);
+                info!(
+                    "wallet-rpc {} already running on port {}",
+                    role.as_str(),
+                    port
+                );
                 let mut procs = self.processes.write().await;
-                procs.insert(port, ProcessInfo {
-                    child: None, // External process
-                    role,
-                    restart_count: 0,
-                    last_healthy: std::time::Instant::now(),
-                });
+                procs.insert(
+                    port,
+                    ProcessInfo {
+                        child: None, // External process
+                        role,
+                        restart_count: 0,
+                        last_healthy: std::time::Instant::now(),
+                    },
+                );
                 continue;
             }
 
@@ -170,13 +176,18 @@ impl WalletRpcWatchdog {
         }
 
         cmd.args([
-            "--rpc-bind-port", &port.to_string(),
-            "--rpc-bind-ip", "127.0.0.1",
+            "--rpc-bind-port",
+            &port.to_string(),
+            "--rpc-bind-ip",
+            "127.0.0.1",
             "--disable-rpc-login",
-            "--wallet-dir", &self.config.wallet_dir,
-            "--daemon-address", &self.config.daemon_address,
+            "--wallet-dir",
+            &self.config.wallet_dir,
+            "--daemon-address",
+            &self.config.daemon_address,
             "--trusted-daemon",
-            "--log-level", "1",
+            "--log-level",
+            "1",
         ])
         .stdout(Stdio::null())
         .stderr(Stdio::null());
@@ -187,7 +198,12 @@ impl WalletRpcWatchdog {
         })?;
 
         let pid = child.id();
-        info!("wallet-rpc {} spawned with PID {} on port {}", role.as_str(), pid, port);
+        info!(
+            "wallet-rpc {} spawned with PID {} on port {}",
+            role.as_str(),
+            pid,
+            port
+        );
 
         // Wait for process to become healthy
         let mut attempts = 0;
@@ -203,7 +219,11 @@ impl WalletRpcWatchdog {
         }
 
         if attempts >= max_wait_attempts {
-            error!("wallet-rpc {} failed to become healthy on port {}", role.as_str(), port);
+            error!(
+                "wallet-rpc {} failed to become healthy on port {}",
+                role.as_str(),
+                port
+            );
             return Err(WatchdogError::HealthCheckFailed {
                 port,
                 reason: "Timeout waiting for process to become healthy".to_string(),
@@ -211,12 +231,15 @@ impl WalletRpcWatchdog {
         }
 
         let mut procs = self.processes.write().await;
-        procs.insert(port, ProcessInfo {
-            child: Some(child),
-            role,
-            restart_count: 0,
-            last_healthy: std::time::Instant::now(),
-        });
+        procs.insert(
+            port,
+            ProcessInfo {
+                child: Some(child),
+                role,
+                restart_count: 0,
+                last_healthy: std::time::Instant::now(),
+            },
+        );
 
         Ok(())
     }
@@ -326,7 +349,11 @@ impl WalletRpcWatchdog {
         // Respawn
         self.spawn_process(port, role).await?;
 
-        info!("wallet-rpc {} restarted successfully on port {}", role.as_str(), port);
+        info!(
+            "wallet-rpc {} restarted successfully on port {}",
+            role.as_str(),
+            port
+        );
         Ok(())
     }
 
@@ -345,7 +372,8 @@ impl WalletRpcWatchdog {
     /// Trigger graceful shutdown
     pub fn shutdown(&self) {
         info!("Watchdog shutdown requested");
-        self.shutdown.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.shutdown
+            .store(true, std::sync::atomic::Ordering::SeqCst);
     }
 }
 

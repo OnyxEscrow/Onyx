@@ -4,4 +4,4 @@
 
 pub mod password;
 
-pub use password::{validate_password_strength, format_validation_error, PasswordValidation};
+pub use password::{format_validation_error, validate_password_strength, PasswordValidation};

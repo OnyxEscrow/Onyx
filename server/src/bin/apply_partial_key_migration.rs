@@ -20,8 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Load environment variables
     dotenv().ok();
 
-    let database_url = env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
 
     println!("📂 Database: {}", database_url);
 
@@ -37,10 +36,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Check if columns already exist
     println!("🔍 Checking if partial key image columns already exist...");
-    let check_result = sql_query(
-        "SELECT buyer_partial_key_image FROM escrows LIMIT 1"
-    )
-    .execute(&mut conn);
+    let check_result =
+        sql_query("SELECT buyer_partial_key_image FROM escrows LIMIT 1").execute(&mut conn);
 
     if check_result.is_ok() {
         println!("⚠️  Columns already exist! Migration was already applied.");

@@ -10,10 +10,7 @@ use thiserror::Error;
 pub enum WatchdogError {
     /// Failed to spawn wallet-rpc process
     #[error("Process spawn failed for port {port}: {reason}")]
-    SpawnFailed {
-        port: u16,
-        reason: String,
-    },
+    SpawnFailed { port: u16, reason: String },
 
     /// Process not found in watchdog registry
     #[error("Process not found: port {0}")]
@@ -21,10 +18,7 @@ pub enum WatchdogError {
 
     /// Health check failed for a process
     #[error("Health check failed for port {port}: {reason}")]
-    HealthCheckFailed {
-        port: u16,
-        reason: String,
-    },
+    HealthCheckFailed { port: u16, reason: String },
 
     /// Circuit breaker is open - calls are being rejected
     #[error("Circuit breaker OPEN for port {0} - calls rejected")]
@@ -32,10 +26,7 @@ pub enum WatchdogError {
 
     /// Maximum restart attempts exceeded
     #[error("Max restart attempts ({attempts}) exceeded for port {port}")]
-    MaxRestartsExceeded {
-        port: u16,
-        attempts: u32,
-    },
+    MaxRestartsExceeded { port: u16, attempts: u32 },
 
     /// RPC error from underlying Monero wallet-rpc
     #[error("RPC error: {0}")]
@@ -47,10 +38,7 @@ pub enum WatchdogError {
 
     /// Process was killed (intentionally or by signal)
     #[error("Process killed: port {port}, reason: {reason}")]
-    ProcessKilled {
-        port: u16,
-        reason: String,
-    },
+    ProcessKilled { port: u16, reason: String },
 
     /// Port is already in use
     #[error("Port {0} is already in use")]
@@ -157,14 +145,8 @@ mod tests {
 
     #[test]
     fn test_error_port() {
-        assert_eq!(
-            WatchdogError::ProcessNotFound(38083).port(),
-            Some(38083)
-        );
+        assert_eq!(WatchdogError::ProcessNotFound(38083).port(), Some(38083));
 
-        assert_eq!(
-            WatchdogError::ConfigError("bad config".into()).port(),
-            None
-        );
+        assert_eq!(WatchdogError::ConfigError("bad config".into()).port(), None);
     }
 }

@@ -17,11 +17,14 @@ impl MessagingService {
         let key_hex = env::var("DB_ENCRYPTION_KEY")
             .context("DB_ENCRYPTION_KEY not set - required for message encryption")?;
 
-        let encryption_key = hex::decode(&key_hex)
-            .context("Failed to decode DB_ENCRYPTION_KEY from hex")?;
+        let encryption_key =
+            hex::decode(&key_hex).context("Failed to decode DB_ENCRYPTION_KEY from hex")?;
 
         if encryption_key.len() != 32 {
-            bail!("DB_ENCRYPTION_KEY must be 32 bytes (64 hex chars), got {} bytes", encryption_key.len());
+            bail!(
+                "DB_ENCRYPTION_KEY must be 32 bytes (64 hex chars), got {} bytes",
+                encryption_key.len()
+            );
         }
 
         Ok(Self { encryption_key })
@@ -50,8 +53,7 @@ impl MessagingService {
             is_read: false,
         };
 
-        EscrowMessage::create(conn, new_message)
-            .context("Failed to insert message into database")
+        EscrowMessage::create(conn, new_message).context("Failed to insert message into database")
     }
 
     /// Get all messages for an escrow (decrypted)
@@ -67,8 +69,8 @@ impl MessagingService {
 
         for msg in encrypted_messages {
             // Decode from base64
-            let encrypted_bytes = base64::decode(&msg.content)
-                .context("Failed to decode message from base64")?;
+            let encrypted_bytes =
+                base64::decode(&msg.content).context("Failed to decode message from base64")?;
 
             // Decrypt
             let plaintext = decrypt_field(&encrypted_bytes, &self.encryption_key)
@@ -88,19 +90,13 @@ impl MessagingService {
     }
 
     /// Get unread message count
-    pub fn count_unread(
-        &self,
-        conn: &mut SqliteConnection,
-        escrow_id: &str,
-    ) -> Result<i64> {
-        EscrowMessage::count_unread(conn, escrow_id)
-            .context("Failed to count unread messages")
+    pub fn count_unread(&self, conn: &mut SqliteConnection, escrow_id: &str) -> Result<i64> {
+        EscrowMessage::count_unread(conn, escrow_id).context("Failed to count unread messages")
     }
 
     /// Mark message as read
     pub fn mark_as_read(&self, conn: &mut SqliteConnection, message_id: &str) -> Result<()> {
-        EscrowMessage::mark_as_read(conn, message_id)
-            .context("Failed to mark message as read")?;
+        EscrowMessage::mark_as_read(conn, message_id).context("Failed to mark message as read")?;
         Ok(())
     }
 

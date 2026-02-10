@@ -14,7 +14,7 @@ use crate::schema::escrows;
 pub struct Escrow {
     // Columns 1-10
     pub id: String,
-    pub order_id: Option<String>,  // Nullable for EaaS (standalone escrows)
+    pub order_id: Option<String>, // Nullable for EaaS (standalone escrows)
     pub buyer_id: String,
     pub vendor_id: String,
     pub arbiter_id: String,
@@ -72,17 +72,17 @@ pub struct Escrow {
     pub signing_started_at: Option<i32>,
     pub signing_phase: Option<String>,
     // Columns 51-53: Underfunded escrow tracking (v0.68.0)
-    pub balance_received: i64,                    // Actual balance received (may be < amount)
+    pub balance_received: i64, // Actual balance received (may be < amount)
     pub grace_period_ends_at: Option<NaiveDateTime>, // 48h grace period after initial timeout
-    pub refund_requested_at: Option<NaiveDateTime>,  // When buyer requested partial refund
+    pub refund_requested_at: Option<NaiveDateTime>, // When buyer requested partial refund
     // Columns 54-55: EaaS fields (v1.0.0 - EaaS transformation)
-    pub external_reference: Option<String>,       // External tracking ID (replaces order_id for EaaS)
-    pub description: Option<String>,              // Escrow purpose/description for EaaS clients
+    pub external_reference: Option<String>, // External tracking ID (replaces order_id for EaaS)
+    pub description: Option<String>,        // Escrow purpose/description for EaaS clients
     // Columns 56-59: FROST DKG (v0.45.0 - RFC 9591 threshold CLSAG)
-    pub frost_enabled: bool,                      // True if using FROST instead of Monero native
-    pub frost_group_pubkey: Option<String>,       // FROST group public key (shared by all 3 parties)
-    pub frost_dkg_complete: bool,                 // True when DKG round 3 is complete
-    pub frost_dkg_state: Option<String>,          // DKG state: 'pending', 'round1', 'round2', 'complete'
+    pub frost_enabled: bool, // True if using FROST instead of Monero native
+    pub frost_group_pubkey: Option<String>, // FROST group public key (shared by all 3 parties)
+    pub frost_dkg_complete: bool, // True when DKG round 3 is complete
+    pub frost_dkg_state: Option<String>, // DKG state: 'pending', 'round1', 'round2', 'complete'
     // Column 60: Funding output pubkey for auto-PKI (v0.8.1)
     pub funding_output_pubkey: Option<String>,
     // Column 61: TX public key from funding transaction for derivation (v0.8.2)
@@ -134,7 +134,7 @@ pub struct Escrow {
 #[diesel(table_name = escrows)]
 pub struct NewEscrow {
     pub id: String,
-    pub order_id: Option<String>,  // Nullable for EaaS
+    pub order_id: Option<String>, // Nullable for EaaS
     pub buyer_id: String,
     pub vendor_id: String,
     pub arbiter_id: String,
@@ -265,11 +265,17 @@ impl Escrow {
     ///
     /// External references allow EaaS clients to link escrows to their
     /// own tracking systems without using internal order IDs.
-    pub fn find_by_external_reference(conn: &mut SqliteConnection, external_ref: &str) -> Result<Escrow> {
+    pub fn find_by_external_reference(
+        conn: &mut SqliteConnection,
+        external_ref: &str,
+    ) -> Result<Escrow> {
         escrows::table
             .filter(escrows::external_reference.eq(external_ref))
             .first(conn)
-            .context(format!("Escrow with external_reference {} not found", external_ref))
+            .context(format!(
+                "Escrow with external_reference {} not found",
+                external_ref
+            ))
     }
 
     /// Update escrow status
@@ -423,10 +429,7 @@ impl Escrow {
     /// - Dispute initiated/resolved
     ///
     /// This resets the timeout clock for the current status.
-    pub fn update_activity(
-        conn: &mut SqliteConnection,
-        escrow_id: String,
-    ) -> Result<()> {
+    pub fn update_activity(conn: &mut SqliteConnection, escrow_id: String) -> Result<()> {
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.clone())))
             .set((
                 escrows::last_activity_at.eq(diesel::dsl::now),
@@ -582,7 +585,7 @@ impl Escrow {
         output_index: i32,
         global_index: i32,
         output_pubkey: Option<&str>,
-        tx_pubkey: Option<&str>,  // v0.8.2: For PKI derivation H_s(a*R || idx)
+        tx_pubkey: Option<&str>, // v0.8.2: For PKI derivation H_s(a*R || idx)
     ) -> Result<()> {
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.clone())))
             .set((
@@ -591,7 +594,7 @@ impl Escrow {
                 escrows::funding_output_index.eq(output_index),
                 escrows::funding_global_index.eq(global_index),
                 escrows::funding_output_pubkey.eq(output_pubkey),
-                escrows::funding_tx_pubkey.eq(tx_pubkey),  // v0.8.2: Store tx_pub_key R
+                escrows::funding_tx_pubkey.eq(tx_pubkey), // v0.8.2: Store tx_pub_key R
                 escrows::updated_at.eq(diesel::dsl::now),
             ))
             .execute(conn)
@@ -678,7 +681,12 @@ impl Escrow {
                     escrows::updated_at.eq(diesel::dsl::now),
                 ))
                 .execute(conn),
-            _ => return Err(anyhow::anyhow!("Invalid role for partial key image: {}", role)),
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Invalid role for partial key image: {}",
+                    role
+                ))
+            }
         };
 
         update_result.context(format!(
@@ -722,7 +730,10 @@ impl Escrow {
     }
 
     /// Count how many partial key images have been submitted
-    pub fn count_partial_key_images(conn: &mut SqliteConnection, escrow_id: String) -> Result<usize> {
+    pub fn count_partial_key_images(
+        conn: &mut SqliteConnection,
+        escrow_id: String,
+    ) -> Result<usize> {
         let escrow = Self::find_by_id(conn, escrow_id)?;
         let mut count = 0;
         if escrow.buyer_partial_key_image.is_some() {
@@ -759,9 +770,7 @@ impl Escrow {
             escrow.vendor_partial_key_image,
             escrow.arbiter_partial_key_image,
         ) {
-            (Some(buyer), Some(vendor), Some(arbiter)) => {
-                Ok(Some((buyer, vendor, arbiter)))
-            }
+            (Some(buyer), Some(vendor), Some(arbiter)) => Ok(Some((buyer, vendor, arbiter))),
             _ => Ok(None),
         }
     }
@@ -897,7 +906,8 @@ impl Escrow {
         escrow_id: String,
         grace_period_secs: i64,
     ) -> Result<()> {
-        let grace_end = chrono::Utc::now().naive_utc() + chrono::Duration::seconds(grace_period_secs);
+        let grace_end =
+            chrono::Utc::now().naive_utc() + chrono::Duration::seconds(grace_period_secs);
 
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.clone())))
             .set((

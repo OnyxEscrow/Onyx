@@ -196,9 +196,9 @@ pub fn sign_clsag_partial(
     }
     let mut pki1_arr = [0u8; 32];
     pki1_arr.copy_from_slice(&pki1_bytes);
-    let pki1_point = CompressedEdwardsY(pki1_arr)
-        .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("partial_key_image_1 decompression failed".into()))?;
+    let pki1_point = CompressedEdwardsY(pki1_arr).decompress().ok_or_else(|| {
+        CryptoError::InvalidPublicKey("partial_key_image_1 decompression failed".into())
+    })?;
 
     // Parse alpha 1
     let alpha_bytes = hex::decode(alpha_1_hex)
@@ -219,16 +219,21 @@ pub fn sign_clsag_partial(
     let mut ring_commitments = Vec::with_capacity(ring_size);
 
     for (i, key_bytes) in ring_keys_bytes.iter().enumerate() {
-        let key = CompressedEdwardsY(*key_bytes)
-            .decompress()
-            .ok_or_else(|| CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i)))?;
+        let key = CompressedEdwardsY(*key_bytes).decompress().ok_or_else(|| {
+            CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i))
+        })?;
         ring_keys.push(key);
     }
 
     for (i, commit_bytes) in ring_commitments_bytes.iter().enumerate() {
         let commit = CompressedEdwardsY(*commit_bytes)
             .decompress()
-            .ok_or_else(|| CryptoError::InvalidPublicKey(format!("ring_commitment[{}] decompression failed", i)))?;
+            .ok_or_else(|| {
+                CryptoError::InvalidPublicKey(format!(
+                    "ring_commitment[{}] decompression failed",
+                    i
+                ))
+            })?;
         ring_commitments.push(commit);
     }
 
@@ -407,9 +412,11 @@ pub fn sign_clsag_complete(
 
     // Validate ring size consistency
     if partial_sig.s_values.len() != ring_size {
-        return Err(CryptoError::SignatureCompletionFailed(
-            format!("Ring size mismatch: partial has {}, provided {}", partial_sig.s_values.len(), ring_size)
-        ));
+        return Err(CryptoError::SignatureCompletionFailed(format!(
+            "Ring size mismatch: partial has {}, provided {}",
+            partial_sig.s_values.len(),
+            ring_size
+        )));
     }
 
     // Parse spend share 2
@@ -452,18 +459,18 @@ pub fn sign_clsag_complete(
     }
     let mut pki2_arr = [0u8; 32];
     pki2_arr.copy_from_slice(&pki2_bytes);
-    let pki2_point = CompressedEdwardsY(pki2_arr)
-        .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("partial_key_image_2 decompression failed".into()))?;
+    let pki2_point = CompressedEdwardsY(pki2_arr).decompress().ok_or_else(|| {
+        CryptoError::InvalidPublicKey("partial_key_image_2 decompression failed".into())
+    })?;
 
     // Parse partial key image 1
     let pki1_bytes = hex::decode(&partial_sig.partial_key_image_1)
         .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_1: {}", e)))?;
     let mut pki1_arr = [0u8; 32];
     pki1_arr.copy_from_slice(&pki1_bytes);
-    let pki1_point = CompressedEdwardsY(pki1_arr)
-        .decompress()
-        .ok_or_else(|| CryptoError::InvalidPublicKey("partial_key_image_1 decompression failed".into()))?;
+    let pki1_point = CompressedEdwardsY(pki1_arr).decompress().ok_or_else(|| {
+        CryptoError::InvalidPublicKey("partial_key_image_1 decompression failed".into())
+    })?;
 
     // Parse alpha 2
     let alpha_bytes = hex::decode(alpha_2_hex)
@@ -525,16 +532,21 @@ pub fn sign_clsag_complete(
     let mut ring_commitments = Vec::with_capacity(ring_size);
 
     for (i, key_bytes) in ring_keys_bytes.iter().enumerate() {
-        let key = CompressedEdwardsY(*key_bytes)
-            .decompress()
-            .ok_or_else(|| CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i)))?;
+        let key = CompressedEdwardsY(*key_bytes).decompress().ok_or_else(|| {
+            CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i))
+        })?;
         ring_keys.push(key);
     }
 
     for (i, commit_bytes) in ring_commitments_bytes.iter().enumerate() {
         let commit = CompressedEdwardsY(*commit_bytes)
             .decompress()
-            .ok_or_else(|| CryptoError::InvalidPublicKey(format!("ring_commitment[{}] decompression failed", i)))?;
+            .ok_or_else(|| {
+                CryptoError::InvalidPublicKey(format!(
+                    "ring_commitment[{}] decompression failed",
+                    i
+                ))
+            })?;
         ring_commitments.push(commit);
     }
 
@@ -602,9 +614,9 @@ pub fn sign_clsag_complete(
 
     // Verify c matches c_l
     if c != c_l {
-        return Err(CryptoError::SignatureCompletionFailed(
-            format!("Signature verification failed: c_computed != c_expected")
-        ));
+        return Err(CryptoError::SignatureCompletionFailed(format!(
+            "Signature verification failed: c_computed != c_expected"
+        )));
     }
 
     // Convert s-values to hex
@@ -672,7 +684,8 @@ mod tests {
     const TEST_SPEND_2: &str = "0200000000000000000000000000000000000000000000000000000000000000";
     const TEST_LAMBDA_1: &str = "0100000000000000000000000000000000000000000000000000000000000000";
     const TEST_LAMBDA_2: &str = "0100000000000000000000000000000000000000000000000000000000000000";
-    const TEST_DERIVATION: &str = "0300000000000000000000000000000000000000000000000000000000000000";
+    const TEST_DERIVATION: &str =
+        "0300000000000000000000000000000000000000000000000000000000000000";
     const TEST_ALPHA_1: &str = "0400000000000000000000000000000000000000000000000000000000000000";
     const TEST_ALPHA_2: &str = "0500000000000000000000000000000000000000000000000000000000000000";
 
@@ -738,7 +751,10 @@ mod tests {
             1000000000000,
         );
 
-        assert!(matches!(result, Err(CryptoError::SignerIndexOutOfBounds { .. })));
+        assert!(matches!(
+            result,
+            Err(CryptoError::SignerIndexOutOfBounds { .. })
+        ));
     }
 
     #[test]
@@ -748,10 +764,7 @@ mod tests {
             [0u8; 32], // Identity point
             [0u8; 32],
         ];
-        let ring_commits = [
-            [0u8; 32],
-            [0u8; 32],
-        ];
+        let ring_commits = [[0u8; 32], [0u8; 32]];
         let tx_hash = [0u8; 32];
 
         let partial = sign_clsag_partial(
@@ -766,7 +779,8 @@ mod tests {
             tx_hash,
             0,
             1000000000000,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(partial.s_values.len(), 2);
         assert_eq!(partial.c1.len(), 64);
@@ -805,6 +819,9 @@ mod tests {
             tx_hash,
         );
 
-        assert!(matches!(result, Err(CryptoError::SignatureCompletionFailed(_))));
+        assert!(matches!(
+            result,
+            Err(CryptoError::SignatureCompletionFailed(_))
+        ));
     }
 }

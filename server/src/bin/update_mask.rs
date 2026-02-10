@@ -25,7 +25,10 @@ struct SqlCipherConnectionCustomizer {
 }
 
 impl CustomizeConnection<SqliteConnection, diesel::r2d2::Error> for SqlCipherConnectionCustomizer {
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> std::result::Result<(), diesel::r2d2::Error> {
+    fn on_acquire(
+        &self,
+        conn: &mut SqliteConnection,
+    ) -> std::result::Result<(), diesel::r2d2::Error> {
         sql_query(format!("PRAGMA key = '{}';", self.encryption_key))
             .execute(conn)
             .map_err(diesel::r2d2::Error::QueryError)?;
@@ -48,8 +51,7 @@ fn main() -> Result<()> {
     let new_mask = &args[2];
 
     // Get database config from env
-    let db_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "marketplace.db".to_string());
+    let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY")
         .context("DB_ENCRYPTION_KEY environment variable not set")?;
 

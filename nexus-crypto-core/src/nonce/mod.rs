@@ -29,10 +29,14 @@
 //! let r_agg = aggregate_nonces(&nonce1.r_public, &nonce2.r_public)?;
 //! ```
 
-mod generate;
-mod commit;
 mod aggregate;
+mod commit;
+mod generate;
 
+pub use aggregate::{
+    aggregate_nonces, aggregate_nonces_full, verify_nonce_aggregation, AggregatedNonces,
+};
+pub use commit::{
+    compute_nonce_commitment_hash, verify_nonce_commitment, verify_nonce_commitment_ct,
+};
 pub use generate::{generate_nonce_commitment, NonceCommitmentResult};
-pub use commit::{compute_nonce_commitment_hash, verify_nonce_commitment, verify_nonce_commitment_ct};
-pub use aggregate::{aggregate_nonces, aggregate_nonces_full, verify_nonce_aggregation, AggregatedNonces};

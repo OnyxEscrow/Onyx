@@ -2,7 +2,7 @@
 // Replaces 'unsafe-inline' with cryptographically random nonces
 
 use base64::{engine::general_purpose::STANDARD, Engine};
-use rand::{RngCore, thread_rng};
+use rand::{thread_rng, RngCore};
 use std::sync::Arc;
 
 /// Length of the raw random bytes for nonce (16 bytes = 128 bits)

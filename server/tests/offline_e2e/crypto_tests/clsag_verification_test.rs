@@ -18,8 +18,8 @@ use curve25519_dalek::{
 use sha3::{Digest, Keccak256};
 
 use crate::mock_infrastructure::{
-    DeterministicRng,
     test_fixtures::{ClsagFixture, ClsagInvalidType, RING_SIZE},
+    DeterministicRng,
 };
 
 // ============================================================================
@@ -272,8 +272,16 @@ fn test_mixing_coefficients_deterministic() {
         &pseudo_out,
     );
 
-    assert_eq!(mu_p1.to_bytes(), mu_p2.to_bytes(), "mu_P should be deterministic");
-    assert_eq!(mu_c1.to_bytes(), mu_c2.to_bytes(), "mu_C should be deterministic");
+    assert_eq!(
+        mu_p1.to_bytes(),
+        mu_p2.to_bytes(),
+        "mu_P should be deterministic"
+    );
+    assert_eq!(
+        mu_c1.to_bytes(),
+        mu_c2.to_bytes(),
+        "mu_C should be deterministic"
+    );
 }
 
 #[test]
@@ -380,7 +388,11 @@ fn test_round_hash_deterministic() {
         &r_point,
     );
 
-    assert_eq!(hash1.to_bytes(), hash2.to_bytes(), "Round hash should be deterministic");
+    assert_eq!(
+        hash1.to_bytes(),
+        hash2.to_bytes(),
+        "Round hash should be deterministic"
+    );
 }
 
 #[test]
@@ -558,7 +570,10 @@ fn test_corrupted_c1_detection() {
 
     // All-zero c1 is technically valid as a scalar but suspicious
     let c1_bytes = hex_to_32_bytes(&fixture.c1).unwrap();
-    assert!(c1_bytes.iter().all(|&b| b == 0), "Corrupted c1 should be all zeros");
+    assert!(
+        c1_bytes.iter().all(|&b| b == 0),
+        "Corrupted c1 should be all zeros"
+    );
 }
 
 // ============================================================================
@@ -596,7 +611,10 @@ fn test_scalar_multiplication_properties() {
     // Verify (a + b) * P = a*P + b*P
     let left = (a + b) * p;
     let right = a * p + b * p;
-    assert_eq!(left, right, "Scalar multiplication should distribute over addition");
+    assert_eq!(
+        left, right,
+        "Scalar multiplication should distribute over addition"
+    );
 }
 
 // ============================================================================

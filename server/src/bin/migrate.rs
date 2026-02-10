@@ -30,7 +30,9 @@ struct SqlCipherCustomizer {
 
 impl SqlCipherCustomizer {
     fn new(key: &str) -> Self {
-        Self { key: key.to_string() }
+        Self {
+            key: key.to_string(),
+        }
     }
 }
 
@@ -63,10 +65,9 @@ fn main() -> Result<()> {
     dotenvy::dotenv().ok();
 
     // Get database URL and encryption key
-    let database_url = env::var("DATABASE_URL")
-        .context("DATABASE_URL must be set in .env file")?;
-    let encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY must be set in .env file")?;
+    let database_url = env::var("DATABASE_URL").context("DATABASE_URL must be set in .env file")?;
+    let encryption_key =
+        env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY must be set in .env file")?;
 
     println!("📁 Database: {}", database_url);
     println!("🔑 Using encryption key from .env\n");
@@ -83,7 +84,8 @@ fn main() -> Result<()> {
     println!("🔄 Running migrations...\n");
 
     // List pending migrations
-    let pending = conn.pending_migrations(MIGRATIONS)
+    let pending = conn
+        .pending_migrations(MIGRATIONS)
         .map_err(|e| anyhow::anyhow!("Failed to list pending migrations: {}", e))?;
 
     if pending.is_empty() {

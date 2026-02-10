@@ -85,12 +85,12 @@ impl DkgStatus {
 
 impl From<&FrostDkgState> for DkgStatus {
     fn from(state: &FrostDkgState) -> Self {
-        let buyer_round2_ready = state.buyer_to_vendor_round2.is_some()
-            && state.buyer_to_arbiter_round2.is_some();
-        let vendor_round2_ready = state.vendor_to_buyer_round2.is_some()
-            && state.vendor_to_arbiter_round2.is_some();
-        let arbiter_round2_ready = state.arbiter_to_buyer_round2.is_some()
-            && state.arbiter_to_vendor_round2.is_some();
+        let buyer_round2_ready =
+            state.buyer_to_vendor_round2.is_some() && state.buyer_to_arbiter_round2.is_some();
+        let vendor_round2_ready =
+            state.vendor_to_buyer_round2.is_some() && state.vendor_to_arbiter_round2.is_some();
+        let arbiter_round2_ready =
+            state.arbiter_to_buyer_round2.is_some() && state.arbiter_to_vendor_round2.is_some();
 
         DkgStatus {
             escrow_id: state.escrow_id.clone(),
@@ -189,7 +189,8 @@ mod tests {
         // For signers 1 and 2:
         // λ_1 = 2 / (2 - 1) = 2
         // λ_2 = 1 / (1 - 2) = -1
-        let (lambda_1, lambda_2) = compute_lagrange_coefficients(FrostRole::Buyer, FrostRole::Vendor);
+        let (lambda_1, lambda_2) =
+            compute_lagrange_coefficients(FrostRole::Buyer, FrostRole::Vendor);
         assert!(!lambda_1.is_empty());
         assert!(!lambda_2.is_empty());
         // λ_1 should be 2 (mod order)

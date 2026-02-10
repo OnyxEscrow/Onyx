@@ -220,12 +220,8 @@ pub fn invalid_key_format() -> HttpResponse {
 /// ESC-001: Escrow not found
 pub fn escrow_not_found(escrow_id: &str) -> HttpResponse {
     HttpResponse::NotFound().json(
-        ErrorResponse::new(
-            "ESC-001",
-            "Escrow not found or has been deleted.",
-            false,
-        )
-        .with_details(&format!("escrow_id: {}", escrow_id)),
+        ErrorResponse::new("ESC-001", "Escrow not found or has been deleted.", false)
+            .with_details(&format!("escrow_id: {}", escrow_id)),
     )
 }
 
@@ -280,25 +276,19 @@ pub fn not_authenticated() -> HttpResponse {
 
 /// AUTH-002: Wrong password
 pub fn wrong_password() -> HttpResponse {
-    HttpResponse::Unauthorized().json(ErrorResponse::new(
-        "AUTH-002",
-        "Incorrect password.",
-        true,
-    ))
+    HttpResponse::Unauthorized().json(ErrorResponse::new("AUTH-002", "Incorrect password.", true))
 }
 
 /// AUTH-003: Account locked
 pub fn account_locked(minutes: u32) -> HttpResponse {
-    HttpResponse::TooManyRequests().json(
-        ErrorResponse::new(
-            "AUTH-003",
-            &format!(
-                "Too many failed attempts. Try again in {} minutes.",
-                minutes
-            ),
-            true,
+    HttpResponse::TooManyRequests().json(ErrorResponse::new(
+        "AUTH-003",
+        &format!(
+            "Too many failed attempts. Try again in {} minutes.",
+            minutes
         ),
-    )
+        true,
+    ))
 }
 
 // =============================================================================
@@ -335,19 +325,11 @@ pub fn from_error_message(message: &str) -> HttpResponse {
         return not_authenticated();
     }
     if message_lower.contains("not found") {
-        return HttpResponse::NotFound().json(ErrorResponse::new(
-            "ESC-001",
-            message,
-            false,
-        ));
+        return HttpResponse::NotFound().json(ErrorResponse::new("ESC-001", message, false));
     }
 
     // Default: generic internal error
-    HttpResponse::InternalServerError().json(ErrorResponse::new(
-        "UNKNOWN",
-        message,
-        true,
-    ))
+    HttpResponse::InternalServerError().json(ErrorResponse::new("UNKNOWN", message, true))
 }
 
 #[cfg(test)]
@@ -365,8 +347,7 @@ mod tests {
 
     #[test]
     fn test_error_response_with_details() {
-        let response = ErrorResponse::new("TEST-002", "Error", false)
-            .with_details("Extra info");
+        let response = ErrorResponse::new("TEST-002", "Error", false).with_details("Extra info");
         assert_eq!(response.details, Some("Extra info".to_string()));
     }
 }

@@ -3,11 +3,11 @@
 //! Creates atomic, encrypted backups of the marketplace database.
 //! Handles WAL checkpointing and rotation automatically.
 
-use anyhow::{Context, Result, bail};
-use std::path::{Path, PathBuf};
-use std::process::Command;
+use anyhow::{bail, Context, Result};
 use std::env;
 use std::fs;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 
 const DB_PATH: &str = "marketplace.db";
 const BACKUP_DIR: &str = "./backups";
@@ -19,8 +19,7 @@ fn main() -> Result<()> {
 
     // Load encryption key
     dotenvy::dotenv().ok();
-    let encryption_key = env::var("DB_ENCRYPTION_KEY")
-        .context("DB_ENCRYPTION_KEY not set")?;
+    let encryption_key = env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set")?;
 
     let db_path = PathBuf::from(DB_PATH);
     if !db_path.exists() {
@@ -29,8 +28,7 @@ fn main() -> Result<()> {
 
     // Create backup directory
     let backup_dir = PathBuf::from(BACKUP_DIR);
-    fs::create_dir_all(&backup_dir)
-        .context("Failed to create backup directory")?;
+    fs::create_dir_all(&backup_dir).context("Failed to create backup directory")?;
 
     println!("📁 Source: {}", db_path.display());
     println!("📂 Backup dir: {}", backup_dir.display());
@@ -44,7 +42,11 @@ fn main() -> Result<()> {
     let backup_path = create_backup(&db_path, &backup_dir, &encryption_key)?;
 
     let size = fs::metadata(&backup_path)?.len();
-    println!("   ✅ Backup created: {} ({} bytes)", backup_path.display(), size);
+    println!(
+        "   ✅ Backup created: {} ({} bytes)",
+        backup_path.display(),
+        size
+    );
 
     // Verify backup
     println!("3️⃣ Verifying backup integrity...");
@@ -62,10 +64,7 @@ fn main() -> Result<()> {
 }
 
 fn checkpoint_wal(db_path: &Path, key: &str) -> Result<()> {
-    let sql = format!(
-        "PRAGMA key = '{}'; PRAGMA wal_checkpoint(TRUNCATE);",
-        key
-    );
+    let sql = format!("PRAGMA key = '{}'; PRAGMA wal_checkpoint(TRUNCATE);", key);
 
     let output = Command::new("sqlcipher")
         .arg(db_path)
@@ -127,29 +126,24 @@ fn verify_backup(backup_path: &Path, key: &str) -> Result<()> {
 fn rotate_backups(backup_dir: &Path, max_backups: usize) -> Result<()> {
     let mut backups: Vec<_> = fs::read_dir(backup_dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.path()
-                .extension()
-                .map(|ext| ext == "db")
-                .unwrap_or(false)
-        })
+        .filter(|e| e.path().extension().map(|ext| ext == "db").unwrap_or(false))
         .collect();
 
     // Sort by modification time (oldest first)
-    backups.sort_by_key(|entry| {
-        entry.metadata().ok().and_then(|m| m.modified().ok())
-    });
+    backups.sort_by_key(|entry| entry.metadata().ok().and_then(|m| m.modified().ok()));
 
     let to_remove = backups.len().saturating_sub(max_backups);
 
     for entry in backups.iter().take(to_remove) {
         let path = entry.path();
         println!("   🗑️  Removing old backup: {}", path.display());
-        fs::remove_file(&path)
-            .with_context(|| format!("Failed to remove {}", path.display()))?;
+        fs::remove_file(&path).with_context(|| format!("Failed to remove {}", path.display()))?;
     }
 
-    println!("   Kept {} most recent backups", backups.len().saturating_sub(to_remove));
+    println!(
+        "   Kept {} most recent backups",
+        backups.len().saturating_sub(to_remove)
+    );
 
     Ok(())
 }
@@ -157,17 +151,10 @@ fn rotate_backups(backup_dir: &Path, max_backups: usize) -> Result<()> {
 fn list_backups(backup_dir: &Path) -> Result<()> {
     let mut backups: Vec<_> = fs::read_dir(backup_dir)?
         .filter_map(|e| e.ok())
-        .filter(|e| {
-            e.path()
-                .extension()
-                .map(|ext| ext == "db")
-                .unwrap_or(false)
-        })
+        .filter(|e| e.path().extension().map(|ext| ext == "db").unwrap_or(false))
         .collect();
 
-    backups.sort_by_key(|entry| {
-        entry.metadata().ok().and_then(|m| m.modified().ok())
-    });
+    backups.sort_by_key(|entry| entry.metadata().ok().and_then(|m| m.modified().ok()));
 
     println!("📋 Available backups:");
     for entry in backups.iter().rev() {

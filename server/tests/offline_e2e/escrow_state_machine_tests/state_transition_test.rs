@@ -85,11 +85,11 @@ impl EscrowStatus {
             DisputeOpened => vec![DisputeUnderReview],
             DisputeUnderReview => vec![DisputeResolved],
             DisputeResolved => vec![AwaitingRelease, AwaitingRefund],
-            Released => vec![], // Terminal
-            Refunded => vec![], // Terminal
+            Released => vec![],  // Terminal
+            Refunded => vec![],  // Terminal
             Cancelled => vec![], // Terminal
-            Expired => vec![], // Terminal
-            Failed => vec![], // Terminal
+            Expired => vec![],   // Terminal
+            Failed => vec![],    // Terminal
         }
     }
 
@@ -133,7 +133,10 @@ pub struct EscrowStateMachine {
 
 #[derive(Debug, PartialEq)]
 pub enum TransitionError {
-    InvalidTransition { from: EscrowStatus, to: EscrowStatus },
+    InvalidTransition {
+        from: EscrowStatus,
+        to: EscrowStatus,
+    },
     AlreadyTerminal(EscrowStatus),
 }
 
@@ -371,10 +374,7 @@ fn test_cannot_release_without_delivery() {
 
     // Cannot skip to AwaitingRelease without DeliveryConfirmed
     let result = sm.transition(EscrowStatus::AwaitingRelease);
-    assert!(
-        result.is_err(),
-        "Should not skip delivery confirmation"
-    );
+    assert!(result.is_err(), "Should not skip delivery confirmation");
 }
 
 // ============================================================================
@@ -571,11 +571,17 @@ fn test_transition_history_recorded() {
     );
     assert_eq!(
         sm.transition_history[1],
-        (EscrowStatus::AwaitingMultisigSetup, EscrowStatus::MultisigInfoExchanged)
+        (
+            EscrowStatus::AwaitingMultisigSetup,
+            EscrowStatus::MultisigInfoExchanged
+        )
     );
     assert_eq!(
         sm.transition_history[2],
-        (EscrowStatus::MultisigInfoExchanged, EscrowStatus::WalletReady)
+        (
+            EscrowStatus::MultisigInfoExchanged,
+            EscrowStatus::WalletReady
+        )
     );
 }
 
@@ -648,7 +654,10 @@ fn test_can_transition_predicate() {
 fn test_status_as_str() {
     assert_eq!(EscrowStatus::Created.as_str(), "created");
     assert_eq!(EscrowStatus::AwaitingFunding.as_str(), "awaiting_funding");
-    assert_eq!(EscrowStatus::SigningInProgress.as_str(), "signing_in_progress");
+    assert_eq!(
+        EscrowStatus::SigningInProgress.as_str(),
+        "signing_in_progress"
+    );
     assert_eq!(EscrowStatus::Released.as_str(), "released");
 }
 

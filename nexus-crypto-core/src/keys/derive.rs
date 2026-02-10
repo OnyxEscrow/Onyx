@@ -50,10 +50,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 ///     "5664QSfgtoHYBXvJLawcquW2j9qswLtzcNYqd3KKetiq..."
 /// )?;
 /// ```
-pub fn validate_view_key_matches_address(
-    view_key_hex: &str,
-    address: &str,
-) -> CryptoResult<bool> {
+pub fn validate_view_key_matches_address(view_key_hex: &str, address: &str) -> CryptoResult<bool> {
     // 1. Parse and validate view key hex
     if view_key_hex.len() != 64 {
         return Err(CryptoError::InvalidLength {
@@ -63,9 +60,8 @@ pub fn validate_view_key_matches_address(
         });
     }
 
-    let view_bytes = hex::decode(view_key_hex).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid view key hex: {}", e))
-    })?;
+    let view_bytes = hex::decode(view_key_hex)
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid view key hex: {}", e)))?;
 
     // 2. Convert to scalar (32 bytes)
     let mut view_arr = [0u8; 32];
@@ -159,9 +155,8 @@ pub fn derive_public_key_from_hex(private_key_hex: &str) -> CryptoResult<[u8; 32
         });
     }
 
-    let bytes = hex::decode(private_key_hex).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid private key hex: {}", e))
-    })?;
+    let bytes = hex::decode(private_key_hex)
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {}", e)))?;
 
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);

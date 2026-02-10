@@ -26,6 +26,6 @@ pub use escrow_coordinator::{
 };
 
 pub use multisig_coordinator::{
-    MultisigCoordinator, MultisigCoordinationError, MultisigSession, MultisigStage,
+    MultisigCoordinationError, MultisigCoordinator, MultisigSession, MultisigStage,
     MultisigStatusResponse, ParticipantState, ParticipantType,
 };

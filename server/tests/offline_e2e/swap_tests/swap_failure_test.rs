@@ -9,7 +9,7 @@
 //! - Error handling
 
 use server::services::mock_swap_provider::{MockScenario, MockSwapConfig, MockSwapProvider};
-use server::services::swap_provider::{SwapProvider, SwapQuoteRequest, SwapStatus, SwapError};
+use server::services::swap_provider::{SwapError, SwapProvider, SwapQuoteRequest, SwapStatus};
 
 // =============================================================================
 // Failed Swap Tests
@@ -25,22 +25,40 @@ async fn test_swap_fails_during_exchange() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // Progress through states until failure
-    let status1 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status1 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status1.status, SwapStatus::DepositDetected);
 
-    let status2 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status2 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status2.status, SwapStatus::DepositConfirmed);
 
-    let status3 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status3 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status3.status, SwapStatus::Swapping);
 
     // Failure occurs here
-    let status4 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status4 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status4.status, SwapStatus::Failed);
-    assert!(status4.error_message.is_some(), "Error message should be present");
+    assert!(
+        status4.error_message.is_some(),
+        "Error message should be present"
+    );
     assert!(status4.xmr_tx_hash.is_none(), "No XMR tx hash on failure");
 }
 
@@ -59,12 +77,25 @@ async fn test_swap_expires_before_deposit() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // First check should show expired (no deposit within window)
-    let status = provider.check_status(&quote.provider_order_id).await.unwrap();
-    assert_eq!(status.status, SwapStatus::Expired, "Should expire before deposit");
-    assert!(status.error_message.is_some(), "Expiration message should be present");
+    let status = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
+    assert_eq!(
+        status.status,
+        SwapStatus::Expired,
+        "Should expire before deposit"
+    );
+    assert!(
+        status.error_message.is_some(),
+        "Expiration message should be present"
+    );
 }
 
 #[tokio::test]
@@ -82,14 +113,23 @@ async fn test_deposit_never_confirms() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // Deposit is detected
-    let status1 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status1 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status1.status, SwapStatus::DepositDetected);
 
     // But it eventually expires/fails without confirmation
-    let status2 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status2 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert!(
         matches!(status2.status, SwapStatus::Expired | SwapStatus::Failed),
         "Should eventually fail or expire"
@@ -115,15 +155,24 @@ async fn test_partial_payment_detected() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // Check status - should show partial payment situation
-    let status = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
 
     // Partial payments typically lead to failure with specific message
     // or the provider refunds the partial amount
     assert!(
-        matches!(status.status, SwapStatus::Failed | SwapStatus::Refunded | SwapStatus::DepositDetected),
+        matches!(
+            status.status,
+            SwapStatus::Failed | SwapStatus::Refunded | SwapStatus::DepositDetected
+        ),
         "Partial payment should result in failure, refund, or stuck at detected"
     );
 }
@@ -147,17 +196,35 @@ async fn test_refund_scenario() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // Progress through states
-    let _ = provider.check_status(&quote.provider_order_id).await.unwrap(); // DepositDetected
-    let _ = provider.check_status(&quote.provider_order_id).await.unwrap(); // DepositConfirmed
-    let _ = provider.check_status(&quote.provider_order_id).await.unwrap(); // Swapping
+    let _ = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap(); // DepositDetected
+    let _ = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap(); // DepositConfirmed
+    let _ = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap(); // Swapping
 
     // Refund happens
-    let status = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
     assert_eq!(status.status, SwapStatus::Refunded);
-    assert!(status.btc_tx_hash.is_some(), "BTC refund tx hash should be present");
+    assert!(
+        status.btc_tx_hash.is_some(),
+        "BTC refund tx hash should be present"
+    );
 }
 
 // =============================================================================
@@ -207,11 +274,17 @@ async fn test_status_check_error_scenario() {
         None,
     );
 
-    let quote = provider.get_quote(&request).await.expect("Quote should succeed");
+    let quote = provider
+        .get_quote(&request)
+        .await
+        .expect("Quote should succeed");
 
     // Status check fails
     let result = provider.check_status(&quote.provider_order_id).await;
-    assert!(result.is_err(), "StatusCheckError scenario should fail status check");
+    assert!(
+        result.is_err(),
+        "StatusCheckError scenario should fail status check"
+    );
 }
 
 #[tokio::test]
@@ -225,7 +298,10 @@ async fn test_unknown_order_id() {
     // The mock returns InvalidResponse for unknown orders
     match result {
         Err(SwapError::InvalidResponse(msg)) => {
-            assert!(msg.contains("Unknown order"), "Error should mention unknown order");
+            assert!(
+                msg.contains("Unknown order"),
+                "Error should mention unknown order"
+            );
         }
         Err(e) => panic!("Unexpected error type: {:?}", e),
         Ok(_) => panic!("Should have failed"),
@@ -324,16 +400,28 @@ async fn test_terminal_states_are_stable() {
 
     // Progress to failed state
     for _ in 0..10 {
-        let status = provider.check_status(&quote.provider_order_id).await.unwrap();
+        let status = provider
+            .check_status(&quote.provider_order_id)
+            .await
+            .unwrap();
         if status.status == SwapStatus::Failed {
             break;
         }
     }
 
     // Multiple subsequent checks should stay in Failed state
-    let status1 = provider.check_status(&quote.provider_order_id).await.unwrap();
-    let status2 = provider.check_status(&quote.provider_order_id).await.unwrap();
-    let status3 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status1 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
+    let status2 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
+    let status3 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
 
     assert_eq!(status1.status, SwapStatus::Failed);
     assert_eq!(status2.status, SwapStatus::Failed);
@@ -354,15 +442,24 @@ async fn test_completed_state_is_stable() {
 
     // Progress to completed state
     for _ in 0..10 {
-        let status = provider.check_status(&quote.provider_order_id).await.unwrap();
+        let status = provider
+            .check_status(&quote.provider_order_id)
+            .await
+            .unwrap();
         if status.status == SwapStatus::Completed {
             break;
         }
     }
 
     // Multiple subsequent checks should stay in Completed state
-    let status1 = provider.check_status(&quote.provider_order_id).await.unwrap();
-    let status2 = provider.check_status(&quote.provider_order_id).await.unwrap();
+    let status1 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
+    let status2 = provider
+        .check_status(&quote.provider_order_id)
+        .await
+        .unwrap();
 
     assert_eq!(status1.status, SwapStatus::Completed);
     assert_eq!(status2.status, SwapStatus::Completed);

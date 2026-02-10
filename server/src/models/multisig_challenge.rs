@@ -17,8 +17,8 @@ pub struct MultisigChallengeRow {
     pub user_id: String,
     pub escrow_id: String,
     pub nonce: Vec<u8>,
-    pub created_at: i32,  // Maps to Integer in SQLite
-    pub expires_at: i32,  // Maps to Integer in SQLite
+    pub created_at: i32, // Maps to Integer in SQLite
+    pub expires_at: i32, // Maps to Integer in SQLite
 }
 
 /// Insertable model for multisig_challenges table
@@ -29,8 +29,8 @@ pub struct NewMultisigChallenge {
     pub user_id: String,
     pub escrow_id: String,
     pub nonce: Vec<u8>,
-    pub created_at: i32,  // Maps to Integer in SQLite
-    pub expires_at: i32,  // Maps to Integer in SQLite
+    pub created_at: i32, // Maps to Integer in SQLite
+    pub expires_at: i32, // Maps to Integer in SQLite
 }
 
 impl MultisigChallengeRow {
@@ -102,7 +102,9 @@ impl MultisigChallengeRow {
     }
 
     /// Clean up expired challenges
-    pub fn cleanup_expired(conn: &mut diesel::SqliteConnection) -> Result<usize, diesel::result::Error> {
+    pub fn cleanup_expired(
+        conn: &mut diesel::SqliteConnection,
+    ) -> Result<usize, diesel::result::Error> {
         use crate::schema::multisig_challenges::dsl;
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -151,7 +153,11 @@ impl SqliteChallengeStore {
     }
 
     /// Retrieve challenge for user/escrow
-    pub fn get(&self, user_id: Uuid, escrow_id: Uuid) -> Result<Option<MultisigChallengeRow>, anyhow::Error> {
+    pub fn get(
+        &self,
+        user_id: Uuid,
+        escrow_id: Uuid,
+    ) -> Result<Option<MultisigChallengeRow>, anyhow::Error> {
         let mut conn = self.pool.get()?;
         let result = MultisigChallengeRow::get(&mut conn, user_id, escrow_id)?;
         Ok(result)

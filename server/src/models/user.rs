@@ -34,7 +34,10 @@ impl std::fmt::Debug for User {
             .field("username", &self.username)
             .field("password_hash", &"<redacted>")
             .field("role", &self.role)
-            .field("wallet_address", &self.wallet_address.as_ref().map(|_| "<redacted>"))
+            .field(
+                "wallet_address",
+                &self.wallet_address.as_ref().map(|_| "<redacted>"),
+            )
             .field("wallet_id", &self.wallet_id.as_ref().map(|_| "<redacted>"))
             .field("created_at", &self.created_at)
             .field("updated_at", &self.updated_at)

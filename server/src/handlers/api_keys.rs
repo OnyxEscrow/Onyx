@@ -330,8 +330,9 @@ pub async fn update_api_key_tier(
     }
 
     // Parse tier
-    let new_tier = ApiKeyTier::from_str(&req.tier)
-        .ok_or_else(|| ApiError::BadRequest("Invalid tier. Use: free, pro, or enterprise".to_string()))?;
+    let new_tier = ApiKeyTier::from_str(&req.tier).ok_or_else(|| {
+        ApiError::BadRequest("Invalid tier. Use: free, pro, or enterprise".to_string())
+    })?;
 
     // Get database connection
     let mut conn = pool
@@ -366,20 +367,15 @@ pub async fn update_api_key_tier(
 /// GET /api/api-keys/test - Test API key authentication
 /// This endpoint is useful for B2B clients to verify their key works
 #[get("/api-keys/test")]
-pub async fn test_api_key(
-    req: HttpRequest,
-) -> Result<HttpResponse, ApiError> {
-    use actix_web::HttpMessage;
+pub async fn test_api_key(req: HttpRequest) -> Result<HttpResponse, ApiError> {
     use crate::middleware::api_key_auth::ApiKeyContext;
+    use actix_web::HttpMessage;
 
     // Get API key context from request extensions
     let extensions = req.extensions();
-    let ctx = extensions
-        .get::<ApiKeyContext>()
-        .cloned()
-        .ok_or_else(|| {
-            ApiError::Unauthorized("API key authentication required for this endpoint".to_string())
-        })?;
+    let ctx = extensions.get::<ApiKeyContext>().cloned().ok_or_else(|| {
+        ApiError::Unauthorized("API key authentication required for this endpoint".to_string())
+    })?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "success": true,

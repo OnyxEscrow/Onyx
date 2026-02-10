@@ -255,10 +255,16 @@ pub async fn coordinate_multisig_exchange(
         }));
     }
 
-    info!("🔄 Coordinating multisig exchange for escrow {}", req.escrow_id);
+    info!(
+        "🔄 Coordinating multisig exchange for escrow {}",
+        req.escrow_id
+    );
 
     // Coordinate exchange
-    match coordinator.coordinate_multisig_exchange(&req.escrow_id).await {
+    match coordinator
+        .coordinate_multisig_exchange(&req.escrow_id)
+        .await
+    {
         Ok(exchange_result) => {
             info!(
                 "✅ Multisig exchange coordinated for escrow {}",
@@ -320,7 +326,10 @@ pub async fn get_coordination_status(
             })
         }
         Err(e) => {
-            error!("Failed to get coordination status for escrow {}: {}", escrow_id, e);
+            error!(
+                "Failed to get coordination status for escrow {}: {}",
+                escrow_id, e
+            );
             HttpResponse::NotFound().json(serde_json::json!({
                 "success": false,
                 "error": format!("Escrow not found: {}", e)
@@ -352,13 +361,11 @@ pub async fn get_coordination_status(
 ///   "export_info": "MultisigxV1..."
 /// }
 /// ```
-pub async fn coordinate_sync_round(
-    req: web::Json<SyncRoundRequest>,
-) -> impl Responder {
-    use tracing::{info, warn};
-    use std::sync::Mutex;
-    use std::collections::HashMap;
+pub async fn coordinate_sync_round(req: web::Json<SyncRoundRequest>) -> impl Responder {
     use once_cell::sync::Lazy;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+    use tracing::{info, warn};
 
     // In-memory storage for sync round exports
     // Key: (escrow_id, round) -> HashMap<role, export_info>
@@ -367,16 +374,25 @@ pub async fn coordinate_sync_round(
 
     let escrow_key = (req.escrow_id.clone(), req.round);
 
-    info!("🔄 Sync round {} for escrow {} from {}", req.round, req.escrow_id, req.role);
+    info!(
+        "🔄 Sync round {} for escrow {} from {}",
+        req.round, req.escrow_id, req.role
+    );
 
     // Store our export
     {
         let mut storage = SYNC_STORAGE.lock().unwrap();
-        let round_exports = storage.entry(escrow_key.clone()).or_insert_with(HashMap::new);
+        let round_exports = storage
+            .entry(escrow_key.clone())
+            .or_insert_with(HashMap::new);
         round_exports.insert(req.role.clone(), req.export_info.clone());
 
-        info!("Stored export for {} (round {}), total participants: {}",
-            req.role, req.round, round_exports.len());
+        info!(
+            "Stored export for {} (round {}), total participants: {}",
+            req.role,
+            req.round,
+            round_exports.len()
+        );
     }
 
     // Wait for all 3 participants (or timeout)
@@ -393,8 +409,12 @@ pub async fn coordinate_sync_round(
                 }
             }
 
-            info!("✅ Sync round {} complete for {}, returning {} exports",
-                req.round, req.role, received_infos.len());
+            info!(
+                "✅ Sync round {} complete for {}, returning {} exports",
+                req.round,
+                req.role,
+                received_infos.len()
+            );
 
             return HttpResponse::Ok().json(SyncRoundResponse {
                 success: true,
@@ -402,8 +422,12 @@ pub async fn coordinate_sync_round(
             });
         } else {
             // Not all participants ready yet
-            warn!("Sync round {} for escrow {} incomplete: {}/3 participants",
-                req.round, req.escrow_id, exports.len());
+            warn!(
+                "Sync round {} for escrow {} incomplete: {}/3 participants",
+                req.round,
+                req.escrow_id,
+                exports.len()
+            );
         }
     }
 
@@ -435,12 +459,14 @@ pub async fn funds_received_notification(
     req: web::Json<FundsReceivedRequest>,
     db: web::Data<crate::db::DbPool>,
 ) -> impl Responder {
-    use tracing::{info, error};
-    use diesel::prelude::*;
     use crate::schema::escrows;
+    use diesel::prelude::*;
+    use tracing::{error, info};
 
-    info!("💰 Funds received notification for escrow {}: {} atomic units",
-        req.escrow_id, req.balance);
+    info!(
+        "💰 Funds received notification for escrow {}: {} atomic units",
+        req.escrow_id, req.balance
+    );
 
     let escrow_id = req.escrow_id.clone();
     let balance = req.balance;
@@ -448,7 +474,8 @@ pub async fn funds_received_notification(
 
     // Update escrow status in database
     let result = tokio::task::spawn_blocking(move || {
-        let mut conn = db_clone.get()
+        let mut conn = db_clone
+            .get()
             .map_err(|e| anyhow::anyhow!("Failed to get DB connection: {}", e))?;
 
         diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id)))
@@ -466,7 +493,10 @@ pub async fn funds_received_notification(
     match result {
         Ok(Ok(())) => {
             let amount_xmr = balance as f64 / 1e12;
-            info!("✅ Escrow {} status updated to 'funded' ({} XMR)", req.escrow_id, amount_xmr);
+            info!(
+                "✅ Escrow {} status updated to 'funded' ({} XMR)",
+                req.escrow_id, amount_xmr
+            );
 
             HttpResponse::Ok().json(serde_json::json!({
                 "success": true,

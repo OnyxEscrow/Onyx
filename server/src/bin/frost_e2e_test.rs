@@ -18,10 +18,8 @@ use std::collections::BTreeMap;
 
 /// Ed25519 curve order
 const L: [u8; 32] = [
-    0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,
-    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+    0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
 ];
 
 fn main() {
@@ -49,9 +47,12 @@ fn main() {
 
     // Round 1: Each participant generates commitment
     println!("Round 1: Generating commitments...");
-    let (r1_secret_buyer, r1_pkg_buyer) = dkg::part1(id_buyer, max_signers, threshold, &mut OsRng).unwrap();
-    let (r1_secret_vendor, r1_pkg_vendor) = dkg::part1(id_vendor, max_signers, threshold, &mut OsRng).unwrap();
-    let (r1_secret_arbiter, r1_pkg_arbiter) = dkg::part1(id_arbiter, max_signers, threshold, &mut OsRng).unwrap();
+    let (r1_secret_buyer, r1_pkg_buyer) =
+        dkg::part1(id_buyer, max_signers, threshold, &mut OsRng).unwrap();
+    let (r1_secret_vendor, r1_pkg_vendor) =
+        dkg::part1(id_vendor, max_signers, threshold, &mut OsRng).unwrap();
+    let (r1_secret_arbiter, r1_pkg_arbiter) =
+        dkg::part1(id_arbiter, max_signers, threshold, &mut OsRng).unwrap();
     println!("  ✓ All 3 participants generated Round 1 packages\n");
 
     // Round 2: Each participant computes packages for others
@@ -72,9 +73,12 @@ fn main() {
     other_r1_for_arbiter.insert(id_buyer, r1_pkg_buyer.clone());
     other_r1_for_arbiter.insert(id_vendor, r1_pkg_vendor.clone());
 
-    let (r2_secret_buyer, r2_pkgs_buyer) = dkg::part2(r1_secret_buyer, &other_r1_for_buyer).unwrap();
-    let (r2_secret_vendor, r2_pkgs_vendor) = dkg::part2(r1_secret_vendor, &other_r1_for_vendor).unwrap();
-    let (r2_secret_arbiter, r2_pkgs_arbiter) = dkg::part2(r1_secret_arbiter, &other_r1_for_arbiter).unwrap();
+    let (r2_secret_buyer, r2_pkgs_buyer) =
+        dkg::part2(r1_secret_buyer, &other_r1_for_buyer).unwrap();
+    let (r2_secret_vendor, r2_pkgs_vendor) =
+        dkg::part2(r1_secret_vendor, &other_r1_for_vendor).unwrap();
+    let (r2_secret_arbiter, r2_pkgs_arbiter) =
+        dkg::part2(r1_secret_arbiter, &other_r1_for_arbiter).unwrap();
     println!("  ✓ All 3 participants computed Round 2 packages\n");
 
     // Round 3: Finalize
@@ -95,15 +99,21 @@ fn main() {
     r2_for_arbiter.insert(id_buyer, r2_pkgs_buyer.get(&id_arbiter).unwrap().clone());
     r2_for_arbiter.insert(id_vendor, r2_pkgs_vendor.get(&id_arbiter).unwrap().clone());
 
-    let (key_pkg_buyer, pub_pkg_buyer) = dkg::part3(&r2_secret_buyer, &other_r1_for_buyer, &r2_for_buyer).unwrap();
-    let (key_pkg_vendor, pub_pkg_vendor) = dkg::part3(&r2_secret_vendor, &other_r1_for_vendor, &r2_for_vendor).unwrap();
-    let (key_pkg_arbiter, _pub_pkg_arbiter) = dkg::part3(&r2_secret_arbiter, &other_r1_for_arbiter, &r2_for_arbiter).unwrap();
+    let (key_pkg_buyer, pub_pkg_buyer) =
+        dkg::part3(&r2_secret_buyer, &other_r1_for_buyer, &r2_for_buyer).unwrap();
+    let (key_pkg_vendor, pub_pkg_vendor) =
+        dkg::part3(&r2_secret_vendor, &other_r1_for_vendor, &r2_for_vendor).unwrap();
+    let (key_pkg_arbiter, _pub_pkg_arbiter) =
+        dkg::part3(&r2_secret_arbiter, &other_r1_for_arbiter, &r2_for_arbiter).unwrap();
 
     // Verify all participants have the same group public key
     let group_pubkey_buyer = pub_pkg_buyer.verifying_key().serialize().unwrap();
     let group_pubkey_vendor = pub_pkg_vendor.verifying_key().serialize().unwrap();
 
-    assert_eq!(group_pubkey_buyer, group_pubkey_vendor, "Group pubkeys must match!");
+    assert_eq!(
+        group_pubkey_buyer, group_pubkey_vendor,
+        "Group pubkeys must match!"
+    );
     println!("  ✓ All participants have same group pubkey");
     println!("  Group pubkey: {}\n", hex::encode(&group_pubkey_buyer));
 
@@ -146,23 +156,47 @@ fn main() {
     // Verify: share * G == verifying_share
     println!("Verifying share * G == verifying_share:");
 
-    let computed_buyer = (&*ED25519_BASEPOINT_TABLE * &share_buyer).compress().to_bytes();
-    let computed_vendor = (&*ED25519_BASEPOINT_TABLE * &share_vendor).compress().to_bytes();
-    let computed_arbiter = (&*ED25519_BASEPOINT_TABLE * &share_arbiter).compress().to_bytes();
+    let computed_buyer = (&*ED25519_BASEPOINT_TABLE * &share_buyer)
+        .compress()
+        .to_bytes();
+    let computed_vendor = (&*ED25519_BASEPOINT_TABLE * &share_vendor)
+        .compress()
+        .to_bytes();
+    let computed_arbiter = (&*ED25519_BASEPOINT_TABLE * &share_arbiter)
+        .compress()
+        .to_bytes();
 
     let buyer_ok = computed_buyer == verify_share_buyer.as_slice();
     let vendor_ok = computed_vendor == verify_share_vendor.as_slice();
     let arbiter_ok = computed_arbiter == verify_share_arbiter.as_slice();
 
-    println!("  Buyer:   {} (computed: {})",
-        if buyer_ok { "✓ MATCH" } else { "✗ MISMATCH" },
-        hex::encode(&computed_buyer));
-    println!("  Vendor:  {} (computed: {})",
-        if vendor_ok { "✓ MATCH" } else { "✗ MISMATCH" },
-        hex::encode(&computed_vendor));
-    println!("  Arbiter: {} (computed: {})\n",
-        if arbiter_ok { "✓ MATCH" } else { "✗ MISMATCH" },
-        hex::encode(&computed_arbiter));
+    println!(
+        "  Buyer:   {} (computed: {})",
+        if buyer_ok {
+            "✓ MATCH"
+        } else {
+            "✗ MISMATCH"
+        },
+        hex::encode(&computed_buyer)
+    );
+    println!(
+        "  Vendor:  {} (computed: {})",
+        if vendor_ok {
+            "✓ MATCH"
+        } else {
+            "✗ MISMATCH"
+        },
+        hex::encode(&computed_vendor)
+    );
+    println!(
+        "  Arbiter: {} (computed: {})\n",
+        if arbiter_ok {
+            "✓ MATCH"
+        } else {
+            "✗ MISMATCH"
+        },
+        hex::encode(&computed_arbiter)
+    );
 
     if !buyer_ok || !vendor_ok || !arbiter_ok {
         println!("❌ CRITICAL: Share verification failed!");
@@ -179,7 +213,7 @@ fn main() {
     // λ₂ = 1 / (1 - 2) = -1 (mod L)
 
     let lambda1 = Scalar::from(2u64);
-    let lambda2 = -Scalar::ONE;  // -1 mod L
+    let lambda2 = -Scalar::ONE; // -1 mod L
 
     println!("Lagrange coefficients for signers {{1, 2}}:");
     println!("  λ₁ (buyer):  {}", hex::encode(lambda1.to_bytes()));
@@ -187,15 +221,33 @@ fn main() {
 
     // Reconstruct group secret: x = λ₁*share₁ + λ₂*share₂
     let reconstructed_secret = lambda1 * share_buyer + lambda2 * share_vendor;
-    let reconstructed_pubkey = (&*ED25519_BASEPOINT_TABLE * &reconstructed_secret).compress().to_bytes();
+    let reconstructed_pubkey = (&*ED25519_BASEPOINT_TABLE * &reconstructed_secret)
+        .compress()
+        .to_bytes();
 
     println!("Reconstruction (buyer + vendor):");
-    println!("  Reconstructed secret: {}", hex::encode(reconstructed_secret.to_bytes()));
-    println!("  Reconstructed pubkey: {}", hex::encode(&reconstructed_pubkey));
-    println!("  Expected group pubkey: {}", hex::encode(&group_pubkey_buyer));
+    println!(
+        "  Reconstructed secret: {}",
+        hex::encode(reconstructed_secret.to_bytes())
+    );
+    println!(
+        "  Reconstructed pubkey: {}",
+        hex::encode(&reconstructed_pubkey)
+    );
+    println!(
+        "  Expected group pubkey: {}",
+        hex::encode(&group_pubkey_buyer)
+    );
 
     let reconstruction_ok = reconstructed_pubkey == group_pubkey_buyer.as_slice();
-    println!("  Result: {}\n", if reconstruction_ok { "✓ MATCH - Lagrange works!" } else { "✗ MISMATCH" });
+    println!(
+        "  Result: {}\n",
+        if reconstruction_ok {
+            "✓ MATCH - Lagrange works!"
+        } else {
+            "✗ MISMATCH"
+        }
+    );
 
     if !reconstruction_ok {
         println!("❌ CRITICAL: Lagrange reconstruction failed!");
@@ -211,9 +263,14 @@ fn main() {
     let lambda1_ba = Scalar::from(3u64) * Scalar::from(2u64).invert();
     let lambda3_ba = -Scalar::ONE * Scalar::from(2u64).invert();
     let reconstructed_ba = lambda1_ba * share_buyer + lambda3_ba * share_arbiter;
-    let reconstructed_pubkey_ba = (&*ED25519_BASEPOINT_TABLE * &reconstructed_ba).compress().to_bytes();
+    let reconstructed_pubkey_ba = (&*ED25519_BASEPOINT_TABLE * &reconstructed_ba)
+        .compress()
+        .to_bytes();
     let ba_ok = reconstructed_pubkey_ba == group_pubkey_buyer.as_slice();
-    println!("  Buyer + Arbiter:  {}", if ba_ok { "✓ MATCH" } else { "✗ MISMATCH" });
+    println!(
+        "  Buyer + Arbiter:  {}",
+        if ba_ok { "✓ MATCH" } else { "✗ MISMATCH" }
+    );
 
     // Vendor + Arbiter (indices 2, 3)
     // λ₂ = 3 / (3 - 2) = 3
@@ -221,9 +278,14 @@ fn main() {
     let lambda2_va = Scalar::from(3u64);
     let lambda3_va = -Scalar::from(2u64);
     let reconstructed_va = lambda2_va * share_vendor + lambda3_va * share_arbiter;
-    let reconstructed_pubkey_va = (&*ED25519_BASEPOINT_TABLE * &reconstructed_va).compress().to_bytes();
+    let reconstructed_pubkey_va = (&*ED25519_BASEPOINT_TABLE * &reconstructed_va)
+        .compress()
+        .to_bytes();
     let va_ok = reconstructed_pubkey_va == group_pubkey_buyer.as_slice();
-    println!("  Vendor + Arbiter: {}\n", if va_ok { "✓ MATCH" } else { "✗ MISMATCH" });
+    println!(
+        "  Vendor + Arbiter: {}\n",
+        if va_ok { "✓ MATCH" } else { "✗ MISMATCH" }
+    );
 
     if !ba_ok || !va_ok {
         println!("❌ CRITICAL: Some signing pairs failed!");
@@ -244,30 +306,52 @@ fn main() {
     // Hp(P) is hash_to_point of the public key
 
     // Simulate Hp(P) as a random point (in real code, use proper hash_to_point)
-    let hp_scalar = Scalar::from(12345u64);  // Deterministic for testing
+    let hp_scalar = Scalar::from(12345u64); // Deterministic for testing
     let hp_point = &*ED25519_BASEPOINT_TABLE * &hp_scalar;
 
     // Full key image (what we need)
     let full_key_image = reconstructed_secret * hp_point;
     println!("Full key image (with reconstructed secret):");
-    println!("  I = x * Hp(P) = {}\n", hex::encode(full_key_image.compress().to_bytes()));
+    println!(
+        "  I = x * Hp(P) = {}\n",
+        hex::encode(full_key_image.compress().to_bytes())
+    );
 
     // Partial key images (what each signer computes)
     let pki_buyer = (lambda1 * share_buyer) * hp_point;
     let pki_vendor = (lambda2 * share_vendor) * hp_point;
 
     println!("Partial key images:");
-    println!("  pKI_buyer  = λ₁ * share₁ * Hp(P) = {}", hex::encode(pki_buyer.compress().to_bytes()));
-    println!("  pKI_vendor = λ₂ * share₂ * Hp(P) = {}\n", hex::encode(pki_vendor.compress().to_bytes()));
+    println!(
+        "  pKI_buyer  = λ₁ * share₁ * Hp(P) = {}",
+        hex::encode(pki_buyer.compress().to_bytes())
+    );
+    println!(
+        "  pKI_vendor = λ₂ * share₂ * Hp(P) = {}\n",
+        hex::encode(pki_vendor.compress().to_bytes())
+    );
 
     // Aggregate
     let aggregated_ki = pki_buyer + pki_vendor;
     println!("Aggregated key image:");
-    println!("  I_agg = pKI_buyer + pKI_vendor = {}", hex::encode(aggregated_ki.compress().to_bytes()));
-    println!("  I_full                         = {}", hex::encode(full_key_image.compress().to_bytes()));
+    println!(
+        "  I_agg = pKI_buyer + pKI_vendor = {}",
+        hex::encode(aggregated_ki.compress().to_bytes())
+    );
+    println!(
+        "  I_full                         = {}",
+        hex::encode(full_key_image.compress().to_bytes())
+    );
 
     let ki_ok = aggregated_ki.compress() == full_key_image.compress();
-    println!("  Result: {}\n", if ki_ok { "✓ MATCH - Key image aggregation works!" } else { "✗ MISMATCH" });
+    println!(
+        "  Result: {}\n",
+        if ki_ok {
+            "✓ MATCH - Key image aggregation works!"
+        } else {
+            "✗ MISMATCH"
+        }
+    );
 
     if !ki_ok {
         println!("❌ CRITICAL: Key image aggregation failed!");
@@ -296,5 +380,8 @@ fn main() {
     println!("Arbiter share:    {}", hex::encode(&share_arbiter_bytes));
     println!("λ₁ (for 1,2):     {}", hex::encode(lambda1.to_bytes()));
     println!("λ₂ (for 1,2):     {}", hex::encode(lambda2.to_bytes()));
-    println!("Reconstructed x:  {}", hex::encode(reconstructed_secret.to_bytes()));
+    println!(
+        "Reconstructed x:  {}",
+        hex::encode(reconstructed_secret.to_bytes())
+    );
 }

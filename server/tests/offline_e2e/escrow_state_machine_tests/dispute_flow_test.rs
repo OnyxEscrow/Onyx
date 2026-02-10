@@ -40,7 +40,7 @@ pub enum DisputeResolution {
     FullRefund,
     PartialRefund(u64), // Amount to refund
     ReleaseToVendor,
-    Split(u64, u64),    // (vendor_amount, buyer_refund)
+    Split(u64, u64), // (vendor_amount, buyer_refund)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -207,7 +207,10 @@ impl Dispute {
 
     /// Get evidence count by party
     pub fn evidence_count_by_party(&self, party: PartyRole) -> usize {
-        self.evidence.iter().filter(|e| e.submitted_by == party).count()
+        self.evidence
+            .iter()
+            .filter(|e| e.submitted_by == party)
+            .count()
     }
 }
 
@@ -254,7 +257,10 @@ fn test_arbiter_cannot_open_dispute() {
         1000,
     );
 
-    assert_eq!(result, Err(DisputeError::UnauthorizedAction(PartyRole::Arbiter)));
+    assert_eq!(
+        result,
+        Err(DisputeError::UnauthorizedAction(PartyRole::Arbiter))
+    );
 }
 
 #[test]
@@ -270,13 +276,12 @@ fn test_all_dispute_reasons() {
     ];
 
     for reason in reasons {
-        let dispute = Dispute::open(
-            "escrow_001".to_string(),
-            reason,
-            PartyRole::Buyer,
-            1000,
+        let dispute = Dispute::open("escrow_001".to_string(), reason, PartyRole::Buyer, 1000);
+        assert!(
+            dispute.is_ok(),
+            "Should open dispute with reason {:?}",
+            reason
         );
-        assert!(dispute.is_ok(), "Should open dispute with reason {:?}", reason);
     }
 }
 
@@ -293,7 +298,8 @@ fn test_buyer_can_submit_evidence() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -317,7 +323,8 @@ fn test_vendor_can_submit_evidence() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Vendor,
@@ -340,7 +347,8 @@ fn test_arbiter_cannot_submit_evidence() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Arbiter,
@@ -351,7 +359,10 @@ fn test_arbiter_cannot_submit_evidence() {
     };
 
     let result = dispute.submit_evidence(evidence);
-    assert_eq!(result, Err(DisputeError::UnauthorizedAction(PartyRole::Arbiter)));
+    assert_eq!(
+        result,
+        Err(DisputeError::UnauthorizedAction(PartyRole::Arbiter))
+    );
 }
 
 #[test]
@@ -363,7 +374,8 @@ fn test_multiple_evidence_submissions() {
         DisputeReason::ItemNotAsDescribed,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Buyer submits 2 pieces of evidence
     for i in 0..2 {
@@ -401,7 +413,8 @@ fn test_cannot_submit_evidence_after_review() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Submit evidence and start review
     let evidence = Evidence {
@@ -440,14 +453,18 @@ fn test_start_review_requires_evidence_collection_status() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Status is Opened, not EvidenceCollection
     assert_eq!(dispute.status, DisputeStatus::Opened);
 
     // start_review() fails because wrong status (must be EvidenceCollection)
     let result = dispute.start_review();
-    assert_eq!(result, Err(DisputeError::InvalidStatus(DisputeStatus::Opened)));
+    assert_eq!(
+        result,
+        Err(DisputeError::InvalidStatus(DisputeStatus::Opened))
+    );
 }
 
 #[test]
@@ -459,7 +476,8 @@ fn test_happy_path_full_refund() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Submit evidence
     let evidence = Evidence {
@@ -476,10 +494,12 @@ fn test_happy_path_full_refund() {
     assert_eq!(dispute.status, DisputeStatus::UnderReview);
 
     // Propose resolution
-    dispute.propose_resolution(
-        DisputeResolution::FullRefund,
-        "Item was never shipped".to_string(),
-    ).unwrap();
+    dispute
+        .propose_resolution(
+            DisputeResolution::FullRefund,
+            "Item was never shipped".to_string(),
+        )
+        .unwrap();
     assert_eq!(dispute.status, DisputeStatus::ResolutionProposed);
     assert_eq!(dispute.resolution, Some(DisputeResolution::FullRefund));
 
@@ -498,7 +518,8 @@ fn test_happy_path_release_to_vendor() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Submit vendor evidence
     let evidence = Evidence {
@@ -512,10 +533,12 @@ fn test_happy_path_release_to_vendor() {
 
     // Review and resolve
     dispute.start_review().unwrap();
-    dispute.propose_resolution(
-        DisputeResolution::ReleaseToVendor,
-        "Item was delivered according to tracking".to_string(),
-    ).unwrap();
+    dispute
+        .propose_resolution(
+            DisputeResolution::ReleaseToVendor,
+            "Item was delivered according to tracking".to_string(),
+        )
+        .unwrap();
     dispute.finalize(2000).unwrap();
 
     assert_eq!(dispute.resolution, Some(DisputeResolution::ReleaseToVendor));
@@ -530,7 +553,8 @@ fn test_partial_refund_resolution() {
         DisputeReason::ItemDamaged,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -542,10 +566,12 @@ fn test_partial_refund_resolution() {
     dispute.submit_evidence(evidence).unwrap();
 
     dispute.start_review().unwrap();
-    dispute.propose_resolution(
-        DisputeResolution::PartialRefund(500_000_000_000), // 0.5 XMR
-        "Partial damage warrants 50% refund".to_string(),
-    ).unwrap();
+    dispute
+        .propose_resolution(
+            DisputeResolution::PartialRefund(500_000_000_000), // 0.5 XMR
+            "Partial damage warrants 50% refund".to_string(),
+        )
+        .unwrap();
     dispute.finalize(2000).unwrap();
 
     assert_eq!(
@@ -563,7 +589,8 @@ fn test_split_resolution() {
         DisputeReason::QualityIssue,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -575,10 +602,12 @@ fn test_split_resolution() {
     dispute.submit_evidence(evidence).unwrap();
 
     dispute.start_review().unwrap();
-    dispute.propose_resolution(
-        DisputeResolution::Split(700_000_000_000, 300_000_000_000), // 70/30 split
-        "Both parties share responsibility".to_string(),
-    ).unwrap();
+    dispute
+        .propose_resolution(
+            DisputeResolution::Split(700_000_000_000, 300_000_000_000), // 70/30 split
+            "Both parties share responsibility".to_string(),
+        )
+        .unwrap();
     dispute.finalize(2000).unwrap();
 
     assert_eq!(
@@ -600,7 +629,8 @@ fn test_can_appeal_before_finalization() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -612,10 +642,12 @@ fn test_can_appeal_before_finalization() {
     dispute.submit_evidence(evidence).unwrap();
 
     dispute.start_review().unwrap();
-    dispute.propose_resolution(
-        DisputeResolution::ReleaseToVendor,
-        "Release to vendor".to_string(),
-    ).unwrap();
+    dispute
+        .propose_resolution(
+            DisputeResolution::ReleaseToVendor,
+            "Release to vendor".to_string(),
+        )
+        .unwrap();
 
     // Appeal instead of finalize
     assert!(dispute.appeal().is_ok());
@@ -631,7 +663,8 @@ fn test_cannot_appeal_after_finalization() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -643,12 +676,17 @@ fn test_cannot_appeal_after_finalization() {
     dispute.submit_evidence(evidence).unwrap();
 
     dispute.start_review().unwrap();
-    dispute.propose_resolution(DisputeResolution::FullRefund, "Refund".to_string()).unwrap();
+    dispute
+        .propose_resolution(DisputeResolution::FullRefund, "Refund".to_string())
+        .unwrap();
     dispute.finalize(2000).unwrap();
 
     // Cannot appeal after resolved
     let result = dispute.appeal();
-    assert_eq!(result, Err(DisputeError::InvalidStatus(DisputeStatus::Resolved)));
+    assert_eq!(
+        result,
+        Err(DisputeError::InvalidStatus(DisputeStatus::Resolved))
+    );
 }
 
 // ============================================================================
@@ -664,7 +702,8 @@ fn test_cannot_finalize_without_resolution() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -679,7 +718,10 @@ fn test_cannot_finalize_without_resolution() {
 
     // Try to finalize without proposing resolution
     let result = dispute.finalize(2000);
-    assert_eq!(result, Err(DisputeError::InvalidStatus(DisputeStatus::UnderReview)));
+    assert_eq!(
+        result,
+        Err(DisputeError::InvalidStatus(DisputeStatus::UnderReview))
+    );
 }
 
 #[test]
@@ -691,7 +733,8 @@ fn test_cannot_propose_resolution_twice() {
         DisputeReason::ItemNotReceived,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     let evidence = Evidence {
         submitted_by: PartyRole::Buyer,
@@ -703,14 +746,21 @@ fn test_cannot_propose_resolution_twice() {
     dispute.submit_evidence(evidence).unwrap();
 
     dispute.start_review().unwrap();
-    dispute.propose_resolution(DisputeResolution::FullRefund, "Refund".to_string()).unwrap();
+    dispute
+        .propose_resolution(DisputeResolution::FullRefund, "Refund".to_string())
+        .unwrap();
 
     // Try to propose again
     let result = dispute.propose_resolution(
         DisputeResolution::ReleaseToVendor,
         "Changed mind".to_string(),
     );
-    assert_eq!(result, Err(DisputeError::InvalidStatus(DisputeStatus::ResolutionProposed)));
+    assert_eq!(
+        result,
+        Err(DisputeError::InvalidStatus(
+            DisputeStatus::ResolutionProposed
+        ))
+    );
 }
 
 // ============================================================================
@@ -735,7 +785,8 @@ fn test_all_evidence_types() {
         DisputeReason::ItemNotAsDescribed,
         PartyRole::Buyer,
         1000,
-    ).unwrap();
+    )
+    .unwrap();
 
     for (i, etype) in evidence_types.iter().enumerate() {
         let evidence = Evidence {

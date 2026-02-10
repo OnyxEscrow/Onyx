@@ -32,6 +32,7 @@ use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
+use crate::handlers::auth_helpers::get_authenticated_identity;
 use crate::models::escrow::Escrow;
 use crate::models::frost_dkg::{DkgStatus, FrostRole};
 use crate::models::notification::{NewNotification, Notification, NotificationType};
@@ -39,8 +40,9 @@ use crate::models::shield_backup::ShieldBackup;
 use crate::models::webhook::WebhookEventType;
 use crate::services::arbiter_auto_dkg::ArbiterAutoDkg;
 use crate::services::frost_coordinator::FrostCoordinator;
-use crate::services::webhook_dispatcher::{WebhookDispatcher, build_escrow_payload, emit_webhook_nonblocking};
-use crate::handlers::auth_helpers::get_authenticated_identity;
+use crate::services::webhook_dispatcher::{
+    build_escrow_payload, emit_webhook_nonblocking, WebhookDispatcher,
+};
 use crate::websocket::{NotifyUser, WebSocketServer, WsEvent};
 
 type DbPool = Pool<ConnectionManager<SqliteConnection>>;
@@ -48,30 +50,30 @@ type DbPool = Pool<ConnectionManager<SqliteConnection>>;
 /// Request to submit Round 1 package
 #[derive(Debug, Deserialize)]
 pub struct Round1Request {
-    pub role: String,        // "buyer", "vendor", "arbiter"
-    pub package: String,     // Hex-encoded Round 1 package
+    pub role: String,    // "buyer", "vendor", "arbiter"
+    pub package: String, // Hex-encoded Round 1 package
 }
 
 /// Request to submit Round 2 packages
 #[derive(Debug, Deserialize)]
 pub struct Round2Request {
-    pub role: String,                         // Sender role
-    pub packages: HashMap<String, String>,    // Recipient index -> package hex
+    pub role: String,                      // Sender role
+    pub packages: HashMap<String, String>, // Recipient index -> package hex
 }
 
 /// Request to complete DKG
 #[derive(Debug, Deserialize)]
 pub struct CompleteDkgRequest {
-    pub group_pubkey: String,       // Hex-encoded group public key (32 bytes = 64 hex chars)
-    pub multisig_address: String,   // Monero address (95 characters)
-    pub multisig_view_key: String,  // Hex-encoded view key (32 bytes = 64 hex chars)
+    pub group_pubkey: String, // Hex-encoded group public key (32 bytes = 64 hex chars)
+    pub multisig_address: String, // Monero address (95 characters)
+    pub multisig_view_key: String, // Hex-encoded view key (32 bytes = 64 hex chars)
 }
 
 /// Request for Lagrange coefficients
 #[derive(Debug, Deserialize)]
 pub struct LagrangeRequest {
-    pub signer1: String,   // First signer role
-    pub signer2: String,   // Second signer role
+    pub signer1: String, // First signer role
+    pub signer2: String, // Second signer role
 }
 
 /// Response with Lagrange coefficients
@@ -159,15 +161,19 @@ pub async fn init_frost_dkg(
                 Ok(status) => HttpResponse::Ok().json(ApiResponse::success(status)),
                 Err(e) => {
                     error!("Failed to get DKG status: {}", e);
-                    HttpResponse::InternalServerError()
-                        .json(ApiResponse::<()>::error(&format!("Failed to get DKG status: {}", e)))
+                    HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                        "Failed to get DKG status: {}",
+                        e
+                    )))
                 }
             }
         }
         Err(e) => {
             error!("Failed to init FROST DKG: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to init DKG: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to init DKG: {}",
+                e
+            )))
         }
     }
 }
@@ -188,15 +194,13 @@ pub async fn submit_round1(
 
     // Dual auth: API key or session
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let role = match FrostRole::from_str(&body.role) {
         Some(r) => r,
         None => {
-            return HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error("Invalid role"));
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error("Invalid role"));
         }
     };
 
@@ -241,8 +245,8 @@ pub async fn submit_round1(
                 }
             }
 
-            let status = FrostCoordinator::get_status(&mut conn, &escrow_id)
-                .unwrap_or_else(|_| DkgStatus {
+            let status =
+                FrostCoordinator::get_status(&mut conn, &escrow_id).unwrap_or_else(|_| DkgStatus {
                     escrow_id: escrow_id.clone(),
                     round1_complete: all_submitted,
                     round2_complete: false,
@@ -265,9 +269,13 @@ pub async fn submit_round1(
 
                 // If all submitted, notify that Round 1 is complete
                 if all_submitted {
-                    notify_all_parties(&websocket, &escrow, WsEvent::FrostDkgRound1Complete {
-                        escrow_id: parse_uuid_safe(&escrow_id),
-                    });
+                    notify_all_parties(
+                        &websocket,
+                        &escrow,
+                        WsEvent::FrostDkgRound1Complete {
+                            escrow_id: parse_uuid_safe(&escrow_id),
+                        },
+                    );
                     info!(escrow_id = %escrow_id, "FROST DKG Round 1 complete, notifying parties");
                 } else {
                     // Notify each party about Round 1 progress
@@ -295,11 +303,14 @@ pub async fn submit_round1(
                                     parties_pending.join(", ")
                                 ),
                                 Some(format!("/escrow/{}", escrow_id)),
-                                Some(serde_json::json!({
-                                    "escrow_id": escrow_id,
-                                    "round": 1,
-                                    "persistent": true
-                                }).to_string()),
+                                Some(
+                                    serde_json::json!({
+                                        "escrow_id": escrow_id,
+                                        "round": 1,
+                                        "persistent": true
+                                    })
+                                    .to_string(),
+                                ),
                             );
 
                             if let Err(e) = Notification::create(notification, &mut conn) {
@@ -319,8 +330,10 @@ pub async fn submit_round1(
         }
         Err(e) => {
             error!("Failed to submit Round 1: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to submit: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to submit: {}",
+                e
+            )))
         }
     }
 }
@@ -337,8 +350,7 @@ pub async fn get_round1_packages(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let mut conn = match pool.get() {
@@ -352,14 +364,11 @@ pub async fn get_round1_packages(
 
     match FrostCoordinator::get_all_round1_packages(&mut conn, &escrow_id) {
         Ok(packages_json) => {
-            let packages: serde_json::Value = serde_json::from_str(&packages_json)
-                .unwrap_or(serde_json::json!({}));
+            let packages: serde_json::Value =
+                serde_json::from_str(&packages_json).unwrap_or(serde_json::json!({}));
             HttpResponse::Ok().json(ApiResponse::success(packages))
         }
-        Err(e) => {
-            HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error(&format!("{}", e)))
-        }
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
     }
 }
 
@@ -378,15 +387,13 @@ pub async fn submit_round2(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let role = match FrostRole::from_str(&body.role) {
         Some(r) => r,
         None => {
-            return HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error("Invalid role"));
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error("Invalid role"));
         }
     };
 
@@ -430,8 +437,8 @@ pub async fn submit_round2(
                 }
             }
 
-            let status = FrostCoordinator::get_status(&mut conn, &escrow_id)
-                .unwrap_or_else(|_| DkgStatus {
+            let status =
+                FrostCoordinator::get_status(&mut conn, &escrow_id).unwrap_or_else(|_| DkgStatus {
                     escrow_id: escrow_id.clone(),
                     round1_complete: true,
                     round2_complete: all_complete,
@@ -452,9 +459,13 @@ pub async fn submit_round2(
 
                 // If all Round 2 packages submitted, notify completion
                 if all_complete {
-                    notify_all_parties(&websocket, &escrow, WsEvent::FrostDkgRound2Complete {
-                        escrow_id: parse_uuid_safe(&escrow_id),
-                    });
+                    notify_all_parties(
+                        &websocket,
+                        &escrow,
+                        WsEvent::FrostDkgRound2Complete {
+                            escrow_id: parse_uuid_safe(&escrow_id),
+                        },
+                    );
                     info!(escrow_id = %escrow_id, "FROST DKG Round 2 complete, notifying parties");
                 } else {
                     // Notify each party about Round 2 progress
@@ -489,11 +500,14 @@ pub async fn submit_round2(
                                     packages_submitted
                                 ),
                                 Some(format!("/escrow/{}", escrow_id)),
-                                Some(serde_json::json!({
-                                    "escrow_id": escrow_id,
-                                    "round": 2,
-                                    "persistent": true
-                                }).to_string()),
+                                Some(
+                                    serde_json::json!({
+                                        "escrow_id": escrow_id,
+                                        "round": 2,
+                                        "persistent": true
+                                    })
+                                    .to_string(),
+                                ),
                             );
 
                             if let Err(e) = Notification::create(notification, &mut conn) {
@@ -513,8 +527,10 @@ pub async fn submit_round2(
         }
         Err(e) => {
             error!("Failed to submit Round 2: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to submit: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to submit: {}",
+                e
+            )))
         }
     }
 }
@@ -532,16 +548,16 @@ pub async fn get_round2_packages(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let role_str = query.get("role").cloned().unwrap_or_default();
     let role = match FrostRole::from_str(&role_str) {
         Some(r) => r,
         None => {
-            return HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error("Invalid or missing role parameter"));
+            return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+                "Invalid or missing role parameter",
+            ));
         }
     };
 
@@ -556,14 +572,11 @@ pub async fn get_round2_packages(
 
     match FrostCoordinator::get_round2_packages_for(&mut conn, &escrow_id, role) {
         Ok(packages_json) => {
-            let packages: serde_json::Value = serde_json::from_str(&packages_json)
-                .unwrap_or(serde_json::json!({}));
+            let packages: serde_json::Value =
+                serde_json::from_str(&packages_json).unwrap_or(serde_json::json!({}));
             HttpResponse::Ok().json(ApiResponse::success(packages))
         }
-        Err(e) => {
-            HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error(&format!("{}", e)))
-        }
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
     }
 }
 
@@ -581,26 +594,33 @@ pub async fn complete_dkg(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     // Validate group_pubkey (32 bytes = 64 hex chars)
     if body.group_pubkey.len() != 64 || !body.group_pubkey.chars().all(|c| c.is_ascii_hexdigit()) {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Invalid group_pubkey: must be 64 hex characters"));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "Invalid group_pubkey: must be 64 hex characters",
+        ));
     }
 
     // Validate multisig_address (Monero addresses are 95 characters)
     if body.multisig_address.len() != 95 {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Invalid multisig_address: must be 95 characters"));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "Invalid multisig_address: must be 95 characters",
+        ));
     }
 
     // Validate multisig_view_key (32 bytes = 64 hex chars)
-    if body.multisig_view_key.len() != 64 || !body.multisig_view_key.chars().all(|c| c.is_ascii_hexdigit()) {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Invalid multisig_view_key: must be 64 hex characters"));
+    if body.multisig_view_key.len() != 64
+        || !body
+            .multisig_view_key
+            .chars()
+            .all(|c| c.is_ascii_hexdigit())
+    {
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "Invalid multisig_view_key: must be 64 hex characters",
+        ));
     }
 
     let mut conn = match pool.get() {
@@ -628,8 +648,8 @@ pub async fn complete_dkg(
                 address_prefix = &body.multisig_address[..10],
                 "FROST DKG complete with address stored"
             );
-            let status = FrostCoordinator::get_status(&mut conn, &escrow_id)
-                .unwrap_or_else(|_| DkgStatus {
+            let status =
+                FrostCoordinator::get_status(&mut conn, &escrow_id).unwrap_or_else(|_| DkgStatus {
                     escrow_id: escrow_id.clone(),
                     round1_complete: true,
                     round2_complete: true,
@@ -647,10 +667,14 @@ pub async fn complete_dkg(
             // === FROST DKG COMPLETE NOTIFICATION ===
             // Notify all parties that the 2-of-3 multisig wallet is ready
             if let Ok(escrow) = Escrow::find_by_id(&mut conn, escrow_id.clone()) {
-                notify_all_parties(&websocket, &escrow, WsEvent::FrostDkgComplete {
-                    escrow_id: parse_uuid_safe(&escrow_id),
-                    multisig_address: multisig_address_for_notification,
-                });
+                notify_all_parties(
+                    &websocket,
+                    &escrow,
+                    WsEvent::FrostDkgComplete {
+                        escrow_id: parse_uuid_safe(&escrow_id),
+                        multisig_address: multisig_address_for_notification,
+                    },
+                );
                 info!(escrow_id = %escrow_id, "FROST DKG complete, notifying all parties");
             }
 
@@ -658,8 +682,10 @@ pub async fn complete_dkg(
         }
         Err(e) => {
             error!("Failed to complete DKG: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to complete: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to complete: {}",
+                e
+            )))
         }
     }
 }
@@ -676,8 +702,7 @@ pub async fn get_dkg_status(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let mut conn = match pool.get() {
@@ -691,19 +716,17 @@ pub async fn get_dkg_status(
 
     match FrostCoordinator::get_status(&mut conn, &escrow_id) {
         Ok(status) => HttpResponse::Ok().json(ApiResponse::success(status)),
-        Err(e) => {
-            HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error(&format!("DKG state not found: {}", e)))
-        }
+        Err(e) => HttpResponse::NotFound().json(ApiResponse::<()>::error(&format!(
+            "DKG state not found: {}",
+            e
+        ))),
     }
 }
 
 /// Get Lagrange coefficients for a signing pair
 ///
 /// GET /api/escrow/frost/lagrange?signer1=buyer&signer2=vendor
-pub async fn get_lagrange_coefficients(
-    query: web::Query<LagrangeRequest>,
-) -> HttpResponse {
+pub async fn get_lagrange_coefficients(query: web::Query<LagrangeRequest>) -> HttpResponse {
     match FrostCoordinator::get_lagrange_coefficients(&query.signer1, &query.signer2) {
         Ok((lambda1, lambda2)) => {
             let response = LagrangeResponse {
@@ -712,10 +735,7 @@ pub async fn get_lagrange_coefficients(
             };
             HttpResponse::Ok().json(ApiResponse::success(response))
         }
-        Err(e) => {
-            HttpResponse::BadRequest()
-                .json(ApiResponse::<()>::error(&format!("{}", e)))
-        }
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
     }
 }
 
@@ -745,8 +765,7 @@ pub async fn register_shield(
 
     // Validate role
     if !["buyer", "vendor", "arbiter"].contains(&body.role.as_str()) {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error("Invalid role"));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error("Invalid role"));
     }
 
     // Validate backup_id format (should be hex string)
@@ -780,7 +799,9 @@ pub async fn register_shield(
                     user_id = %user_id,
                     "Updating shield backup_id during recovery"
                 );
-                if let Err(e) = ShieldBackup::update_backup_id(&mut conn, &existing.id, &body.backup_id) {
+                if let Err(e) =
+                    ShieldBackup::update_backup_id(&mut conn, &existing.id, &body.backup_id)
+                {
                     error!("Failed to update shield backup_id: {}", e);
                     return HttpResponse::InternalServerError()
                         .json(ApiResponse::<()>::error("Failed to update shield"));
@@ -816,8 +837,10 @@ pub async fn register_shield(
         }
         Err(e) => {
             error!("Failed to create shield backup: {}", e);
-            HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to register shield: {}", e)))
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
+                "Failed to register shield: {}",
+                e
+            )))
         }
     }
 }
@@ -835,8 +858,7 @@ pub async fn verify_shield(
     let escrow_id = path.into_inner();
 
     if get_authenticated_identity(&req, &session).is_err() {
-        return HttpResponse::Unauthorized()
-            .json(ApiResponse::<()>::error("Not authenticated"));
+        return HttpResponse::Unauthorized().json(ApiResponse::<()>::error("Not authenticated"));
     }
 
     let mut conn = match pool.get() {
@@ -859,11 +881,9 @@ pub async fn verify_shield(
                 "backup_id": backup.backup_id
             })))
         }
-        Ok(None) => {
-            HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
-                "valid": false
-            })))
-        }
+        Ok(None) => HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
+            "valid": false
+        }))),
         Err(e) => {
             error!("Failed to verify shield: {}", e);
             HttpResponse::InternalServerError()
@@ -965,32 +985,30 @@ pub async fn confirm_shipped(
     let escrow = match Escrow::find_by_id(&mut conn, escrow_id.clone()) {
         Ok(e) => e,
         Err(_) => {
-            return HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("Escrow not found"));
+            return HttpResponse::NotFound().json(ApiResponse::<()>::error("Escrow not found"));
         }
     };
 
     // 3. Verify status == "funded"
     if escrow.status != "funded" {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(&format!(
-                "E_INVALID_STATUS: Expected 'funded', got '{}'",
-                escrow.status
-            )));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!(
+            "E_INVALID_STATUS: Expected 'funded', got '{}'",
+            escrow.status
+        )));
     }
 
     // 4. Verify caller == vendor_id
     if escrow.vendor_id != user_id {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("E_NOT_VENDOR: Only vendor can confirm shipment"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "E_NOT_VENDOR: Only vendor can confirm shipment",
+        ));
     }
 
     // 5. CRITICAL: Verify vendor_payout_address is set
     if escrow.vendor_payout_address.is_none() {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(
-                "E_PAYOUT_ADDRESS_REQUIRED: Set your payout address before shipping"
-            ));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "E_PAYOUT_ADDRESS_REQUIRED: Set your payout address before shipping",
+        ));
     }
 
     // 6. Calculate auto_release_at (default: 14 days)
@@ -1024,7 +1042,10 @@ pub async fn confirm_shipped(
         tracking_info: body.tracking_info.clone(),
         auto_release_at: auto_release_at.naive_utc(),
     });
-    info!("[WebSocket] Broadcast EscrowShipped for {} to buyer {}", escrow_id, escrow.buyer_id);
+    info!(
+        "[WebSocket] Broadcast EscrowShipped for {} to buyer {}",
+        escrow_id, escrow.buyer_id
+    );
 
     // 9. Create persistent notification for buyer
     let notification = NewNotification::new(
@@ -1036,11 +1057,14 @@ pub async fn confirm_shipped(
             delivery_days
         ),
         Some(format!("/escrow/{}", escrow_id)),
-        Some(serde_json::json!({
-            "escrow_id": escrow_id,
-            "event": "shipped",
-            "auto_release_days": delivery_days
-        }).to_string()),
+        Some(
+            serde_json::json!({
+                "escrow_id": escrow_id,
+                "event": "shipped",
+                "auto_release_days": delivery_days
+            })
+            .to_string(),
+        ),
     );
 
     if let Err(e) = Notification::create(notification, &mut conn) {
@@ -1051,12 +1075,16 @@ pub async fn confirm_shipped(
     emit_webhook_nonblocking(
         webhook_dispatcher.get_ref().clone(),
         WebhookEventType::EscrowShipped,
-        build_escrow_payload(&escrow_id, "escrow.shipped", serde_json::json!({
-            "vendor_id": user_id,
-            "tracking_info": body.tracking_info,
-            "auto_release_at": auto_release_at.to_rfc3339(),
-            "status": "shipped",
-        })),
+        build_escrow_payload(
+            &escrow_id,
+            "escrow.shipped",
+            serde_json::json!({
+                "vendor_id": user_id,
+                "tracking_info": body.tracking_info,
+                "auto_release_at": auto_release_at.to_rfc3339(),
+                "status": "shipped",
+            }),
+        ),
     );
 
     HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
@@ -1086,10 +1114,9 @@ pub async fn confirm_receipt(
 
     // 1. CRITICAL: Validate explicit consent
     if !body.consent_confirmed {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(
-                "E_CONSENT_REQUIRED: Must explicitly consent to release funds"
-            ));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(
+            "E_CONSENT_REQUIRED: Must explicitly consent to release funds",
+        ));
     }
 
     // 2. Dual auth: API key or session
@@ -1114,24 +1141,23 @@ pub async fn confirm_receipt(
     let escrow = match Escrow::find_by_id(&mut conn, escrow_id.clone()) {
         Ok(e) => e,
         Err(_) => {
-            return HttpResponse::NotFound()
-                .json(ApiResponse::<()>::error("Escrow not found"));
+            return HttpResponse::NotFound().json(ApiResponse::<()>::error("Escrow not found"));
         }
     };
 
     // 4. Verify status == "shipped"
     if escrow.status != "shipped" {
-        return HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(&format!(
-                "E_INVALID_STATUS: Expected 'shipped', got '{}'",
-                escrow.status
-            )));
+        return HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!(
+            "E_INVALID_STATUS: Expected 'shipped', got '{}'",
+            escrow.status
+        )));
     }
 
     // 5. Verify caller == buyer_id
     if escrow.buyer_id != user_id {
-        return HttpResponse::Forbidden()
-            .json(ApiResponse::<()>::error("E_NOT_BUYER: Only buyer can confirm receipt"));
+        return HttpResponse::Forbidden().json(ApiResponse::<()>::error(
+            "E_NOT_BUYER: Only buyer can confirm receipt",
+        ));
     }
 
     // 6. Update escrow to trigger Arbiter Watchdog
@@ -1163,7 +1189,10 @@ pub async fn confirm_receipt(
         buyer_id: escrow.buyer_id.clone(),
         vendor_id: escrow.vendor_id.clone(),
     });
-    info!("[WebSocket] Broadcast BuyerConfirmedReceipt for {} to vendor {}", escrow_id, escrow.vendor_id);
+    info!(
+        "[WebSocket] Broadcast BuyerConfirmedReceipt for {} to vendor {}",
+        escrow_id, escrow.vendor_id
+    );
 
     // 8. Create persistent notification for vendor
     let notification = NewNotification::new(
@@ -1172,10 +1201,13 @@ pub async fn confirm_receipt(
         "Buyer Confirmed Receipt - Releasing Funds".to_string(),
         "Buyer confirmed receipt. Arbiter is signing release transaction.".to_string(),
         Some(format!("/escrow/{}", escrow_id)),
-        Some(serde_json::json!({
-            "escrow_id": escrow_id,
-            "event": "buyer_confirmed_receipt"
-        }).to_string()),
+        Some(
+            serde_json::json!({
+                "escrow_id": escrow_id,
+                "event": "buyer_confirmed_receipt"
+            })
+            .to_string(),
+        ),
     );
 
     if let Err(e) = Notification::create(notification, &mut conn) {
@@ -1186,10 +1218,14 @@ pub async fn confirm_receipt(
     emit_webhook_nonblocking(
         webhook_dispatcher.get_ref().clone(),
         WebhookEventType::EscrowReleased,
-        build_escrow_payload(&escrow_id, "escrow.released", serde_json::json!({
-            "buyer_id": user_id,
-            "status": "releasing",
-        })),
+        build_escrow_payload(
+            &escrow_id,
+            "escrow.released",
+            serde_json::json!({
+                "buyer_id": user_id,
+                "status": "releasing",
+            }),
+        ),
     );
 
     HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
@@ -1224,14 +1260,38 @@ pub fn configure_frost_routes(cfg: &mut web::ServiceConfig) {
             .route("/{id}/ship", web::post().to(confirm_shipped))
             .route("/{id}/confirm-receipt", web::post().to(confirm_receipt))
             // Signing routes (delegated to frost_signing handlers)
-            .route("/{id}/sign/init", web::post().to(frost_signing::init_frost_signing))
-            .route("/{id}/sign/nonces", web::post().to(frost_signing::submit_nonce_commitment))
-            .route("/{id}/sign/nonces", web::get().to(frost_signing::get_nonce_commitments))
-            .route("/{id}/sign/partial", web::post().to(frost_signing::submit_partial_signature))
-            .route("/{id}/sign/status", web::get().to(frost_signing::get_signing_status))
-            .route("/{id}/sign/complete", web::post().to(frost_signing::complete_and_broadcast))
-            .route("/{id}/sign/tx-data", web::get().to(frost_signing::get_tx_data))
-            .route("/{id}/sign/first-signer-data", web::get().to(frost_signing::get_first_signer_data))
+            .route(
+                "/{id}/sign/init",
+                web::post().to(frost_signing::init_frost_signing),
+            )
+            .route(
+                "/{id}/sign/nonces",
+                web::post().to(frost_signing::submit_nonce_commitment),
+            )
+            .route(
+                "/{id}/sign/nonces",
+                web::get().to(frost_signing::get_nonce_commitments),
+            )
+            .route(
+                "/{id}/sign/partial",
+                web::post().to(frost_signing::submit_partial_signature),
+            )
+            .route(
+                "/{id}/sign/status",
+                web::get().to(frost_signing::get_signing_status),
+            )
+            .route(
+                "/{id}/sign/complete",
+                web::post().to(frost_signing::complete_and_broadcast),
+            )
+            .route(
+                "/{id}/sign/tx-data",
+                web::get().to(frost_signing::get_tx_data),
+            )
+            .route(
+                "/{id}/sign/first-signer-data",
+                web::get().to(frost_signing::get_first_signer_data),
+            ),
     );
 }
 
@@ -1265,7 +1325,9 @@ fn get_party_list(escrow: &Escrow) -> Vec<(Uuid, String)> {
 }
 
 /// Compute which parties have submitted Round 1 data
-fn compute_round1_submitted(participants: &crate::models::frost_dkg::DkgParticipants) -> Vec<String> {
+fn compute_round1_submitted(
+    participants: &crate::models::frost_dkg::DkgParticipants,
+) -> Vec<String> {
     let mut submitted = Vec::new();
     if participants.buyer_round1_ready {
         submitted.push("buyer".to_string());

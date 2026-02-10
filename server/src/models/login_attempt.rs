@@ -99,8 +99,8 @@ impl LoginAttempt {
     pub fn count_recent_failed(conn: &mut SqliteConnection, username: &str) -> Result<i64> {
         use diesel::dsl::*;
 
-        let cutoff = chrono::Utc::now().naive_utc()
-            - chrono::Duration::seconds(ATTEMPT_WINDOW_SECS);
+        let cutoff =
+            chrono::Utc::now().naive_utc() - chrono::Duration::seconds(ATTEMPT_WINDOW_SECS);
 
         let count: i64 = login_attempts::table
             .filter(login_attempts::username.eq(username.to_lowercase()))
@@ -122,8 +122,8 @@ impl LoginAttempt {
         let username_lower = username.to_lowercase();
 
         // Check for active lockout record
-        let lockout_cutoff = chrono::Utc::now().naive_utc()
-            - chrono::Duration::seconds(LOCKOUT_DURATION_SECS);
+        let lockout_cutoff =
+            chrono::Utc::now().naive_utc() - chrono::Duration::seconds(LOCKOUT_DURATION_SECS);
 
         let active_lockout: i64 = login_attempts::table
             .filter(login_attempts::username.eq(&username_lower))
@@ -165,7 +165,8 @@ impl LoginAttempt {
             .context("Failed to query recent lockout")?;
 
         if let Some(lockout) = recent_lockout {
-            let lockout_ends = lockout.created_at + chrono::Duration::seconds(LOCKOUT_DURATION_SECS);
+            let lockout_ends =
+                lockout.created_at + chrono::Duration::seconds(LOCKOUT_DURATION_SECS);
             let now = chrono::Utc::now().naive_utc();
 
             if lockout_ends > now {
@@ -193,14 +194,12 @@ impl LoginAttempt {
     ///
     /// Should be run periodically to prevent table bloat
     pub fn cleanup_old(conn: &mut SqliteConnection) -> Result<usize> {
-        let cutoff = chrono::Utc::now().naive_utc()
-            - chrono::Duration::days(7);
+        let cutoff = chrono::Utc::now().naive_utc() - chrono::Duration::days(7);
 
-        let deleted = diesel::delete(
-            login_attempts::table.filter(login_attempts::created_at.lt(cutoff))
-        )
-        .execute(conn)
-        .context("Failed to cleanup old login attempts")?;
+        let deleted =
+            diesel::delete(login_attempts::table.filter(login_attempts::created_at.lt(cutoff)))
+                .execute(conn)
+                .context("Failed to cleanup old login attempts")?;
 
         Ok(deleted)
     }

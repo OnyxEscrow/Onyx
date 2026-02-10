@@ -15,7 +15,7 @@
 //! mainnet FROST 2-of-3 escrow transaction (TX: 80c131432ac6ae44...).
 
 use anyhow::{Context, Result};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
@@ -23,16 +23,15 @@ use diesel::prelude::*;
 use monero_generators_mirror::hash_to_point;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use tracing::{info, warn, error, debug};
+use tracing::{debug, error, info, warn};
 
-use crate::config::{get_platform_wallet_address, get_release_fee_bps, get_refund_fee_bps};
+use crate::config::{get_platform_wallet_address, get_refund_fee_bps, get_release_fee_bps};
 use crate::schema::{escrows, frost_signing_state};
 use crate::services::ring_selection::RingSelector;
 use crate::services::transaction_builder::{
-    MoneroTransactionBuilder, ClsagSignatureJson, ClientSignature,
-    parse_monero_address, generate_stealth_address_with_view_tag,
-    generate_tx_pubkey, encrypt_amount_ecdh, derive_output_mask,
-    compute_pedersen_commitment,
+    compute_pedersen_commitment, derive_output_mask, encrypt_amount_ecdh,
+    generate_stealth_address_with_view_tag, generate_tx_pubkey, parse_monero_address,
+    ClientSignature, ClsagSignatureJson, MoneroTransactionBuilder,
 };
 
 const RING_SIZE: usize = 16;
@@ -210,14 +209,26 @@ async fn fetch_ring_members(
     indices.dedup();
 
     if indices.len() != RING_SIZE {
-        anyhow::bail!("Ring size mismatch: expected {}, got {}", RING_SIZE, indices.len());
+        anyhow::bail!(
+            "Ring size mismatch: expected {}, got {}",
+            RING_SIZE,
+            indices.len()
+        );
     }
 
-    let real_position = indices.iter().position(|&x| x == real_index)
+    let real_position = indices
+        .iter()
+        .position(|&x| x == real_index)
         .ok_or_else(|| anyhow::anyhow!("Real index not in ring"))?;
 
     let params = GetOutsParams {
-        outputs: indices.iter().map(|&i| OutputIndex { amount: 0, index: i }).collect(),
+        outputs: indices
+            .iter()
+            .map(|&i| OutputIndex {
+                amount: 0,
+                index: i,
+            })
+            .collect(),
         get_txid: true,
     };
 
@@ -228,7 +239,9 @@ async fn fetch_ring_members(
         .await
         .context("Failed to fetch ring members from daemon")?;
 
-    let result: GetOutsResult = response.json().await
+    let result: GetOutsResult = response
+        .json()
+        .await
         .context("Failed to parse get_outs response")?;
 
     if result.status != "OK" {
@@ -236,7 +249,11 @@ async fn fetch_ring_members(
     }
 
     if result.outs.len() != RING_SIZE {
-        anyhow::bail!("Expected {} ring members, got {}", RING_SIZE, result.outs.len());
+        anyhow::bail!(
+            "Expected {} ring members, got {}",
+            RING_SIZE,
+            result.outs.len()
+        );
     }
 
     Ok((result.outs, indices, real_position))
@@ -244,7 +261,10 @@ async fn fetch_ring_members(
 
 /// Check daemon connectivity before broadcast.
 /// Returns (is_fully_synced, peer_count) for broadcast routing decisions.
-async fn check_daemon_connectivity(client: &reqwest::Client, daemon_url: &str) -> Result<(bool, u32)> {
+async fn check_daemon_connectivity(
+    client: &reqwest::Client,
+    daemon_url: &str,
+) -> Result<(bool, u32)> {
     #[derive(Deserialize)]
     struct GetInfoResult {
         #[serde(default)]
@@ -279,7 +299,9 @@ async fn check_daemon_connectivity(client: &reqwest::Client, daemon_url: &str) -
         .await
         .context("Failed to reach daemon for connectivity check")?;
 
-    let rpc: RpcResponse = response.json().await
+    let rpc: RpcResponse = response
+        .json()
+        .await
         .context("Failed to parse daemon get_info response")?;
 
     let info = rpc.result.context("Missing result in get_info response")?;
@@ -295,7 +317,8 @@ async fn check_daemon_connectivity(client: &reqwest::Client, daemon_url: &str) -
             height_without_bootstrap = info.height_without_bootstrap,
             blocks_behind = info.height.saturating_sub(info.height_without_bootstrap),
             "Local daemon NOT synced — using bootstrap proxy (height {} vs local {})",
-            info.height, info.height_without_bootstrap
+            info.height,
+            info.height_without_bootstrap
         );
     }
 
@@ -303,7 +326,8 @@ async fn check_daemon_connectivity(client: &reqwest::Client, daemon_url: &str) -
         warn!(
             height = info.height,
             target_height = info.target_height,
-            "Daemon {} reports 0 peer connections", daemon_url
+            "Daemon {} reports 0 peer connections",
+            daemon_url
         );
     } else {
         info!(
@@ -311,7 +335,8 @@ async fn check_daemon_connectivity(client: &reqwest::Client, daemon_url: &str) -
             incoming = info.incoming_connections_count,
             height = info.height,
             synced = is_synced,
-            "Daemon {} connectivity OK", daemon_url
+            "Daemon {} connectivity OK",
+            daemon_url
         );
     }
 
@@ -360,7 +385,9 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
             .await
             .context(format!("Failed to reach {}", node_url))?;
 
-        let result: SubmitTxResult = response.json().await
+        let result: SubmitTxResult = response
+            .json()
+            .await
             .context(format!("Failed to parse response from {}", node_url))?;
 
         // Log full response for debugging
@@ -381,10 +408,20 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
 
         if result.status == "OK" {
             if result.not_relayed {
-                warn!("TX accepted but NOT RELAYED by {} — will try other nodes", node_url);
-                return Err(anyhow::anyhow!("TX accepted but not_relayed=true on {}", node_url));
+                warn!(
+                    "TX accepted but NOT RELAYED by {} — will try other nodes",
+                    node_url
+                );
+                return Err(anyhow::anyhow!(
+                    "TX accepted but not_relayed=true on {}",
+                    node_url
+                ));
             }
-            info!("TX accepted and relayed by {} (attempt {})", node_url, attempt + 1);
+            info!(
+                "TX accepted and relayed by {} (attempt {})",
+                node_url,
+                attempt + 1
+            );
             return Ok(());
         }
 
@@ -397,16 +434,36 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
 
         // Permanent rejection — build detailed error
         let mut reasons = Vec::new();
-        if result.double_spend { reasons.push("DOUBLE_SPEND"); }
-        if result.fee_too_low { reasons.push("FEE_TOO_LOW"); }
-        if result.invalid_input { reasons.push("INVALID_INPUT"); }
-        if result.invalid_output { reasons.push("INVALID_OUTPUT"); }
-        if result.overspend { reasons.push("OVERSPEND"); }
-        if result.sanity_check_failed { reasons.push("SANITY_CHECK_FAILED"); }
-        if result.too_big { reasons.push("TOO_BIG"); }
-        if result.too_few_outputs { reasons.push("TOO_FEW_OUTPUTS"); }
-        if result.low_mixin { reasons.push("LOW_MIXIN"); }
-        if result.tx_extra_too_big { reasons.push("TX_EXTRA_TOO_BIG"); }
+        if result.double_spend {
+            reasons.push("DOUBLE_SPEND");
+        }
+        if result.fee_too_low {
+            reasons.push("FEE_TOO_LOW");
+        }
+        if result.invalid_input {
+            reasons.push("INVALID_INPUT");
+        }
+        if result.invalid_output {
+            reasons.push("INVALID_OUTPUT");
+        }
+        if result.overspend {
+            reasons.push("OVERSPEND");
+        }
+        if result.sanity_check_failed {
+            reasons.push("SANITY_CHECK_FAILED");
+        }
+        if result.too_big {
+            reasons.push("TOO_BIG");
+        }
+        if result.too_few_outputs {
+            reasons.push("TOO_FEW_OUTPUTS");
+        }
+        if result.low_mixin {
+            reasons.push("LOW_MIXIN");
+        }
+        if result.tx_extra_too_big {
+            reasons.push("TX_EXTRA_TOO_BIG");
+        }
 
         let detail = if reasons.is_empty() {
             result.reason.unwrap_or_else(|| "unknown".to_string())
@@ -414,7 +471,12 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
             format!("{} (reason: {:?})", reasons.join(", "), result.reason)
         };
 
-        anyhow::bail!("TX rejected by {}: status={}, {}", node_url, result.status, detail);
+        anyhow::bail!(
+            "TX rejected by {}: status={}, {}",
+            node_url,
+            result.status,
+            detail
+        );
     }
 
     anyhow::bail!("Node {} BUSY after {} retries", node_url, max_retries)
@@ -428,12 +490,16 @@ async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result
     let local_url = get_daemon_url();
 
     // Check local daemon status first
-    let (local_synced, local_peers) = check_daemon_connectivity(client, &local_url).await
+    let (local_synced, local_peers) = check_daemon_connectivity(client, &local_url)
+        .await
         .unwrap_or((false, 0));
 
     // Order: if local is synced with peers, try it first. Otherwise, try public nodes first.
     let ordered_nodes: Vec<&str> = if local_synced && local_peers > 0 {
-        info!("Local daemon synced with {} peers — broadcasting locally first", local_peers);
+        info!(
+            "Local daemon synced with {} peers — broadcasting locally first",
+            local_peers
+        );
         nodes.iter().map(|s| s.as_str()).collect()
     } else {
         warn!(
@@ -454,7 +520,12 @@ async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result
         match submit_to_node(client, node_url, tx_hex).await {
             Ok(()) => {
                 accepted_count += 1;
-                info!("TX accepted by {} ({}/{})", node_url, accepted_count, ordered_nodes.len());
+                info!(
+                    "TX accepted by {} ({}/{})",
+                    node_url,
+                    accepted_count,
+                    ordered_nodes.len()
+                );
                 // Try to submit to at least 2 nodes for redundancy
                 if accepted_count >= 2 {
                     break;
@@ -519,8 +590,12 @@ fn compute_mixing_coefficients(
 
     let mut hasher_p = Keccak256::new();
     hasher_p.update(&domain_agg_0);
-    for key in ring_keys { hasher_p.update(key.compress().as_bytes()); }
-    for commitment in ring_commitments { hasher_p.update(commitment.compress().as_bytes()); }
+    for key in ring_keys {
+        hasher_p.update(key.compress().as_bytes());
+    }
+    for commitment in ring_commitments {
+        hasher_p.update(commitment.compress().as_bytes());
+    }
     hasher_p.update(key_image.compress().as_bytes());
     hasher_p.update(d_inv8.compress().as_bytes());
     hasher_p.update(pseudo_out.compress().as_bytes());
@@ -528,8 +603,12 @@ fn compute_mixing_coefficients(
 
     let mut hasher_c = Keccak256::new();
     hasher_c.update(&domain_agg_1);
-    for key in ring_keys { hasher_c.update(key.compress().as_bytes()); }
-    for commitment in ring_commitments { hasher_c.update(commitment.compress().as_bytes()); }
+    for key in ring_keys {
+        hasher_c.update(key.compress().as_bytes());
+    }
+    for commitment in ring_commitments {
+        hasher_c.update(commitment.compress().as_bytes());
+    }
     hasher_c.update(key_image.compress().as_bytes());
     hasher_c.update(d_inv8.compress().as_bytes());
     hasher_c.update(pseudo_out.compress().as_bytes());
@@ -555,8 +634,12 @@ fn compute_round_hash(
 
     let mut hasher = Keccak256::new();
     hasher.update(&domain);
-    for key in ring_keys { hasher.update(key.compress().as_bytes()); }
-    for commitment in ring_commitments { hasher.update(commitment.compress().as_bytes()); }
+    for key in ring_keys {
+        hasher.update(key.compress().as_bytes());
+    }
+    for commitment in ring_commitments {
+        hasher.update(commitment.compress().as_bytes());
+    }
     hasher.update(pseudo_out.compress().as_bytes());
     hasher.update(tx_prefix_hash);
     hasher.update(l_point.compress().as_bytes());
@@ -648,9 +731,8 @@ fn sign_clsag(
     let d_inv8 = d_full * Scalar::from(8u64).invert();
 
     // Compute mu_P and mu_C
-    let (mu_p, mu_c) = compute_mixing_coefficients(
-        ring_keys, ring_commitments, key_image, &d_inv8, pseudo_out,
-    );
+    let (mu_p, mu_c) =
+        compute_mixing_coefficients(ring_keys, ring_commitments, key_image, &d_inv8, pseudo_out);
 
     debug!(
         mu_p_prefix = %hex::encode(&mu_p.to_bytes()[..8]),
@@ -659,7 +741,8 @@ fn sign_clsag(
     );
 
     // Precompute Hp(P[i]) for all ring members
-    let hp_values: Vec<curve25519_dalek::edwards::EdwardsPoint> = ring_keys.iter()
+    let hp_values: Vec<curve25519_dalek::edwards::EdwardsPoint> = ring_keys
+        .iter()
         .map(|key| hash_to_point(key.compress().to_bytes()))
         .collect();
 
@@ -685,8 +768,14 @@ fn sign_clsag(
 
     // Compute c[(real+1) % n]
     let c_start = compute_round_hash(
-        ring_keys, ring_commitments, pseudo_out, tx_prefix_hash,
-        key_image, &d_inv8, &l_real, &r_real,
+        ring_keys,
+        ring_commitments,
+        pseudo_out,
+        tx_prefix_hash,
+        key_image,
+        &d_inv8,
+        &l_real,
+        &r_real,
     );
 
     // Process the ring
@@ -706,8 +795,14 @@ fn sign_clsag(
         let r_i = s_i * hp_i + c_p * key_image + c_c * d_full;
 
         c_current = compute_round_hash(
-            ring_keys, ring_commitments, pseudo_out, tx_prefix_hash,
-            key_image, &d_inv8, &l_i, &r_i,
+            ring_keys,
+            ring_commitments,
+            pseudo_out,
+            tx_prefix_hash,
+            key_image,
+            &d_inv8,
+            &l_i,
+            &r_i,
         );
     }
 
@@ -721,7 +816,9 @@ fn sign_clsag(
     let p_real = &ring_keys[real_index];
     let c_real_commitment = &ring_commitments[real_index];
     let c_adjusted_real = c_real_commitment - pseudo_out;
-    let l_verify = &s_values[real_index] * ED25519_BASEPOINT_TABLE + c_p_real * p_real + c_c_real * c_adjusted_real;
+    let l_verify = &s_values[real_index] * ED25519_BASEPOINT_TABLE
+        + c_p_real * p_real
+        + c_c_real * c_adjusted_real;
 
     if l_verify != l_real {
         warn!("CLSAG L verification failed at real index");
@@ -748,8 +845,14 @@ fn sign_clsag(
         let r_i = s_i * hp_i + c_p * key_image + c_c * d_full;
 
         c_verify = compute_round_hash(
-            ring_keys, ring_commitments, pseudo_out, tx_prefix_hash,
-            key_image, &d_inv8, &l_i, &r_i,
+            ring_keys,
+            ring_commitments,
+            pseudo_out,
+            tx_prefix_hash,
+            key_image,
+            &d_inv8,
+            &l_i,
+            &r_i,
         );
 
         if i == 0 {
@@ -774,7 +877,11 @@ fn sign_clsag(
     let c1 = c_start.to_bytes();
     let d_bytes = d_inv8.compress().to_bytes();
 
-    Ok(ClsagSignature { s: s_bytes, c1, d: d_bytes })
+    Ok(ClsagSignature {
+        s: s_bytes,
+        c1,
+        d: d_bytes,
+    })
 }
 
 // ============================================================================
@@ -804,17 +911,26 @@ fn build_tx_builder(
     let mut tx_builder = MoneroTransactionBuilder::new();
     tx_builder.set_fee(tx_fee);
 
-    tx_builder.add_input(key_image, ring_indices)
+    tx_builder
+        .add_input(key_image, ring_indices)
         .context("Failed to add input to TX builder")?;
 
     tx_builder.add_output(
-        stealth_address_0, commitment_0, encrypted_amount_0,
-        mask_0, recipient_amount, view_tag_0,
+        stealth_address_0,
+        commitment_0,
+        encrypted_amount_0,
+        mask_0,
+        recipient_amount,
+        view_tag_0,
     );
 
     tx_builder.add_output(
-        stealth_address_1, commitment_1, encrypted_amount_1,
-        mask_1, platform_fee, view_tag_1,
+        stealth_address_1,
+        commitment_1,
+        encrypted_amount_1,
+        mask_1,
+        platform_fee,
+        view_tag_1,
     );
 
     tx_builder.set_tx_pubkey(tx_pubkey);
@@ -876,13 +992,20 @@ impl FrostSigningCoordinator {
                 .optional()
                 .context("Failed to query signing state")?;
 
-        if let Some((tx_prefix_hash, clsag_message_hash, ring_data_json, pseudo_out, recipient_address, amount_atomic)) = existing {
+        if let Some((
+            tx_prefix_hash,
+            clsag_message_hash,
+            ring_data_json,
+            pseudo_out,
+            recipient_address,
+            amount_atomic,
+        )) = existing
+        {
             let escrow: crate::models::escrow::Escrow = escrows::table
                 .find(escrow_id)
                 .first(conn)
                 .context("Escrow not found")?;
-            let multisig_pubkey = escrow.frost_group_pubkey.clone()
-                .unwrap_or_default();
+            let multisig_pubkey = escrow.frost_group_pubkey.clone().unwrap_or_default();
 
             // Compute pseudo_out_mask from stored TX params
             let pseudo_out_mask = frost_signing_state::table
@@ -895,9 +1018,13 @@ impl FrostSigningCoordinator {
                     let params: StoredTxParams = serde_json::from_str(&json).ok()?;
                     let mask_0_bytes = hex::decode(&params.mask_0).ok()?;
                     let mask_1_bytes = hex::decode(&params.mask_1).ok()?;
-                    if mask_0_bytes.len() != 32 || mask_1_bytes.len() != 32 { return None; }
-                    let mut m0 = [0u8; 32]; m0.copy_from_slice(&mask_0_bytes);
-                    let mut m1 = [0u8; 32]; m1.copy_from_slice(&mask_1_bytes);
+                    if mask_0_bytes.len() != 32 || mask_1_bytes.len() != 32 {
+                        return None;
+                    }
+                    let mut m0 = [0u8; 32];
+                    m0.copy_from_slice(&mask_0_bytes);
+                    let mut m1 = [0u8; 32];
+                    m1.copy_from_slice(&mask_1_bytes);
                     let pseudo_mask = curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m0)
                         + curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m1);
                     Some(hex::encode(pseudo_mask.to_bytes()))
@@ -935,31 +1062,49 @@ impl FrostSigningCoordinator {
             );
         }
 
-        let view_key_hex = escrow.multisig_view_key.as_ref()
+        let view_key_hex = escrow
+            .multisig_view_key
+            .as_ref()
             .context("multisig_view_key not set")?;
-        let funding_tx_hash = escrow.funding_tx_hash.as_ref()
+        let funding_tx_hash = escrow
+            .funding_tx_hash
+            .as_ref()
             .context("funding_tx_hash not set")?;
-        let funding_output_index = escrow.funding_output_index
+        let funding_output_index = escrow
+            .funding_output_index
             .context("funding_output_index not set")?;
-        let funding_global_index = escrow.funding_global_index
+        let funding_global_index = escrow
+            .funding_global_index
             .context("funding_global_index not set")?;
-        let funding_commitment_mask_hex = escrow.funding_commitment_mask.as_ref()
+        let funding_commitment_mask_hex = escrow
+            .funding_commitment_mask
+            .as_ref()
             .context("funding_commitment_mask not set")?;
-        let funding_tx_pubkey_hex = escrow.funding_tx_pubkey.as_ref()
+        let funding_tx_pubkey_hex = escrow
+            .funding_tx_pubkey
+            .as_ref()
             .context("funding_tx_pubkey not set")?;
-        let frost_group_pubkey_hex = escrow.frost_group_pubkey.as_ref()
+        let frost_group_pubkey_hex = escrow
+            .frost_group_pubkey
+            .as_ref()
             .context("frost_group_pubkey not set (DKG incomplete?)")?;
-        let multisig_address = escrow.multisig_address.as_ref()
+        let multisig_address = escrow
+            .multisig_address
+            .as_ref()
             .context("Multisig address not set")?;
 
         // Determine recipient address (vendor for release, buyer for refund)
         let is_refund = escrow.dispute_signing_pair.as_deref() == Some("arbiter_buyer");
         let recipient_address = if is_refund {
-            escrow.buyer_refund_address.as_ref()
+            escrow
+                .buyer_refund_address
+                .as_ref()
                 .context("Buyer refund address not set for dispute refund")?
                 .clone()
         } else {
-            escrow.vendor_payout_address.as_ref()
+            escrow
+                .vendor_payout_address
+                .as_ref()
                 .context("Vendor payout address not set")?
                 .clone()
         };
@@ -967,7 +1112,9 @@ impl FrostSigningCoordinator {
         let input_amount = escrow.amount as u64;
 
         // Use aggregated key image from DKG if available
-        let key_image_hex = escrow.aggregated_key_image.as_ref()
+        let key_image_hex = escrow
+            .aggregated_key_image
+            .as_ref()
             .context("aggregated_key_image not set - complete key image aggregation first")?;
 
         info!(
@@ -1007,8 +1154,8 @@ impl FrostSigningCoordinator {
             "real_position": real_position,
             "ring_indices": ring_indices,
         });
-        let ring_data_json = serde_json::to_string(&ring_data)
-            .context("Failed to serialize ring data")?;
+        let ring_data_json =
+            serde_json::to_string(&ring_data).context("Failed to serialize ring data")?;
 
         // ====================================================================
         // 3. Generate deterministic TX secret key (must match at broadcast)
@@ -1037,7 +1184,9 @@ impl FrostSigningCoordinator {
 
         let tx_fee = get_tx_fee();
         let platform_fee = (input_amount * platform_fee_bps) / 10000;
-        let recipient_amount = input_amount.saturating_sub(platform_fee).saturating_sub(tx_fee);
+        let recipient_amount = input_amount
+            .saturating_sub(platform_fee)
+            .saturating_sub(tx_fee);
 
         info!(
             escrow_id = %escrow_id,
@@ -1060,30 +1209,46 @@ impl FrostSigningCoordinator {
         // Output 0: Recipient
         let output_index_0: u64 = 0;
         let (stealth_address_0, view_tag_0) = generate_stealth_address_with_view_tag(
-            &tx_secret_key, &recipient_spend_pub, &recipient_view_pub, output_index_0,
-        ).context("Failed to generate recipient stealth address")?;
+            &tx_secret_key,
+            &recipient_spend_pub,
+            &recipient_view_pub,
+            output_index_0,
+        )
+        .context("Failed to generate recipient stealth address")?;
 
         let mask_0 = derive_output_mask(&tx_secret_key, &recipient_view_pub, output_index_0)
             .context("Failed to derive recipient output mask")?;
         let commitment_0 = compute_pedersen_commitment(&mask_0, recipient_amount)
             .context("Failed to compute recipient commitment")?;
         let encrypted_amount_0 = encrypt_amount_ecdh(
-            &tx_secret_key, &recipient_view_pub, output_index_0, recipient_amount,
-        ).context("Failed to encrypt recipient amount")?;
+            &tx_secret_key,
+            &recipient_view_pub,
+            output_index_0,
+            recipient_amount,
+        )
+        .context("Failed to encrypt recipient amount")?;
 
         // Output 1: Platform fee
         let output_index_1: u64 = 1;
         let (stealth_address_1, view_tag_1) = generate_stealth_address_with_view_tag(
-            &tx_secret_key, &platform_spend_pub, &platform_view_pub, output_index_1,
-        ).context("Failed to generate platform stealth address")?;
+            &tx_secret_key,
+            &platform_spend_pub,
+            &platform_view_pub,
+            output_index_1,
+        )
+        .context("Failed to generate platform stealth address")?;
 
         let mask_1 = derive_output_mask(&tx_secret_key, &platform_view_pub, output_index_1)
             .context("Failed to derive platform output mask")?;
         let commitment_1 = compute_pedersen_commitment(&mask_1, platform_fee)
             .context("Failed to compute platform commitment")?;
         let encrypted_amount_1 = encrypt_amount_ecdh(
-            &tx_secret_key, &platform_view_pub, output_index_1, platform_fee,
-        ).context("Failed to encrypt platform amount")?;
+            &tx_secret_key,
+            &platform_view_pub,
+            output_index_1,
+            platform_fee,
+        )
+        .context("Failed to encrypt platform amount")?;
 
         // ====================================================================
         // 6. Compute pseudo_out
@@ -1093,12 +1258,12 @@ impl FrostSigningCoordinator {
         let pseudo_mask = mask_0_scalar + mask_1_scalar;
 
         let h_bytes: [u8; 32] = [
-            0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-            0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-            0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-            0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+            0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad,
+            0xd0, 0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d,
+            0xd3, 0x9c, 0x1f, 0x94,
         ];
-        let h_point = CompressedEdwardsY(h_bytes).decompress()
+        let h_point = CompressedEdwardsY(h_bytes)
+            .decompress()
             .ok_or_else(|| anyhow::anyhow!("Invalid H point"))?;
 
         let pseudo_out = &pseudo_mask * curve25519_dalek::constants::ED25519_BASEPOINT_TABLE
@@ -1114,24 +1279,36 @@ impl FrostSigningCoordinator {
         let mut tx_builder = build_tx_builder(
             key_image_bytes,
             &ring_indices,
-            stealth_address_0, commitment_0, encrypted_amount_0,
-            mask_0, recipient_amount, view_tag_0,
-            stealth_address_1, commitment_1, encrypted_amount_1,
-            mask_1, platform_fee, view_tag_1,
-            &tx_pubkey, tx_fee,
+            stealth_address_0,
+            commitment_0,
+            encrypted_amount_0,
+            mask_0,
+            recipient_amount,
+            view_tag_0,
+            stealth_address_1,
+            commitment_1,
+            encrypted_amount_1,
+            mask_1,
+            platform_fee,
+            view_tag_1,
+            &tx_pubkey,
+            tx_fee,
         )?;
 
         // Generate BP+ for CLSAG message computation
-        tx_builder.prepare_for_signing()
+        tx_builder
+            .prepare_for_signing()
             .context("Failed to generate Bulletproof+")?;
 
         // Export BP+ bytes for storage (needed to reconstruct identical TX at broadcast)
-        let bp_bytes = tx_builder.export_bulletproof_bytes()
+        let bp_bytes = tx_builder
+            .export_bulletproof_bytes()
             .context("Failed to export BP+ bytes")?;
         let bp_bytes_b64 = BASE64.encode(&bp_bytes);
 
         // Compute the FULL CLSAG message (get_pre_mlsag_hash)
-        let clsag_message = tx_builder.compute_clsag_message(&[pseudo_out_bytes])
+        let clsag_message = tx_builder
+            .compute_clsag_message(&[pseudo_out_bytes])
             .context("Failed to compute CLSAG message")?;
 
         let tx_prefix_hash = hex::encode(&clsag_message); // This IS the signing message
@@ -1167,8 +1344,8 @@ impl FrostSigningCoordinator {
             pseudo_out: pseudo_out_hex.clone(),
         };
 
-        let ring_indices_json = serde_json::to_string(&stored_params)
-            .context("Failed to serialize TX params")?;
+        let ring_indices_json =
+            serde_json::to_string(&stored_params).context("Failed to serialize TX params")?;
 
         // ====================================================================
         // 9. Store signing state in DB
@@ -1236,49 +1413,65 @@ impl FrostSigningCoordinator {
         // Update appropriate column based on role
         match role {
             "buyer" => {
-                diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                    .set((
-                        frost_signing_state::buyer_r_public.eq(r_public),
-                        frost_signing_state::buyer_r_prime_public.eq(r_prime_public),
-                        frost_signing_state::updated_at.eq(now),
-                    ))
-                    .execute(conn)?;
+                diesel::update(
+                    frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                )
+                .set((
+                    frost_signing_state::buyer_r_public.eq(r_public),
+                    frost_signing_state::buyer_r_prime_public.eq(r_prime_public),
+                    frost_signing_state::updated_at.eq(now),
+                ))
+                .execute(conn)?;
             }
             "vendor" => {
-                diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                    .set((
-                        frost_signing_state::vendor_r_public.eq(r_public),
-                        frost_signing_state::vendor_r_prime_public.eq(r_prime_public),
-                        frost_signing_state::updated_at.eq(now),
-                    ))
-                    .execute(conn)?;
+                diesel::update(
+                    frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                )
+                .set((
+                    frost_signing_state::vendor_r_public.eq(r_public),
+                    frost_signing_state::vendor_r_prime_public.eq(r_prime_public),
+                    frost_signing_state::updated_at.eq(now),
+                ))
+                .execute(conn)?;
             }
             _ => anyhow::bail!("Invalid role for nonce commitment: {}", role),
         }
 
         // Check if both submitted
-        let state: (Option<String>, Option<String>, Option<String>, Option<String>) =
-            frost_signing_state::table
-                .filter(frost_signing_state::escrow_id.eq(escrow_id))
-                .select((
-                    frost_signing_state::buyer_r_public,
-                    frost_signing_state::vendor_r_public,
-                    frost_signing_state::buyer_r_prime_public,
-                    frost_signing_state::vendor_r_prime_public,
-                ))
-                .first(conn)?;
+        let state: (
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<String>,
+        ) = frost_signing_state::table
+            .filter(frost_signing_state::escrow_id.eq(escrow_id))
+            .select((
+                frost_signing_state::buyer_r_public,
+                frost_signing_state::vendor_r_public,
+                frost_signing_state::buyer_r_prime_public,
+                frost_signing_state::vendor_r_prime_public,
+            ))
+            .first(conn)?;
 
         let both_submitted = state.0.is_some() && state.1.is_some();
 
         if both_submitted {
             // Real Edwards point addition for nonce aggregation
-            let buyer_r_hex = state.0.as_ref()
+            let buyer_r_hex = state
+                .0
+                .as_ref()
                 .context("Buyer R_public missing after check")?;
-            let vendor_r_hex = state.1.as_ref()
+            let vendor_r_hex = state
+                .1
+                .as_ref()
                 .context("Vendor R_public missing after check")?;
-            let buyer_rp_hex = state.2.as_ref()
+            let buyer_rp_hex = state
+                .2
+                .as_ref()
                 .context("Buyer R'_public missing after check")?;
-            let vendor_rp_hex = state.3.as_ref()
+            let vendor_rp_hex = state
+                .3
+                .as_ref()
                 .context("Vendor R'_public missing after check")?;
 
             let aggregated_r = aggregate_edwards_points(buyer_r_hex, vendor_r_hex)
@@ -1286,13 +1479,15 @@ impl FrostSigningCoordinator {
             let aggregated_r_prime = aggregate_edwards_points(buyer_rp_hex, vendor_rp_hex)
                 .context("Failed to aggregate R' nonces")?;
 
-            diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                .set((
-                    frost_signing_state::aggregated_r.eq(&aggregated_r),
-                    frost_signing_state::aggregated_r_prime.eq(&aggregated_r_prime),
-                    frost_signing_state::status.eq("nonces_aggregated"),
-                ))
-                .execute(conn)?;
+            diesel::update(
+                frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+            )
+            .set((
+                frost_signing_state::aggregated_r.eq(&aggregated_r),
+                frost_signing_state::aggregated_r_prime.eq(&aggregated_r_prime),
+                frost_signing_state::status.eq("nonces_aggregated"),
+            ))
+            .execute(conn)?;
 
             info!(
                 escrow_id = %escrow_id,
@@ -1322,32 +1517,38 @@ impl FrostSigningCoordinator {
                     .set(escrows::buyer_signature.eq(partial_sig_json))
                     .execute(conn)?;
 
-                diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                    .set((
-                        frost_signing_state::buyer_partial_submitted.eq(true),
-                        frost_signing_state::updated_at.eq(now),
-                    ))
-                    .execute(conn)?;
+                diesel::update(
+                    frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                )
+                .set((
+                    frost_signing_state::buyer_partial_submitted.eq(true),
+                    frost_signing_state::updated_at.eq(now),
+                ))
+                .execute(conn)?;
             }
             "vendor" => {
                 diesel::update(escrows::table.find(escrow_id))
                     .set(escrows::vendor_signature.eq(partial_sig_json))
                     .execute(conn)?;
 
-                diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                    .set((
-                        frost_signing_state::vendor_partial_submitted.eq(true),
-                        frost_signing_state::updated_at.eq(now),
-                    ))
-                    .execute(conn)?;
+                diesel::update(
+                    frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                )
+                .set((
+                    frost_signing_state::vendor_partial_submitted.eq(true),
+                    frost_signing_state::updated_at.eq(now),
+                ))
+                .execute(conn)?;
             }
             "arbiter" => {
-                diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                    .set((
-                        frost_signing_state::arbiter_partial_submitted.eq(true),
-                        frost_signing_state::updated_at.eq(now),
-                    ))
-                    .execute(conn)?;
+                diesel::update(
+                    frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                )
+                .set((
+                    frost_signing_state::arbiter_partial_submitted.eq(true),
+                    frost_signing_state::updated_at.eq(now),
+                ))
+                .execute(conn)?;
             }
             _ => anyhow::bail!("Invalid role for partial signature: {}", role),
         }
@@ -1365,9 +1566,11 @@ impl FrostSigningCoordinator {
         let all_submitted = state.0.unwrap_or(false) && state.1.unwrap_or(false);
 
         if all_submitted {
-            diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-                .set(frost_signing_state::status.eq("ready_for_aggregation"))
-                .execute(conn)?;
+            diesel::update(
+                frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+            )
+            .set(frost_signing_state::status.eq("ready_for_aggregation"))
+            .execute(conn)?;
 
             info!(
                 escrow_id = %escrow_id,
@@ -1414,34 +1617,35 @@ impl FrostSigningCoordinator {
         };
 
         // Parse the stored JSON to extract first-signer fields
-        let stored: serde_json::Value = serde_json::from_str(&sig_json)
-            .context("Failed to parse vendor signature JSON")?;
+        let stored: serde_json::Value =
+            serde_json::from_str(&sig_json).context("Failed to parse vendor signature JSON")?;
 
-        let signature = stored.get("signature")
+        let signature = stored
+            .get("signature")
             .context("Missing 'signature' in vendor signature")?;
 
-        let c1 = signature.get("c1")
+        let c1 = signature
+            .get("c1")
             .and_then(|v| v.as_str())
             .context("Missing c1 in vendor signature")?;
 
-        let s_values = signature.get("s")
+        let s_values = signature
+            .get("s")
             .context("Missing s in vendor signature")?;
 
-        let d = signature.get("D")
+        let d = signature
+            .get("D")
             .and_then(|v| v.as_str())
             .context("Missing D in vendor signature")?;
 
-        let pseudo_out = stored.get("pseudo_out")
+        let pseudo_out = stored
+            .get("pseudo_out")
             .and_then(|v| v.as_str())
             .unwrap_or("");
 
-        let mu_p = stored.get("mu_p")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let mu_p = stored.get("mu_p").and_then(|v| v.as_str()).unwrap_or("");
 
-        let mu_c = stored.get("mu_c")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let mu_c = stored.get("mu_c").and_then(|v| v.as_str()).unwrap_or("");
 
         info!(
             escrow_id = %escrow_id,
@@ -1480,13 +1684,15 @@ impl FrostSigningCoordinator {
         // ====================================================================
         // 1. Load escrow and FROST secret shares
         // ====================================================================
-        let escrow: crate::models::escrow::Escrow = escrows::table
-            .find(escrow_id)
-            .first(conn)?;
+        let escrow: crate::models::escrow::Escrow = escrows::table.find(escrow_id).first(conn)?;
 
-        let buyer_sig_json = escrow.buyer_signature.as_ref()
+        let buyer_sig_json = escrow
+            .buyer_signature
+            .as_ref()
             .context("Buyer FROST share missing")?;
-        let vendor_sig_json = escrow.vendor_signature.as_ref()
+        let vendor_sig_json = escrow
+            .vendor_signature
+            .as_ref()
             .context("Vendor FROST share missing")?;
 
         let buyer_data: serde_json::Value = serde_json::from_str(buyer_sig_json)
@@ -1494,40 +1700,53 @@ impl FrostSigningCoordinator {
         let vendor_data: serde_json::Value = serde_json::from_str(vendor_sig_json)
             .context("Failed to parse vendor submission JSON")?;
 
-        let buyer_share_hex = buyer_data.get("frost_share")
+        let buyer_share_hex = buyer_data
+            .get("frost_share")
             .and_then(|v| v.as_str())
             .context("Missing frost_share in buyer submission")?;
-        let vendor_share_hex = vendor_data.get("frost_share")
+        let vendor_share_hex = vendor_data
+            .get("frost_share")
             .and_then(|v| v.as_str())
             .context("Missing frost_share in vendor submission")?;
 
-        let buyer_share = hex_to_scalar(buyer_share_hex)
-            .context("Invalid buyer FROST share")?;
-        let vendor_share = hex_to_scalar(vendor_share_hex)
-            .context("Invalid vendor FROST share")?;
+        let buyer_share = hex_to_scalar(buyer_share_hex).context("Invalid buyer FROST share")?;
+        let vendor_share = hex_to_scalar(vendor_share_hex).context("Invalid vendor FROST share")?;
 
         // ====================================================================
         // 2. Reconstruct x_total = d + λ_buyer*b_buyer + λ_vendor*b_vendor
         //    (EXACT same math as 835ccd0 full_offline_broadcast.rs)
         // ====================================================================
-        let view_key_hex = escrow.multisig_view_key.as_ref()
+        let view_key_hex = escrow
+            .multisig_view_key
+            .as_ref()
             .context("multisig_view_key not set")?;
-        let funding_tx_pubkey_hex = escrow.funding_tx_pubkey.as_ref()
+        let funding_tx_pubkey_hex = escrow
+            .funding_tx_pubkey
+            .as_ref()
             .context("funding_tx_pubkey not set")?;
-        let funding_output_index = escrow.funding_output_index
+        let funding_output_index = escrow
+            .funding_output_index
             .context("funding_output_index not set")?;
-        let frost_group_pubkey_hex = escrow.frost_group_pubkey.as_ref()
+        let frost_group_pubkey_hex = escrow
+            .frost_group_pubkey
+            .as_ref()
             .context("frost_group_pubkey not set")?;
-        let funding_commitment_mask_hex = escrow.funding_commitment_mask.as_ref()
+        let funding_commitment_mask_hex = escrow
+            .funding_commitment_mask
+            .as_ref()
             .context("funding_commitment_mask not set")?;
 
         let view_key = hex_to_scalar(view_key_hex)?;
         let funding_tx_pubkey_point = hex_to_point(funding_tx_pubkey_hex)?;
-        let d = compute_key_derivation(&view_key, &funding_tx_pubkey_point, funding_output_index as u64);
+        let d = compute_key_derivation(
+            &view_key,
+            &funding_tx_pubkey_point,
+            funding_output_index as u64,
+        );
 
         // Lagrange coefficients: buyer=participant_1, vendor=participant_2
-        let lambda_buyer = compute_lagrange_coefficient(1, 2);   // = 2
-        let lambda_vendor = compute_lagrange_coefficient(2, 1);  // = -1
+        let lambda_buyer = compute_lagrange_coefficient(1, 2); // = 2
+        let lambda_vendor = compute_lagrange_coefficient(2, 1); // = -1
 
         let x_total = d + lambda_buyer * buyer_share + lambda_vendor * vendor_share;
 
@@ -1551,23 +1770,25 @@ impl FrostSigningCoordinator {
         // ====================================================================
         // 3. Load stored TX parameters
         // ====================================================================
-        let (bp_bytes_b64, stored_params_json, ring_data_json_str):
-            (Option<String>, Option<String>, String) =
-            frost_signing_state::table
-                .filter(frost_signing_state::escrow_id.eq(escrow_id))
-                .select((
-                    frost_signing_state::bulletproof_bytes,
-                    frost_signing_state::ring_indices_json,
-                    frost_signing_state::ring_data_json,
-                ))
-                .first(conn)?;
+        let (bp_bytes_b64, stored_params_json, ring_data_json_str): (
+            Option<String>,
+            Option<String>,
+            String,
+        ) = frost_signing_state::table
+            .filter(frost_signing_state::escrow_id.eq(escrow_id))
+            .select((
+                frost_signing_state::bulletproof_bytes,
+                frost_signing_state::ring_indices_json,
+                frost_signing_state::ring_data_json,
+            ))
+            .first(conn)?;
 
-        let bp_bytes_b64 = bp_bytes_b64
-            .context("bulletproof_bytes not stored")?;
-        let stored_params_json = stored_params_json
-            .context("ring_indices_json (tx params) not stored")?;
+        let bp_bytes_b64 = bp_bytes_b64.context("bulletproof_bytes not stored")?;
+        let stored_params_json =
+            stored_params_json.context("ring_indices_json (tx params) not stored")?;
 
-        let bp_bytes = BASE64.decode(&bp_bytes_b64)
+        let bp_bytes = BASE64
+            .decode(&bp_bytes_b64)
             .context("Failed to decode BP+ bytes")?;
 
         let stored_params: StoredTxParams = serde_json::from_str(&stored_params_json)
@@ -1598,20 +1819,31 @@ impl FrostSigningCoordinator {
         let mut tx_builder = build_tx_builder(
             key_image_bytes,
             &stored_params.ring_indices,
-            stealth_address_0, commitment_0, encrypted_amount_0,
-            mask_0, stored_params.recipient_amount, stored_params.view_tag_0,
-            stealth_address_1, commitment_1, encrypted_amount_1,
-            mask_1, stored_params.platform_fee, stored_params.view_tag_1,
-            &tx_pubkey, stored_params.tx_fee,
+            stealth_address_0,
+            commitment_0,
+            encrypted_amount_0,
+            mask_0,
+            stored_params.recipient_amount,
+            stored_params.view_tag_0,
+            stealth_address_1,
+            commitment_1,
+            encrypted_amount_1,
+            mask_1,
+            stored_params.platform_fee,
+            stored_params.view_tag_1,
+            &tx_pubkey,
+            stored_params.tx_fee,
         )?;
 
         // Import stored BP+ bytes (valid — BP+ doesn't depend on key image)
-        tx_builder.import_bulletproof_bytes(&bp_bytes)
+        tx_builder
+            .import_bulletproof_bytes(&bp_bytes)
             .context("Failed to import stored BP+ bytes")?;
 
         // Recompute CLSAG message with the CORRECT key image
         let pseudo_out_bytes = hex_to_32(&stored_params.pseudo_out)?;
-        let clsag_message = tx_builder.compute_clsag_message(&[pseudo_out_bytes])
+        let clsag_message = tx_builder
+            .compute_clsag_message(&[pseudo_out_bytes])
             .context("Failed to compute CLSAG message")?;
 
         info!(
@@ -1623,31 +1855,43 @@ impl FrostSigningCoordinator {
         // ====================================================================
         // 5. Parse ring data for CLSAG signing
         // ====================================================================
-        let ring_data: serde_json::Value = serde_json::from_str(&ring_data_json_str)
-            .context("Failed to parse ring data JSON")?;
+        let ring_data: serde_json::Value =
+            serde_json::from_str(&ring_data_json_str).context("Failed to parse ring data JSON")?;
 
-        let real_position = ring_data.get("real_position")
+        let real_position = ring_data
+            .get("real_position")
             .and_then(|v| v.as_u64())
             .context("Missing real_position in ring data")? as usize;
 
-        let ring_members = ring_data.get("ring_members")
+        let ring_members = ring_data
+            .get("ring_members")
             .and_then(|v| v.as_array())
             .context("Missing ring_members in ring data")?;
 
-        let mut ring_keys: Vec<curve25519_dalek::edwards::EdwardsPoint> = Vec::with_capacity(RING_SIZE);
-        let mut ring_commitments: Vec<curve25519_dalek::edwards::EdwardsPoint> = Vec::with_capacity(RING_SIZE);
+        let mut ring_keys: Vec<curve25519_dalek::edwards::EdwardsPoint> =
+            Vec::with_capacity(RING_SIZE);
+        let mut ring_commitments: Vec<curve25519_dalek::edwards::EdwardsPoint> =
+            Vec::with_capacity(RING_SIZE);
 
         for member in ring_members {
-            let key_hex = member.get("key").and_then(|v| v.as_str())
+            let key_hex = member
+                .get("key")
+                .and_then(|v| v.as_str())
                 .context("Missing key in ring member")?;
-            let mask_hex = member.get("mask").and_then(|v| v.as_str())
+            let mask_hex = member
+                .get("mask")
+                .and_then(|v| v.as_str())
                 .context("Missing mask in ring member")?;
             ring_keys.push(hex_to_point(key_hex)?);
             ring_commitments.push(hex_to_point(mask_hex)?);
         }
 
         if ring_keys.len() != RING_SIZE {
-            anyhow::bail!("Ring size mismatch: expected {}, got {}", RING_SIZE, ring_keys.len());
+            anyhow::bail!(
+                "Ring size mismatch: expected {}, got {}",
+                RING_SIZE,
+                ring_keys.len()
+            );
         }
 
         // ====================================================================
@@ -1674,7 +1918,8 @@ impl FrostSigningCoordinator {
             &key_image_point,
             &pseudo_out_point,
             &clsag_message,
-        ).context("CLSAG atomic signing failed")?;
+        )
+        .context("CLSAG atomic signing failed")?;
 
         info!(
             escrow_id = %escrow_id,
@@ -1699,10 +1944,12 @@ impl FrostSigningCoordinator {
             pseudo_out: stored_params.pseudo_out.clone(),
         };
 
-        tx_builder.attach_clsag(&client_sig)
+        tx_builder
+            .attach_clsag(&client_sig)
             .context("Failed to attach atomic CLSAG")?;
 
-        let build_result = tx_builder.build()
+        let build_result = tx_builder
+            .build()
             .context("Failed to build final transaction")?;
 
         let tx_hex = &build_result.tx_hex;
@@ -1718,7 +1965,10 @@ impl FrostSigningCoordinator {
         // ====================================================================
         // 9. Save TX hex for manual retry, then broadcast
         // ====================================================================
-        let tx_file = format!("/tmp/frost_tx_{}.hex", &escrow_id[..escrow_id.len().min(16)]);
+        let tx_file = format!(
+            "/tmp/frost_tx_{}.hex",
+            &escrow_id[..escrow_id.len().min(16)]
+        );
         if let Err(e) = std::fs::write(&tx_file, tx_hex) {
             warn!(error = %e, "Failed to save TX hex to {}", tx_file);
         } else {
@@ -1749,13 +1999,15 @@ impl FrostSigningCoordinator {
         // ====================================================================
         // 10. Update DB with real TX hash
         // ====================================================================
-        diesel::update(frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)))
-            .set((
-                frost_signing_state::aggregated_key_image.eq(&key_image_hex),
-                frost_signing_state::broadcasted_tx_hash.eq(&tx_hash),
-                frost_signing_state::status.eq("broadcasted"),
-            ))
-            .execute(conn)?;
+        diesel::update(
+            frost_signing_state::table.filter(frost_signing_state::escrow_id.eq(escrow_id)),
+        )
+        .set((
+            frost_signing_state::aggregated_key_image.eq(&key_image_hex),
+            frost_signing_state::broadcasted_tx_hash.eq(&tx_hash),
+            frost_signing_state::status.eq("broadcasted"),
+        ))
+        .execute(conn)?;
 
         diesel::update(escrows::table.find(escrow_id))
             .set((
@@ -1774,10 +2026,7 @@ impl FrostSigningCoordinator {
     }
 
     /// Get signing status
-    pub fn get_status(
-        conn: &mut SqliteConnection,
-        escrow_id: &str,
-    ) -> Result<SigningStatus> {
+    pub fn get_status(conn: &mut SqliteConnection, escrow_id: &str) -> Result<SigningStatus> {
         #[derive(Queryable)]
         struct State {
             buyer_r_public: Option<String>,
@@ -1824,7 +2073,8 @@ fn aggregate_edwards_points(hex_a: &str, hex_b: &str) -> Result<String> {
     if bytes_a.len() != 32 || bytes_b.len() != 32 {
         anyhow::bail!(
             "Points must be 32 bytes each, got {} and {}",
-            bytes_a.len(), bytes_b.len()
+            bytes_a.len(),
+            bytes_b.len()
         );
     }
 
@@ -1833,9 +2083,11 @@ fn aggregate_edwards_points(hex_a: &str, hex_b: &str) -> Result<String> {
     let mut arr_b = [0u8; 32];
     arr_b.copy_from_slice(&bytes_b);
 
-    let point_a = CompressedEdwardsY(arr_a).decompress()
+    let point_a = CompressedEdwardsY(arr_a)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid Edwards point A"))?;
-    let point_b = CompressedEdwardsY(arr_b).decompress()
+    let point_b = CompressedEdwardsY(arr_b)
+        .decompress()
         .ok_or_else(|| anyhow::anyhow!("Invalid Edwards point B"))?;
 
     let sum = point_a + point_b;

@@ -50,8 +50,8 @@ impl Currency {
     /// Conversion factor to smallest unit
     pub fn to_atomic_factor(&self) -> u64 {
         match self {
-            Currency::BTC | Currency::BtcLightning => 100_000_000,        // 1 BTC = 10^8 sats
-            Currency::XMR => 1_000_000_000_000,                            // 1 XMR = 10^12 piconeros
+            Currency::BTC | Currency::BtcLightning => 100_000_000, // 1 BTC = 10^8 sats
+            Currency::XMR => 1_000_000_000_000,                    // 1 XMR = 10^12 piconeros
         }
     }
 }
@@ -191,7 +191,10 @@ impl PaymentMethod {
 
     /// Whether this payment method requires a swap
     pub fn requires_swap(&self) -> bool {
-        matches!(self, PaymentMethod::BtcOnchain | PaymentMethod::BtcLightning)
+        matches!(
+            self,
+            PaymentMethod::BtcOnchain | PaymentMethod::BtcLightning
+        )
     }
 
     /// Get the source currency for this payment method

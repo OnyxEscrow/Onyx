@@ -16,10 +16,7 @@
 //! - monero/src/ringct/rctSigs.cpp
 
 use curve25519_dalek::{
-    constants::ED25519_BASEPOINT_POINT,
-    edwards::EdwardsPoint,
-    scalar::Scalar,
-    traits::Identity,
+    constants::ED25519_BASEPOINT_POINT, edwards::EdwardsPoint, scalar::Scalar, traits::Identity,
 };
 
 use crate::mock_infrastructure::DeterministicRng;
@@ -191,10 +188,7 @@ fn test_aggregated_key_image_cofactored() {
 
     // But the real bug was not applying cofactor at all
     let really_buggy_ki = pki1 + pki2;
-    assert_ne!(
-        really_buggy_ki, fixed_ki,
-        "No cofactor at all is the bug"
-    );
+    assert_ne!(really_buggy_ki, fixed_ki, "No cofactor at all is the bug");
 }
 
 #[test]
@@ -211,10 +205,7 @@ fn test_d_inv8_convention() {
     // During verification, recover D
     let d_recovered = d_inv8 * Scalar::from(8u64);
 
-    assert_eq!(
-        d, d_recovered,
-        "D should be recoverable from D_inv8"
-    );
+    assert_eq!(d, d_recovered, "D should be recoverable from D_inv8");
 
     // Alternative: use mul_by_cofactor on D_inv8
     let d_via_cofactor = d_inv8.mul_by_cofactor();
@@ -285,7 +276,10 @@ fn test_cofactor_deterministic() {
     let result1 = process_key_image_fixed(&point);
     let result2 = process_key_image_fixed(&point);
 
-    assert_eq!(result1, result2, "Cofactor multiplication should be deterministic");
+    assert_eq!(
+        result1, result2,
+        "Cofactor multiplication should be deterministic"
+    );
 }
 
 // ============================================================================

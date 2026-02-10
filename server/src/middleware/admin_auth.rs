@@ -67,15 +67,16 @@ where
         // Extract session using SessionExt
         let session = req.get_session();
 
-        let pool = req
-            .app_data::<actix_web::web::Data<DbPool>>()
-            .cloned();
+        let pool = req.app_data::<actix_web::web::Data<DbPool>>().cloned();
 
         // Get user_id from session
         let user_id = match session.get::<String>("user_id") {
             Ok(Some(id)) => id,
             Ok(None) => {
-                warn!("Admin endpoint accessed without authentication: {}", req.path());
+                warn!(
+                    "Admin endpoint accessed without authentication: {}",
+                    req.path()
+                );
                 return Box::pin(async move {
                     Err(ErrorUnauthorized(serde_json::json!({
                         "error": "Authentication required"
@@ -112,7 +113,7 @@ where
                 warn!("Database pool not available in admin middleware");
                 return Box::pin(async move {
                     Err(actix_web::error::ErrorInternalServerError(
-                        "Internal server error"
+                        "Internal server error",
                     ))
                 });
             }
@@ -123,12 +124,10 @@ where
 
         Box::pin(async move {
             // Query database for user role
-            let mut conn = pool
-                .get()
-                .map_err(|e| {
-                    warn!("Failed to get DB connection in admin middleware: {}", e);
-                    actix_web::error::ErrorInternalServerError("Database error")
-                })?;
+            let mut conn = pool.get().map_err(|e| {
+                warn!("Failed to get DB connection in admin middleware: {}", e);
+                actix_web::error::ErrorInternalServerError("Database error")
+            })?;
 
             let user = tokio::task::spawn_blocking(move || {
                 User::find_by_id(&mut conn, user_uuid.to_string())
@@ -157,7 +156,10 @@ where
                 })));
             }
 
-            info!("Admin access granted to user {} ({})", user.username, user_uuid);
+            info!(
+                "Admin access granted to user {} ({})",
+                user.username, user_uuid
+            );
 
             // User is admin - proceed with request
             fut.await

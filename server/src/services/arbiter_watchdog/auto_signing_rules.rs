@@ -40,10 +40,7 @@ pub enum SigningDecision {
     /// - status = "disputed"
     /// - OR parties disagree on outcome
     /// - OR timeout approaching
-    EscalateHuman {
-        escrow_id: String,
-        reason: String,
-    },
+    EscalateHuman { escrow_id: String, reason: String },
 
     /// No action needed
     ///
@@ -212,7 +209,8 @@ impl AutoSigningRules {
                 );
                 return SigningDecision::EscalateHuman {
                     escrow_id,
-                    reason: "Parties disagree: buyer wants release, vendor wants refund".to_string(),
+                    reason: "Parties disagree: buyer wants release, vendor wants refund"
+                        .to_string(),
                 };
             }
         }
@@ -408,7 +406,10 @@ mod tests {
         let decision = AutoSigningRules::evaluate(&escrow);
 
         match decision {
-            SigningDecision::AutoRelease { escrow_id, vendor_address } => {
+            SigningDecision::AutoRelease {
+                escrow_id,
+                vendor_address,
+            } => {
                 assert_eq!(escrow_id, "test-escrow-123");
                 assert!(vendor_address.starts_with("4"));
             }
@@ -425,7 +426,10 @@ mod tests {
         let decision = AutoSigningRules::evaluate(&escrow);
 
         match decision {
-            SigningDecision::AutoRefund { escrow_id, buyer_address } => {
+            SigningDecision::AutoRefund {
+                escrow_id,
+                buyer_address,
+            } => {
                 assert_eq!(escrow_id, "test-escrow-123");
                 assert!(buyer_address.starts_with("4"));
             }

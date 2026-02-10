@@ -14,8 +14,8 @@ use uuid::Uuid;
 use crate::db::DbPool;
 use crate::ipfs::client::IpfsClient;
 use crate::models::dispute_evidence::{
-    is_allowed_mime_type, DisputeEvidence, NewDisputeEvidence, UploaderRole,
-    MAX_EVIDENCE_FILES, MAX_FILE_SIZE,
+    is_allowed_mime_type, DisputeEvidence, NewDisputeEvidence, UploaderRole, MAX_EVIDENCE_FILES,
+    MAX_FILE_SIZE,
 };
 use crate::models::escrow::Escrow;
 use crate::schema::escrows;
@@ -161,24 +161,34 @@ pub async fn upload_evidence(
     let mut uploaded_evidence: Option<(String, String, String, i32)> = None; // (cid, filename, mime, size)
     let mut description: Option<String> = None;
 
-    while let Some(item) = multipart.try_next().await.map_err(|e| {
-        error!("Multipart parsing error: {}", e);
-        HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "Invalid multipart data"
-        }))
-    }).unwrap_or(None) {
+    while let Some(item) = multipart
+        .try_next()
+        .await
+        .map_err(|e| {
+            error!("Multipart parsing error: {}", e);
+            HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Invalid multipart data"
+            }))
+        })
+        .unwrap_or(None)
+    {
         let mut field = item;
         let field_name = field.name().to_string();
 
         if field_name == "file" || field_name == "evidence" {
             let mut data = Vec::new();
 
-            while let Some(chunk) = field.try_next().await.map_err(|e| {
-                error!("Stream reading error: {}", e);
-                HttpResponse::InternalServerError().json(serde_json::json!({
-                    "error": "Failed to read file data"
-                }))
-            }).unwrap_or(None) {
+            while let Some(chunk) = field
+                .try_next()
+                .await
+                .map_err(|e| {
+                    error!("Stream reading error: {}", e);
+                    HttpResponse::InternalServerError().json(serde_json::json!({
+                        "error": "Failed to read file data"
+                    }))
+                })
+                .unwrap_or(None)
+            {
                 data.extend_from_slice(&chunk);
 
                 // Check file size limit
@@ -219,7 +229,8 @@ pub async fn upload_evidence(
                             ipfs_cid = %cid,
                             "Evidence uploaded to IPFS"
                         );
-                        uploaded_evidence = Some((cid, file_name, mime_type.to_string(), data.len() as i32));
+                        uploaded_evidence =
+                            Some((cid, file_name, mime_type.to_string(), data.len() as i32));
                     }
                     Err(e) => {
                         error!("IPFS upload failed: {}", e);
@@ -369,8 +380,8 @@ pub async fn list_evidence(
     };
 
     // 6. Convert to response format
-    let ipfs_gateway = std::env::var("IPFS_GATEWAY_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:8083".to_string());
+    let ipfs_gateway =
+        std::env::var("IPFS_GATEWAY_URL").unwrap_or_else(|_| "http://127.0.0.1:8083".to_string());
 
     let evidence_responses: Vec<_> = evidence_list
         .iter()
@@ -472,15 +483,13 @@ pub async fn get_evidence(
 
     // 7. Fetch from IPFS and stream response
     match ipfs_client.cat(&evidence.ipfs_cid).await {
-        Ok(data) => {
-            HttpResponse::Ok()
-                .content_type(evidence.mime_type.clone())
-                .insert_header((
-                    "Content-Disposition",
-                    format!("attachment; filename=\"{}\"", evidence.file_name),
-                ))
-                .body(data)
-        }
+        Ok(data) => HttpResponse::Ok()
+            .content_type(evidence.mime_type.clone())
+            .insert_header((
+                "Content-Disposition",
+                format!("attachment; filename=\"{}\"", evidence.file_name),
+            ))
+            .body(data),
         Err(e) => {
             error!("IPFS fetch failed for CID {}: {}", evidence.ipfs_cid, e);
             HttpResponse::InternalServerError().json(serde_json::json!({
