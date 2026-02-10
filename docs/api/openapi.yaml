@@ -1,0 +1,3418 @@
+openapi: 3.0.3
+info:
+  title: NEXUS Escrow-as-a-Service API
+  description: |
+    # Introduction
+
+    NEXUS provides non-custodial Monero escrow through 2-of-3 threshold signatures.
+    The platform acts as a **blind relay** - it coordinates signatures but cannot
+    spend funds unilaterally.
+
+    ## Core Concepts
+
+    - **Escrow**: A 2-of-3 multisig holding funds until conditions are met
+    - **Participants**: Buyer, Vendor, and Arbiter (any 2 can sign)
+    - **FROST DKG**: Distributed Key Generation (RFC 9591) for threshold keys
+    - **CLSAG**: Monero's ring signature scheme for spending
+
+    ## Authentication
+
+    ### API Key (B2B)
+    All B2B API requests require an API key in the `X-API-Key` header:
+
+    ```bash
+    curl -H "X-API-Key: nex_live_abc123..." https://api.nexus-escrow.com/api/v1/escrows/create
+    ```
+
+    ### Session (B2C)
+    Browser-based users authenticate via session cookies set at login.
+
+    ### Dual Auth
+    Many endpoints accept either API key or session authentication.
+
+    ## API Key Scopes
+
+    - `escrow:read` - View escrow status
+    - `escrow:write` - Create and manage escrows
+    - `webhook:manage` - Configure webhooks
+    - `keys:manage` - Manage API keys
+
+    ## Webhooks
+
+    NEXUS sends webhooks for key events. Configure your endpoint via the API
+    or dashboard. Events include:
+
+    - `escrow.created` - New escrow initialized
+    - `escrow.funded` - Funds received and locked
+    - `escrow.released` - Funds sent to recipient
+    - `escrow.shipped` - Vendor marked as shipped
+    - `escrow.disputed` - Dispute opened
+    - `escrow.resolved` - Dispute resolved
+    - `escrow.expired` - Escrow timeout reached
+    - `escrow.refunded` - Funds returned to buyer
+    - `multisig.setup_started` - DKG initiated
+    - `multisig.signing_required` - Signing needed
+
+    Webhook payloads are signed with HMAC-SHA256. Verify the `X-NEXUS-Signature` header:
+    ```
+    signature = HMAC-SHA256(webhook_secret, timestamp + "." + payload)
+    ```
+
+    ## Rate Limits
+
+    | Tier | Requests/min | Escrows/day | Concurrent |
+    |------|-------------|-------------|------------|
+    | Free | 60 | 10 | 5 |
+    | Pro | 300 | 100 | 50 |
+    | Enterprise | 1000 | Unlimited | 500 |
+
+    Rate limit headers are included in all responses:
+    - `X-RateLimit-Limit` - Max requests per minute
+    - `X-RateLimit-Remaining` - Requests remaining
+    - `X-RateLimit-Reset` - Unix timestamp when limit resets
+
+    ## Request Headers
+
+    | Header | Required | Description |
+    |--------|----------|-------------|
+    | `X-API-Key` | Yes (B2B) | API key for authentication |
+    | `X-Request-ID` | No | Client-generated UUID for tracing |
+    | `X-Idempotency-Key` | No | Idempotency key for POST requests |
+
+  version: 1.2.0
+  contact:
+    name: NEXUS API Support
+    email: api@nexus-escrow.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.nexus-escrow.com/api/v1
+    description: Production (B2B API v1)
+  - url: https://staging-api.nexus-escrow.com/api/v1
+    description: Staging (Testnet)
+  - url: http://localhost:8080/api/v1
+    description: Local Development (B2B)
+  - url: http://localhost:8080/api
+    description: Local Development (Core API)
+
+tags:
+  - name: Health
+    description: Server health and status
+  - name: Auth
+    description: User registration and authentication
+  - name: API Keys
+    description: Manage API keys for B2B authentication
+  - name: Webhooks
+    description: Configure webhook endpoints for event delivery
+  - name: Fees
+    description: Fee estimation and network fee queries
+  - name: Client Fees
+    description: B2B client-specific fee configuration
+  - name: Analytics
+    description: API usage analytics and statistics
+  - name: Escrow
+    description: Create and manage escrow transactions
+  - name: Escrow Lifecycle
+    description: Escrow state transitions (join, deliver, confirm)
+  - name: User
+    description: User profile and escrow listing
+  - name: Arbiter
+    description: Arbiter dispute management
+  - name: FROST DKG
+    description: FROST Distributed Key Generation (RFC 9591)
+  - name: FROST Signing
+    description: FROST threshold CLSAG signing
+  - name: FROST Shield
+    description: Shield backup for key recovery
+  - name: Escrow Chat
+    description: End-to-end encrypted escrow messaging
+  - name: Encrypted Relay
+    description: Non-custodial encrypted relay for signing data
+  - name: Escrow Signing v2
+    description: Round-robin CLSAG signing and nonce aggregation
+  - name: Disputes
+    description: Dispute resolution
+  - name: Funding
+    description: Track escrow funding status
+  - name: Notifications
+    description: Persistent notification management
+
+paths:
+  # ===========================================================================
+  # Health
+  # ===========================================================================
+  /health:
+    get:
+      tags: [Health]
+      summary: Health Check
+      description: Returns server health status.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # ===========================================================================
+  # Auth Endpoints (/api/auth)
+  # ===========================================================================
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register User (JSON)
+      description: Register a new user account. Returns session cookie.
+      operationId: registerJson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (JSON)
+      description: Authenticate and receive session cookie.
+      operationId: loginJson
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/whoami:
+    get:
+      tags: [Auth]
+      summary: Get Current User
+      description: Returns the currently authenticated user info from session.
+      operationId: whoami
+      responses:
+        '200':
+          description: Current user info
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhoamiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout
+      description: Destroy the current session.
+      operationId: logout
+      responses:
+        '200':
+          description: Logged out
+
+  # ===========================================================================
+  # API Keys Management (/api/api-keys)
+  # ===========================================================================
+  /api-keys:
+    post:
+      tags: [API Keys]
+      summary: Create API Key
+      description: |
+        Create a new API key. The full key is only returned once at creation time.
+        New keys start at Free tier (60 req/min). Max 10 keys per user.
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+      responses:
+        '201':
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [API Keys]
+      summary: List API Keys
+      description: List all API keys for the authenticated user.
+      operationId: listApiKeys
+      responses:
+        '200':
+          description: List of API keys
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  keys:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKeyInfo'
+                  total:
+                    type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api-keys/{key_id}:
+    get:
+      tags: [API Keys]
+      summary: Get API Key Details
+      description: Get details of a specific API key (secret is never returned).
+      operationId: getApiKey
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      responses:
+        '200':
+          description: API key details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyInfo'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [API Keys]
+      summary: Revoke API Key
+      description: Deactivate an API key. Requests using this key will fail with 401.
+      operationId: revokeApiKey
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      responses:
+        '200':
+          description: API key revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key_id:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api-keys/{key_id}/permanent:
+    delete:
+      tags: [API Keys]
+      summary: Permanently Delete API Key
+      description: Permanently delete an API key from the database.
+      operationId: deleteApiKey
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      responses:
+        '200':
+          description: API key deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key_id:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # ===========================================================================
+  # Webhooks Management (/api/webhooks and /api/v1/webhooks)
+  # ===========================================================================
+  /webhooks:
+    post:
+      tags: [Webhooks]
+      summary: Create Webhook
+      description: |
+        Register a new webhook endpoint to receive event notifications.
+        URL must use HTTPS and not point to private/reserved IPs (SSRF protection).
+
+        The HMAC signing secret is only returned once at creation time.
+      operationId: createWebhook
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookCreatedResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      tags: [Webhooks]
+      summary: List Webhooks
+      description: List all webhooks for the authenticated API key.
+      operationId: listWebhooks
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: List of webhooks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  webhooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookInfo'
+                  count:
+                    type: integer
+
+  /webhooks/{webhook_id}:
+    get:
+      tags: [Webhooks]
+      summary: Get Webhook Details
+      operationId: getWebhook
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookInfo'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Webhooks]
+      summary: Update Webhook
+      description: Update webhook URL, events, or description.
+      operationId: updateWebhook
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        '200':
+          description: Webhook updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Webhooks]
+      summary: Delete Webhook
+      operationId: deleteWebhook
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{webhook_id}/activate:
+    post:
+      tags: [Webhooks]
+      summary: Activate Webhook
+      description: Re-enable a deactivated webhook.
+      operationId: activateWebhook
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{webhook_id}/deactivate:
+    post:
+      tags: [Webhooks]
+      summary: Deactivate Webhook
+      description: Temporarily disable a webhook without deleting it.
+      operationId: deactivateWebhook
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{webhook_id}/rotate-secret:
+    post:
+      tags: [Webhooks]
+      summary: Rotate Webhook Secret
+      description: Generate a new HMAC signing secret. Old secret is invalidated immediately.
+      operationId: rotateWebhookSecret
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: New secret generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RotateSecretResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{webhook_id}/deliveries:
+    get:
+      tags: [Webhooks]
+      summary: Get Delivery History
+      description: Get webhook delivery history with status and response codes.
+      operationId: getWebhookDeliveries
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 100
+      responses:
+        '200':
+          description: Delivery history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deliveries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookDelivery'
+                  count:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/deliveries/{delivery_id}/retry:
+    post:
+      tags: [Webhooks]
+      summary: Retry Failed Delivery
+      description: Manually retry a failed webhook delivery.
+      operationId: retryDelivery
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: delivery_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Retry initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /webhooks/{webhook_id}/stats:
+    get:
+      tags: [Webhooks]
+      summary: Get Delivery Statistics
+      description: Get aggregated delivery statistics for a webhook.
+      operationId: getWebhookStats
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Delivery statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookDeliveryStats'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # Client Fees (/api/v1/client/fees)
+  # ===========================================================================
+  /client/fees:
+    get:
+      tags: [Client Fees]
+      summary: Get Client Fee Configuration
+      description: |
+        Get current fee configuration for the authenticated client.
+        Returns the fee basis points, percentage, and source (global default or client override).
+      operationId: getClientFees
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Fee configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeConfigResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /client/fees/estimate:
+    get:
+      tags: [Client Fees]
+      summary: Estimate Fees for Amount
+      description: |
+        Calculate platform fees for a given escrow amount in atomic units (piconero).
+        Accounts for client-specific fee overrides if configured.
+      operationId: estimateClientFees
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: amount_atomic
+          in: query
+          required: true
+          description: Amount in atomic units (piconero)
+          schema:
+            type: integer
+            format: int64
+        - name: is_refund
+          in: query
+          description: Whether this is a refund (may have different fee rate)
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Fee estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeeEstimateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # Analytics (/api/v1/analytics)
+  # ===========================================================================
+  /analytics/usage:
+    get:
+      tags: [Analytics]
+      summary: Get Usage Analytics
+      description: |
+        Get API usage statistics for the authenticated client.
+        Includes escrow counts, volume, and API request metrics.
+      operationId: getUsageAnalytics
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: Time period filter
+          schema:
+            type: string
+            enum: ["24h", "7d", "30d", "all"]
+            default: "30d"
+      responses:
+        '200':
+          description: Usage analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageAnalyticsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # Fee Estimation (/api/fees)
+  # ===========================================================================
+  /fees/estimate:
+    get:
+      tags: [Fees]
+      summary: Estimate Network Fee
+      description: |
+        Get Monero network transaction fee estimate from the daemon.
+        Returns fee per byte and estimated fees for typical transaction sizes.
+      operationId: estimateNetworkFee
+      parameters:
+        - name: priority
+          in: query
+          description: "Fee priority: unimportant, normal, elevated, priority"
+          schema:
+            type: string
+            enum: [unimportant, normal, elevated, priority]
+            default: normal
+        - name: tx_size
+          in: query
+          description: Custom transaction size in bytes
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Fee estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkFeeEstimate'
+
+  /fees/all:
+    get:
+      tags: [Fees]
+      summary: Get All Fee Estimates
+      description: Get fee estimates for all priority levels at once.
+      operationId: getAllFeeEstimates
+      responses:
+        '200':
+          description: All fee estimates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estimates:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NetworkFeeEstimate'
+                  recommended:
+                    type: string
+                  daemon_height:
+                    type: integer
+                    nullable: true
+
+  /fees/daemon-health:
+    get:
+      tags: [Fees]
+      summary: Get Daemon Health
+      description: Check the health of connected Monero daemon nodes.
+      operationId: getDaemonHealth
+      responses:
+        '200':
+          description: Daemon health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  healthy:
+                    type: boolean
+                  node_count:
+                    type: integer
+                  synced:
+                    type: boolean
+                  height:
+                    type: integer
+
+  # ===========================================================================
+  # Escrow CRUD
+  # ===========================================================================
+  /escrows/create:
+    post:
+      tags: [Escrow]
+      summary: Create Escrow
+      description: |
+        Create a new escrow. The creator specifies their role (buyer or seller).
+        The counterparty joins later via a shared link.
+
+        Status flow: `pending_counterparty` -> `pending_dkg` -> `awaiting_funding` -> `funded` -> ...
+      operationId: createEscrow
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEscrowRequest'
+      responses:
+        '201':
+          description: Escrow created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateEscrowResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /escrows/{escrow_id}:
+    get:
+      tags: [Escrow]
+      summary: Get Escrow
+      description: Retrieve full escrow details including status and participants.
+      operationId: getEscrow
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Escrow details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EscrowResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /escrows/{escrow_id}/public:
+    get:
+      tags: [Escrow Lifecycle]
+      summary: Get Public Escrow Info
+      description: Get escrow details for the join page. No authentication required.
+      operationId: getEscrowPublic
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Public escrow info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  creator_role:
+                    type: string
+                    enum: [buyer, seller]
+                  amount:
+                    type: integer
+                    format: int64
+                  description:
+                    type: string
+                    nullable: true
+                  status:
+                    type: string
+                  created_at:
+                    type: string
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /escrows/{escrow_id}/join:
+    post:
+      tags: [Escrow Lifecycle]
+      summary: Join Escrow
+      description: |
+        Join an escrow as the counterparty. Assigns the system arbiter automatically.
+        Transitions the escrow from `pending_counterparty` to `pending_dkg`.
+      operationId: joinEscrow
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Successfully joined
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  role:
+                    type: string
+                    enum: [buyer, seller]
+                  escrow_id:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /escrows/{escrow_id}/lobby-status:
+    get:
+      tags: [Escrow Lifecycle]
+      summary: Get Lobby Status
+      description: Check participant readiness for DKG setup.
+      operationId: getLobbyStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Lobby status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LobbyStatus'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /escrows/{escrow_id}/start-dkg:
+    post:
+      tags: [Escrow Lifecycle]
+      summary: Start DKG Setup
+      description: |
+        Initiate FROST DKG when all parties have joined.
+        Transitions status to `pending_dkg` with multisig_phase `preparing`.
+      operationId: startDkg
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: DKG started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  escrow_id:
+                    type: string
+                  status:
+                    type: string
+                  next_step:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /escrow/{escrow_id}/deliver:
+    post:
+      tags: [Escrow Lifecycle]
+      summary: Mark as Shipped
+      description: |
+        Vendor marks the escrow as shipped with their payout address.
+        Requires escrow to be in `funded` status. Transitions to `shipped`.
+      operationId: markDelivered
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [vendor_payout_address]
+              properties:
+                vendor_payout_address:
+                  type: string
+                  description: "95-character Monero mainnet address starting with '4'"
+                  minLength: 95
+                  maxLength: 95
+      responses:
+        '200':
+          description: Marked as shipped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                  vendor_payout_address:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /escrow/{escrow_id}/confirm:
+    post:
+      tags: [Escrow Lifecycle]
+      summary: Confirm Delivery
+      description: |
+        Buyer confirms receipt of goods/services.
+        Transitions status to `signing_initiated` to begin release signing.
+      operationId: confirmDelivery
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Delivery confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+                  message:
+                    type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /escrow/{escrow_id}/release:
+    post:
+      tags: [Escrow]
+      summary: Release Funds
+      description: Initiate fund release to the vendor.
+      operationId: releaseFunds
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Release initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+
+  /escrow/{escrow_id}/refund:
+    post:
+      tags: [Escrow]
+      summary: Refund Funds
+      description: Initiate fund refund to the buyer.
+      operationId: refundFunds
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Refund initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+
+  /escrow/{escrow_id}/dispute:
+    post:
+      tags: [Disputes]
+      summary: Open Dispute
+      description: Open a dispute on the escrow.
+      operationId: openDispute
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                  maxLength: 1000
+      responses:
+        '200':
+          description: Dispute opened
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  status:
+                    type: string
+
+  /escrow/{escrow_id}/resolve:
+    post:
+      tags: [Disputes]
+      summary: Resolve Dispute
+      description: Arbiter resolves the dispute with a decision.
+      operationId: resolveDispute
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [release_to_vendor, refund_to_buyer]
+                notes:
+                  type: string
+      responses:
+        '200':
+          description: Dispute resolved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /escrow/{escrow_id}/funding-notification:
+    post:
+      tags: [Funding]
+      summary: Notify Funding
+      description: Notify the server of an incoming funding transaction to speed up detection.
+      operationId: notifyFunding
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tx_hash:
+                  type: string
+                  description: Transaction hash (64 hex chars)
+      responses:
+        '200':
+          description: Notification received
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /escrow/{escrow_id}/multisig-address:
+    get:
+      tags: [Escrow]
+      summary: Get Multisig Address
+      description: Get the multisig deposit address for an escrow.
+      operationId: getMultisigAddress
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Multisig address
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  multisig_address:
+                    type: string
+                    nullable: true
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # User Endpoints (/api/user)
+  # ===========================================================================
+  /user/escrows:
+    get:
+      tags: [User]
+      summary: List User Escrows
+      description: Get all escrows where the user is buyer, vendor, or arbiter.
+      operationId: getUserEscrows
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      responses:
+        '200':
+          description: User's escrows
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserEscrowResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /user/escrows/dashboard:
+    get:
+      tags: [User]
+      summary: Get Dashboard Data
+      description: |
+        Get escrows with statistics, pagination, and filtering for the dashboard UI.
+        Includes counterparty info, DKG phase, and funding status.
+      operationId: getUserDashboard
+      parameters:
+        - name: status
+          in: query
+          description: Comma-separated status filter
+          schema:
+            type: string
+        - name: role
+          in: query
+          description: Comma-separated role filter (buyer, vendor, arbiter)
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          description: Sort field
+          schema:
+            type: string
+            enum: [amount_desc, amount_asc, status]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+      responses:
+        '200':
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===========================================================================
+  # Arbiter Endpoints (/api/arbiter)
+  # ===========================================================================
+  /arbiter/disputes:
+    get:
+      tags: [Arbiter]
+      summary: List All Disputes
+      description: Get all disputed escrows. Requires arbiter role.
+      operationId: getArbiterDisputes
+      responses:
+        '200':
+          description: Dispute list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disputes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArbiterDisputeResponse'
+                  total:
+                    type: integer
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /arbiter/disputes/{dispute_id}:
+    get:
+      tags: [Arbiter]
+      summary: Get Dispute Detail
+      description: Get full details of a specific dispute. Requires arbiter role.
+      operationId: getArbiterDisputeDetail
+      parameters:
+        - name: dispute_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Dispute details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArbiterDisputeDetail'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===========================================================================
+  # FROST DKG (/api/escrow/frost/{id})
+  # ===========================================================================
+  /escrow/frost/{escrow_id}/init:
+    post:
+      tags: [FROST DKG]
+      summary: Initialize FROST DKG
+      description: Initialize distributed key generation for the escrow.
+      operationId: initFrostDkg
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: DKG initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /escrow/frost/{escrow_id}/dkg/round1:
+    post:
+      tags: [FROST DKG]
+      summary: Submit DKG Round 1
+      description: Submit FROST DKG Round 1 package for key generation.
+      operationId: submitDkgRound1
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DkgRound1Request'
+      responses:
+        '200':
+          description: Round 1 package accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Already submitted
+
+    get:
+      tags: [FROST DKG]
+      summary: Get DKG Round 1 Packages
+      description: Retrieve all submitted Round 1 packages.
+      operationId: getDkgRound1Packages
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Round 1 packages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/dkg/round2:
+    post:
+      tags: [FROST DKG]
+      summary: Submit DKG Round 2
+      description: Submit FROST DKG Round 2 packages (one per recipient).
+      operationId: submitDkgRound2
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DkgRound2Request'
+      responses:
+        '200':
+          description: Round 2 packages accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+    get:
+      tags: [FROST DKG]
+      summary: Get DKG Round 2 Packages
+      description: Retrieve Round 2 packages addressed to the caller.
+      operationId: getDkgRound2Packages
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Round 2 packages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/dkg/complete:
+    post:
+      tags: [FROST DKG]
+      summary: Complete DKG
+      description: |
+        Finalize DKG with the derived group public key and multisig address.
+        All 3 participants must submit matching group pubkeys.
+      operationId: completeDkg
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteDkgRequest'
+      responses:
+        '200':
+          description: DKG completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/status:
+    get:
+      tags: [FROST DKG]
+      summary: Get DKG Status
+      description: Get the current DKG status for an escrow.
+      operationId: getDkgStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: DKG status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/lagrange:
+    get:
+      tags: [FROST DKG]
+      summary: Get Lagrange Coefficients
+      description: Compute Lagrange interpolation coefficients for a signing pair.
+      operationId: getLagrangeCoefficients
+      parameters:
+        - name: signer1
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [buyer, vendor, arbiter]
+        - name: signer2
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [buyer, vendor, arbiter]
+      responses:
+        '200':
+          description: Lagrange coefficients
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signer1_lambda:
+                    type: string
+                  signer2_lambda:
+                    type: string
+
+  # ===========================================================================
+  # FROST Shield Backup
+  # ===========================================================================
+  /escrow/frost/{escrow_id}/shield/register:
+    post:
+      tags: [FROST Shield]
+      summary: Register Shield Backup
+      description: Register an encrypted key backup for recovery.
+      operationId: registerShield
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [backup_id, role]
+              properties:
+                backup_id:
+                  type: string
+                role:
+                  type: string
+                  enum: [buyer, vendor, arbiter]
+      responses:
+        '200':
+          description: Shield registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/shield/verify:
+    post:
+      tags: [FROST Shield]
+      summary: Verify Shield Backup
+      description: Verify a shield backup exists and is valid.
+      operationId: verifyShield
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [backup_id]
+              properties:
+                backup_id:
+                  type: string
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/shield/status:
+    get:
+      tags: [FROST Shield]
+      summary: Get Shield Status
+      description: Get shield backup status for all participants.
+      operationId: getShieldStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Shield status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  # ===========================================================================
+  # FROST Signing
+  # ===========================================================================
+  /escrow/frost/{escrow_id}/sign/init:
+    post:
+      tags: [FROST Signing]
+      summary: Initialize Signing Session
+      description: Start a FROST threshold signing session for release or refund.
+      operationId: initFrostSigning
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [release, refund]
+                destination_address:
+                  type: string
+      responses:
+        '200':
+          description: Signing session initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/sign/nonces:
+    post:
+      tags: [FROST Signing]
+      summary: Submit Nonce Commitment
+      description: Submit a FROST nonce commitment for the signing session.
+      operationId: submitNonceCommitment
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, nonce_commitment]
+              properties:
+                role:
+                  type: string
+                  enum: [buyer, vendor, arbiter]
+                nonce_commitment:
+                  type: string
+                  description: Hex-encoded nonce commitment
+      responses:
+        '200':
+          description: Nonce accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+    get:
+      tags: [FROST Signing]
+      summary: Get Nonce Commitments
+      description: Get all aggregated nonce commitments.
+      operationId: getNonceCommitments
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Nonce commitments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/sign/partial:
+    post:
+      tags: [FROST Signing]
+      summary: Submit Partial Signature
+      description: Submit a FROST partial signature.
+      operationId: submitPartialSignature
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role, partial_signature]
+              properties:
+                role:
+                  type: string
+                  enum: [buyer, vendor, arbiter]
+                partial_signature:
+                  type: string
+      responses:
+        '200':
+          description: Partial signature accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/sign/status:
+    get:
+      tags: [FROST Signing]
+      summary: Get Signing Status
+      description: Get current signing session status.
+      operationId: getSigningStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Signing status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/sign/complete:
+    post:
+      tags: [FROST Signing]
+      summary: Complete and Broadcast
+      description: Aggregate partial signatures and broadcast the transaction.
+      operationId: completeAndBroadcast
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Transaction broadcast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResult'
+
+  /escrow/frost/{escrow_id}/sign/tx-data:
+    get:
+      tags: [FROST Signing]
+      summary: Get TX Data for Signing
+      description: Get the transaction prefix hash and ring data for client-side signing.
+      operationId: getTxData
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Transaction data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/sign/first-signer-data:
+    get:
+      tags: [FROST Signing]
+      summary: Get First Signer Data
+      description: Get data needed by the first signer to begin signing.
+      operationId: getFirstSignerData
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: First signer data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/ship:
+    post:
+      tags: [FROST DKG]
+      summary: Confirm Shipped
+      description: Vendor confirms shipping within the FROST escrow flow.
+      operationId: confirmShipped
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Shipping confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  /escrow/frost/{escrow_id}/confirm-receipt:
+    post:
+      tags: [FROST DKG]
+      summary: Confirm Receipt
+      description: Buyer confirms receipt within the FROST escrow flow.
+      operationId: confirmReceipt
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Receipt confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FrostApiResponse'
+
+  # ===========================================================================
+  # Escrow Chat (E2EE) (/api/v2/escrow/{id}/chat)
+  # ===========================================================================
+  /v2/escrow/{escrow_id}/chat/keypair:
+    post:
+      tags: [Escrow Chat]
+      summary: Register Chat Keypair
+      description: |
+        Register an X25519 public key for E2EE messaging within the escrow.
+        Each participant must register before messages can be sent.
+      operationId: registerChatKeypair
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [public_key]
+              properties:
+                public_key:
+                  type: string
+                  description: X25519 public key (64 hex chars)
+                  pattern: '^[0-9a-fA-F]{64}$'
+      responses:
+        '200':
+          description: Keypair registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatApiResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v2/escrow/{escrow_id}/chat/keypairs:
+    get:
+      tags: [Escrow Chat]
+      summary: Get Participant Keypairs
+      description: Get all 3 participants' public keys for key exchange.
+      operationId: getChatKeypairs
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Participant keypairs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatApiResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /v2/escrow/{escrow_id}/chat/send:
+    post:
+      tags: [Escrow Chat]
+      summary: Send Encrypted Message
+      description: |
+        Send a message encrypted 3 times (once per participant).
+        Requires all participants to have registered keypairs.
+      operationId: sendChatMessage
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendChatMessageRequest'
+      responses:
+        '200':
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      created_at:
+                        type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v2/escrow/{escrow_id}/chat/messages:
+    get:
+      tags: [Escrow Chat]
+      summary: Get Chat History
+      description: Get paginated chat history for the escrow.
+      operationId: getChatMessages
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      messages:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/SecureEscrowMessage'
+                      total:
+                        type: integer
+                        format: int64
+                      has_more:
+                        type: boolean
+
+  /v2/escrow/{escrow_id}/chat/{message_id}/read:
+    post:
+      tags: [Escrow Chat]
+      summary: Mark Message as Read
+      operationId: markChatMessageRead
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  /v2/escrow/{escrow_id}/chat/export:
+    get:
+      tags: [Escrow Chat]
+      summary: Export Chat for Dispute
+      description: Export chat transcript as signed evidence. Only for disputed escrows or arbiters.
+      operationId: exportChatForDispute
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Chat export
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatApiResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ===========================================================================
+  # Encrypted Relay (/api/v2/escrow/{id}/relay)
+  # ===========================================================================
+  /v2/escrow/{escrow_id}/relay:
+    post:
+      tags: [Encrypted Relay]
+      summary: Store Encrypted Relay Data
+      description: Store encrypted signing data for the non-custodial relay.
+      operationId: storeEncryptedRelay
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [encrypted_data, sender_role]
+              properties:
+                encrypted_data:
+                  type: string
+                  description: Encrypted payload (base64)
+                sender_role:
+                  type: string
+                  enum: [buyer, vendor, arbiter]
+      responses:
+        '200':
+          description: Data stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+    get:
+      tags: [Encrypted Relay]
+      summary: Get Encrypted Relay Data
+      description: Retrieve encrypted signing data addressed to the caller.
+      operationId: getEncryptedRelay
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Relay data
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/relay/status:
+    get:
+      tags: [Encrypted Relay]
+      summary: Get Relay Status
+      description: Check the status of encrypted relay data exchange.
+      operationId: getRelayStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Relay status
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/broadcast-signed:
+    post:
+      tags: [Encrypted Relay]
+      summary: Broadcast Signed Transaction
+      description: Submit a fully signed transaction for broadcast to the Monero network.
+      operationId: broadcastSignedTransaction
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [signed_tx_hex]
+              properties:
+                signed_tx_hex:
+                  type: string
+                  description: Hex-encoded signed transaction
+      responses:
+        '200':
+          description: Broadcast result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResult'
+
+  # ===========================================================================
+  # Escrow Signing v2 (Round-Robin CLSAG)
+  # ===========================================================================
+  /v2/escrow/{escrow_id}/sign-action:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Sign Action
+      description: Initiate a signing action (release or refund) on an escrow.
+      operationId: signAction
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, role]
+              properties:
+                action:
+                  type: string
+                  enum: [release, refund]
+                role:
+                  type: string
+                  enum: [buyer, vendor, arbiter]
+      responses:
+        '200':
+          description: Signing action initiated
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/prepare-sign:
+    get:
+      tags: [Escrow Signing v2]
+      summary: Prepare Sign Data
+      description: Get WASM-compatible data for client-side CLSAG signing.
+      operationId: prepareSign
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Sign preparation data
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/submit-signature:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Submit CLSAG Signature
+      description: Submit a completed CLSAG signature from WASM.
+      operationId: submitSignature
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Signature accepted
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/broadcast-tx:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Broadcast Transaction
+      description: Broadcast a fully signed transaction to the Monero network.
+      operationId: broadcastTx
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Broadcast result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResult'
+
+  /v2/escrow/{escrow_id}/nonce-status:
+    get:
+      tags: [Escrow Signing v2]
+      summary: Get Nonce Status
+      description: Get MuSig2 nonce aggregation status.
+      operationId: getNonceStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Nonce status
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/submit-nonce-commitment:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Submit Nonce Commitment
+      description: Submit a MuSig2 nonce commitment for the signing session.
+      operationId: submitMuSigNonceCommitment
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Nonce accepted
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/submit-partial-key-image:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Submit Partial Key Image
+      description: Submit a partial key image (required before signing).
+      operationId: submitPartialKeyImage
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Key image accepted
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/set-payout-address:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Set Vendor Payout Address
+      description: Set the vendor's payout address before signing.
+      operationId: setPayoutAddress
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payout_address]
+              properties:
+                payout_address:
+                  type: string
+                  description: Monero mainnet address (95 chars, starts with '4')
+      responses:
+        '200':
+          description: Payout address set
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/sign/init:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Initialize Round-Robin Signing
+      description: Initialize a round-robin signing session.
+      operationId: signInit
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Session initialized
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/sign/partial:
+    get:
+      tags: [Escrow Signing v2]
+      summary: Get Partial Transaction
+      description: Get the partial transaction for the second signer.
+      operationId: getPartialTx
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Partial transaction
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /v2/escrow/{escrow_id}/sign/complete:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Complete Signing
+      description: Submit the completed signature and trigger broadcast.
+      operationId: signComplete
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Signing complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResult'
+
+  /v2/escrow/{escrow_id}:
+    get:
+      tags: [Escrow Signing v2]
+      summary: Get Escrow Details (v2)
+      description: Get full escrow details including signing state.
+      operationId: getEscrowDetailsV2
+      parameters:
+        - $ref: '#/components/parameters/EscrowId'
+      responses:
+        '200':
+          description: Escrow details
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ===========================================================================
+  # Round-Robin Signing (Legacy)
+  # ===========================================================================
+  /escrow/{escrow_id}/initiate-round-robin-signing:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Initiate Round-Robin Signing
+      description: Start the round-robin 2-of-3 signing process.
+      operationId: initiateRoundRobinSigning
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Round-robin signing initiated
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /escrow/{escrow_id}/submit-multisig-txset:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Submit Multisig TX Set
+      description: Submit the multisig transaction set for signing.
+      operationId: submitMultisigTxset
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: TX set submitted
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /escrow/{escrow_id}/submit-round-robin-signature:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Submit Round-Robin Signature
+      description: Submit a partial signature in the round-robin flow.
+      operationId: submitRoundRobinSignature
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Signature submitted
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /escrow/{escrow_id}/confirm-round-robin-broadcast:
+    post:
+      tags: [Escrow Signing v2]
+      summary: Confirm Round-Robin Broadcast
+      description: Confirm and broadcast the fully signed round-robin transaction.
+      operationId: confirmRoundRobinBroadcast
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Transaction broadcast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BroadcastResult'
+
+  /escrow/{escrow_id}/round-robin-status:
+    get:
+      tags: [Escrow Signing v2]
+      summary: Get Round-Robin Status
+      description: Get the current round-robin signing status.
+      operationId: getRoundRobinStatus
+      parameters:
+        - $ref: '#/components/parameters/EscrowIdAlt'
+      responses:
+        '200':
+          description: Round-robin status
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ===========================================================================
+  # Monero Address Validation
+  # ===========================================================================
+  /monero/validate-address:
+    post:
+      tags: [Escrow]
+      summary: Validate Monero Address
+      description: Validate a Monero address checksum and network via daemon RPC.
+      operationId: validateAddress
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address]
+              properties:
+                address:
+                  type: string
+      responses:
+        '200':
+          description: Validation result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  address_type:
+                    type: string
+                  network:
+                    type: string
+
+  # ===========================================================================
+  # Admin Endpoints (/admin)
+  # ===========================================================================
+  /admin/api-keys/{key_id}/tier:
+    put:
+      tags: [API Keys]
+      summary: Update API Key Tier (Admin)
+      description: |
+        Admin-only endpoint to upgrade/downgrade an API key tier.
+        Tiers: free (60/min), pro (300/min), enterprise (1000/min).
+      operationId: updateApiKeyTier
+      parameters:
+        - $ref: '#/components/parameters/KeyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tier]
+              properties:
+                tier:
+                  type: string
+                  enum: [free, pro, enterprise]
+      responses:
+        '200':
+          description: Tier updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  key_id:
+                    type: string
+                  tier:
+                    type: string
+                  new_rate_limit:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key authentication for B2B endpoints.
+        Format: `X-API-Key: nex_live_abc123...`
+
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: monero_marketplace_session
+      description: Session cookie authentication for B2C endpoints.
+
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "nex_live_*"
+      description: |
+        Bearer token authentication (alternative to X-API-Key header).
+        Format: `Authorization: Bearer nex_live_abc123...`
+
+  parameters:
+    EscrowId:
+      name: escrow_id
+      in: path
+      required: true
+      description: Unique escrow identifier (e.g., esc_a1b2c3d4e5f6)
+      schema:
+        type: string
+
+    EscrowIdAlt:
+      name: escrow_id
+      in: path
+      required: true
+      description: Escrow identifier (used in /escrow/{id} routes)
+      schema:
+        type: string
+
+    KeyId:
+      name: key_id
+      in: path
+      required: true
+      description: API key identifier
+      schema:
+        type: string
+
+    WebhookId:
+      name: webhook_id
+      in: path
+      required: true
+      description: Webhook identifier
+      schema:
+        type: string
+
+  schemas:
+    # =========================================================================
+    # Auth Schemas
+    # =========================================================================
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 50
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user_id:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+
+    WhoamiResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
+
+    # =========================================================================
+    # API Key Schemas
+    # =========================================================================
+    CreateApiKeyRequest:
+      type: object
+      required: [name, csrf_token]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Human-readable name for the API key
+        expires_at:
+          type: string
+          description: "Optional expiration (format: YYYY-MM-DD HH:MM:SS)"
+          nullable: true
+        metadata:
+          type: string
+          description: Optional JSON metadata string
+          nullable: true
+        csrf_token:
+          type: string
+          description: CSRF token from session
+
+    ApiKeyCreatedResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        key:
+          type: object
+          properties:
+            id:
+              type: string
+            raw_key:
+              type: string
+              description: Full API key (only shown once)
+            key_prefix:
+              type: string
+              description: Key prefix for identification
+            tier:
+              type: string
+            created_at:
+              type: string
+
+    ApiKeyInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        key_prefix:
+          type: string
+          description: First characters of the key
+        tier:
+          type: string
+          enum: [free, pro, enterprise]
+        is_active:
+          type: boolean
+        total_requests:
+          type: integer
+        last_used_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        expires_at:
+          type: string
+          nullable: true
+
+    # =========================================================================
+    # Webhook Schemas
+    # =========================================================================
+    CreateWebhookRequest:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          format: uri
+          description: HTTPS URL to receive webhook payloads
+        events:
+          type: array
+          items:
+            type: string
+          description: "Event types to subscribe to. Empty = all events."
+        description:
+          type: string
+          maxLength: 200
+
+    WebhookCreatedResponse:
+      type: object
+      properties:
+        webhook:
+          $ref: '#/components/schemas/WebhookInfo'
+        secret:
+          type: string
+          description: HMAC signing secret (only shown once)
+
+    WebhookInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+        events:
+          type: string
+          description: Comma-separated event types or "*"
+        active:
+          type: boolean
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+          nullable: true
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+        events:
+          type: array
+          items:
+            type: string
+        description:
+          type: string
+
+    RotateSecretResponse:
+      type: object
+      properties:
+        webhook_id:
+          type: string
+        secret:
+          type: string
+          description: New HMAC signing secret
+        message:
+          type: string
+
+    WebhookDelivery:
+      type: object
+      properties:
+        id:
+          type: string
+        webhook_id:
+          type: string
+        event_type:
+          type: string
+        payload:
+          type: string
+        response_status:
+          type: integer
+          nullable: true
+        response_body:
+          type: string
+          nullable: true
+        delivery_status:
+          type: string
+          enum: [pending, success, failed, retrying]
+        attempt_count:
+          type: integer
+        created_at:
+          type: string
+        delivered_at:
+          type: string
+          nullable: true
+
+    WebhookDeliveryStats:
+      type: object
+      properties:
+        total_deliveries:
+          type: integer
+        successful:
+          type: integer
+        failed:
+          type: integer
+        average_response_ms:
+          type: number
+          nullable: true
+
+    # =========================================================================
+    # Fee Schemas
+    # =========================================================================
+    FeeConfigResponse:
+      type: object
+      properties:
+        fee_bps:
+          type: integer
+          format: int64
+          description: Fee in basis points (100 = 1%)
+        fee_percent:
+          type: number
+          description: Fee as percentage
+        source:
+          type: string
+          enum: [global_default, client_override]
+        client_id:
+          type: string
+          nullable: true
+
+    FeeEstimateResponse:
+      type: object
+      properties:
+        amount_atomic:
+          type: integer
+          format: int64
+        fee_bps:
+          type: integer
+          format: int64
+        fee_atomic:
+          type: integer
+          format: int64
+        net_amount_atomic:
+          type: integer
+          format: int64
+        fee_percent:
+          type: number
+        source:
+          type: string
+
+    NetworkFeeEstimate:
+      type: object
+      properties:
+        fee_per_byte:
+          type: integer
+          format: int64
+        quantization_mask:
+          type: integer
+          format: int64
+        estimated_fee_2_outputs:
+          type: integer
+          format: int64
+        estimated_fee_3_outputs:
+          type: integer
+          format: int64
+        estimated_fee_custom:
+          type: integer
+          format: int64
+          nullable: true
+        priority:
+          type: string
+        live:
+          type: boolean
+          description: Whether estimate came from live daemon
+        fee_xmr:
+          type: string
+          description: Fee in XMR for display
+
+    # =========================================================================
+    # Analytics Schemas
+    # =========================================================================
+    UsageAnalyticsResponse:
+      type: object
+      properties:
+        period:
+          type: string
+        total_escrows:
+          type: integer
+          format: int64
+        active_escrows:
+          type: integer
+          format: int64
+        completed_escrows:
+          type: integer
+          format: int64
+        disputed_escrows:
+          type: integer
+          format: int64
+        total_volume_atomic:
+          type: integer
+          format: int64
+        api_keys_count:
+          type: integer
+          format: int64
+        total_api_requests:
+          type: integer
+          format: int64
+
+    # =========================================================================
+    # Escrow Schemas
+    # =========================================================================
+    CreateEscrowRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: integer
+          format: int64
+          description: Amount in atomic units (piconero)
+          minimum: 1
+        description:
+          type: string
+          description: Description of the agreement
+        creator_role:
+          type: string
+          enum: [buyer, seller, vendor]
+          default: buyer
+        external_reference:
+          type: string
+          description: External reference for B2B integration
+
+    CreateEscrowResponse:
+      type: object
+      properties:
+        escrow_id:
+          type: string
+        status:
+          type: string
+        creator_role:
+          type: string
+        join_link:
+          type: string
+
+    EscrowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          $ref: '#/components/schemas/EscrowStatus'
+        amount:
+          type: integer
+          format: int64
+        buyer_id:
+          type: string
+        vendor_id:
+          type: string
+        arbiter_id:
+          type: string
+        multisig_address:
+          type: string
+          nullable: true
+        multisig_phase:
+          type: string
+        frost_dkg_complete:
+          type: boolean
+        balance_received:
+          type: integer
+          format: int64
+        external_reference:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+        updated_at:
+          type: string
+
+    EscrowStatus:
+      type: string
+      enum:
+        - pending_counterparty
+        - pending_dkg
+        - awaiting_funding
+        - funded
+        - shipped
+        - signing_initiated
+        - disputed
+        - completed
+        - released
+        - refunded
+        - expired
+
+    UserEscrowResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        order_id:
+          type: string
+          nullable: true
+        amount:
+          type: integer
+          format: int64
+        status:
+          type: string
+        user_role:
+          type: string
+        multisig_phase:
+          type: string
+        created_at:
+          type: string
+        user_wallet_configured:
+          type: boolean
+        external_reference:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    LobbyStatus:
+      type: object
+      properties:
+        escrow_id:
+          type: string
+        buyer_joined:
+          type: boolean
+        vendor_joined:
+          type: boolean
+        arbiter_assigned:
+          type: boolean
+        all_ready:
+          type: boolean
+        dkg_status:
+          type: string
+          enum: [pending, complete]
+        status:
+          type: string
+
+    # =========================================================================
+    # Dashboard Schemas
+    # =========================================================================
+    DashboardResponse:
+      type: object
+      properties:
+        escrows:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardEscrow'
+        statistics:
+          $ref: '#/components/schemas/DashboardStats'
+        pagination:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    DashboardEscrow:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        role:
+          type: string
+        counterparty:
+          $ref: '#/components/schemas/CounterpartyInfo'
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        multisig_phase:
+          type: string
+        frost_dkg_complete:
+          type: boolean
+        has_shield:
+          type: boolean
+        unread_messages:
+          type: integer
+        external_reference:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        multisig_address:
+          type: string
+          nullable: true
+        dkg_phase:
+          type: string
+        funded_amount:
+          type: integer
+          format: int64
+        confirmations:
+          type: integer
+        broadcast_tx_hash:
+          type: string
+          nullable: true
+
+    CounterpartyInfo:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+
+    DashboardStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        active:
+          type: integer
+        completed:
+          type: integer
+        disputed:
+          type: integer
+        total_volume:
+          type: integer
+          format: int64
+        as_buyer:
+          type: integer
+        as_vendor:
+          type: integer
+        as_arbiter:
+          type: integer
+
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total:
+          type: integer
+
+    # =========================================================================
+    # Arbiter Schemas
+    # =========================================================================
+    ArbiterDisputeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        escrow_id:
+          type: string
+        status:
+          type: string
+        reason:
+          type: string
+          nullable: true
+        buyer_username:
+          type: string
+        vendor_username:
+          type: string
+        amount:
+          type: integer
+          format: int64
+        created_at:
+          type: string
+        dispute_created_at:
+          type: string
+          nullable: true
+
+    ArbiterDisputeDetail:
+      type: object
+      properties:
+        dispute:
+          type: object
+          properties:
+            id:
+              type: string
+            escrow_id:
+              type: string
+            status:
+              type: string
+            reason:
+              type: string
+              nullable: true
+            buyer:
+              type: object
+              properties:
+                id:
+                  type: string
+                username:
+                  type: string
+            vendor:
+              type: object
+              properties:
+                id:
+                  type: string
+                username:
+                  type: string
+            amount:
+              type: integer
+              format: int64
+            amount_xmr:
+              type: number
+            created_at:
+              type: string
+            disputed_at:
+              type: string
+              nullable: true
+            multisig_address:
+              type: string
+              nullable: true
+            description:
+              type: string
+              nullable: true
+
+    # =========================================================================
+    # FROST Schemas
+    # =========================================================================
+    DkgRound1Request:
+      type: object
+      required: [role, package]
+      properties:
+        role:
+          type: string
+          enum: [buyer, vendor, arbiter]
+        package:
+          type: string
+          description: Hex-encoded FROST Round 1 package
+
+    DkgRound2Request:
+      type: object
+      required: [role, packages]
+      properties:
+        role:
+          type: string
+          enum: [buyer, vendor, arbiter]
+        packages:
+          type: object
+          description: "Recipient index -> hex-encoded package mapping"
+          additionalProperties:
+            type: string
+
+    CompleteDkgRequest:
+      type: object
+      required: [group_pubkey, multisig_address, multisig_view_key]
+      properties:
+        group_pubkey:
+          type: string
+          description: Hex-encoded group public key (64 hex chars)
+        multisig_address:
+          type: string
+          description: Monero address (95 characters)
+        multisig_view_key:
+          type: string
+          description: Hex-encoded view key (64 hex chars)
+
+    FrostApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          description: Response data (varies by endpoint)
+        error:
+          type: string
+          nullable: true
+
+    # =========================================================================
+    # Chat Schemas
+    # =========================================================================
+    SendChatMessageRequest:
+      type: object
+      required:
+        - encrypted_content_buyer
+        - encrypted_content_vendor
+        - encrypted_content_arbiter
+        - sender_ephemeral_pubkey
+        - nonce
+      properties:
+        encrypted_content_buyer:
+          type: string
+          description: Ciphertext for buyer (base64, max 3MB)
+        encrypted_content_vendor:
+          type: string
+          description: Ciphertext for vendor (base64, max 3MB)
+        encrypted_content_arbiter:
+          type: string
+          description: Ciphertext for arbiter (base64, max 3MB)
+        sender_ephemeral_pubkey:
+          type: string
+          description: X25519 ephemeral public key (hex)
+        nonce:
+          type: string
+          description: 12-byte nonce (hex)
+        frost_signature:
+          type: string
+          description: Optional FROST signature for non-repudiation
+          nullable: true
+
+    SecureEscrowMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        escrow_id:
+          type: string
+        sender_id:
+          type: string
+        sender_role:
+          type: string
+        encrypted_content:
+          type: string
+          description: Ciphertext for the requesting user's role
+        sender_ephemeral_pubkey:
+          type: string
+        nonce:
+          type: string
+        is_own:
+          type: boolean
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+
+    ChatApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        error:
+          type: string
+          nullable: true
+
+    # =========================================================================
+    # Common Schemas
+    # =========================================================================
+    BroadcastResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        tx_hash:
+          type: string
+        status:
+          type: string
+          enum: [broadcast, confirmed, failed]
+        error:
+          type: string
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            request_id:
+              type: string
+              description: Unique request ID for support
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "amount must be a positive number"
+              request_id: "req_abc123"
+
+    Unauthorized:
+      description: Invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "Invalid or expired API key"
+              request_id: "req_abc123"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "FORBIDDEN"
+              message: "Insufficient permissions"
+              request_id: "req_abc123"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "Resource not found"
+              request_id: "req_abc123"
+
+    RateLimited:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per minute
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when limit resets
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until retry is allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "RATE_LIMITED"
+              message: "Rate limit exceeded"
+              request_id: "req_abc123"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INTERNAL_ERROR"
+              message: "An unexpected error occurred"
+              request_id: "req_abc123"
