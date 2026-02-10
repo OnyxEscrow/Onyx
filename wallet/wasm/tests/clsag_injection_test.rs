@@ -2,7 +2,7 @@
 mod clsag_injection_tests {
     use curve25519_dalek::edwards::CompressedEdwardsY;
     use curve25519_dalek::scalar::Scalar;
-    use monero_generators_mirror::hash_to_point;
+    use monero_generators::hash_to_point;
 
     /// Reference values from stagenet TX e12e8dbe2be8185f7eb820f4060d1194192d267600b46ba26fd81120c5b8388e
     const REF_HP_P: &str = "6f89b3312247e92386ef288dbc422051ec96899fe8df8ebfc4e7f15ba49a1e7b";

@@ -7,7 +7,7 @@ use anyhow::Result;
 use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
-use monero_generators_mirror::H;
+use monero_generators::H;
 use monero_primitives_mirror::Commitment;
 
 /// Our H_BYTES constant (same as in transaction_builder.rs)
@@ -52,8 +52,8 @@ fn main() -> Result<()> {
     let commitment_ours_bytes = commitment_ours.compress().to_bytes();
     println!("Commitment (ours): {}", hex::encode(&commitment_ours_bytes));
 
-    // Method 2: monero-generators-mirror H
-    println!("\n=== Method 2: monero-generators-mirror H ===");
+    // Method 2: monero-generators H
+    println!("\n=== Method 2: monero-generators H ===");
     let h_from_lib: &EdwardsPoint = &*H; // Dereference LazyLock
     let mask_scalar = Scalar::from_bytes_mod_order(mask);
     let mask_g = &mask_scalar * ED25519_BASEPOINT_TABLE;
@@ -155,7 +155,7 @@ fn main() -> Result<()> {
     println!("mask_0: {}...", hex::encode(&mask_0.to_bytes()[..8]));
     println!("mask_1: {}...", hex::encode(&mask_1.to_bytes()[..8]));
 
-    // Compute commitments using monero-generators-mirror H
+    // Compute commitments using monero-generators H
     let commitment_0 =
         &mask_0 * ED25519_BASEPOINT_TABLE + Scalar::from(output_0_amount) * h_from_lib;
     let commitment_1 =

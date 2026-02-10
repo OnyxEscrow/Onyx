@@ -42,7 +42,7 @@ nexus-crypto-core = { path = "../../nexus-crypto-core" }
 # We implement our own partial signing logic based on correct CLSAG math
 monero-clsag-mirror = { version = "0.1", default-features = false }
 monero-primitives-mirror = { version = "0.1", default-features = false }
-monero-generators-mirror = { version = "0.4", default-features = false }
+monero-generators = { package = "monero-generators-mirror", version = "0.4", default-features = false }
 monero-io-mirror = { version = "0.1", default-features = false }
 std-shims-mirror = { version = "0.1.1", default-features = false }
 

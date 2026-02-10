@@ -20,7 +20,7 @@ use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::CompressedEdwardsY;
 use curve25519_dalek::scalar::Scalar;
 use diesel::prelude::*;
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
 use tracing::{debug, error, info, warn};

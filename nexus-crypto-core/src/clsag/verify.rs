@@ -11,7 +11,7 @@ use curve25519_dalek::{
     edwards::{CompressedEdwardsY, EdwardsPoint},
     Scalar,
 };
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 
 use super::hash::{compute_mixing_coefficients, compute_round_hash};
 use super::types::ClsagVerificationResult;

@@ -6,7 +6,7 @@
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G, edwards::EdwardsPoint, scalar::Scalar,
 };
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};
 
 /// Reference test vectors (from server/src/bin/clsag_test_vectors.rs)

@@ -3,7 +3,7 @@
 //! Generates deterministic test vectors for validating the complete CLSAG signing flow.
 //! All values are computed from fixed seeds to ensure reproducibility.
 //!
-//! IMPORTANT: Uses the EXACT SAME hash_to_point as Monero (monero-generators-mirror crate)
+//! IMPORTANT: Uses the EXACT SAME hash_to_point as Monero (monero-generators crate)
 //!
 //! Usage: cargo run --release --bin clsag_test_vectors
 
@@ -11,12 +11,12 @@ use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G, edwards::EdwardsPoint, scalar::Scalar,
 };
 use hex;
-use monero_generators_mirror::hash_to_point as monero_hash_to_point;
+use monero_generators::hash_to_point as monero_hash_to_point;
 use sha3::{Digest, Keccak256};
 
 /// Monero's hash-to-point (Hp) function - uses the REAL Monero implementation
 fn hash_to_point(data: &[u8]) -> EdwardsPoint {
-    // Use the official Monero hash_to_point from monero-generators-mirror
+    // Use the official Monero hash_to_point from monero-generators
     // This uses ge_fromfe_frombytes_vartime (Elligator-like field-to-curve mapping)
     //
     // For inputs shorter than 32 bytes, we first hash with Keccak256 to get 32 bytes

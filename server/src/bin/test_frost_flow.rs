@@ -23,8 +23,8 @@ use sha3::{Digest, Keccak256};
 use std::sync::Arc;
 
 // Use monero's correct hash_to_point (ge_fromfe_frombytes_vartime)
-use monero_generators_mirror::hash_to_point as monero_hash_to_point;
-use monero_generators_mirror::H;
+use monero_generators::hash_to_point as monero_hash_to_point;
+use monero_generators::H;
 
 // ============================================================================
 // KNOWN VALUES FROM ESCROW #ef57f177-f873-40c3-a175-4ab87c195ad8

@@ -17,7 +17,7 @@ use tracing::{debug, error, info, warn};
 // v0.15.0 FIX: Use the correct Monero hash_to_point implementation
 // This uses ge_fromfe_frombytes_vartime (Elligator-like field-to-curve mapping)
 // NOT naive "decompress hash as Edwards point" which produces wrong results
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 
 /// Result of CLSAG verification with detailed debug info
 #[derive(Debug)]
@@ -43,7 +43,7 @@ const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0";
 const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1";
 
 // v0.15.0: Custom hash_to_point REMOVED - was fundamentally incorrect
-// Now using monero_generators_mirror::hash_to_point which implements
+// Now using monero_generators::hash_to_point which implements
 // the correct ge_fromfe_frombytes_vartime algorithm from Monero
 
 /// Compute mixing coefficients mu_P and mu_C

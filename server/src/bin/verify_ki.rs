@@ -5,7 +5,7 @@ use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
 use curve25519_dalek::edwards::EdwardsPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::MultiscalarMul;
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};
 
 // From test_frost_flow.rs
@@ -112,7 +112,7 @@ fn main() {
     );
     println!();
 
-    // Step 3: Compute Hp(P) using monero_generators_mirror
+    // Step 3: Compute Hp(P) using monero_generators
     let p_bytes = hex_to_bytes(EXPECTED_ONE_TIME_PUBKEY);
     let mut p_arr = [0u8; 32];
     p_arr.copy_from_slice(&p_bytes);

@@ -9,7 +9,7 @@ use curve25519_dalek::{
     scalar::Scalar,
     traits::VartimeMultiscalarMul,
 };
-use monero_generators_mirror::{hash_to_point, H};
+use monero_generators::{hash_to_point, H};
 use sha3::{Digest, Keccak256};
 
 /// Debug context that captures all intermediate CLSAG values

@@ -90,7 +90,7 @@ monero-serai-mirror = { version = "0.1.5-alpha", default-features = false }
 
 # v0.15.0: Correct hash_to_point implementation for CLSAG verification
 # Uses Monero's ge_fromfe_frombytes_vartime algorithm (Elligator-like field-to-curve mapping)
-monero-generators-mirror = { version = "0.4", default-features = false }
+monero-generators = { package = "monero-generators-mirror", version = "0.4", default-features = false }
 
 # Phase 6: Non-custodial wallet seed management
 bip39 = "2.0"           # BIP39 mnemonic generation (12-word seeds)

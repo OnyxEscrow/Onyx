@@ -20,7 +20,7 @@ use std::collections::BTreeMap;
 
 // v0.60.0: Use CORRECT Monero hash_to_point (ge_fromfe_frombytes_vartime / Elligator)
 // NOT the naive H_s(data) * G which was WRONG
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 
 /// Hash to scalar (Monero's H_s function)
 fn hash_to_scalar(data: &[u8]) -> Scalar {

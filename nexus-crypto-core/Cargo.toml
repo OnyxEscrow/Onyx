@@ -28,7 +28,7 @@ frost-core = { version = "2.1.0", default-features = false, features = ["seriali
 frost-ed25519 = { version = "2.1.0", default-features = false, features = ["serialization"] }
 
 # Monero-specific generators (hash_to_point, H constant)
-monero-generators-mirror = { version = "0.4", default-features = false }
+monero-generators = { package = "monero-generators-mirror", version = "0.4", default-features = false }
 
 # Encoding
 hex = { version = "0.4", default-features = false, features = ["alloc"] }

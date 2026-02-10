@@ -1,14 +1,14 @@
-//! Check if H generators match between our code and monero-generators-mirror
+//! Check if H generators match between our code and monero-generators
 
-use monero_generators_mirror::H;
+use monero_generators::H;
 
 fn main() {
     println!("=== H Generator Comparison ===\n");
 
-    // H from monero-generators-mirror
+    // H from monero-generators
     let h_from_lib = H.compress().to_bytes();
     println!(
-        "H from monero-generators-mirror: {}",
+        "H from monero-generators: {}",
         hex::encode(&h_from_lib)
     );
 

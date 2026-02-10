@@ -20,9 +20,9 @@ use wasm_bindgen::prelude::*;
 use zeroize::Zeroize;
 
 // Use the correct Monero hash_to_point implementation (ge_fromfe_frombytes_vartime)
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 // H is the Pedersen commitment generator for amounts (NOT hash_to_point(G)!)
-use monero_generators_mirror::H;
+use monero_generators::H;
 
 // Debug instrumentation
 use crate::clsag_debug::ClsagDebugContext;

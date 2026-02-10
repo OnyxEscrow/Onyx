@@ -25,7 +25,7 @@ use curve25519_dalek::{
 use diesel::prelude::*;
 use diesel::r2d2::{self, ConnectionManager, CustomizeConnection};
 use diesel::sql_query;
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use sha3::{Digest, Keccak256};
 use std::env;
 

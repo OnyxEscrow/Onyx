@@ -1,6 +1,6 @@
 //! Verify hash_to_point against official Monero test vectors
 
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 
 fn main() {
     println!("=== Verifying hash_to_point against Monero test vectors ===\n");

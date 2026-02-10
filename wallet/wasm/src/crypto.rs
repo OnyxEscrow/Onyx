@@ -645,7 +645,7 @@ pub fn make_multisig_wasm(
 // ============================================================================
 
 use monero_clsag_mirror::{Clsag, ClsagContext, ClsagError};
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use monero_primitives_mirror::{Commitment, Decoys};
 
 /// Sign input data structure from server

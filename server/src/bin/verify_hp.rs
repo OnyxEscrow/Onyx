@@ -3,7 +3,7 @@
 
 use curve25519_dalek::constants::ED25519_BASEPOINT_COMPRESSED;
 use curve25519_dalek::edwards::CompressedEdwardsY;
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 
 fn main() {
     println!("=== Verifying hash_to_point (Hp) Implementation ===\n");

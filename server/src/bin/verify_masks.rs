@@ -181,7 +181,7 @@ fn main() {
     // Now compute D = mask_delta * Hp(P_signer)
     let signer_pubkey =
         hex_to_32("ae25adc44429a1985ceb88d3059e1f82052797abdfb3ea6c44a151c3cdba43c0");
-    let hp_signer = monero_generators_mirror::hash_to_point(signer_pubkey);
+    let hp_signer = monero_generators::hash_to_point(signer_pubkey);
     let mask_delta_scalar = Scalar::from_bytes_mod_order(mask_delta);
     let d_point = mask_delta_scalar * hp_signer;
     let d_bytes = d_point.compress().to_bytes();

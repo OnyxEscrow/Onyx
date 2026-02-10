@@ -35,7 +35,7 @@ use curve25519_dalek::{
     edwards::{CompressedEdwardsY, EdwardsPoint},
     Scalar,
 };
-use monero_generators_mirror::hash_to_point;
+use monero_generators::hash_to_point;
 use zeroize::Zeroize;
 
 use super::constants::H_BYTES;
