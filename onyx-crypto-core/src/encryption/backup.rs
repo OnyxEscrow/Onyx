@@ -262,7 +262,7 @@ pub fn decrypt_key_from_backup(encrypted: &[u8], password: &str) -> CryptoResult
 #[must_use]
 pub fn derive_backup_id(key_package: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
-    hasher.update(b"NEXUS_BACKUP_ID_V1:"); // Domain separator
+    hasher.update(b"ONYX_BACKUP_ID_V1:"); // Domain separator
     hasher.update(key_package);
     let hash = hasher.finalize();
     hex::encode(hash)

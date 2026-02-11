@@ -217,8 +217,46 @@ pub enum CryptoError {
     /// Operation not supported in current configuration
     NotSupported(String),
 
+    /// Feature not yet implemented (FCMP++ Phase 0-3 stubs)
+    NotImplemented(String),
+
     /// Internal error (should not happen in normal operation)
     InternalError(String),
+
+    // =========================================================================
+    // FCMP++ / GSP Errors
+    // =========================================================================
+    /// GSP signing session error
+    GspSigningError(String),
+
+    /// GSP nonce commitment error
+    GspNonceError(String),
+
+    /// GSP partial signature verification failed (identifiable abort)
+    GspPartialVerificationFailed {
+        /// Index of the faulty signer
+        faulty_signer: u8,
+        /// Reason for failure
+        reason: String,
+    },
+
+    /// GSP proof verification failed
+    GspProofVerificationFailed(String),
+
+    /// FCMP++ membership proof error
+    FcmpMembershipError(String),
+
+    /// Curve tree operation error
+    CurveTreeError(String),
+
+    /// Re-randomization error
+    RerandomizationError(String),
+
+    /// Invalid key image (nullifier) structure
+    InvalidKeyImage(String),
+
+    /// Duplicate nullifier (key image already seen — double-spend attempt)
+    DuplicateNullifier(String),
 }
 
 impl fmt::Display for CryptoError {
@@ -398,8 +436,40 @@ impl fmt::Display for CryptoError {
             CryptoError::NotSupported(msg) => {
                 write!(f, "Operation not supported: {msg}")
             }
+            CryptoError::NotImplemented(msg) => {
+                write!(f, "Not yet implemented: {msg}")
+            }
             CryptoError::InternalError(msg) => {
                 write!(f, "Internal error: {msg}")
+            }
+
+            // FCMP++ / GSP
+            CryptoError::GspSigningError(msg) => {
+                write!(f, "GSP signing error: {msg}")
+            }
+            CryptoError::GspNonceError(msg) => {
+                write!(f, "GSP nonce error: {msg}")
+            }
+            CryptoError::GspPartialVerificationFailed { faulty_signer, reason } => {
+                write!(f, "GSP partial verification failed for signer {faulty_signer}: {reason}")
+            }
+            CryptoError::GspProofVerificationFailed(msg) => {
+                write!(f, "GSP proof verification failed: {msg}")
+            }
+            CryptoError::FcmpMembershipError(msg) => {
+                write!(f, "FCMP++ membership proof error: {msg}")
+            }
+            CryptoError::CurveTreeError(msg) => {
+                write!(f, "Curve tree error: {msg}")
+            }
+            CryptoError::RerandomizationError(msg) => {
+                write!(f, "Re-randomization error: {msg}")
+            }
+            CryptoError::InvalidKeyImage(msg) => {
+                write!(f, "Invalid key image: {msg}")
+            }
+            CryptoError::DuplicateNullifier(msg) => {
+                write!(f, "Duplicate nullifier (double-spend): {msg}")
             }
         }
     }
