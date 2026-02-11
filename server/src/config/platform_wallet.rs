@@ -324,6 +324,7 @@ pub fn get_refund_fee_bps() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::address_validation::validate_address_for_network;
 
     #[test]
     fn test_network_from_env_default() {

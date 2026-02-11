@@ -824,6 +824,7 @@ pub fn compute_mu_from_hex(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use curve25519_dalek::traits::Identity;
 
     #[test]
     fn test_identity_point_encoding() {
