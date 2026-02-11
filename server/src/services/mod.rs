@@ -1,4 +1,4 @@
-// EaaS Core Services (19 modules)
+// EaaS Core Services (20 modules)
 pub mod airgap;
 pub mod arbiter_auto_dkg;
 pub mod arbiter_watchdog;
@@ -14,6 +14,7 @@ pub mod messaging;
 pub mod multisig_auto_coordinator;
 pub mod ring_selection;
 pub mod round_robin_signing;
+pub mod sal_signing_coordinator;
 pub mod signature_aggregation;
 pub mod sync_proxy;
 pub mod timeout_monitor;
