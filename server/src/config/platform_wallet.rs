@@ -36,7 +36,7 @@ impl std::fmt::Display for PlatformWalletError {
                 write!(f, "PLATFORM_FEE_WALLET environment variable not set")
             }
             PlatformWalletError::InvalidAddress(msg) => {
-                write!(f, "Invalid platform fee wallet address: {}", msg)
+                write!(f, "Invalid platform fee wallet address: {msg}")
             }
             PlatformWalletError::NetworkMismatch {
                 address_network,
@@ -44,12 +44,11 @@ impl std::fmt::Display for PlatformWalletError {
             } => {
                 write!(
                     f,
-                    "CRITICAL: Platform wallet is for {} but MONERO_NETWORK={} - THIS WOULD LOSE ALL FEES",
-                    address_network, expected_network
+                    "CRITICAL: Platform wallet is for {address_network} but MONERO_NETWORK={expected_network} - THIS WOULD LOSE ALL FEES"
                 )
             }
             PlatformWalletError::InvalidNetworkConfig(val) => {
-                write!(f, "Invalid MONERO_NETWORK value: {}", val)
+                write!(f, "Invalid MONERO_NETWORK value: {val}")
             }
         }
     }
@@ -79,7 +78,7 @@ pub fn get_configured_network() -> Result<MoneroNetwork, PlatformWalletError> {
     let network_str = env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
 
     MoneroNetwork::from_str(&network_str)
-        .ok_or_else(|| PlatformWalletError::InvalidNetworkConfig(network_str))
+        .ok_or(PlatformWalletError::InvalidNetworkConfig(network_str))
 }
 
 /// Validate and load platform wallet configuration
@@ -296,7 +295,7 @@ pub fn validate_platform_wallet_on_startup() {
 
             error!("");
             error!("   ⚠️  DO NOT BYPASS THIS CHECK - IT PREVENTS PERMANENT FUND LOSS");
-            panic!("Platform wallet validation failed: {}", e);
+            panic!("Platform wallet validation failed: {e}");
         }
     }
 }

@@ -97,9 +97,9 @@ impl WatchdogConfig {
         Self {
             network: network.clone(),
             base_port,
-            daemon_address: format!("127.0.0.1:{}", daemon_port),
+            daemon_address: format!("127.0.0.1:{daemon_port}"),
             wallet_dir: std::env::var("WALLET_DIR")
-                .unwrap_or_else(|_| format!("./{}-wallets", network)),
+                .unwrap_or_else(|_| format!("./{network}-wallets")),
             ..Default::default()
         }
     }
@@ -246,7 +246,7 @@ impl WalletRpcWatchdog {
 
     /// Check if a wallet-rpc is healthy via JSON-RPC
     pub async fn is_healthy(&self, port: u16) -> bool {
-        let url = format!("http://127.0.0.1:{}/json_rpc", port);
+        let url = format!("http://127.0.0.1:{port}/json_rpc");
         let payload = serde_json::json!({
             "jsonrpc": "2.0",
             "id": "health",

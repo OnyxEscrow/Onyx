@@ -32,7 +32,7 @@ fn main() {
             std::process::exit(1);
         }
         Err(e) => {
-            println!("\n❌ ERROR: {}", e);
+            println!("\n❌ ERROR: {e}");
             std::process::exit(2);
         }
     }

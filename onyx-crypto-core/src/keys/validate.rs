@@ -84,7 +84,7 @@ pub fn validate_address(address: &str) -> CryptoResult<MoneroNetwork> {
 
     // Decode with checksum verification (critical step)
     let decoded = decode_check(address).map_err(|e| {
-        let err_str = format!("{:?}", e);
+        let err_str = format!("{e:?}");
         if err_str.contains("Checksum") || err_str.contains("checksum") {
             CryptoError::ChecksumMismatch {
                 expected: "valid".into(),
@@ -166,7 +166,7 @@ pub fn quick_network_check(address: &str, network: MoneroNetwork) -> bool {
 
 /// Extract public keys from a validated address
 ///
-/// Returns (spend_key, view_key) as 32-byte arrays.
+/// Returns (`spend_key`, `view_key`) as 32-byte arrays.
 /// This function validates the address internally.
 ///
 /// # Arguments
@@ -177,7 +177,7 @@ pub fn quick_network_check(address: &str, network: MoneroNetwork) -> bool {
 /// * `Err(CryptoError)` - If validation fails
 pub fn extract_public_keys(address: &str) -> CryptoResult<([u8; 32], [u8; 32])> {
     let decoded = decode_check(address).map_err(|e| {
-        let err_str = format!("{:?}", e);
+        let err_str = format!("{e:?}");
         if err_str.contains("Checksum") || err_str.contains("checksum") {
             CryptoError::ChecksumMismatch {
                 expected: "valid".into(),
@@ -211,7 +211,7 @@ pub fn extract_public_keys(address: &str) -> CryptoResult<([u8; 32], [u8; 32])> 
 /// Subaddresses start with 8 (mainnet), 7 (stagenet), or B (testnet).
 pub fn is_subaddress(address: &str) -> CryptoResult<bool> {
     let decoded =
-        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{e:?}")))?;
 
     if decoded.is_empty() {
         return Err(CryptoError::InvalidLength {
@@ -235,7 +235,7 @@ pub fn is_integrated_address(address: &str) -> CryptoResult<bool> {
     }
 
     let decoded =
-        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{e:?}")))?;
 
     if decoded.is_empty() {
         return Err(CryptoError::InvalidLength {
@@ -259,7 +259,7 @@ pub fn extract_payment_id(address: &str) -> CryptoResult<Option<[u8; 8]>> {
     }
 
     let decoded =
-        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{:?}", e)))?;
+        decode_check(address).map_err(|e| CryptoError::Base58DecodeFailed(format!("{e:?}")))?;
 
     // Integrated address: [net: 1][spend: 32][view: 32][payment_id: 8] = 73 bytes
     if decoded.len() != DECODED_INTEGRATED_LENGTH {
@@ -276,7 +276,7 @@ pub fn extract_payment_id(address: &str) -> CryptoResult<Option<[u8; 8]>> {
 /// Returns a `DecodedAddress` with all components.
 pub fn decode_address(address: &str) -> CryptoResult<DecodedAddress> {
     let decoded = decode_check(address).map_err(|e| {
-        let err_str = format!("{:?}", e);
+        let err_str = format!("{e:?}");
         if err_str.contains("Checksum") || err_str.contains("checksum") {
             CryptoError::ChecksumMismatch {
                 expected: "valid".into(),
@@ -325,8 +325,7 @@ pub fn decode_address(address: &str) -> CryptoResult<DecodedAddress> {
         }
         _ => {
             return Err(CryptoError::InvalidAddressPrefix(format!(
-                "unknown network byte: {:#04x}",
-                network_byte
+                "unknown network byte: {network_byte:#04x}"
             )));
         }
     };
@@ -355,8 +354,7 @@ fn network_from_byte(byte: u8) -> CryptoResult<MoneroNetwork> {
         53 | 63 | 54 => Ok(MoneroNetwork::Testnet),
         // Invalid
         _ => Err(CryptoError::InvalidAddressPrefix(format!(
-            "unknown network byte: {:#04x}",
-            byte
+            "unknown network byte: {byte:#04x}"
         ))),
     }
 }

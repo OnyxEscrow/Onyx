@@ -16,7 +16,7 @@ fn main() {
 
     // Test 1: Hp(G) - hash of basepoint
     let g_bytes = ED25519_BASEPOINT_COMPRESSED.to_bytes();
-    println!("G (basepoint compressed): {}", hex::encode(&g_bytes));
+    println!("G (basepoint compressed): {}", hex::encode(g_bytes));
 
     let hp_g = hash_to_point(g_bytes);
     println!(
@@ -36,7 +36,7 @@ fn main() {
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&ring_key_bytes);
 
-    println!("\nRing key P[15]: {}", ring_key_hex);
+    println!("\nRing key P[15]: {ring_key_hex}");
     let hp_ring = hash_to_point(arr);
     println!(
         "Hp(P[15]):      {}",

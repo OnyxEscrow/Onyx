@@ -5,12 +5,12 @@ use sha3::{Digest, Keccak256};
 
 use crate::types::errors::{CryptoError, CryptoResult};
 
-/// Domain separator for MuSig2 nonce commitments.
+/// Domain separator for `MuSig2` nonce commitments.
 const MUSIG2_NONCE_COMMITMENT_DOMAIN: &[u8] = b"MUSIG2_NONCE_COMMITMENT";
 
 /// Compute the commitment hash for a nonce pair.
 ///
-/// This computes: H("MUSIG2_NONCE_COMMITMENT" || R || R')
+/// This computes: `H("MUSIG2_NONCE_COMMITMENT`" || R || R')
 ///
 /// # Arguments
 ///
@@ -22,10 +22,10 @@ const MUSIG2_NONCE_COMMITMENT_DOMAIN: &[u8] = b"MUSIG2_NONCE_COMMITMENT";
 /// The commitment hash as hex string (64 chars)
 pub fn compute_nonce_commitment_hash(r_public: &str, r_prime_public: &str) -> CryptoResult<String> {
     let r_bytes = hex::decode(r_public)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid r_public hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid r_public hex: {e}")))?;
 
     let r_prime_bytes = hex::decode(r_prime_public)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid r_prime_public hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid r_prime_public hex: {e}")))?;
 
     if r_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -83,11 +83,11 @@ pub fn verify_nonce_commitment_ct(
     r_prime_public: &str,
 ) -> CryptoResult<bool> {
     let expected = hex::decode(commitment_hash)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid commitment_hash hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid commitment_hash hex: {e}")))?;
 
     let computed_hex = compute_nonce_commitment_hash(r_public, r_prime_public)?;
     let computed = hex::decode(&computed_hex)
-        .map_err(|e| CryptoError::InternalError(format!("Internal error: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Internal error: {e}")))?;
 
     if expected.len() != computed.len() {
         return Ok(false);

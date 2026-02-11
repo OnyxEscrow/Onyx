@@ -69,7 +69,7 @@ pub fn derive_commitment_mask(
 ) -> Result<String, MaskDerivationError> {
     // 1. Parse view key (scalar) - 32 bytes from hex
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| MaskDerivationError::HexDecodeError(format!("view_key: {}", e)))?;
+        .map_err(|e| MaskDerivationError::HexDecodeError(format!("view_key: {e}")))?;
 
     if view_key_bytes.len() != 32 {
         return Err(MaskDerivationError::InvalidViewKey);
@@ -83,7 +83,7 @@ pub fn derive_commitment_mask(
 
     // 2. Parse tx_pub_key (compressed Edwards point) - 32 bytes from hex
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| MaskDerivationError::HexDecodeError(format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| MaskDerivationError::HexDecodeError(format!("tx_pub_key: {e}")))?;
 
     if tx_pub_bytes.len() != 32 {
         return Err(MaskDerivationError::InvalidTxPubKey);
@@ -209,7 +209,7 @@ pub fn find_our_output_and_derive_mask(
 
     // Parse view key
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| MaskDerivationError::HexDecodeError(format!("view_key: {}", e)))?;
+        .map_err(|e| MaskDerivationError::HexDecodeError(format!("view_key: {e}")))?;
     if view_key_bytes.len() != 32 {
         return Err(MaskDerivationError::InvalidViewKey);
     }
@@ -220,7 +220,7 @@ pub fn find_our_output_and_derive_mask(
 
     // Parse tx_pub_key
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| MaskDerivationError::HexDecodeError(format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| MaskDerivationError::HexDecodeError(format!("tx_pub_key: {e}")))?;
     if tx_pub_bytes.len() != 32 {
         return Err(MaskDerivationError::InvalidTxPubKey);
     }
@@ -248,15 +248,15 @@ pub fn find_our_output_and_derive_mask(
 
         // Parse on-chain output key
         let onchain_key_bytes = hex::decode(output_key_hex)
-            .map_err(|e| MaskDerivationError::HexDecodeError(format!("output_key: {}", e)))?;
+            .map_err(|e| MaskDerivationError::HexDecodeError(format!("output_key: {e}")))?;
         if onchain_key_bytes.len() != 32 {
             continue; // Skip invalid output
         }
 
         // Compute expected one-time output key: P = Hs(derivation || i) * G + B
         let mut hasher = Keccak256::new();
-        hasher.update(&derivation_bytes);
-        hasher.update(&encode_varint(output_idx));
+        hasher.update(derivation_bytes);
+        hasher.update(encode_varint(output_idx));
         let shared_secret: [u8; 32] = hasher.finalize().into();
         let scalar = Scalar::from_bytes_mod_order(shared_secret);
 
@@ -352,7 +352,7 @@ fn decode_encrypted_amount(
     encrypted_amount_hex: &str,
 ) -> Result<u64, MaskDerivationError> {
     let encrypted = hex::decode(encrypted_amount_hex)
-        .map_err(|e| MaskDerivationError::HexDecodeError(format!("encrypted_amount: {}", e)))?;
+        .map_err(|e| MaskDerivationError::HexDecodeError(format!("encrypted_amount: {e}")))?;
 
     if encrypted.len() < 8 {
         return Err(MaskDerivationError::HexDecodeError(
@@ -363,7 +363,7 @@ fn decode_encrypted_amount(
     // Compute shared_secret = Hs(derivation || varint(output_index))
     let mut hasher = Keccak256::new();
     hasher.update(derivation_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(encode_varint(output_index));
     let shared_secret: [u8; 32] = hasher.finalize().into();
     let shared_secret_scalar = Scalar::from_bytes_mod_order(shared_secret);
 

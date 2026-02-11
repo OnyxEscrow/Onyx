@@ -72,7 +72,7 @@ pub async fn init_frost_signing(
         Err(e) => {
             error!("Failed to init signing: {}", e);
             HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed to init: {}", e)))
+                .json(ApiResponse::<()>::error(&format!("Failed to init: {e}")))
         }
     }
 }
@@ -127,10 +127,8 @@ pub async fn submit_nonce_commitment(
         }
         Err(e) => {
             error!("Failed to submit nonce: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to submit: {}",
-                e
-            )))
+            HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error(&format!("Failed to submit: {e}")))
         }
     }
 }
@@ -316,10 +314,8 @@ pub async fn submit_partial_signature(
         }
         Err(e) => {
             error!("Failed to submit partial signature: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to submit: {}",
-                e
-            )))
+            HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error(&format!("Failed to submit: {e}")))
         }
     }
 }
@@ -396,8 +392,7 @@ pub async fn complete_and_broadcast(
         Err(e) => {
             error!("Failed to complete signing: {}", e);
             HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to complete: {}",
-                e
+                "Failed to complete: {e}"
             )))
         }
     }
@@ -540,7 +535,7 @@ pub async fn get_first_signer_data(
         Err(e) => {
             error!("Failed to get first signer data: {}", e);
             HttpResponse::InternalServerError()
-                .json(ApiResponse::<()>::error(&format!("Failed: {}", e)))
+                .json(ApiResponse::<()>::error(&format!("Failed: {e}")))
         }
     }
 }

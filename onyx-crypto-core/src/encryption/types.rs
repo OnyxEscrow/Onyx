@@ -44,6 +44,7 @@ pub struct DecryptedResult {
 
 impl EphemeralKeypair {
     /// Create a new ephemeral keypair from hex strings.
+    #[must_use]
     pub fn new(private_key_hex: String, public_key_hex: String) -> Self {
         Self {
             private_key_hex,
@@ -54,6 +55,7 @@ impl EphemeralKeypair {
 
 impl EncryptedResult {
     /// Create a new encrypted result.
+    #[must_use]
     pub fn new(encrypted_blob: String, nonce_hex: String, ephemeral_pubkey_hex: String) -> Self {
         Self {
             encrypted_blob,
@@ -65,6 +67,7 @@ impl EncryptedResult {
 
 impl DecryptedResult {
     /// Create a new decrypted result.
+    #[must_use]
     pub fn new(plaintext: String) -> Self {
         Self { plaintext }
     }

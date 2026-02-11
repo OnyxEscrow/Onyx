@@ -151,8 +151,7 @@ impl EscrowManager {
         // Validate requester is buyer or seller
         if requester != &escrow.data.buyer && requester != &escrow.data.seller {
             return Err(Error::Unauthorized(format!(
-                "User {} is not authorized to release funds for escrow {}",
-                requester, escrow_id
+                "User {requester} is not authorized to release funds for escrow {escrow_id}"
             ))
             .into());
         }
@@ -207,8 +206,7 @@ impl EscrowManager {
         // Validate requester is buyer or arbiter
         if requester != &escrow.data.buyer && requester != &escrow.data.arbiter {
             return Err(Error::Unauthorized(format!(
-                "User {} is not authorized to refund funds for escrow {}",
-                requester, escrow_id
+                "User {requester} is not authorized to refund funds for escrow {escrow_id}"
             ))
             .into());
         }
@@ -268,8 +266,7 @@ impl EscrowManager {
         // Validate requester is buyer or seller
         if disputed_by != &escrow.data.buyer && disputed_by != &escrow.data.seller {
             return Err(Error::Unauthorized(format!(
-                "User {} is not authorized to open dispute for escrow {}",
-                disputed_by, escrow_id
+                "User {disputed_by} is not authorized to open dispute for escrow {escrow_id}"
             ))
             .into());
         }
@@ -345,7 +342,7 @@ impl EscrowManager {
             .take(8)
             .collect::<String>();
 
-        format!("escrow_{}_{}", timestamp, uuid_short)
+        format!("escrow_{timestamp}_{uuid_short}")
     }
 
     /// Verify that a funding transaction is valid

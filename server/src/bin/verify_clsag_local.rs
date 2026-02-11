@@ -32,7 +32,7 @@ fn hash_to_point(data: [u8; 32]) -> EdwardsPoint {
     // Simplified hash-to-point (should match Monero's ge_fromfe_frombytes_vartime)
     // This is a placeholder - the actual implementation is complex
     let mut hasher = Keccak256::new();
-    hasher.update(&data);
+    hasher.update(data);
     let hash_bytes: [u8; 32] = hasher.finalize().into();
 
     // Try to decompress as a point, if fails hash again
@@ -71,7 +71,7 @@ fn compute_mixing_coefficients(
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
 
     let mut hasher_p = Keccak256::new();
-    hasher_p.update(&domain_agg_0);
+    hasher_p.update(domain_agg_0);
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
     }
@@ -84,7 +84,7 @@ fn compute_mixing_coefficients(
     let mu_p = Scalar::from_bytes_mod_order(hasher_p.finalize().into());
 
     let mut hasher_c = Keccak256::new();
-    hasher_c.update(&domain_agg_1);
+    hasher_c.update(domain_agg_1);
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
     }
@@ -111,7 +111,7 @@ fn compute_round_hash(
     domain[..CLSAG_ROUND.len()].copy_from_slice(CLSAG_ROUND);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain);
+    hasher.update(domain);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -181,7 +181,7 @@ fn fetch_ring_members(indices: &[u64]) -> Result<Vec<OutEntry>> {
     };
 
     let response: GetOutsResponse = client
-        .post(format!("{}/get_outs", daemon_url))
+        .post(format!("{daemon_url}/get_outs"))
         .json(&params)
         .send()?
         .json()?;
@@ -211,7 +211,7 @@ fn main() -> Result<()> {
     let input_count = read_varint(&data, &mut offset);
 
     if input_count != 1 {
-        bail!("Expected 1 input, got {}", input_count);
+        bail!("Expected 1 input, got {input_count}");
     }
 
     let _input_type = read_varint(&data, &mut offset);
@@ -219,7 +219,7 @@ fn main() -> Result<()> {
     let ring_size = read_varint(&data, &mut offset) as usize;
 
     if ring_size != RING_SIZE {
-        bail!("Expected ring size {}, got {}", RING_SIZE, ring_size);
+        bail!("Expected ring size {RING_SIZE}, got {ring_size}");
     }
 
     // Parse ring offsets
@@ -236,7 +236,7 @@ fn main() -> Result<()> {
         indices.push(cumsum);
     }
 
-    println!("Ring indices: {:?}", indices);
+    println!("Ring indices: {indices:?}");
 
     // Key image
     let key_image_bytes: [u8; 32] = data[offset..offset + 32].try_into()?;
@@ -245,7 +245,7 @@ fn main() -> Result<()> {
     let key_image = CompressedEdwardsY(key_image_bytes)
         .decompress()
         .context("Invalid key image")?;
-    println!("Key image: {}", hex::encode(&key_image_bytes));
+    println!("Key image: {}", hex::encode(key_image_bytes));
 
     // Skip outputs and extra
     let output_count = read_varint(&data, &mut offset) as usize;
@@ -267,7 +267,7 @@ fn main() -> Result<()> {
     let mut hasher = Keccak256::new();
     hasher.update(tx_prefix);
     let tx_prefix_hash: [u8; 32] = hasher.finalize().into();
-    println!("tx_prefix_hash: {}", hex::encode(&tx_prefix_hash));
+    println!("tx_prefix_hash: {}", hex::encode(tx_prefix_hash));
 
     // Extract CLSAG from end of TX
     let clsag_size = ring_size * 32 + 32 + 32;
@@ -287,7 +287,7 @@ fn main() -> Result<()> {
     let c1_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
     let c1 = Scalar::from_canonical_bytes(c1_bytes).unwrap_or(Scalar::ZERO);
     s_offset += 32;
-    println!("c1: {}", hex::encode(&c1_bytes));
+    println!("c1: {}", hex::encode(c1_bytes));
 
     // D
     let d_bytes: [u8; 32] = data[s_offset..s_offset + 32].try_into()?;
@@ -295,7 +295,7 @@ fn main() -> Result<()> {
         .decompress()
         .context("Invalid D point")?;
     s_offset += 32;
-    println!("D/8: {}", hex::encode(&d_bytes));
+    println!("D/8: {}", hex::encode(d_bytes));
 
     // D full (D/8 * 8)
     let d_full = d_inv8 * Scalar::from(8u64);
@@ -305,7 +305,7 @@ fn main() -> Result<()> {
     let pseudo_out = CompressedEdwardsY(pseudo_out_bytes)
         .decompress()
         .context("Invalid pseudo_out")?;
-    println!("pseudo_out: {}", hex::encode(&pseudo_out_bytes));
+    println!("pseudo_out: {}", hex::encode(pseudo_out_bytes));
 
     // Fetch ring members
     println!("\nFetching ring members from daemon...");
@@ -327,7 +327,7 @@ fn main() -> Result<()> {
         .iter()
         .position(|c| c.compress().as_bytes() == pseudo_out_bytes.as_slice())
         .context("Real output not found in ring")?;
-    println!("Real position: {}", real_pos);
+    println!("Real position: {real_pos}");
 
     // Compute mu_P and mu_C
     let (mu_p, mu_c) = compute_mixing_coefficients(

@@ -135,8 +135,8 @@ impl DerivedKeys {
     ///
     /// Only uses public key material; private keys are never included.
     pub fn to_registration_request(&self) -> Result<WalletRegistrationRequest> {
-        let spend_key_pub = hex::encode(&self.spend_key);
-        let view_key_pub = hex::encode(&self.view_key);
+        let spend_key_pub = hex::encode(self.spend_key);
+        let view_key_pub = hex::encode(self.view_key);
 
         // In real implementation, address would be valid Monero address
         if self.address == "placeholder_address" {

@@ -61,7 +61,7 @@ pub async fn get_usage_analytics(
     // Query escrow stats
     let mut conn = pool
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     let escrow_stats = web::block(
         move || -> Result<(i64, i64, i64, i64, i64), anyhow::Error> {
@@ -103,13 +103,13 @@ pub async fn get_usage_analytics(
         },
     )
     .await
-    .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?
-    .map_err(|e| ApiError::Internal(format!("Escrow stats error: {}", e)))?;
+    .map_err(|e| ApiError::Internal(format!("DB query error: {e}")))?
+    .map_err(|e| ApiError::Internal(format!("Escrow stats error: {e}")))?;
 
     // Query API key stats
     let mut conn2 = pool_clone
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     let api_stats = web::block(move || -> Result<(i64, i64), anyhow::Error> {
         let keys: Vec<(i32,)> = api_keys::table
@@ -124,8 +124,8 @@ pub async fn get_usage_analytics(
         Ok((count, total_reqs))
     })
     .await
-    .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?
-    .map_err(|e| ApiError::Internal(format!("API key stats error: {}", e)))?;
+    .map_err(|e| ApiError::Internal(format!("DB query error: {e}")))?
+    .map_err(|e| ApiError::Internal(format!("API key stats error: {e}")))?;
 
     Ok(HttpResponse::Ok().json(UsageResponse {
         period: query.period.clone(),

@@ -25,24 +25,21 @@ pub fn validate_localhost_strict(url_str: &str) -> Result<()> {
             if domain == "localhost" {
                 Ok(())
             } else {
-                anyhow::bail!(
-                    "RPC host invalide: '{}'. Utilise localhost ou 127.0.0.1",
-                    domain
-                )
+                anyhow::bail!("RPC host invalide: '{domain}'. Utilise localhost ou 127.0.0.1")
             }
         }
         Some(url::Host::Ipv4(ipv4)) => {
             if ipv4 == Ipv4Addr::LOCALHOST {
                 Ok(())
             } else {
-                anyhow::bail!("RPC doit être 127.0.0.1 (OPSEC), pas {}", ipv4)
+                anyhow::bail!("RPC doit être 127.0.0.1 (OPSEC), pas {ipv4}")
             }
         }
         Some(url::Host::Ipv6(ipv6)) => {
             if ipv6 == Ipv6Addr::LOCALHOST {
                 Ok(())
             } else {
-                anyhow::bail!("RPC doit être ::1 (OPSEC), pas {}", ipv6)
+                anyhow::bail!("RPC doit être ::1 (OPSEC), pas {ipv6}")
             }
         }
         None => {

@@ -83,7 +83,7 @@ async fn validate_with_rpc(address: &str) -> Result<(bool, Option<String>), Stri
     });
 
     match client
-        .post(format!("{}/json_rpc", MONERO_RPC_URL))
+        .post(format!("{MONERO_RPC_URL}/json_rpc"))
         .json(&payload)
         .timeout(std::time::Duration::from_secs(10))
         .send()
@@ -104,14 +104,14 @@ async fn validate_with_rpc(address: &str) -> Result<(bool, Option<String>), Stri
 
                     Ok((is_valid, network))
                 } else if let Some(error) = body.get("error") {
-                    Err(format!("RPC error: {:?}", error))
+                    Err(format!("RPC error: {error:?}"))
                 } else {
                     Err("Invalid RPC response format".to_string())
                 }
             }
-            Err(e) => Err(format!("JSON parse error: {}", e)),
+            Err(e) => Err(format!("JSON parse error: {e}")),
         },
-        Err(e) => Err(format!("HTTP error: {}", e)),
+        Err(e) => Err(format!("HTTP error: {e}")),
     }
 }
 

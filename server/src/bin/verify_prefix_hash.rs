@@ -29,34 +29,34 @@ fn main() {
 
     // Version (varint)
     let version = read_varint(&tx, &mut pos);
-    println!("Version: {} (at pos {})", version, pos);
+    println!("Version: {version} (at pos {pos})");
 
     // Unlock time (varint)
     let unlock_time = read_varint(&tx, &mut pos);
-    println!("Unlock time: {} (at pos {})", unlock_time, pos);
+    println!("Unlock time: {unlock_time} (at pos {pos})");
 
     // Input count (varint)
     let input_count = read_varint(&tx, &mut pos);
-    println!("Input count: {} (at pos {})", input_count, pos);
+    println!("Input count: {input_count} (at pos {pos})");
 
     for i in 0..input_count {
         // Input type byte
         let input_type = tx[pos];
         pos += 1;
-        println!("  Input {} type: 0x{:02x}", i, input_type);
+        println!("  Input {i} type: 0x{input_type:02x}");
 
         if input_type == 0x02 {
             // txin_to_key
             let amount = read_varint(&tx, &mut pos);
-            println!("    Amount: {}", amount);
+            println!("    Amount: {amount}");
 
             let key_offset_count = read_varint(&tx, &mut pos);
-            println!("    Key offset count: {}", key_offset_count);
+            println!("    Key offset count: {key_offset_count}");
 
             for j in 0..key_offset_count {
                 let offset = read_varint(&tx, &mut pos);
                 if j < 3 || j == key_offset_count - 1 {
-                    println!("      Offset[{}]: {}", j, offset);
+                    println!("      Offset[{j}]: {offset}");
                 } else if j == 3 {
                     println!("      ...");
                 }
@@ -71,15 +71,15 @@ fn main() {
 
     // Output count (varint)
     let output_count = read_varint(&tx, &mut pos);
-    println!("Output count: {} (at pos {})", output_count, pos);
+    println!("Output count: {output_count} (at pos {pos})");
 
     for i in 0..output_count {
         let amount = read_varint(&tx, &mut pos);
-        println!("  Output {} amount: {}", i, amount);
+        println!("  Output {i} amount: {amount}");
 
         let output_type = tx[pos];
         pos += 1;
-        println!("    Type: 0x{:02x}", output_type);
+        println!("    Type: 0x{output_type:02x}");
 
         if output_type == 0x03 {
             // txout_to_tagged_key: 32 byte key + 1 byte view_tag
@@ -88,20 +88,20 @@ fn main() {
             let view_tag = tx[pos];
             pos += 1;
             println!("    Key: {}...", &hex::encode(key)[..16]);
-            println!("    View tag: 0x{:02x}", view_tag);
+            println!("    View tag: 0x{view_tag:02x}");
         }
     }
 
     // Extra length (varint)
     let extra_len = read_varint(&tx, &mut pos);
-    println!("Extra length: {} (at pos {})", extra_len, pos);
+    println!("Extra length: {extra_len} (at pos {pos})");
 
     // Extra bytes
     let extra = &tx[pos..pos + extra_len as usize];
     pos += extra_len as usize;
     println!("Extra: {}", hex::encode(extra));
 
-    println!("\n=== TX PREFIX ENDS AT POSITION {} ===", pos);
+    println!("\n=== TX PREFIX ENDS AT POSITION {pos} ===");
 
     // Hash the prefix
     let prefix = &tx[..pos];
@@ -109,7 +109,7 @@ fn main() {
     hasher.update(prefix);
     let hash: [u8; 32] = hasher.finalize().into();
 
-    println!("TX prefix hash: {}", hex::encode(&hash));
+    println!("TX prefix hash: {}", hex::encode(hash));
 
     // Parse TX pubkey from extra
     if extra.len() >= 33 && extra[0] == 0x01 {

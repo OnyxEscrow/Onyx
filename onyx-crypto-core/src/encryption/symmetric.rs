@@ -1,4 +1,4 @@
-//! Symmetric encryption using ChaCha20Poly1305 AEAD.
+//! Symmetric encryption using `ChaCha20Poly1305` AEAD.
 //!
 //! Provides authenticated encryption for FROST partial signatures.
 
@@ -17,10 +17,10 @@ use super::ecdh::derive_shared_key;
 use super::types::EncryptedResult;
 use crate::types::errors::{CryptoError, CryptoResult};
 
-/// ChaCha20Poly1305 nonce size (12 bytes).
+/// `ChaCha20Poly1305` nonce size (12 bytes).
 pub const NONCE_SIZE: usize = 12;
 
-/// Encrypt data using ChaCha20Poly1305.
+/// Encrypt data using `ChaCha20Poly1305`.
 ///
 /// This performs ECDH key derivation and encrypts the plaintext.
 ///
@@ -49,19 +49,18 @@ pub fn encrypt_data(
 
     // Create cipher
     let cipher = ChaCha20Poly1305::new_from_slice(&key)
-        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {e}")))?;
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    getrandom::getrandom(&mut nonce_bytes).map_err(|e| {
-        CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {}", e))
-    })?;
+    getrandom::getrandom(&mut nonce_bytes)
+        .map_err(|e| CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {e}")))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     // Encrypt
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_bytes())
-        .map_err(|e| CryptoError::InternalError(format!("Encryption failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Encryption failed: {e}")))?;
 
     // Derive our public key for the result
     let my_public_hex = super::ecdh::derive_public_key(my_private_key_hex)?;
@@ -76,7 +75,7 @@ pub fn encrypt_data(
     ))
 }
 
-/// Decrypt data using ChaCha20Poly1305.
+/// Decrypt data using `ChaCha20Poly1305`.
 ///
 /// # Arguments
 ///
@@ -106,7 +105,7 @@ pub fn decrypt_data(
 
     // Parse nonce
     let nonce_bytes = hex::decode(nonce_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid nonce hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid nonce hex: {e}")))?;
 
     if nonce_bytes.len() != NONCE_SIZE {
         return Err(CryptoError::InvalidLength {
@@ -121,23 +120,23 @@ pub fn decrypt_data(
     // Decode ciphertext
     let ciphertext = base64::engine::general_purpose::STANDARD
         .decode(encrypted_blob_base64)
-        .map_err(|e| CryptoError::InternalError(format!("Invalid base64: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Invalid base64: {e}")))?;
 
     // Create cipher
     let cipher = ChaCha20Poly1305::new_from_slice(&key)
-        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {e}")))?;
 
     // Decrypt
     let plaintext = cipher
         .decrypt(nonce, ciphertext.as_ref())
-        .map_err(|e| CryptoError::InternalError(format!("Decryption failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Decryption failed: {e}")))?;
 
     // Zeroize key
     key.zeroize();
 
     // Convert to string
     String::from_utf8(plaintext)
-        .map_err(|e| CryptoError::InternalError(format!("Invalid UTF-8: {}", e)))
+        .map_err(|e| CryptoError::InternalError(format!("Invalid UTF-8: {e}")))
 }
 
 /// Encrypt arbitrary bytes (not just strings).
@@ -148,17 +147,16 @@ pub fn encrypt_bytes(
     encryption_key: &[u8; 32],
 ) -> CryptoResult<(Vec<u8>, [u8; NONCE_SIZE])> {
     let cipher = ChaCha20Poly1305::new_from_slice(encryption_key)
-        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {e}")))?;
 
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    getrandom::getrandom(&mut nonce_bytes).map_err(|e| {
-        CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {}", e))
-    })?;
+    getrandom::getrandom(&mut nonce_bytes)
+        .map_err(|e| CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {e}")))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     let ciphertext = cipher
         .encrypt(nonce, plaintext)
-        .map_err(|e| CryptoError::InternalError(format!("Encryption failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Encryption failed: {e}")))?;
 
     Ok((ciphertext, nonce_bytes))
 }
@@ -170,13 +168,13 @@ pub fn decrypt_bytes(
     decryption_key: &[u8; 32],
 ) -> CryptoResult<Vec<u8>> {
     let cipher = ChaCha20Poly1305::new_from_slice(decryption_key)
-        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Cipher init failed: {e}")))?;
 
     let nonce = Nonce::from_slice(nonce);
 
     cipher
         .decrypt(nonce, ciphertext)
-        .map_err(|e| CryptoError::InternalError(format!("Decryption failed: {}", e)))
+        .map_err(|e| CryptoError::InternalError(format!("Decryption failed: {e}")))
 }
 
 #[cfg(test)]

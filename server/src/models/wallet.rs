@@ -111,7 +111,7 @@ impl Wallet {
         wallets::table
             .filter(wallets::id.eq(wallet_id.clone()))
             .first(conn)
-            .context(format!("Wallet with ID {} not found", wallet_id))
+            .context(format!("Wallet with ID {wallet_id} not found"))
     }
 
     /// Find wallet by address
@@ -119,7 +119,7 @@ impl Wallet {
         wallets::table
             .filter(wallets::address.eq(address))
             .first(conn)
-            .context(format!("Wallet with address {} not found", address))
+            .context(format!("Wallet with address {address} not found"))
     }
 
     /// Find all wallets for a user
@@ -127,7 +127,7 @@ impl Wallet {
         wallets::table
             .filter(wallets::user_id.eq(user_id.clone()))
             .load(conn)
-            .context(format!("Failed to load wallets for user {}", user_id))
+            .context(format!("Failed to load wallets for user {user_id}"))
     }
 
     /// Check if address already exists
@@ -144,7 +144,7 @@ impl Wallet {
     pub fn delete(conn: &mut SqliteConnection, wallet_id: String) -> Result<()> {
         diesel::delete(wallets::table.filter(wallets::id.eq(wallet_id.clone())))
             .execute(conn)
-            .context(format!("Failed to delete wallet {}", wallet_id))?;
+            .context(format!("Failed to delete wallet {wallet_id}"))?;
         Ok(())
     }
 

@@ -181,7 +181,7 @@ pub async fn init_multisig_session(
             }
             _ => actix_web::error::ErrorInternalServerError(ErrorResponse {
                 error: "Coordination error".to_string(),
-                details: format!("{:?}", e),
+                details: format!("{e:?}"),
             }),
         })?;
 
@@ -252,7 +252,7 @@ pub async fn submit_multisig_info(
             MultisigCoordinationError::SessionNotFound(_) => {
                 actix_web::error::ErrorNotFound(ErrorResponse {
                     error: "Session not found".to_string(),
-                    details: format!("No session for escrow {}", escrow_id),
+                    details: format!("No session for escrow {escrow_id}"),
                 })
             }
             MultisigCoordinationError::UnauthorizedParticipant(msg) => {
@@ -264,7 +264,7 @@ pub async fn submit_multisig_info(
             MultisigCoordinationError::InvalidState { expected, actual } => {
                 actix_web::error::ErrorBadRequest(ErrorResponse {
                     error: "Invalid state".to_string(),
-                    details: format!("Expected: {}, Actual: {}", expected, actual),
+                    details: format!("Expected: {expected}, Actual: {actual}"),
                 })
             }
             MultisigCoordinationError::InvalidMultisigData(msg) => {
@@ -281,7 +281,7 @@ pub async fn submit_multisig_info(
             }
             _ => actix_web::error::ErrorInternalServerError(ErrorResponse {
                 error: "Coordination error".to_string(),
-                details: format!("{:?}", e),
+                details: format!("{e:?}"),
             }),
         })?;
 
@@ -295,7 +295,7 @@ pub async fn submit_multisig_info(
     Ok(HttpResponse::Ok().json(SubmitInfoResponse {
         success: true,
         message: "Multisig info submitted successfully".to_string(),
-        current_stage: format!("{:?}", current_stage),
+        current_stage: format!("{current_stage:?}"),
     }))
 }
 
@@ -352,7 +352,7 @@ pub async fn get_peer_info(
             MultisigCoordinationError::SessionNotFound(_) => {
                 actix_web::error::ErrorNotFound(ErrorResponse {
                     error: "Session not found".to_string(),
-                    details: format!("No session for escrow {}", escrow_id),
+                    details: format!("No session for escrow {escrow_id}"),
                 })
             }
             MultisigCoordinationError::UnauthorizedParticipant(msg) => {
@@ -369,7 +369,7 @@ pub async fn get_peer_info(
             }
             _ => actix_web::error::ErrorInternalServerError(ErrorResponse {
                 error: "Coordination error".to_string(),
-                details: format!("{:?}", e),
+                details: format!("{e:?}"),
             }),
         })?;
 
@@ -383,7 +383,7 @@ pub async fn get_peer_info(
     Ok(HttpResponse::Ok().json(PeerInfoResponse {
         count: peer_infos.len(),
         peer_infos,
-        current_stage: format!("{:?}", current_stage),
+        current_stage: format!("{current_stage:?}"),
     }))
 }
 
@@ -428,7 +428,7 @@ pub async fn get_multisig_status(
             MultisigCoordinationError::SessionNotFound(_) => {
                 actix_web::error::ErrorNotFound(ErrorResponse {
                     error: "Session not found".to_string(),
-                    details: format!("No session for escrow {}", escrow_id),
+                    details: format!("No session for escrow {escrow_id}"),
                 })
             }
             MultisigCoordinationError::StorageError(msg) => {
@@ -439,7 +439,7 @@ pub async fn get_multisig_status(
             }
             _ => actix_web::error::ErrorInternalServerError(ErrorResponse {
                 error: "Coordination error".to_string(),
-                details: format!("{:?}", e),
+                details: format!("{e:?}"),
             }),
         })?;
 

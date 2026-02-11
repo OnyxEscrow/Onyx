@@ -47,8 +47,7 @@ pub fn validate_monero_address(address: &str) -> Result<()> {
     for c in address.chars() {
         if !BASE58_CHARS.contains(c) {
             return Err(Error::InvalidInput(format!(
-                "Invalid character '{}' in Monero address",
-                c
+                "Invalid character '{c}' in Monero address"
             )));
         }
     }

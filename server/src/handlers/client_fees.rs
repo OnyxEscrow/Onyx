@@ -51,22 +51,22 @@ pub async fn get_client_fees(
 
     let mut conn = pool
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     // Find client record for this user
     let clients = web::block(move || MarketplaceClient::find_by_api_user_id(&mut conn, &user_id))
         .await
-        .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?
-        .map_err(|e| ApiError::Internal(format!("Client query error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB query error: {e}")))?
+        .map_err(|e| ApiError::Internal(format!("Client query error: {e}")))?;
 
     let client_id = clients.first().map(|c| c.id.as_str());
 
     let mut conn2 = pool
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     let resolved = resolve_fees(&mut conn2, client_id, false)
-        .map_err(|e| ApiError::Internal(format!("Fee resolution error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Fee resolution error: {e}")))?;
 
     let (source_str, cid) = match &resolved.source {
         FeeSource::GlobalDefault => ("global_default".to_string(), None),
@@ -93,21 +93,21 @@ pub async fn estimate_fees(
 
     let mut conn = pool
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     let clients = web::block(move || MarketplaceClient::find_by_api_user_id(&mut conn, &user_id))
         .await
-        .map_err(|e| ApiError::Internal(format!("DB query error: {}", e)))?
-        .map_err(|e| ApiError::Internal(format!("Client query error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB query error: {e}")))?
+        .map_err(|e| ApiError::Internal(format!("Client query error: {e}")))?;
 
     let client_id = clients.first().map(|c| c.id.as_str());
 
     let mut conn2 = pool
         .get()
-        .map_err(|e| ApiError::Internal(format!("DB connection error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("DB connection error: {e}")))?;
 
     let resolved = resolve_fees(&mut conn2, client_id, query.is_refund)
-        .map_err(|e| ApiError::Internal(format!("Fee resolution error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Fee resolution error: {e}")))?;
 
     let fee_atomic = (query.amount_atomic * resolved.fee_bps) / 10000;
     let net_amount = query.amount_atomic.saturating_sub(fee_atomic);

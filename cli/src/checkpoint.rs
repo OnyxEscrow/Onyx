@@ -20,7 +20,7 @@ fn ensure_dir_exists() -> Result<PathBuf> {
 /// Loads a checkpoint from a file.
 pub fn load_checkpoint(session_id: &str) -> Result<Checkpoint> {
     let dir = ensure_dir_exists()?;
-    let file_path = dir.join(format!("{}.json", session_id));
+    let file_path = dir.join(format!("{session_id}.json"));
 
     if !file_path.exists() {
         return Ok(Checkpoint::new(session_id.to_string()));
@@ -65,7 +65,7 @@ pub fn list_checkpoints() -> Result<Vec<Checkpoint>> {
 /// Deletes a checkpoint file.
 pub fn delete_checkpoint(session_id: &str) -> Result<()> {
     let dir = ensure_dir_exists()?;
-    let file_path = dir.join(format!("{}.json", session_id));
+    let file_path = dir.join(format!("{session_id}.json"));
 
     if file_path.exists() {
         fs::remove_file(file_path)?;

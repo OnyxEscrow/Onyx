@@ -99,8 +99,8 @@ fn extract_view_pub_from_address(address: &str) -> Result<[u8; 32]> {
     }
 
     // Decode base58 (with checksum verification)
-    let decoded = base58_monero::decode_check(address)
-        .map_err(|e| anyhow!("Base58 decode failed: {:?}", e))?;
+    let decoded =
+        base58_monero::decode_check(address).map_err(|e| anyhow!("Base58 decode failed: {e:?}"))?;
 
     // Verify decoded length
     if decoded.len() != EXPECTED_RAW_LEN {
@@ -115,11 +115,7 @@ fn extract_view_pub_from_address(address: &str) -> Result<[u8; 32]> {
     let prefix = decoded[0];
     if prefix != MAINNET_PREFIX && prefix != STAGENET_PREFIX && prefix != TESTNET_PREFIX {
         return Err(anyhow!(
-            "Unknown network prefix: {} (expected mainnet:{}, stagenet:{}, or testnet:{})",
-            prefix,
-            MAINNET_PREFIX,
-            STAGENET_PREFIX,
-            TESTNET_PREFIX
+            "Unknown network prefix: {prefix} (expected mainnet:{MAINNET_PREFIX}, stagenet:{STAGENET_PREFIX}, or testnet:{TESTNET_PREFIX})"
         ));
     }
 
@@ -148,8 +144,8 @@ pub fn get_network_from_address(address: &str) -> Result<&'static str> {
         return Err(anyhow!("Address too short"));
     }
 
-    let decoded = base58_monero::decode_check(address)
-        .map_err(|e| anyhow!("Base58 decode failed: {:?}", e))?;
+    let decoded =
+        base58_monero::decode_check(address).map_err(|e| anyhow!("Base58 decode failed: {e:?}"))?;
 
     match decoded[0] {
         MAINNET_PREFIX => Ok("mainnet"),

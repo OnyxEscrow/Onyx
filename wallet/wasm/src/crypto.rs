@@ -325,14 +325,14 @@ pub fn restore_wallet_from_seed(
     // Parse mnemonic (bip39 v2 uses from_str instead of parse)
     let mnemonic: Mnemonic = seed_phrase
         .parse()
-        .map_err(|e: bip39::Error| JsValue::from_str(&format!("Invalid seed phrase: {}", e)))?;
+        .map_err(|e: bip39::Error| JsValue::from_str(&format!("Invalid seed phrase: {e}")))?;
 
     // Derive entropy from mnemonic (bip39 v2 returns (array, word_count) tuple)
     let (entropy, _word_count) = mnemonic.to_entropy_array();
 
     // Expand to 32 bytes for spend key
     let mut hasher = Sha256::new();
-    hasher.update(&entropy);
+    hasher.update(entropy);
     hasher.update(b"monero_spend_key");
     let spend_key_bytes: [u8; 32] = hasher.finalize().into();
 
@@ -370,7 +370,7 @@ pub fn restore_wallet_from_seed(
     });
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 // ============================================================================
@@ -405,9 +405,9 @@ pub fn prepare_multisig_wasm(
 ) -> Result<JsValue, JsValue> {
     // Decode private keys
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
     let view_bytes = hex::decode(&view_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid view key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid view key hex: {e}")))?;
 
     if spend_bytes.len() != 32 || view_bytes.len() != 32 {
         return Err(JsValue::from_str("Keys must be 32 bytes"));
@@ -433,7 +433,7 @@ pub fn prepare_multisig_wasm(
     });
 
     let multisig_info_json = serde_json::to_string(&multisig_info_data)
-        .map_err(|e| JsValue::from_str(&format!("JSON error: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("JSON error: {e}")))?;
 
     // Base64 encode for transport
     use base64::{engine::general_purpose, Engine as _};
@@ -455,7 +455,7 @@ pub fn prepare_multisig_wasm(
     view_key_arr.zeroize();
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Make multisig (Round 2) - Finalize multisig address
@@ -499,7 +499,7 @@ pub fn make_multisig_wasm(
 ) -> Result<JsValue, JsValue> {
     // Parse peer infos
     let peer_infos: Vec<String> = serde_json::from_str(&peer_infos_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid peer_infos JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid peer_infos JSON: {e}")))?;
 
     if peer_infos.len() != 2 {
         return Err(JsValue::from_str(
@@ -509,7 +509,7 @@ pub fn make_multisig_wasm(
 
     // Decode my spend key
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key: {e}")))?;
     let mut spend_key_arr = [0u8; 32];
     spend_key_arr.copy_from_slice(&spend_bytes);
     let my_scalar = Scalar::from_bytes_mod_order(spend_key_arr);
@@ -522,11 +522,11 @@ pub fn make_multisig_wasm(
     for peer_info_b64 in &peer_infos {
         let peer_info_json = general_purpose::STANDARD
             .decode(peer_info_b64)
-            .map_err(|e| JsValue::from_str(&format!("Invalid base64: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid base64: {e}")))?;
         let peer_info_str = String::from_utf8(peer_info_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid UTF8: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid UTF8: {e}")))?;
         let peer_data: serde_json::Value = serde_json::from_str(&peer_info_str)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer JSON: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer JSON: {e}")))?;
 
         let pub_key_hex = peer_data["public_spend_key"]
             .as_str()
@@ -548,7 +548,7 @@ pub fn make_multisig_wasm(
     // Add each peer's public spend key (point addition on Ed25519 curve)
     for peer_pub_hex in &peer_public_keys {
         let peer_pub_bytes = hex::decode(peer_pub_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer public key hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer public key hex: {e}")))?;
         if peer_pub_bytes.len() != 32 {
             return Err(JsValue::from_str("Peer public key must be 32 bytes"));
         }
@@ -562,7 +562,7 @@ pub fn make_multisig_wasm(
             .ok_or_else(|| JsValue::from_str("Invalid peer public key point"))?;
 
         // Point addition: P_shared = P_shared + P_peer
-        multisig_spend_public = multisig_spend_public + peer_point;
+        multisig_spend_public += peer_point;
     }
 
     // ✅ MONERO OFFICIAL PROTOCOL: Derive shared view key via ADDITION (not hash)
@@ -571,7 +571,7 @@ pub fn make_multisig_wasm(
 
     // Parse my view key
     let my_view_bytes = hex::decode(&my_view_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid my_view_key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid my_view_key hex: {e}")))?;
     if my_view_bytes.len() != 32 {
         return Err(JsValue::from_str("my_view_key must be 32 bytes"));
     }
@@ -581,7 +581,7 @@ pub fn make_multisig_wasm(
 
     // Parse peer view keys
     let peer_view_keys: Vec<String> = serde_json::from_str(&peer_view_keys_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid peer_view_keys JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid peer_view_keys JSON: {e}")))?;
 
     if peer_view_keys.len() != 2 {
         return Err(JsValue::from_str(
@@ -595,7 +595,7 @@ pub fn make_multisig_wasm(
     // Add each peer's view key scalar (modular addition is automatic in curve25519-dalek)
     for peer_view_hex in &peer_view_keys {
         let peer_view_bytes = hex::decode(peer_view_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer view key hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer view key hex: {e}")))?;
         if peer_view_bytes.len() != 32 {
             return Err(JsValue::from_str("Peer view key must be 32 bytes"));
         }
@@ -604,7 +604,7 @@ pub fn make_multisig_wasm(
         let peer_scalar = Scalar::from_bytes_mod_order(peer_view_arr);
 
         // Modular addition (automatic mod l where l = curve order)
-        shared_view_scalar = shared_view_scalar + peer_scalar;
+        shared_view_scalar += peer_scalar;
 
         peer_view_arr.zeroize(); // Security: clear sensitive data
     }
@@ -637,7 +637,7 @@ pub fn make_multisig_wasm(
     my_view_arr.zeroize();
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 // ============================================================================
@@ -727,7 +727,7 @@ pub struct SignInputData {
 pub fn compute_key_image(spend_key_priv_hex: String) -> Result<JsValue, JsValue> {
     // Decode spend key
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
 
     if spend_bytes.len() != 32 {
         return Err(JsValue::from_str("Spend key must be 32 bytes"));
@@ -757,7 +757,7 @@ pub fn compute_key_image(spend_key_priv_hex: String) -> Result<JsValue, JsValue>
     });
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Compute partial key image for multisig signing
@@ -805,7 +805,7 @@ pub fn compute_partial_key_image(
 ) -> Result<JsValue, JsValue> {
     // Decode spend key
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
 
     if spend_bytes.len() != 32 {
         return Err(JsValue::from_str("Spend key must be 32 bytes"));
@@ -827,7 +827,7 @@ pub fn compute_partial_key_image(
     // Without Lagrange (Monero native): k2 is DOUBLE-COUNTED!
     // ===========================================================
     let lambda_bytes = hex::decode(&lagrange_coefficient_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {e}")))?;
     if lambda_bytes.len() != 32 {
         return Err(JsValue::from_str("lagrange_coefficient must be 32 bytes"));
     }
@@ -848,7 +848,7 @@ pub fn compute_partial_key_image(
 
     // Decode one-time output public key (P = ring[signer_idx][0])
     let pubkey_bytes = hex::decode(&one_time_pubkey_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid one_time_pubkey hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid one_time_pubkey hex: {e}")))?;
 
     if pubkey_bytes.len() != 32 {
         return Err(JsValue::from_str("One-time pubkey must be 32 bytes"));
@@ -884,7 +884,7 @@ pub fn compute_partial_key_image(
     });
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Compute partial key image WITH output secret derivation
@@ -935,7 +935,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 1. Parse spend key
     let spend_bytes = hex::decode(&spend_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
     if spend_bytes.len() != 32 {
         return Err(JsValue::from_str("Spend key must be 32 bytes"));
     }
@@ -949,7 +949,7 @@ pub fn compute_partial_key_image_with_derivation(
     // Lagrange coefficient MUST be applied to prevent overlap bug.
     // ===========================================================
     let lambda_bytes = hex::decode(&lagrange_coefficient_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {e}")))?;
     if lambda_bytes.len() != 32 {
         return Err(JsValue::from_str("lagrange_coefficient must be 32 bytes"));
     }
@@ -959,7 +959,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 2. Parse tx_pub_key (R) - the TX public key from funding transaction
     let tx_pub_bytes = hex::decode(&tx_pub_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid tx_pub_key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid tx_pub_key hex: {e}")))?;
     if tx_pub_bytes.len() != 32 {
         return Err(JsValue::from_str("tx_pub_key must be 32 bytes"));
     }
@@ -971,7 +971,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 3. Parse shared view key (a_shared)
     let view_bytes = hex::decode(&view_key_shared_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid view key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid view key hex: {e}")))?;
     if view_bytes.len() != 32 {
         return Err(JsValue::from_str("View key must be 32 bytes"));
     }
@@ -981,7 +981,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 4. Parse one_time_pubkey (P) - the output we're spending
     let pubkey_bytes = hex::decode(&one_time_pubkey_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid one_time_pubkey hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid one_time_pubkey hex: {e}")))?;
     if pubkey_bytes.len() != 32 {
         return Err(JsValue::from_str("one_time_pubkey must be 32 bytes"));
     }
@@ -1000,8 +1000,8 @@ pub fn compute_partial_key_image_with_derivation(
     // FIX v0.9.7 (Bug 1.7): Use varint encoding to match server (transaction_builder.rs)
     // Previous bug: Used to_le_bytes() (8 bytes) but server uses varint (1+ bytes)
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index)); // FIX: varint, not to_le_bytes
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index)); // FIX: varint, not to_le_bytes
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -1062,7 +1062,7 @@ pub fn compute_partial_key_image_with_derivation(
     });
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 // ============================================================================
@@ -1092,7 +1092,7 @@ pub fn generate_nonce_commitment(
     // Generate random nonce (alpha)
     let mut alpha_bytes = [0u8; 32];
     getrandom::getrandom(&mut alpha_bytes)
-        .map_err(|e| JsValue::from_str(&format!("RNG error: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("RNG error: {e}")))?;
     let alpha = Scalar::from_bytes_mod_order(alpha_bytes);
 
     // Compute R = alpha * G
@@ -1101,7 +1101,7 @@ pub fn generate_nonce_commitment(
 
     // Compute R' = alpha * Hp(P)
     let pubkey_bytes = hex::decode(multisig_pub_key)
-        .map_err(|e| JsValue::from_str(&format!("Invalid multisig_pub_key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid multisig_pub_key hex: {e}")))?;
     if pubkey_bytes.len() != 32 {
         return Err(JsValue::from_str("multisig_pub_key must be 32 bytes"));
     }
@@ -1115,8 +1115,8 @@ pub fn generate_nonce_commitment(
     // Compute commitment H(R || R')
     let mut hasher = Keccak256::new();
     hasher.update(b"MUSIG2_NONCE_COMMITMENT");
-    hasher.update(&hex::decode(&r_public).unwrap());
-    hasher.update(&hex::decode(&r_prime_public).unwrap());
+    hasher.update(hex::decode(&r_public).unwrap());
+    hasher.update(hex::decode(&r_prime_public).unwrap());
     let commitment_hash = hex::encode(hasher.finalize());
 
     // Return alpha_secret to JS (kept in memory, NOT localStorage)
@@ -1140,7 +1140,7 @@ pub fn generate_nonce_commitment(
     );
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Sign a single input with CLSAG ring signature
@@ -1185,7 +1185,7 @@ pub fn sign_clsag_wasm(
 
     // Parse input data
     let input_data: SignInputData = serde_json::from_str(&input_data_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid input_data JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid input_data JSON: {e}")))?;
 
     // DIAGNOSTIC: Log input parameters
     web_sys::console::log_1(
@@ -1207,7 +1207,7 @@ pub fn sign_clsag_wasm(
 
     // Parse tx prefix hash
     let msg_bytes = hex::decode(&tx_prefix_hash_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid tx_prefix_hash hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid tx_prefix_hash hex: {e}")))?;
     if msg_bytes.len() != 32 {
         return Err(JsValue::from_str("tx_prefix_hash must be 32 bytes"));
     }
@@ -1216,7 +1216,7 @@ pub fn sign_clsag_wasm(
 
     // Decode spend key
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
     if spend_bytes.len() != 32 {
         return Err(JsValue::from_str("Spend key must be 32 bytes"));
     }
@@ -1228,9 +1228,9 @@ pub fn sign_clsag_wasm(
     let mut ring: ShimsVec<[curve25519_dalek::edwards::EdwardsPoint; 2]> = ShimsVec::new();
     for pair in &input_data.ring {
         let key_bytes = hex::decode(&pair[0])
-            .map_err(|e| JsValue::from_str(&format!("Invalid ring key hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid ring key hex: {e}")))?;
         let commitment_bytes = hex::decode(&pair[1])
-            .map_err(|e| JsValue::from_str(&format!("Invalid ring commitment hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid ring commitment hex: {e}")))?;
 
         if key_bytes.len() != 32 || commitment_bytes.len() != 32 {
             return Err(JsValue::from_str("Ring members must be 32 bytes each"));
@@ -1253,7 +1253,7 @@ pub fn sign_clsag_wasm(
 
     // Parse commitment data
     let commitment_mask_bytes = hex::decode(&input_data.commitment_mask)
-        .map_err(|e| JsValue::from_str(&format!("Invalid commitment_mask hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid commitment_mask hex: {e}")))?;
     if commitment_mask_bytes.len() != 32 {
         return Err(JsValue::from_str("Commitment mask must be 32 bytes"));
     }
@@ -1273,13 +1273,13 @@ pub fn sign_clsag_wasm(
 
     // Create CLSAG context
     let context = ClsagContext::new(decoys, commitment)
-        .map_err(|e| JsValue::from_str(&format!("CLSAG context error: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("CLSAG context error: {e:?}")))?;
 
     // Generate RNG from seed (deterministic for WASM reproducibility)
 
     let mut rng_seed = [0u8; 32];
     getrandom::getrandom(&mut rng_seed)
-        .map_err(|e| JsValue::from_str(&format!("RNG error: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("RNG error: {e}")))?;
     let mut rng = rand_core::OsRng;
 
     // Create inputs vector
@@ -1299,7 +1299,7 @@ pub fn sign_clsag_wasm(
     // We use Scalar::ZERO for the case where there's only one input
     let signatures = Clsag::sign(&mut rng, inputs, Scalar::ZERO, msg).map_err(|e| {
         // DIAGNOSTIC: Log the exact error variant
-        let error_msg = format!("CLSAG signing error: {:?}", e);
+        let error_msg = format!("CLSAG signing error: {e:?}");
         web_sys::console::error_1(&error_msg.clone().into());
         JsValue::from_str(&error_msg)
     })?;
@@ -1349,17 +1349,13 @@ pub fn sign_clsag_wasm(
     let hp = hash_to_point(signer_public_key.compress().to_bytes());
     let hp_hex = hex::encode(hp.compress().to_bytes());
 
-    web_sys::console::log_1(&format!("[CLSAG Debug] hash_to_point(signer_pub): {}", hp_hex).into());
+    web_sys::console::log_1(&format!("[CLSAG Debug] hash_to_point(signer_pub): {hp_hex}").into());
 
     let key_image = *spend_scalar * hp;
     let key_image_hex = hex::encode(key_image.compress().to_bytes());
 
     web_sys::console::log_1(
-        &format!(
-            "[CLSAG Debug] Computed partial_key_image: {}",
-            key_image_hex
-        )
-        .into(),
+        &format!("[CLSAG Debug] Computed partial_key_image: {key_image_hex}").into(),
     );
 
     // Zeroize sensitive data
@@ -1377,7 +1373,7 @@ pub fn sign_clsag_wasm(
     });
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Sign with partial key for 2-of-3 multisig CLSAG
@@ -1464,7 +1460,7 @@ pub fn sign_clsag_partial_wasm(
     //   s_i = alpha_i - c_p * (λ_i * x_i) - c_c * (λ_i * z_i)
     // ===========================================================
     let lambda_bytes = hex::decode(&lagrange_coefficient_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid lagrange_coefficient hex: {e}")))?;
     if lambda_bytes.len() != 32 {
         return Err(JsValue::from_str("lagrange_coefficient must be 32 bytes"));
     }
@@ -1492,11 +1488,11 @@ pub fn sign_clsag_partial_wasm(
 
     // Parse inputs
     let input_data: SignInputData = serde_json::from_str(&input_data_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid input_data JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid input_data JSON: {e}")))?;
 
     // Parse spend key (partial)
     let spend_bytes = hex::decode(&spend_key_priv_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid spend key hex: {e}")))?;
     if spend_bytes.len() != 32 {
         return Err(JsValue::from_str("Spend key must be 32 bytes"));
     }
@@ -1525,15 +1521,14 @@ pub fn sign_clsag_partial_wasm(
         if !tx_pub_key_hex.is_empty() && !view_key_hex.is_empty() {
             web_sys::console::log_1(
                 &format!(
-                    "[CLSAG v0.14.2] Computing x WITH derivation: H_s(a·R || {}) + b",
-                    output_idx
+                    "[CLSAG v0.14.2] Computing x WITH derivation: H_s(a·R || {output_idx}) + b"
                 )
                 .into(),
             );
 
             // Parse tx_pub_key (R)
             let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-                .map_err(|e| JsValue::from_str(&format!("Invalid tx_pub_key hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid tx_pub_key hex: {e}")))?;
             if tx_pub_bytes.len() != 32 {
                 return Err(JsValue::from_str("tx_pub_key must be 32 bytes"));
             }
@@ -1545,7 +1540,7 @@ pub fn sign_clsag_partial_wasm(
 
             // Parse view key (a)
             let view_bytes = hex::decode(view_key_hex)
-                .map_err(|e| JsValue::from_str(&format!("Invalid view_key hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid view_key hex: {e}")))?;
             if view_bytes.len() != 32 {
                 return Err(JsValue::from_str("view_key must be 32 bytes"));
             }
@@ -1561,8 +1556,8 @@ pub fn sign_clsag_partial_wasm(
             // Compute derivation: H_s(shared_secret || output_index)
             // FIX C2: Use varint encoding for output_index (matches Monero protocol)
             let mut hasher = Keccak256::new();
-            hasher.update(&shared_secret_bytes);
-            hasher.update(&encode_varint(output_idx as u64));
+            hasher.update(shared_secret_bytes);
+            hasher.update(encode_varint(output_idx));
             let derivation_hash: [u8; 32] = hasher.finalize().into();
             let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -1617,7 +1612,7 @@ pub fn sign_clsag_partial_wasm(
 
     // Parse multisig public key
     let multisig_pub_bytes = hex::decode(&multisig_pub_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid multisig pub key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid multisig pub key hex: {e}")))?;
     if multisig_pub_bytes.len() != 32 {
         return Err(JsValue::from_str("Multisig public key must be 32 bytes"));
     }
@@ -1626,14 +1621,14 @@ pub fn sign_clsag_partial_wasm(
 
     // Parse tx prefix hash
     let tx_hash_bytes = hex::decode(&tx_prefix_hash_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid tx hash hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid tx hash hex: {e}")))?;
     if tx_hash_bytes.len() != 32 {
         return Err(JsValue::from_str("TX prefix hash must be 32 bytes"));
     }
 
     // Parse commitment mask
     let mask_bytes = hex::decode(&input_data.commitment_mask)
-        .map_err(|e| JsValue::from_str(&format!("Invalid mask hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid mask hex: {e}")))?;
     if mask_bytes.len() != 32 {
         return Err(JsValue::from_str("Mask must be 32 bytes"));
     }
@@ -1645,11 +1640,7 @@ pub fn sign_clsag_partial_wasm(
     let signer_idx = input_data.signer_index as usize;
 
     web_sys::console::log_1(
-        &format!(
-            "[CLSAG Partial] Ring size: {}, signer_index: {}",
-            ring_size, signer_idx
-        )
-        .into(),
+        &format!("[CLSAG Partial] Ring size: {ring_size}, signer_index: {signer_idx}").into(),
     );
 
     // ===========================================================
@@ -1658,7 +1649,7 @@ pub fn sign_clsag_partial_wasm(
     // DO NOT compute locally - both signers MUST use the SAME key image
     // ===========================================================
     let aggregated_ki_bytes = hex::decode(&aggregated_key_image_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid aggregated_key_image hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid aggregated_key_image hex: {e}")))?;
     if aggregated_ki_bytes.len() != 32 {
         return Err(JsValue::from_str("Aggregated key_image must be 32 bytes"));
     }
@@ -1688,10 +1679,9 @@ pub fn sign_clsag_partial_wasm(
 
     for (i, pair) in input_data.ring.iter().enumerate() {
         let key_bytes = hex::decode(&pair[0])
-            .map_err(|e| JsValue::from_str(&format!("Invalid ring key[{}] hex: {}", i, e)))?;
-        let commit_bytes = hex::decode(&pair[1]).map_err(|e| {
-            JsValue::from_str(&format!("Invalid ring commitment[{}] hex: {}", i, e))
-        })?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid ring key[{i}] hex: {e}")))?;
+        let commit_bytes = hex::decode(&pair[1])
+            .map_err(|e| JsValue::from_str(&format!("Invalid ring commitment[{i}] hex: {e}")))?;
 
         let mut key_arr = [0u8; 32];
         let mut commit_arr = [0u8; 32];
@@ -1700,10 +1690,10 @@ pub fn sign_clsag_partial_wasm(
 
         let key_point = curve25519_dalek::edwards::CompressedEdwardsY(key_arr)
             .decompress()
-            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring key point[{}]", i)))?;
+            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring key point[{i}]")))?;
         let commit_point = curve25519_dalek::edwards::CompressedEdwardsY(commit_arr)
             .decompress()
-            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring commitment point[{}]", i)))?;
+            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring commitment point[{i}]")))?;
 
         ring_keys.push(key_point);
         ring_commitments.push(commit_point);
@@ -1796,9 +1786,8 @@ pub fn sign_clsag_partial_wasm(
             .into(),
         );
 
-        let pseudo_out_bytes_vec = hex::decode(pseudo_out_hex).map_err(|e| {
-            JsValue::from_str(&format!("Invalid first_signer_pseudo_out hex: {}", e))
-        })?;
+        let pseudo_out_bytes_vec = hex::decode(pseudo_out_hex)
+            .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_pseudo_out hex: {e}")))?;
         if pseudo_out_bytes_vec.len() != 32 {
             return Err(JsValue::from_str(
                 "first_signer_pseudo_out must be 32 bytes",
@@ -1819,7 +1808,7 @@ pub fn sign_clsag_partial_wasm(
         // So both signers must contribute their λ-weighted mask_delta term.
         let mask_delta = if let Some(ref funding_mask_hex) = input_data.funding_mask {
             let funding_bytes = hex::decode(funding_mask_hex)
-                .map_err(|e| JsValue::from_str(&format!("Invalid funding_mask hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid funding_mask hex: {e}")))?;
             if funding_bytes.len() != 32 {
                 return Err(JsValue::from_str("funding_mask must be 32 bytes"));
             }
@@ -1883,7 +1872,7 @@ pub fn sign_clsag_partial_wasm(
 
         let mask_delta = if let Some(ref funding_mask_hex) = input_data.funding_mask {
             let funding_bytes = hex::decode(funding_mask_hex)
-                .map_err(|e| JsValue::from_str(&format!("Invalid funding_mask hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid funding_mask hex: {e}")))?;
             if funding_bytes.len() != 32 {
                 return Err(JsValue::from_str("funding_mask must be 32 bytes"));
             }
@@ -1977,7 +1966,7 @@ pub fn sign_clsag_partial_wasm(
             );
 
             let d_bytes = hex::decode(d_hex)
-                .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_d hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_d hex: {e}")))?;
             if d_bytes.len() != 32 {
                 return Err(JsValue::from_str("first_signer_d must be 32 bytes"));
             }
@@ -2047,7 +2036,7 @@ pub fn sign_clsag_partial_wasm(
         if has_server_mu {
             // Parse server-provided mu_P
             let mu_p_bytes = hex::decode(mu_p_hex.as_ref().unwrap())
-                .map_err(|e| JsValue::from_str(&format!("Invalid mu_p hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid mu_p hex: {e}")))?;
             if mu_p_bytes.len() != 32 {
                 return Err(JsValue::from_str("mu_p must be 32 bytes"));
             }
@@ -2057,7 +2046,7 @@ pub fn sign_clsag_partial_wasm(
 
             // Parse server-provided mu_C
             let mu_c_bytes = hex::decode(mu_c_hex.as_ref().unwrap())
-                .map_err(|e| JsValue::from_str(&format!("Invalid mu_c hex: {}", e)))?;
+                .map_err(|e| JsValue::from_str(&format!("Invalid mu_c hex: {e}")))?;
             if mu_c_bytes.len() != 32 {
                 return Err(JsValue::from_str("mu_c must be 32 bytes"));
             }
@@ -2132,7 +2121,7 @@ pub fn sign_clsag_partial_wasm(
     let alpha = if let Some(alpha_hex) = input_data.alpha_secret.as_ref() {
         web_sys::console::log_1(&"[MuSig2 v0.9.2] Using alpha from nonce commitment".into());
         let alpha_decoded = hex::decode(alpha_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid alpha_secret hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid alpha_secret hex: {e}")))?;
         if alpha_decoded.len() != 32 {
             return Err(JsValue::from_str("alpha_secret must be 32 bytes"));
         }
@@ -2147,7 +2136,7 @@ pub fn sign_clsag_partial_wasm(
         let mut alpha_hasher = Keccak256::new();
         alpha_hasher.update(b"CLSAG_multisig_nonce_v2");
         alpha_hasher.update(&tx_hash_bytes);
-        alpha_hasher.update(&spend_key_arr);
+        alpha_hasher.update(spend_key_arr);
         alpha_bytes = alpha_hasher.finalize().into();
         Scalar::from_bytes_mod_order(alpha_bytes)
     };
@@ -2178,10 +2167,7 @@ pub fn sign_clsag_partial_wasm(
     // =========================================================================
     if let Some(ref submitted_r_hex) = input_data.my_submitted_r_public {
         let submitted_r_bytes = hex::decode(submitted_r_hex).map_err(|e| {
-            JsValue::from_str(&format!(
-                "[v0.42.0] Invalid my_submitted_r_public hex: {}",
-                e
-            ))
+            JsValue::from_str(&format!("[v0.42.0] Invalid my_submitted_r_public hex: {e}"))
         })?;
         if submitted_r_bytes.len() != 32 {
             return Err(JsValue::from_str(
@@ -2196,11 +2182,10 @@ pub fn sign_clsag_partial_wasm(
             web_sys::console::error_1(
                 &format!(
                     "[v0.42.0] CRITICAL: alpha_secret mismatch!\n  \
-                 R_computed (alpha*G): {}\n  \
-                 R_submitted:          {}\n  \
+                 R_computed (alpha*G): {r_mine_hex}\n  \
+                 R_submitted:          {submitted_r_hex_canonical}\n  \
                  This means your nonce was regenerated after submission.\n  \
-                 The escrow must be RESET to generate new matching nonces.",
-                    r_mine_hex, submitted_r_hex_canonical
+                 The escrow must be RESET to generate new matching nonces."
                 )
                 .into(),
             );
@@ -2245,11 +2230,11 @@ pub fn sign_clsag_partial_wasm(
         }
 
         let peer: PeerNonce = serde_json::from_str(peer_nonce_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer_nonce_public JSON: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer_nonce_public JSON: {e}")))?;
 
         // Parse peer's R point
         let peer_r_bytes = hex::decode(&peer.r_public)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_public hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_public hex: {e}")))?;
         if peer_r_bytes.len() != 32 {
             return Err(JsValue::from_str("peer r_public must be 32 bytes"));
         }
@@ -2261,7 +2246,7 @@ pub fn sign_clsag_partial_wasm(
 
         // Parse peer's R' point
         let peer_r_prime_bytes = hex::decode(&peer.r_prime_public)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_prime_public hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_prime_public hex: {e}")))?;
         if peer_r_prime_bytes.len() != 32 {
             return Err(JsValue::from_str("peer r_prime_public must be 32 bytes"));
         }
@@ -2364,7 +2349,7 @@ pub fn sign_clsag_partial_wasm(
     let mut c = if has_first_signer_c1 {
         let c1_hex = first_signer_c1_hex.as_ref().unwrap();
         let c1_bytes = hex::decode(c1_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_c1 hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid first_signer_c1 hex: {e}")))?;
         if c1_bytes.len() != 32 {
             return Err(JsValue::from_str("first_signer_c1 must be 32 bytes"));
         }
@@ -2404,7 +2389,7 @@ pub fn sign_clsag_partial_wasm(
         // ===========================================================
         let mut domain_sep = [0u8; 32];
         domain_sep[..11].copy_from_slice(b"CLSAG_round");
-        hasher.update(&domain_sep); // 32 bytes padded domain separator
+        hasher.update(domain_sep); // 32 bytes padded domain separator
 
         // Ring public keys P
         for k in &ring_keys {
@@ -2417,7 +2402,7 @@ pub fn sign_clsag_partial_wasm(
         }
 
         // Pseudo output commitment C_offset (CRITICAL: was missing before v0.9.5)
-        hasher.update(&pseudo_out_bytes);
+        hasher.update(pseudo_out_bytes);
 
         // Message (tx prefix hash)
         hasher.update(&tx_hash_bytes);
@@ -2633,9 +2618,8 @@ pub fn sign_clsag_partial_wasm(
 
             // Generate RANDOM s-value for this position
             let mut random_bytes = [0u8; 32];
-            getrandom::getrandom(&mut random_bytes).map_err(|e| {
-                JsValue::from_str(&format!("Failed to generate random bytes: {}", e))
-            })?;
+            getrandom::getrandom(&mut random_bytes)
+                .map_err(|e| JsValue::from_str(&format!("Failed to generate random bytes: {e}")))?;
             s_values[i] = Scalar::from_bytes_mod_order(random_bytes);
         }
 
@@ -2805,15 +2789,13 @@ pub fn sign_clsag_partial_wasm(
         let my_contribution = if lambda_is_one {
             // ROUND-ROBIN: Don't include mask_delta (first signer already has it fully)
             web_sys::console::log_1(&format!(
-                "[CLSAG v0.47.0] SECOND SIGNER (round-robin λ=1): s[{}] contribution = alpha - c_p*x (NO mask_delta!)",
-                signer_idx
+                "[CLSAG v0.47.0] SECOND SIGNER (round-robin λ=1): s[{signer_idx}] contribution = alpha - c_p*x (NO mask_delta!)"
             ).into());
             alpha - c_p * effective_x
         } else {
             // FROST: Include weighted mask_delta (λ1 + λ2 = 1, so contributions sum correctly)
             web_sys::console::log_1(&format!(
-                "[CLSAG v0.47.0] SECOND SIGNER (FROST λ<1): s[{}] contribution = alpha - c_p*λ*x - c_c*λ*mask_delta",
-                signer_idx
+                "[CLSAG v0.47.0] SECOND SIGNER (FROST λ<1): s[{signer_idx}] contribution = alpha - c_p*λ*x - c_c*λ*mask_delta"
             ).into());
             alpha - c_p * effective_x - c_c * effective_mask_delta
         };
@@ -2907,7 +2889,7 @@ pub fn sign_clsag_partial_wasm(
     // These MUST be stored by server and sent to second signer for deterministic verification
     let is_first_signer = !has_first_signer_c1;
     web_sys::console::log_1(&"[CLSAG v0.37.2] CHECKPOINT: About to build result".into());
-    web_sys::console::log_1(&format!("[CLSAG v0.37.2] is_first_signer={}", is_first_signer).into());
+    web_sys::console::log_1(&format!("[CLSAG v0.37.2] is_first_signer={is_first_signer}").into());
     let result = if is_first_signer {
         web_sys::console::log_1(&"[CLSAG v0.37.2] ENTERING FIRST SIGNER BRANCH".into());
         // FIRST SIGNER: Include mu_p and mu_c in result
@@ -2946,7 +2928,7 @@ pub fn sign_clsag_partial_wasm(
     };
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// LEGACY PLACEHOLDER - Use sign_clsag_wasm instead

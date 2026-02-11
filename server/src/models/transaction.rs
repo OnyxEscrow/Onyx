@@ -95,7 +95,7 @@ impl Transaction {
         transactions::table
             .filter(transactions::id.eq(transaction_id.clone()))
             .first(conn)
-            .context(format!("Transaction with ID {} not found", transaction_id))
+            .context(format!("Transaction with ID {transaction_id} not found"))
     }
 
     /// Find transaction by Monero transaction hash
@@ -112,7 +112,7 @@ impl Transaction {
         transactions::table
             .filter(transactions::tx_hash.eq(tx_hash))
             .first(conn)
-            .context(format!("Transaction with hash {} not found", tx_hash))
+            .context(format!("Transaction with hash {tx_hash} not found"))
     }
 
     /// Find all transactions for a specific escrow
@@ -166,8 +166,7 @@ impl Transaction {
             .set(transactions::confirmations.eq(confirmations))
             .execute(conn)
             .context(format!(
-                "Failed to update confirmations for transaction {}",
-                transaction_id
+                "Failed to update confirmations for transaction {transaction_id}"
             ))?;
 
         Self::find_by_id(conn, transaction_id)
@@ -199,19 +198,14 @@ impl Transaction {
         // Verify transaction exists and doesn't already have a hash
         let existing = Self::find_by_id(conn, transaction_id.clone())?;
         if let Some(ref existing_hash) = existing.tx_hash {
-            anyhow::bail!(
-                "Transaction {} already has tx_hash set: {}",
-                transaction_id,
-                existing_hash
-            );
+            anyhow::bail!("Transaction {transaction_id} already has tx_hash set: {existing_hash}");
         }
 
         diesel::update(transactions::table.filter(transactions::id.eq(transaction_id.clone())))
             .set(transactions::tx_hash.eq(tx_hash))
             .execute(conn)
             .context(format!(
-                "Failed to set tx_hash for transaction {}",
-                transaction_id
+                "Failed to set tx_hash for transaction {transaction_id}"
             ))?;
 
         Self::find_by_id(conn, transaction_id)

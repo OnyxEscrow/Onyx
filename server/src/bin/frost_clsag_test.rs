@@ -54,7 +54,7 @@ fn derive_output_key(
     let derivation = hash_to_scalar(&derivation_data);
 
     // Output key: P = derivation * G + B
-    let output_key = &*ED25519_BASEPOINT_TABLE * &derivation + spend_pubkey;
+    let output_key = ED25519_BASEPOINT_TABLE * &derivation + spend_pubkey;
 
     (output_key, derivation)
 }
@@ -78,11 +78,11 @@ fn main() {
 
     // Round 1
     let (r1_secret_buyer, r1_pkg_buyer) =
-        dkg::part1(id_buyer, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_buyer, max_signers, threshold, OsRng).unwrap();
     let (r1_secret_vendor, r1_pkg_vendor) =
-        dkg::part1(id_vendor, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_vendor, max_signers, threshold, OsRng).unwrap();
     let (r1_secret_arbiter, r1_pkg_arbiter) =
-        dkg::part1(id_arbiter, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_arbiter, max_signers, threshold, OsRng).unwrap();
 
     // Round 2
     let mut other_r1_for_buyer = BTreeMap::new();
@@ -146,7 +146,7 @@ fn main() {
 
     // Derive view key from group pubkey (deterministic)
     let view_key = hash_to_scalar(&group_pubkey_bytes);
-    let view_pubkey = &*ED25519_BASEPOINT_TABLE * &view_key;
+    let view_pubkey = ED25519_BASEPOINT_TABLE * &view_key;
 
     println!("  View key (private): {}", hex::encode(view_key.to_bytes()));
     println!(
@@ -165,7 +165,7 @@ fn main() {
 
     // Simulate a transaction that pays to our FROST address
     let tx_private_key = Scalar::from(98765u64); // Sender's random r
-    let tx_pubkey = &*ED25519_BASEPOINT_TABLE * &tx_private_key; // R = r * G
+    let tx_pubkey = ED25519_BASEPOINT_TABLE * &tx_private_key; // R = r * G
     let output_index = 0u64;
 
     // Derive one-time output key (what appears on blockchain)
@@ -176,7 +176,7 @@ fn main() {
         "  TX pubkey (R):      {}",
         hex::encode(tx_pubkey.compress().to_bytes())
     );
-    println!("  Output index:       {}", output_index);
+    println!("  Output index:       {output_index}");
     println!(
         "  Derivation (d):     {}",
         hex::encode(derivation.to_bytes())
@@ -200,7 +200,7 @@ fn main() {
     let full_secret = derivation + group_secret;
 
     // Verify: full_secret * G == output_key
-    let computed_output_key = &*ED25519_BASEPOINT_TABLE * &full_secret;
+    let computed_output_key = ED25519_BASEPOINT_TABLE * &full_secret;
     let output_key_matches = computed_output_key.compress() == output_key.compress();
     println!(
         "  full_secret * G == output_key: {}",
@@ -308,7 +308,7 @@ fn main() {
     let mut ring: Vec<EdwardsPoint> = Vec::with_capacity(ring_size);
     ring.push(output_key); // Real output at index 0
     for i in 1..ring_size {
-        let fake_key = &*ED25519_BASEPOINT_TABLE * &Scalar::from(1000u64 + i as u64);
+        let fake_key = ED25519_BASEPOINT_TABLE * &Scalar::from(1000u64 + i as u64);
         ring.push(fake_key);
     }
 
@@ -324,8 +324,8 @@ fn main() {
     agg_data[10] = b'1'; // Change to CLSAG_agg_1
     let mu_c = hash_to_scalar(&agg_data);
 
-    println!("  Ring size: {}", ring_size);
-    println!("  Real index: {}", real_index);
+    println!("  Ring size: {ring_size}");
+    println!("  Real index: {real_index}");
     println!("  mu_P: {}", hex::encode(mu_p.to_bytes()));
     println!("  mu_C: {}\n", hex::encode(mu_c.to_bytes()));
 
@@ -341,7 +341,7 @@ fn main() {
     OsRng.fill_bytes(&mut alpha_bytes);
     let alpha = Scalar::from_bytes_mod_order(alpha_bytes);
 
-    let l_point = &*ED25519_BASEPOINT_TABLE * &alpha;
+    let l_point = ED25519_BASEPOINT_TABLE * &alpha;
     let r_point = alpha * hp;
 
     let mut challenge_data = b"CLSAG_c".to_vec();
@@ -368,7 +368,7 @@ fn main() {
 
     // Verify: L' = s * G + c * (mu_P * P + mu_C * C) should equal L
     // Simplified verification (without commitment):
-    let l_verify = &*ED25519_BASEPOINT_TABLE * &s_real + c * mu_p * output_key;
+    let l_verify = ED25519_BASEPOINT_TABLE * &s_real + c * mu_p * output_key;
     // Note: Full verification needs the commitment point C
 
     println!("  Partial L verification:");

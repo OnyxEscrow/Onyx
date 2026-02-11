@@ -130,7 +130,7 @@ pub async fn db_insert_escrow(pool: &DbPool, new_escrow: NewEscrow) -> Result<Es
             .execute(&mut conn)
             .map_err(|e| {
                 tracing::error!("Database insert error for escrow {}: {:?}", escrow_id, e);
-                anyhow::anyhow!("Failed to insert escrow: {}", e)
+                anyhow::anyhow!("Failed to insert escrow: {e}")
             })?;
 
         escrows::table
@@ -142,7 +142,7 @@ pub async fn db_insert_escrow(pool: &DbPool, new_escrow: NewEscrow) -> Result<Es
                     escrow_id,
                     e
                 );
-                anyhow::anyhow!("Failed to retrieve created escrow: {}", e)
+                anyhow::anyhow!("Failed to retrieve created escrow: {e}")
             })
     })
     .await?
@@ -159,7 +159,7 @@ pub async fn db_load_escrow_by_str(pool: &DbPool, escrow_id: &str) -> Result<Esc
         escrows::table
             .filter(escrows::id.eq(&id))
             .first(&mut conn)
-            .context(format!("Escrow with ID {} not found", id))
+            .context(format!("Escrow with ID {id} not found"))
     })
     .await?
 }
@@ -171,7 +171,7 @@ pub async fn db_update_escrow_address(pool: &DbPool, escrow_id: Uuid, address: &
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.to_string())))
             .set(escrows::multisig_address.eq(address_clone))
             .execute(&mut conn)
-            .context(format!("Failed to update escrow {} address", escrow_id))
+            .context(format!("Failed to update escrow {escrow_id} address"))
     })
     .await?;
     Ok(())
@@ -193,7 +193,7 @@ pub async fn db_update_escrow_status_by_str(
         diesel::update(escrows::table.filter(escrows::id.eq(&id)))
             .set(escrows::status.eq(status_clone))
             .execute(&mut conn)
-            .context(format!("Failed to update escrow {} status", id))
+            .context(format!("Failed to update escrow {id} status"))
     })
     .await?;
     Ok(())
@@ -211,8 +211,7 @@ pub async fn db_update_escrow_transaction_hash(
             .set(escrows::transaction_hash.eq(tx_hash_clone))
             .execute(&mut conn)
             .context(format!(
-                "Failed to update escrow {} transaction_hash",
-                escrow_id
+                "Failed to update escrow {escrow_id} transaction_hash"
             ))
     })
     .await?;
@@ -231,8 +230,7 @@ pub async fn db_update_ring_data_json(
             .set(escrows::ring_data_json.eq(json_clone))
             .execute(&mut conn)
             .context(format!(
-                "Failed to update escrow {} ring_data_json",
-                escrow_id
+                "Failed to update escrow {escrow_id} ring_data_json"
             ))
     })
     .await?;
@@ -266,8 +264,7 @@ pub async fn db_store_multisig_info(
             _ => return Err(anyhow::anyhow!("Invalid party for multisig info")),
         }
         .context(format!(
-            "Failed to store multisig info for escrow {} party {}",
-            escrow_id, party_clone
+            "Failed to store multisig info for escrow {escrow_id} party {party_clone}"
         ))
     })
     .await??;
@@ -280,7 +277,7 @@ pub async fn db_count_multisig_infos(pool: &DbPool, escrow_id: Uuid) -> Result<i
         let escrow = escrows::table
             .filter(escrows::id.eq(escrow_id.to_string()))
             .first::<Escrow>(&mut conn)
-            .context(format!("Escrow with ID {} not found", escrow_id))?;
+            .context(format!("Escrow with ID {escrow_id} not found"))?;
 
         let mut count = 0;
         if escrow.buyer_wallet_info.is_some() {
@@ -303,7 +300,7 @@ pub async fn db_load_multisig_infos(pool: &DbPool, escrow_id: Uuid) -> Result<Ve
         let escrow = escrows::table
             .filter(escrows::id.eq(escrow_id.to_string()))
             .first::<Escrow>(&mut conn)
-            .context(format!("Escrow with ID {} not found", escrow_id))?;
+            .context(format!("Escrow with ID {escrow_id} not found"))?;
 
         let mut infos = Vec::new();
         if let Some(info) = escrow.buyer_wallet_info {

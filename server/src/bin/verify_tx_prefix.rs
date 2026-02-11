@@ -19,18 +19,18 @@ fn main() {
     hasher.update(tx_prefix);
     let hash = hasher.finalize();
 
-    let computed_hash = hex::encode(&hash);
+    let computed_hash = hex::encode(hash);
 
     println!("TX prefix length: {} bytes", tx_prefix.len());
     println!(
         "TX prefix (first 32 bytes): {}",
         hex::encode(&tx_prefix[..32])
     );
-    println!("\nComputed tx_prefix_hash: {}", computed_hash);
+    println!("\nComputed tx_prefix_hash: {computed_hash}");
 
     // Expected from test
     let expected = "405ec21109897ce30308066caf44040822762ecae1dddb6f585d4ee15fe57431";
-    println!("Expected tx_prefix_hash: {}", expected);
+    println!("Expected tx_prefix_hash: {expected}");
     println!("Match: {}", computed_hash == expected);
 
     if computed_hash != expected {

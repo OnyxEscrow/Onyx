@@ -70,12 +70,12 @@ pub struct PartialClsagSignature {
     #[zeroize(skip)]
     pub partial_key_image_1: String,
 
-    /// Mixing coefficient μ_P (hex, 32 bytes).
+    /// Mixing coefficient `μ_P` (hex, 32 bytes).
     /// CRITICAL: Must be reused by signer 2.
     #[zeroize(skip)]
     pub mu_p: String,
 
-    /// Mixing coefficient μ_C (hex, 32 bytes).
+    /// Mixing coefficient `μ_C` (hex, 32 bytes).
     /// CRITICAL: Must be reused by signer 2.
     #[zeroize(skip)]
     pub mu_c: String,
@@ -95,7 +95,7 @@ pub struct PartialClsagSignature {
 /// * `derivation_scalar_hex` - Output derivation scalar Hs(8*a*R || idx) (hex, 32 bytes)
 /// * `partial_key_image_1_hex` - Partial key image from signer 1 (hex, 32 bytes)
 /// * `alpha_1_hex` - Random nonce for signer 1 (hex, 32 bytes)
-/// * `mask_delta` - Mask delta (output_mask - sum_input_masks)
+/// * `mask_delta` - Mask delta (`output_mask` - `sum_input_masks`)
 /// * `ring_keys_bytes` - Public keys in the ring (each 32 bytes)
 /// * `ring_commitments_bytes` - Pedersen commitments in the ring (each 32 bytes)
 /// * `tx_prefix_hash` - Transaction prefix hash (32 bytes)
@@ -108,7 +108,7 @@ pub struct PartialClsagSignature {
 /// # Errors
 /// - `InvalidLength` if any input has incorrect length
 /// - `HexDecodeFailed` if hex parsing fails
-/// - `SignerIndexOutOfBounds` if real_index >= ring size
+/// - `SignerIndexOutOfBounds` if `real_index` >= ring size
 /// - `RingSizeTooSmall` if ring has < 2 members
 /// - `PartialSignatureFailed` for other signing errors
 #[allow(clippy::too_many_arguments)]
@@ -144,7 +144,7 @@ pub fn sign_clsag_partial(
 
     // Parse spend share 1
     let spend_bytes = hex::decode(spend_share_1_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("spend_share_1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("spend_share_1: {e}")))?;
     if spend_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "spend_share_1".into(),
@@ -158,7 +158,7 @@ pub fn sign_clsag_partial(
 
     // Parse lagrange 1
     let lambda_bytes = hex::decode(lagrange_1_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("lagrange_1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("lagrange_1: {e}")))?;
     if lambda_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "lagrange_1".into(),
@@ -172,7 +172,7 @@ pub fn sign_clsag_partial(
 
     // Parse derivation scalar
     let deriv_bytes = hex::decode(derivation_scalar_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("derivation_scalar: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("derivation_scalar: {e}")))?;
     if deriv_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "derivation_scalar".into(),
@@ -186,7 +186,7 @@ pub fn sign_clsag_partial(
 
     // Parse partial key image 1
     let pki1_bytes = hex::decode(partial_key_image_1_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_1: {e}")))?;
     if pki1_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "partial_key_image_1".into(),
@@ -202,7 +202,7 @@ pub fn sign_clsag_partial(
 
     // Parse alpha 1
     let alpha_bytes = hex::decode(alpha_1_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("alpha_1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("alpha_1: {e}")))?;
     if alpha_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "alpha_1".into(),
@@ -220,7 +220,7 @@ pub fn sign_clsag_partial(
 
     for (i, key_bytes) in ring_keys_bytes.iter().enumerate() {
         let key = CompressedEdwardsY(*key_bytes).decompress().ok_or_else(|| {
-            CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i))
+            CryptoError::InvalidPublicKey(format!("ring_key[{i}] decompression failed"))
         })?;
         ring_keys.push(key);
     }
@@ -229,10 +229,7 @@ pub fn sign_clsag_partial(
         let commit = CompressedEdwardsY(*commit_bytes)
             .decompress()
             .ok_or_else(|| {
-                CryptoError::InvalidPublicKey(format!(
-                    "ring_commitment[{}] decompression failed",
-                    i
-                ))
+                CryptoError::InvalidPublicKey(format!("ring_commitment[{i}] decompression failed"))
             })?;
         ring_commitments.push(commit);
     }
@@ -248,7 +245,7 @@ pub fn sign_clsag_partial(
 
     let amount_scalar = Scalar::from(output_amount);
     let mask_delta_scalar = Scalar::from(mask_delta);
-    let pseudo_out = &amount_scalar * h_point + &mask_delta_scalar * ED25519_BASEPOINT_TABLE;
+    let pseudo_out = amount_scalar * h_point + &mask_delta_scalar * ED25519_BASEPOINT_TABLE;
     let pseudo_out_bytes = pseudo_out.compress().to_bytes();
 
     // Compute D point: D = (mask_delta * Hp(P_real)) / 8
@@ -284,7 +281,7 @@ pub fn sign_clsag_partial(
             // Random fake s-value
             let mut s_bytes = [0u8; 32];
             getrandom::getrandom(&mut s_bytes)
-                .map_err(|e| CryptoError::PartialSignatureFailed(format!("RNG error: {}", e)))?;
+                .map_err(|e| CryptoError::PartialSignatureFailed(format!("RNG error: {e}")))?;
             s_values_scalar.push(Scalar::from_bytes_mod_order(s_bytes));
         }
     }
@@ -385,9 +382,9 @@ pub fn sign_clsag_partial(
 /// * `lagrange_2_hex` - Lagrange coefficient for signer 2 (hex, 32 bytes)
 /// * `partial_key_image_2_hex` - Partial key image from signer 2 (hex, 32 bytes)
 /// * `alpha_2_hex` - Random nonce for signer 2 (hex, 32 bytes)
-/// * `ring_keys_bytes` - Public keys in the ring (must match partial_sig)
-/// * `ring_commitments_bytes` - Pedersen commitments (must match partial_sig)
-/// * `tx_prefix_hash` - Transaction prefix hash (must match partial_sig)
+/// * `ring_keys_bytes` - Public keys in the ring (must match `partial_sig`)
+/// * `ring_commitments_bytes` - Pedersen commitments (must match `partial_sig`)
+/// * `tx_prefix_hash` - Transaction prefix hash (must match `partial_sig`)
 ///
 /// # Returns
 /// Completed CLSAG signature ready for verification
@@ -421,7 +418,7 @@ pub fn sign_clsag_complete(
 
     // Parse spend share 2
     let spend_bytes = hex::decode(spend_share_2_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("spend_share_2: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("spend_share_2: {e}")))?;
     if spend_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "spend_share_2".into(),
@@ -435,7 +432,7 @@ pub fn sign_clsag_complete(
 
     // Parse lagrange 2
     let lambda_bytes = hex::decode(lagrange_2_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("lagrange_2: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("lagrange_2: {e}")))?;
     if lambda_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "lagrange_2".into(),
@@ -449,7 +446,7 @@ pub fn sign_clsag_complete(
 
     // Parse partial key image 2
     let pki2_bytes = hex::decode(partial_key_image_2_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_2: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_2: {e}")))?;
     if pki2_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "partial_key_image_2".into(),
@@ -465,7 +462,7 @@ pub fn sign_clsag_complete(
 
     // Parse partial key image 1
     let pki1_bytes = hex::decode(&partial_sig.partial_key_image_1)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("partial_key_image_1: {e}")))?;
     let mut pki1_arr = [0u8; 32];
     pki1_arr.copy_from_slice(&pki1_bytes);
     let pki1_point = CompressedEdwardsY(pki1_arr).decompress().ok_or_else(|| {
@@ -474,7 +471,7 @@ pub fn sign_clsag_complete(
 
     // Parse alpha 2
     let alpha_bytes = hex::decode(alpha_2_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("alpha_2: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("alpha_2: {e}")))?;
     if alpha_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "alpha_2".into(),
@@ -488,20 +485,20 @@ pub fn sign_clsag_complete(
 
     // Parse stored mu values (CRITICAL: reuse from signer 1)
     let mu_p_bytes = hex::decode(&partial_sig.mu_p)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("mu_p: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("mu_p: {e}")))?;
     let mut mu_p_arr = [0u8; 32];
     mu_p_arr.copy_from_slice(&mu_p_bytes);
     let mu_p = Scalar::from_bytes_mod_order(mu_p_arr);
 
     let mu_c_bytes = hex::decode(&partial_sig.mu_c)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("mu_c: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("mu_c: {e}")))?;
     let mut mu_c_arr = [0u8; 32];
     mu_c_arr.copy_from_slice(&mu_c_bytes);
     let mu_c = Scalar::from_bytes_mod_order(mu_c_arr);
 
     // Parse c1
     let c1_bytes = hex::decode(&partial_sig.c1)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("c1: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("c1: {e}")))?;
     let mut c1_arr = [0u8; 32];
     c1_arr.copy_from_slice(&c1_bytes);
     let c_l = Scalar::from_bytes_mod_order(c1_arr);
@@ -512,15 +509,15 @@ pub fn sign_clsag_complete(
 
     // Parse pseudo_out and d_inv8
     let pseudo_out_bytes = hex::decode(&partial_sig.pseudo_out)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("pseudo_out: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("pseudo_out: {e}")))?;
     let mut pseudo_out_arr = [0u8; 32];
     pseudo_out_arr.copy_from_slice(&pseudo_out_bytes);
     let pseudo_out = CompressedEdwardsY(pseudo_out_arr)
         .decompress()
         .ok_or_else(|| CryptoError::InvalidPublicKey("pseudo_out decompression failed".into()))?;
 
-    let d_inv8_bytes = hex::decode(&partial_sig.d)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("d: {}", e)))?;
+    let d_inv8_bytes =
+        hex::decode(&partial_sig.d).map_err(|e| CryptoError::HexDecodeFailed(format!("d: {e}")))?;
     let mut d_inv8_arr = [0u8; 32];
     d_inv8_arr.copy_from_slice(&d_inv8_bytes);
     let d_inv8 = CompressedEdwardsY(d_inv8_arr)
@@ -533,7 +530,7 @@ pub fn sign_clsag_complete(
 
     for (i, key_bytes) in ring_keys_bytes.iter().enumerate() {
         let key = CompressedEdwardsY(*key_bytes).decompress().ok_or_else(|| {
-            CryptoError::InvalidPublicKey(format!("ring_key[{}] decompression failed", i))
+            CryptoError::InvalidPublicKey(format!("ring_key[{i}] decompression failed"))
         })?;
         ring_keys.push(key);
     }
@@ -542,10 +539,7 @@ pub fn sign_clsag_complete(
         let commit = CompressedEdwardsY(*commit_bytes)
             .decompress()
             .ok_or_else(|| {
-                CryptoError::InvalidPublicKey(format!(
-                    "ring_commitment[{}] decompression failed",
-                    i
-                ))
+                CryptoError::InvalidPublicKey(format!("ring_commitment[{i}] decompression failed"))
             })?;
         ring_commitments.push(commit);
     }
@@ -556,8 +550,8 @@ pub fn sign_clsag_complete(
     // Parse partial s-values
     let mut s_values_scalar = Vec::with_capacity(ring_size);
     for (i, s_hex) in partial_sig.s_values.iter().enumerate() {
-        let s_bytes = hex::decode(s_hex)
-            .map_err(|e| CryptoError::HexDecodeFailed(format!("s[{}]: {}", i, e)))?;
+        let s_bytes =
+            hex::decode(s_hex).map_err(|e| CryptoError::HexDecodeFailed(format!("s[{i}]: {e}")))?;
         let mut s_arr = [0u8; 32];
         s_arr.copy_from_slice(&s_bytes);
         s_values_scalar.push(Scalar::from_bytes_mod_order(s_arr));
@@ -614,9 +608,9 @@ pub fn sign_clsag_complete(
 
     // Verify c matches c_l
     if c != c_l {
-        return Err(CryptoError::SignatureCompletionFailed(format!(
-            "Signature verification failed: c_computed != c_expected"
-        )));
+        return Err(CryptoError::SignatureCompletionFailed(
+            "Signature verification failed: c_computed != c_expected".to_string(),
+        ));
     }
 
     // Convert s-values to hex
@@ -645,7 +639,7 @@ pub fn sign_clsag_complete(
 ///
 /// # Arguments
 /// * `amount` - Output amount in atomic units
-/// * `mask` - Commitment mask (output_mask - sum_input_masks)
+/// * `mask` - Commitment mask (`output_mask` - `sum_input_masks`)
 ///
 /// # Returns
 /// Pseudo-output point (hex, 32 bytes compressed)
@@ -657,7 +651,7 @@ pub fn compute_pseudo_out(amount: u64, mask: u64) -> CryptoResult<String> {
     let amount_scalar = Scalar::from(amount);
     let mask_scalar = Scalar::from(mask);
 
-    let pseudo_out = &amount_scalar * h_point + &mask_scalar * ED25519_BASEPOINT_TABLE;
+    let pseudo_out = amount_scalar * h_point + &mask_scalar * ED25519_BASEPOINT_TABLE;
     Ok(hex::encode(pseudo_out.compress().to_bytes()))
 }
 
@@ -671,6 +665,7 @@ pub fn compute_pseudo_out(amount: u64, mask: u64) -> CryptoResult<String> {
 ///
 /// # Returns
 /// Mask delta as u64 (modulo operations applied)
+#[must_use]
 pub fn compute_mask_delta(output_mask: u64, input_masks: &[u64]) -> u64 {
     let sum_inputs: u64 = input_masks.iter().sum();
     output_mask.wrapping_sub(sum_inputs)

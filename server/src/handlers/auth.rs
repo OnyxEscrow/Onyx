@@ -47,10 +47,9 @@ fn is_htmx_request(req: &HttpRequest) -> bool {
 
 /// Helper function to create HTMX error response
 fn htmx_error_response(message: &str) -> HttpResponse {
-    HttpResponse::Ok().content_type("text/html").body(format!(
-        r#"<div class="alert alert-error">{}</div>"#,
-        message
-    ))
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(format!(r#"<div class="alert alert-error">{message}</div>"#))
 }
 
 /// Helper function to create HTMX success response with redirect
@@ -83,9 +82,9 @@ pub struct RegisterRequest {
 /// CRITICAL: This prevents loss of funds from invalid or wrong-network addresses
 fn validate_monero_address(addr: &str) -> Result<(), String> {
     let network =
-        get_configured_network().map_err(|e| format!("Network configuration error: {}", e))?;
+        get_configured_network().map_err(|e| format!("Network configuration error: {e}"))?;
 
-    validate_address_for_network(addr, network).map_err(|e| format!("{}", e))
+    validate_address_for_network(addr, network).map_err(|e| format!("{e}"))
 }
 
 #[post("/register")]
@@ -118,8 +117,7 @@ pub async fn register(
             )))
         } else {
             Err(ApiError::TooManyRequests(format!(
-                "Too many registration attempts. Retry after {} seconds.",
-                seconds_remaining
+                "Too many registration attempts. Retry after {seconds_remaining} seconds."
             )))
         };
     }
@@ -136,7 +134,7 @@ pub async fn register(
     // Validate input
     if let Err(e) = req.0.validate() {
         return if is_htmx {
-            Ok(htmx_error_response(&format!("Validation error: {}", e)))
+            Ok(htmx_error_response(&format!("Validation error: {e}")))
         } else {
             Err(ApiError::from(e))
         };
@@ -167,15 +165,9 @@ pub async fn register(
     if let Some(ref addr) = req.wallet_address {
         if let Err(e) = validate_monero_address(addr) {
             return if is_htmx {
-                Ok(htmx_error_response(&format!(
-                    "Invalid Monero address: {}",
-                    e
-                )))
+                Ok(htmx_error_response(&format!("Invalid Monero address: {e}")))
             } else {
-                Err(ApiError::BadRequest(format!(
-                    "Invalid Monero address: {}",
-                    e
-                )))
+                Err(ApiError::BadRequest(format!("Invalid Monero address: {e}")))
             };
         }
     }
@@ -479,8 +471,7 @@ pub async fn register_json(
 
     if let Err(seconds_remaining) = check_registration_rate_limit(&rate_limiter, &client_ip) {
         return Err(ApiError::TooManyRequests(format!(
-            "Too many registration attempts. Retry after {} seconds.",
-            seconds_remaining
+            "Too many registration attempts. Retry after {seconds_remaining} seconds."
         )));
     }
 
@@ -512,7 +503,7 @@ pub async fn register_json(
             let network =
                 get_configured_network().map_err(|e| ApiError::Internal(e.to_string()))?;
             validate_address_for_network(addr, network)
-                .map_err(|e| ApiError::BadRequest(format!("Invalid wallet address: {}", e)))?;
+                .map_err(|e| ApiError::BadRequest(format!("Invalid wallet address: {e}")))?;
         }
     }
 
@@ -538,7 +529,7 @@ pub async fn register_json(
     let argon2 = Argon2::default();
     let password_hash = argon2
         .hash_password(req.password.as_bytes(), &salt)
-        .map_err(|e| ApiError::Internal(format!("Password hashing failed: {}", e)))?
+        .map_err(|e| ApiError::Internal(format!("Password hashing failed: {e}")))?
         .to_string();
 
     // Create user
@@ -607,7 +598,7 @@ pub async fn login(
     // 2. Validate input
     if let Err(e) = req.0.validate() {
         return if is_htmx {
-            Ok(htmx_error_response(&format!("Validation error: {}", e)))
+            Ok(htmx_error_response(&format!("Validation error: {e}")))
         } else {
             Err(ApiError::from(e))
         };
@@ -973,15 +964,9 @@ pub async fn update_wallet_address(
     // Validate wallet address with full checksum verification
     if let Err(e) = validate_monero_address(&req.wallet_address) {
         return if is_htmx {
-            Ok(htmx_error_response(&format!(
-                "Invalid Monero address: {}",
-                e
-            )))
+            Ok(htmx_error_response(&format!("Invalid Monero address: {e}")))
         } else {
-            Err(ApiError::BadRequest(format!(
-                "Invalid Monero address: {}",
-                e
-            )))
+            Err(ApiError::BadRequest(format!("Invalid Monero address: {e}")))
         };
     }
 
@@ -1036,12 +1021,12 @@ pub async fn update_wallet_address(
                             ✅ Current Wallet Address
                         </label>
                         <div class="address-text" style="font-family: monospace; font-size: 0.875rem; color: hsl(142, 76%, 70%); word-break: break-all; line-height: 1.6; margin-bottom: 1rem; padding: 0.75rem; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">
-                            {}
+                            {wallet_addr_for_display}
                         </div>
                         <div style="display: flex; gap: 0.75rem;">
                             <button
                                 type="button"
-                                onclick="navigator.clipboard.writeText('{}'); this.innerHTML='<span style=\'margin-right: 0.5rem;\'>✓</span>Copied!'; setTimeout(() => this.innerHTML='<span style=\'margin-right: 0.5rem;\'>📋</span>Copy Address', 2000);"
+                                onclick="navigator.clipboard.writeText('{wallet_addr_for_display}'); this.innerHTML='<span style=\'margin-right: 0.5rem;\'>✓</span>Copied!'; setTimeout(() => this.innerHTML='<span style=\'margin-right: 0.5rem;\'>📋</span>Copy Address', 2000);"
                                 style="flex: 1; padding: 0.75rem 1rem; background: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); border-radius: 4px; color: hsl(142, 76%, 70%); cursor: pointer; font-size: 0.875rem; font-weight: 600; transition: all 0.2s;"
                                 onmouseover="this.style.background='rgba(34, 197, 94, 0.3)'"
                                 onmouseout="this.style.background='rgba(34, 197, 94, 0.2)'"
@@ -1053,8 +1038,7 @@ pub async fn update_wallet_address(
                         <p style="margin-top: 0.75rem; font-size: 0.75rem; color: hsl(142, 76%, 60%); opacity: 0.8;">
                             💡 Tip: This address will be used to receive payments from completed orders
                         </p>
-                    </div>"#,
-                    wallet_addr_for_display, wallet_addr_for_display
+                    </div>"#
                 );
                 Ok(HttpResponse::Ok().content_type("text/html").body(html))
             } else {
@@ -1107,7 +1091,7 @@ pub async fn show_auth_page(
 
     let rendered = tmpl
         .render("auth/login-new.html", &ctx)
-        .map_err(|e| ApiError::Internal(format!("Template error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Template error: {e}")))?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(rendered))
 }
@@ -1132,7 +1116,7 @@ pub async fn show_recovery_page(
 
     let rendered = tmpl
         .render("auth/recovery.html", &ctx)
-        .map_err(|e| ApiError::Internal(format!("Template error: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Template error: {e}")))?;
 
     Ok(HttpResponse::Ok().content_type("text/html").body(rendered))
 }
@@ -1275,13 +1259,13 @@ pub async fn recover_account(
 
     // Generate new salt and encrypt seed with new password
     let new_salt = generate_random_salt(16)
-        .map_err(|e| ApiError::Internal(format!("Failed to generate salt: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Failed to generate salt: {e}")))?;
 
     let encryption_key = derive_key_from_password(new_password, &new_salt)
-        .map_err(|e| ApiError::Internal(format!("Failed to derive key: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Failed to derive key: {e}")))?;
 
     let new_encrypted_seed = encrypt_bytes(&master_seed, &encryption_key)
-        .map_err(|e| ApiError::Internal(format!("Failed to encrypt seed: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Failed to encrypt seed: {e}")))?;
 
     // Hash the new password
     let salt_string = SaltString::generate(&mut OsRng);
@@ -1294,7 +1278,7 @@ pub async fn recover_account(
     })
     .await
     .map_err(|e| ApiError::Internal(e.to_string()))?
-    .map_err(|e| ApiError::Internal(format!("Password hashing failed: {}", e)))?;
+    .map_err(|e| ApiError::Internal(format!("Password hashing failed: {e}")))?;
 
     // Update user in database
     let mut conn = pool
@@ -1383,21 +1367,20 @@ pub async fn test_login(
     let valid_roles = ["buyer", "vendor", "arbiter", "admin"];
     if !valid_roles.contains(&body.role.as_str()) {
         return Err(ApiError::BadRequest(format!(
-            "Invalid role. Must be one of: {:?}",
-            valid_roles
+            "Invalid role. Must be one of: {valid_roles:?}"
         )));
     }
 
     // Create session
     session
         .insert("user_id", body.user_id.clone())
-        .map_err(|e| ApiError::Internal(format!("Session insert failed: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Session insert failed: {e}")))?;
     session
         .insert("username", body.username.clone())
-        .map_err(|e| ApiError::Internal(format!("Session insert failed: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Session insert failed: {e}")))?;
     session
         .insert("role", body.role.clone())
-        .map_err(|e| ApiError::Internal(format!("Session insert failed: {}", e)))?;
+        .map_err(|e| ApiError::Internal(format!("Session insert failed: {e}")))?;
 
     warn!(
         user_id = %body.user_id,

@@ -50,7 +50,7 @@ const OUTPUT_1_COMMITMENT: &str =
     "d5e62020fd7418758719856154bd22ebdfb716d920685d1630e418393e987a35";
 
 fn hex_to_bytes32(hex: &str) -> Result<[u8; 32], String> {
-    let bytes = hex::decode(hex).map_err(|e| format!("Invalid hex: {}", e))?;
+    let bytes = hex::decode(hex).map_err(|e| format!("Invalid hex: {e}"))?;
     if bytes.len() != 32 {
         return Err(format!("Expected 32 bytes, got {}", bytes.len()));
     }
@@ -103,19 +103,19 @@ fn main() {
     println!("║         CLSAG AUDIT VALIDATOR v0.50.0                            ║");
     println!("╚══════════════════════════════════════════════════════════════════╝\n");
 
-    println!("📋 Escrow ID: {}", ESCROW_ID);
-    println!("📋 Funding TX: {}", FUNDING_TX_HASH);
-    println!("📋 TX Public Key (R): {}", TX_PUB_KEY_R);
+    println!("📋 Escrow ID: {ESCROW_ID}");
+    println!("📋 Funding TX: {FUNDING_TX_HASH}");
+    println!("📋 TX Public Key (R): {TX_PUB_KEY_R}");
     println!("📋 Shared View Key: {}...", &SHARED_VIEW_KEY[..16]);
     println!("📋 Funding Mask (z): {}...", &FUNDING_COMMITMENT_MASK[..16]);
-    println!("📋 Output Index: {}", OUTPUT_INDEX);
+    println!("📋 Output Index: {OUTPUT_INDEX}");
     println!();
 
     // Parse all inputs
     let tx_pub_r = match hex_to_point(TX_PUB_KEY_R) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("❌ Failed to parse TX pub key: {}", e);
+            eprintln!("❌ Failed to parse TX pub key: {e}");
             return;
         }
     };
@@ -123,7 +123,7 @@ fn main() {
     let view_key_shared = match hex_to_scalar(SHARED_VIEW_KEY) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("❌ Failed to parse shared view key: {}", e);
+            eprintln!("❌ Failed to parse shared view key: {e}");
             return;
         }
     };
@@ -131,7 +131,7 @@ fn main() {
     let funding_mask_z = match hex_to_scalar(FUNDING_COMMITMENT_MASK) {
         Ok(s) => s,
         Err(e) => {
-            eprintln!("❌ Failed to parse funding mask: {}", e);
+            eprintln!("❌ Failed to parse funding mask: {e}");
             return;
         }
     };
@@ -139,7 +139,7 @@ fn main() {
     let output_0_p = match hex_to_point(OUTPUT_0_PUBKEY) {
         Ok(p) => p,
         Err(e) => {
-            eprintln!("❌ Failed to parse output 0 pubkey: {}", e);
+            eprintln!("❌ Failed to parse output 0 pubkey: {e}");
             return;
         }
     };
@@ -149,7 +149,7 @@ fn main() {
     println!("═══════════════════════════════════════════════════════════════════\n");
 
     let hp_p = hash_to_point(hex_to_bytes32(OUTPUT_0_PUBKEY).unwrap());
-    println!("Output Public Key (P): {}", OUTPUT_0_PUBKEY);
+    println!("Output Public Key (P): {OUTPUT_0_PUBKEY}");
     println!(
         "Hp(P):                 {}",
         hex::encode(hp_p.compress().to_bytes())
@@ -196,22 +196,19 @@ fn main() {
     let shared_secret_bytes = shared_secret_point.compress().to_bytes();
     println!(
         "Shared secret (8*a*R): {}",
-        hex::encode(&shared_secret_bytes)
+        hex::encode(shared_secret_bytes)
     );
 
     // Compute derivation scalar: H_s(shared_secret || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(OUTPUT_INDEX));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(OUTPUT_INDEX));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
-    println!("Derivation scalar (d): {}", hex::encode(&derivation_hash));
+    println!("Derivation scalar (d): {}", hex::encode(derivation_hash));
     println!();
-    println!(
-        "Formula: d = H_s(8 * a_shared * R || varint({}))",
-        OUTPUT_INDEX
-    );
+    println!("Formula: d = H_s(8 * a_shared * R || varint({OUTPUT_INDEX}))");
 
     println!("\n═══════════════════════════════════════════════════════════════════");
     println!("STEP 4: Verify Output Public Key Matches Derivation");
@@ -260,7 +257,7 @@ fn main() {
     // D = (z - pseudo_out_mask) * Hp(P)
     // If pseudo_out_mask = 0, then D = z * Hp(P)
     let d_point_with_z = funding_mask_z * hp_p;
-    println!("Funding mask (z):      {}", FUNDING_COMMITMENT_MASK);
+    println!("Funding mask (z):      {FUNDING_COMMITMENT_MASK}");
     println!(
         "D = z * Hp(P):         {}",
         hex::encode(d_point_with_z.compress().to_bytes())
@@ -301,7 +298,7 @@ fn main() {
         "Hp(P):              {}",
         hex::encode(hp_p.compress().to_bytes())
     );
-    println!("Derivation (d):     {}", hex::encode(&derivation_hash));
+    println!("Derivation (d):     {}", hex::encode(derivation_hash));
     println!(
         "D = z*Hp(P):        {}",
         hex::encode(d_point_with_z.compress().to_bytes())

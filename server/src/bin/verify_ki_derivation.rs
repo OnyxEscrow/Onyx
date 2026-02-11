@@ -30,8 +30,8 @@ fn main() {
     // x_total = λ_buyer * s_buyer + λ_vendor * s_vendor
     let x_total = two * s_buyer + minus_one * s_vendor;
 
-    println!("s_buyer:  {}", buyer_share_hex);
-    println!("s_vendor: {}", vendor_share_hex);
+    println!("s_buyer:  {buyer_share_hex}");
+    println!("s_vendor: {vendor_share_hex}");
     println!("x_total:  {}", hex::encode(x_total.as_bytes()));
 
     // Verify P = x * G
@@ -42,7 +42,7 @@ fn main() {
         "\nP_computed: {}",
         hex::encode(p_computed.compress().as_bytes())
     );
-    println!("P_expected: {}", p_expected_hex);
+    println!("P_expected: {p_expected_hex}");
 
     let p_expected_bytes: [u8; 32] = hex::decode(p_expected_hex).unwrap().try_into().unwrap();
     let p_expected = CompressedEdwardsY(p_expected_bytes)
@@ -68,7 +68,7 @@ fn main() {
     );
 
     let expected_ki_hex = "519fb41ca66e83829266552db6d7d57f421282611a3fe643bcc82d435275b18a";
-    println!("Expected KI:    {}", expected_ki_hex);
+    println!("Expected KI:    {expected_ki_hex}");
 
     if hex::encode(key_image.compress().as_bytes()) == expected_ki_hex {
         println!("✅ Key image matches!");

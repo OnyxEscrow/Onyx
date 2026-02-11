@@ -42,7 +42,7 @@ pub struct OutputOwnershipResult {
 ///
 /// # Returns
 ///
-/// `OutputOwnershipResult` containing the output_index and derived mask,
+/// `OutputOwnershipResult` containing the `output_index` and derived mask,
 /// or an error if no matching output is found.
 ///
 /// # Output Key Verification Formula
@@ -62,7 +62,7 @@ pub fn find_our_output_and_derive_mask(
 ) -> CryptoResult<OutputOwnershipResult> {
     // Parse view key
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {e}")))?;
     if view_key_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "view_key".into(),
@@ -77,7 +77,7 @@ pub fn find_our_output_and_derive_mask(
 
     // Parse tx_pub_key
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {e}")))?;
     if tx_pub_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "tx_pub_key".into(),
@@ -120,8 +120,8 @@ pub fn find_our_output_and_derive_mask(
 
         // Compute expected one-time output key: P = Hs(derivation || i) * G + B
         let mut hasher = Keccak256::new();
-        hasher.update(&derivation_bytes);
-        hasher.update(&encode_varint(output_idx));
+        hasher.update(derivation_bytes);
+        hasher.update(encode_varint(output_idx));
         let shared_secret: [u8; 32] = hasher.finalize().into();
         let scalar = Scalar::from_bytes_mod_order(shared_secret);
 
@@ -195,7 +195,7 @@ pub fn find_our_output_by_view_tag(
 ) -> CryptoResult<OutputOwnershipResult> {
     // Parse view key
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {e}")))?;
     if view_key_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
             field: "view_key".into(),
@@ -210,7 +210,7 @@ pub fn find_our_output_by_view_tag(
 
     // Parse tx_pub_key
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {e}")))?;
     let tx_pub_array: [u8; 32] = tx_pub_bytes
         .try_into()
         .map_err(|_| CryptoError::InvalidPublicKey("Tx pub key conversion failed".into()))?;
@@ -237,8 +237,8 @@ pub fn find_our_output_by_view_tag(
 
         // Compute expected view tag
         let mut hasher = Keccak256::new();
-        hasher.update(&derivation_bytes);
-        hasher.update(&encode_varint(output_idx));
+        hasher.update(derivation_bytes);
+        hasher.update(encode_varint(output_idx));
         let shared_secret: [u8; 32] = hasher.finalize().into();
         let expected_view_tag = shared_secret[0];
 

@@ -2,20 +2,20 @@
 //!
 //! This module provides:
 //!
-//! 1. **E2E Encryption** for FROST partial signatures (X25519 + ChaCha20Poly1305)
-//! 2. **Key Backup Encryption** for FROST key_packages (Argon2id + ChaCha20Poly1305)
+//! 1. **E2E Encryption** for FROST partial signatures (X25519 + `ChaCha20Poly1305`)
+//! 2. **Key Backup Encryption** for FROST `key_packages` (Argon2id + `ChaCha20Poly1305`)
 //!
 //! ## E2E Encryption Protocol (signatures)
 //!
 //! 1. Key Exchange: X25519 (ECDH) for shared secret derivation
 //! 2. Key Derivation: SHA3-256 of shared secret
-//! 3. Encryption: ChaCha20Poly1305 (AEAD)
+//! 3. Encryption: `ChaCha20Poly1305` (AEAD)
 //! 4. Nonce: 12 bytes random
 //!
 //! ## Backup Encryption Protocol (key storage)
 //!
 //! 1. Key Derivation: Argon2id (m=64MB, t=3, p=4)
-//! 2. Encryption: ChaCha20Poly1305 (AEAD)
+//! 2. Encryption: `ChaCha20Poly1305` (AEAD)
 //! 3. Format: salt (16) || nonce (12) || ciphertext
 //!
 //! ## Flow (E2E)

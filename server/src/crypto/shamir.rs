@@ -86,15 +86,11 @@ pub fn split_key(secret: &[u8], share_count: u8, threshold: u8) -> Result<Vec<Ve
     }
 
     if threshold > share_count {
-        anyhow::bail!(
-            "Threshold ({}) cannot exceed share count ({})",
-            threshold,
-            share_count
-        );
+        anyhow::bail!("Threshold ({threshold}) cannot exceed share count ({share_count})");
     }
 
     if threshold < 2 {
-        anyhow::bail!("Threshold must be at least 2, got {}", threshold);
+        anyhow::bail!("Threshold must be at least 2, got {threshold}");
     }
 
     if share_count == 0 {
@@ -111,7 +107,7 @@ pub fn split_key(secret: &[u8], share_count: u8, threshold: u8) -> Result<Vec<Ve
         .collect::<Vec<Share>>();
 
     // Convert shares to byte vectors for storage
-    let share_bytes: Vec<Vec<u8>> = dealer.iter().map(|share| Vec::from(share)).collect();
+    let share_bytes: Vec<Vec<u8>> = dealer.iter().map(Vec::from).collect();
 
     tracing::info!(
         "Successfully split 256-bit key into {} shares (threshold: {})",
@@ -185,7 +181,7 @@ pub fn reconstruct_key(shares: &[Vec<u8>]) -> Result<Vec<u8>> {
         .map(|bytes| Share::try_from(bytes.as_slice()))
         .collect();
 
-    let shark_shares = shark_shares.map_err(|e| anyhow::anyhow!("Invalid share format: {}", e))?;
+    let shark_shares = shark_shares.map_err(|e| anyhow::anyhow!("Invalid share format: {e}"))?;
 
     // Initialize Sharks (threshold doesn't matter for reconstruction)
     let sharks = Sharks(2); // Minimum valid threshold
@@ -193,7 +189,7 @@ pub fn reconstruct_key(shares: &[Vec<u8>]) -> Result<Vec<u8>> {
     // Reconstruct secret from shares
     let secret = sharks
         .recover(&shark_shares)
-        .map_err(|e| anyhow::anyhow!("Failed to reconstruct secret from shares: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to reconstruct secret from shares: {e}"))?;
 
     if secret.len() != 32 {
         anyhow::bail!(

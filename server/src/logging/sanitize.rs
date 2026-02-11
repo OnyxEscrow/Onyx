@@ -38,7 +38,7 @@ pub fn sanitize_address(address: &str) -> String {
 /// Arrondit à 2 décimales pour empêcher l'identification exacte
 pub fn sanitize_amount(piconeros: u64) -> String {
     let xmr = piconeros as f64 / 1_000_000_000_000.0;
-    format!("~{:.2} XMR", xmr)
+    format!("~{xmr:.2} XMR")
 }
 
 // ============================================================================
@@ -63,8 +63,8 @@ pub fn sanitize_txid(txid: &str) -> String {
 pub fn sanitize_broadcast_txid(txid: &str, confirmations: Option<u32>) -> String {
     let base = sanitize_txid(txid);
     match confirmations {
-        Some(n) => format!("{} ({} conf)", base, n),
-        None => format!("{} (unconfirmed)", base),
+        Some(n) => format!("{base} ({n} conf)"),
+        None => format!("{base} (unconfirmed)"),
     }
 }
 
@@ -139,7 +139,7 @@ pub fn sanitize_seed(_seed: &str) -> &'static str {
 /// Generic sanitization for hex-encoded keys, signatures, etc.
 pub fn sanitize_hex_data(data: &str, label: &str) -> String {
     if data.len() < 8 {
-        return format!("[{}:invalid]", label);
+        return format!("[{label}:invalid]");
     }
     format!("[{}:{}...{}]", label, &data[..4], &data[data.len() - 4..])
 }

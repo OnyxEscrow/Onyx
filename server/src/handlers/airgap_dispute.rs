@@ -92,7 +92,7 @@ pub async fn export_dispute(
     // Fetch escrow from database
     let mut conn = pool
         .get()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?;
+        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {e}")))?;
 
     let escrow = web::block(move || {
         use crate::schema::escrows::dsl::*;
@@ -104,8 +104,8 @@ pub async fn export_dispute(
             .optional()
     })
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB query error: {}", e)))?
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB query error: {e}")))?
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {e}")))?
     .ok_or_else(|| actix_web::error::ErrorNotFound("Escrow not found"))?;
 
     // Verify escrow is in dispute state
@@ -123,7 +123,7 @@ pub async fn export_dispute(
             .unwrap_or_else(|| "{}".to_string()),
     )
     .map_err(|e| {
-        actix_web::error::ErrorInternalServerError(format!("Failed to parse multisig state: {}", e))
+        actix_web::error::ErrorInternalServerError(format!("Failed to parse multisig state: {e}"))
     })?;
 
     // Extract dispute information (may be stored in different format)
@@ -145,11 +145,11 @@ pub async fn export_dispute(
         // If no partial transaction exists yet, create a placeholder indicating
         // that arbiter will need to coordinate with buyer/vendor to get signatures
         // In production, this would come from WalletManager after dispute initiation
-        format!("DISPUTE_PENDING_{}", escrow_id)
+        format!("DISPUTE_PENDING_{escrow_id}")
     };
 
     // Generate nonce (prevents replay attacks)
-    let nonce = hex::encode(&{
+    let nonce = hex::encode({
         use rand::RngCore;
         let mut bytes = [0u8; 32];
         rand::thread_rng().fill_bytes(&mut bytes);
@@ -176,7 +176,7 @@ pub async fn export_dispute(
 
     // Serialize to JSON
     let dispute_json = dispute_request.to_json().map_err(|e| {
-        actix_web::error::ErrorInternalServerError(format!("JSON serialization failed: {}", e))
+        actix_web::error::ErrorInternalServerError(format!("JSON serialization failed: {e}"))
     })?;
 
     // Calculate amount in XMR (amount is i64, convert to f64)
@@ -231,11 +231,11 @@ pub async fn import_arbiter_decision(
 
     // Parse decision JSON
     let decision = ArbiterDecision::from_json(&payload.decision_json)
-        .map_err(|e| actix_web::error::ErrorBadRequest(format!("Invalid decision JSON: {}", e)))?;
+        .map_err(|e| actix_web::error::ErrorBadRequest(format!("Invalid decision JSON: {e}")))?;
 
     // Validate decision structure
     decision.validate().map_err(|e| {
-        actix_web::error::ErrorBadRequest(format!("Decision validation failed: {}", e))
+        actix_web::error::ErrorBadRequest(format!("Decision validation failed: {e}"))
     })?;
 
     // Verify escrow ID matches
@@ -267,13 +267,13 @@ pub async fn import_arbiter_decision(
 
     // Verify arbiter signature
     decision.verify_signature(&arbiter_pubkey).map_err(|e| {
-        actix_web::error::ErrorForbidden(format!("Signature verification failed: {}", e))
+        actix_web::error::ErrorForbidden(format!("Signature verification failed: {e}"))
     })?;
 
     // Fetch escrow
     let mut conn = pool
         .get()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?;
+        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {e}")))?;
 
     let escrow = web::block(move || {
         use crate::schema::escrows::dsl::*;
@@ -285,8 +285,8 @@ pub async fn import_arbiter_decision(
             .optional()
     })
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB query error: {}", e)))?
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB query error: {e}")))?
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {e}")))?
     .ok_or_else(|| actix_web::error::ErrorNotFound("Escrow not found"))?;
 
     // Verify escrow is in dispute state
@@ -329,7 +329,7 @@ pub async fn import_arbiter_decision(
 
     let mut conn = pool
         .get()
-        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB pool error: {}", e)))?;
+        .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB pool error: {e}")))?;
 
     let _updated_escrow = web::block(move || {
         use crate::schema::escrows::dsl::*;
@@ -367,8 +367,8 @@ pub async fn import_arbiter_decision(
             .first::<Escrow>(&mut conn)
     })
     .await
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB update error: {}", e)))?
-    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {}", e)))?;
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB update error: {e}")))?
+    .map_err(|e| actix_web::error::ErrorInternalServerError(format!("DB error: {e}")))?;
 
     tracing::info!(
         "Escrow {} updated to status '{}' after arbiter decision",

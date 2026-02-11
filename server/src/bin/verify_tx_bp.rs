@@ -51,7 +51,7 @@ fn main() {
     }
 
     let output_count = read_varint(&tx, &mut pos);
-    println!("Output count: {}", output_count);
+    println!("Output count: {output_count}");
 
     for _ in 0..output_count {
         let _ = read_varint(&tx, &mut pos);
@@ -95,7 +95,7 @@ fn main() {
     // BP+ starts here
     let bp_count = read_varint(&tx, &mut pos);
     println!("\n=== Bulletproof+ Data ===");
-    println!("BP+ count: {}", bp_count);
+    println!("BP+ count: {bp_count}");
 
     let bp_start = pos;
 
@@ -123,7 +123,7 @@ fn main() {
 
     // L and R vectors
     let l_count = read_varint(&tx, &mut pos);
-    println!("L vector count: {}", l_count);
+    println!("L vector count: {l_count}");
     for i in 0..l_count {
         let l = &tx[pos..pos + 32];
         if i < 2 {
@@ -133,7 +133,7 @@ fn main() {
     }
 
     let r_count = read_varint(&tx, &mut pos);
-    println!("R vector count: {}", r_count);
+    println!("R vector count: {r_count}");
     for i in 0..r_count {
         let r = &tx[pos..pos + 32];
         if i < 2 {
@@ -156,27 +156,24 @@ fn main() {
         let mut arr = [0u8; 32];
         arr.copy_from_slice(bytes);
         match CompressedEdwardsY(arr).decompress() {
-            Some(_) => println!("{}: valid curve point ✅", name),
-            None => println!("{}: INVALID POINT ❌", name),
+            Some(_) => println!("{name}: valid curve point ✅"),
+            None => println!("{name}: INVALID POINT ❌"),
         }
     }
 
     // Check if this looks like a valid BP+ (should have L/R counts matching)
     println!("\n=== Structure Check ===");
     if l_count == r_count {
-        println!("L/R vector counts match: {} ✅", l_count);
+        println!("L/R vector counts match: {l_count} ✅");
     } else {
-        println!("L/R vector count mismatch: L={}, R={} ❌", l_count, r_count);
+        println!("L/R vector count mismatch: L={l_count}, R={r_count} ❌");
     }
 
     // For 2 outputs, we expect log2(64) = 6 rounds of inner product proof
     // Actually for BP+, it's log2(n*64) where n is number of outputs
     let expected_rounds = ((output_count as f64 * 64.0).log2()).ceil() as u64;
-    println!(
-        "Expected rounds for {} outputs: ~{}",
-        output_count, expected_rounds
-    );
-    println!("Actual L/R count: {}", l_count);
+    println!("Expected rounds for {output_count} outputs: ~{expected_rounds}");
+    println!("Actual L/R count: {l_count}");
 
     if l_count == expected_rounds {
         println!("Round count matches expected ✅");

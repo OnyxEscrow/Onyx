@@ -4,9 +4,9 @@
 //!
 //! 1. Each signer generates a random nonce α (alpha)
 //! 2. Computes R = α*G and R' = α*Hp(P)
-//! 3. Computes commitment hash H("MUSIG2_NONCE_COMMITMENT" || R || R')
-//! 4. Server aggregates: R_agg = R₁ + R₂
-//! 5. Both signers use R_agg for L in their signatures
+//! 3. Computes commitment hash `H("MUSIG2_NONCE_COMMITMENT`" || R || R')
+//! 4. Server aggregates: `R_agg` = R₁ + R₂
+//! 5. Both signers use `R_agg` for L in their signatures
 //!
 //! ## Security Notes
 //!

@@ -39,7 +39,7 @@ fn derive_tx_secret_key(escrow_id: &str, amount: i64) -> [u8; 32] {
     let mut hasher = Keccak256::new();
     hasher.update(b"NEXUS_TX_SECRET_V1");
     hasher.update(escrow_id.as_bytes());
-    hasher.update(&amount.to_le_bytes());
+    hasher.update(amount.to_le_bytes());
     hasher.finalize().into()
 }
 
@@ -60,8 +60,8 @@ fn derive_output_mask(
 
     // Hs(derivation || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
 
     let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
@@ -80,11 +80,11 @@ fn main() {
 
     // Compute tx_secret_key like the server does
     let tx_secret_key = derive_tx_secret_key(ESCROW_ID, AMOUNT);
-    println!("Computed tx_secret_key: {}", hex::encode(&tx_secret_key));
+    println!("Computed tx_secret_key: {}", hex::encode(tx_secret_key));
     println!("Expected (from FROST test): 54d48a7b6f680a88fd04b4cf56b18f09e01c66ab3aa5ec9aabb33a258de43704");
     println!(
         "Match: {}\n",
-        if hex::encode(&tx_secret_key)
+        if hex::encode(tx_secret_key)
             == "54d48a7b6f680a88fd04b4cf56b18f09e01c66ab3aa5ec9aabb33a258de43704"
         {
             "✅"
@@ -97,13 +97,13 @@ fn main() {
     let funding_mask = hex_to_32(FUNDING_MASK);
     let dummy_mask_logged = hex_to_32(DUMMY_MASK_LOGGED);
 
-    println!("vendor_view_pub: {}", VENDOR_VIEW_PUB);
+    println!("vendor_view_pub: {VENDOR_VIEW_PUB}");
 
     // Compute output_mask (index 0)
     let output_mask = derive_output_mask(&tx_secret_key, &vendor_view_pub, 0);
     println!(
         "\nComputed output_mask (index 0): {}",
-        hex::encode(&output_mask)
+        hex::encode(output_mask)
     );
     println!("Expected (first 8 from logs):   e55cfe3edeb36b96...");
     println!(
@@ -119,9 +119,9 @@ fn main() {
     let dummy_mask = derive_output_mask(&tx_secret_key, &vendor_view_pub, 1);
     println!(
         "\nComputed dummy_mask (index 1): {}",
-        hex::encode(&dummy_mask)
+        hex::encode(dummy_mask)
     );
-    println!("Logged dummy_mask:             {}", DUMMY_MASK_LOGGED);
+    println!("Logged dummy_mask:             {DUMMY_MASK_LOGGED}");
     println!(
         "Match: {}",
         if dummy_mask == dummy_mask_logged {
@@ -137,7 +137,7 @@ fn main() {
     let pseudo_out_mask = (out_scalar + dummy_scalar).to_bytes();
     println!(
         "\nComputed pseudo_out_mask: {}",
-        hex::encode(&pseudo_out_mask)
+        hex::encode(pseudo_out_mask)
     );
     println!("Expected (first 8 from logs): 9a8fa101e9dad0bc...");
     println!(
@@ -155,7 +155,7 @@ fn main() {
     let mask_delta = (z_scalar - pseudo_scalar).to_bytes();
     println!(
         "\nComputed mask_delta (z - pseudo_out_mask): {}",
-        hex::encode(&mask_delta)
+        hex::encode(mask_delta)
     );
     println!("Expected (first 8 from logs): 15992b540ed51058...");
     println!(
@@ -187,21 +187,21 @@ fn main() {
     let d_bytes = d_point.compress().to_bytes();
 
     println!("\n=== D POINT COMPUTATION ===");
-    println!("D = mask_delta * Hp(P_signer): {}", hex::encode(&d_bytes));
+    println!("D = mask_delta * Hp(P_signer): {}", hex::encode(d_bytes));
 
     // D_inv8 = D / 8
     let inv8 = Scalar::from(8u64).invert();
     let d_inv8 = d_point * inv8;
     let d_inv8_bytes = d_inv8.compress().to_bytes();
-    println!("D_inv8 = D / 8: {}", hex::encode(&d_inv8_bytes));
+    println!("D_inv8 = D / 8: {}", hex::encode(d_inv8_bytes));
 
     // Compare with TX value
     let d_inv8_tx = "1d6a4b5f7433965a4f583ba627d99ad2dcc314d71da894688552495896c30894";
-    println!("\nD_inv8 from TX: {}", d_inv8_tx);
-    println!("D_inv8 computed: {}", hex::encode(&d_inv8_bytes));
+    println!("\nD_inv8 from TX: {d_inv8_tx}");
+    println!("D_inv8 computed: {}", hex::encode(d_inv8_bytes));
     println!(
         "Match: {}",
-        if hex::encode(&d_inv8_bytes) == d_inv8_tx {
+        if hex::encode(d_inv8_bytes) == d_inv8_tx {
             "✅"
         } else {
             "❌"
@@ -214,7 +214,7 @@ fn main() {
     let dummy_match = dummy_mask == dummy_mask_logged;
     let pseudo_match = hex::encode(&pseudo_out_mask[..8]) == "9a8fa101e9dad0bc";
     let delta_match = hex::encode(&mask_delta[..8]) == "15992b540ed51058";
-    let d_match = hex::encode(&d_inv8_bytes) == d_inv8_tx;
+    let d_match = hex::encode(d_inv8_bytes) == d_inv8_tx;
 
     println!(
         "output_mask derivation: {}",

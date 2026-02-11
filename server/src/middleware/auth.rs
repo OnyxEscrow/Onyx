@@ -265,7 +265,7 @@ where
                     required_role = %required_role,
                     "Insufficient permissions"
                 );
-                return Err(ApiError::Forbidden(format!("Requires {} role", required_role)).into());
+                return Err(ApiError::Forbidden(format!("Requires {required_role} role")).into());
             }
 
             // Attach user to request extensions

@@ -7,12 +7,12 @@
 /// Used in `compute_round_hash` for computing challenge at each ring position.
 pub const CLSAG_DOMAIN: &[u8] = b"CLSAG_round";
 
-/// CLSAG aggregation domain separator for μ_P.
+/// CLSAG aggregation domain separator for `μ_P`.
 ///
 /// Used in mixing coefficient computation for the public key component.
 pub const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0";
 
-/// CLSAG aggregation domain separator for μ_C.
+/// CLSAG aggregation domain separator for `μ_C`.
 ///
 /// Used in mixing coefficient computation for the commitment component.
 pub const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1";
@@ -20,7 +20,7 @@ pub const CLSAG_AGG_1: &[u8] = b"CLSAG_agg_1";
 /// Monero H generator constant from rctTypes.h.
 ///
 /// This is the Pedersen commitment generator for amounts.
-/// H = 8 * hash_to_point(G) where G is the ed25519 basepoint.
+/// H = 8 * `hash_to_point(G)` where G is the ed25519 basepoint.
 ///
 /// **IMPORTANT**: This is NOT the same as `hash_to_point(G)`!
 /// The multiplication by 8 (cofactor) is critical.
@@ -33,6 +33,7 @@ pub const H_BYTES: [u8; 32] = [
 ///
 /// Monero uses 32-byte key slots for domain separators.
 #[inline]
+#[must_use]
 pub fn pad_domain_separator(domain: &[u8]) -> [u8; 32] {
     let mut padded = [0u8; 32];
     let len = domain.len().min(32);

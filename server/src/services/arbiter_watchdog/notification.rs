@@ -229,7 +229,7 @@ impl NotificationService {
 
     /// Send Telegram message via Bot API
     async fn send_telegram(&self, bot_token: &str, chat_id: &str, message: &str) -> Result<()> {
-        let url = format!("https://api.telegram.org/bot{}/sendMessage", bot_token);
+        let url = format!("https://api.telegram.org/bot{bot_token}/sendMessage");
 
         #[derive(Serialize)]
         struct TelegramMessage<'a> {
@@ -255,7 +255,7 @@ impl NotificationService {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!("Telegram API error: {} - {}", status, body));
+            return Err(anyhow::anyhow!("Telegram API error: {status} - {body}"));
         }
 
         info!("Telegram notification sent");
@@ -329,7 +329,7 @@ impl NotificationService {
         if !response.status().is_success() {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!("Webhook error: {} - {}", status, body));
+            return Err(anyhow::anyhow!("Webhook error: {status} - {body}"));
         }
 
         info!("Webhook notification sent");

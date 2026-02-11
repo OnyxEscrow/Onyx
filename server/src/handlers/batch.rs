@@ -162,8 +162,7 @@ fn execute_operation(
     let valid_actions = ["status", "release", "refund", "dispute"];
     if !valid_actions.contains(&action) {
         return Err(format!(
-            "Unknown action '{}'. Valid actions: {:?}",
-            action, valid_actions
+            "Unknown action '{action}'. Valid actions: {valid_actions:?}"
         ));
     }
 
@@ -171,7 +170,7 @@ fn execute_operation(
     let escrow: Escrow = escrows::table
         .filter(escrows::id.eq(escrow_id))
         .first(conn)
-        .map_err(|_| format!("Escrow '{}' not found", escrow_id))?;
+        .map_err(|_| format!("Escrow '{escrow_id}' not found"))?;
 
     // Verify caller is a participant
     let is_participant =
@@ -212,7 +211,7 @@ fn execute_operation(
                     escrows::updated_at.eq(chrono::Utc::now().naive_utc()),
                 ))
                 .execute(conn)
-                .map_err(|e| format!("DB update failed: {}", e))?;
+                .map_err(|e| format!("DB update failed: {e}"))?;
 
             Ok(serde_json::json!({
                 "escrow_id": escrow_id,
@@ -238,7 +237,7 @@ fn execute_operation(
                     escrows::updated_at.eq(chrono::Utc::now().naive_utc()),
                 ))
                 .execute(conn)
-                .map_err(|e| format!("DB update failed: {}", e))?;
+                .map_err(|e| format!("DB update failed: {e}"))?;
 
             Ok(serde_json::json!({
                 "escrow_id": escrow_id,
@@ -267,7 +266,7 @@ fn execute_operation(
                     escrows::updated_at.eq(chrono::Utc::now().naive_utc()),
                 ))
                 .execute(conn)
-                .map_err(|e| format!("DB update failed: {}", e))?;
+                .map_err(|e| format!("DB update failed: {e}"))?;
 
             Ok(serde_json::json!({
                 "escrow_id": escrow_id,
@@ -276,6 +275,6 @@ fn execute_operation(
             }))
         }
 
-        _ => Err(format!("Unhandled action: {}", action)),
+        _ => Err(format!("Unhandled action: {action}")),
     }
 }

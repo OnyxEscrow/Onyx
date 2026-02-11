@@ -126,7 +126,7 @@ impl AutoSigningRules {
 
             return SigningDecision::EscalateHuman {
                 escrow_id,
-                reason: format!("Dispute: {}", reason),
+                reason: format!("Dispute: {reason}"),
             };
         }
 
@@ -198,8 +198,8 @@ impl AutoSigningRules {
         // 6. Check for disagreement
         // One party wants release, other wants refund
         if (escrow.buyer_release_requested && escrow.vendor_refund_requested)
-            || (escrow.buyer_release_requested && !escrow.vendor_signature.is_some())
-            || (escrow.vendor_refund_requested && !escrow.buyer_signature.is_some())
+            || (escrow.buyer_release_requested && escrow.vendor_signature.is_none())
+            || (escrow.vendor_refund_requested && escrow.buyer_signature.is_none())
         {
             // If both flags are set, there's a conflict
             if escrow.buyer_release_requested && escrow.vendor_refund_requested {
@@ -231,8 +231,7 @@ impl AutoSigningRules {
                 return SigningDecision::EscalateHuman {
                     escrow_id,
                     reason: format!(
-                        "Dispute timeout approaching: {} days, <24h remaining",
-                        days_in_dispute
+                        "Dispute timeout approaching: {days_in_dispute} days, <24h remaining"
                     ),
                 };
             }

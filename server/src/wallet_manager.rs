@@ -499,12 +499,13 @@ impl WalletManager {
 
         // Connect to client's wallet RPC
         let rpc_client = MoneroClient::new(config)
-            .map_err(|e| WalletManagerError::InvalidRpcUrl(format!("Failed to connect: {}", e)))?;
+            .map_err(|e| WalletManagerError::InvalidRpcUrl(format!("Failed to connect: {e}")))?;
 
         // Verify wallet is accessible
-        let wallet_info = rpc_client.get_wallet_info().await.map_err(|e| {
-            WalletManagerError::InvalidRpcUrl(format!("Cannot access wallet: {}", e))
-        })?;
+        let wallet_info = rpc_client
+            .get_wallet_info()
+            .await
+            .map_err(|e| WalletManagerError::InvalidRpcUrl(format!("Cannot access wallet: {e}")))?;
 
         let wallet_id = Uuid::new_v4();
 
@@ -533,8 +534,7 @@ impl WalletManager {
 
                 let mut conn = pool.get().map_err(|e| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to get DB connection: {}",
-                        e
+                        "Failed to get DB connection: {e}"
                     )))
                 })?;
 
@@ -557,8 +557,7 @@ impl WalletManager {
                 .map_err(|e| {
                     error!(escrow_id, error = %e, "Failed to persist RPC config");
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to persist RPC config: {}",
-                        e
+                        "Failed to persist RPC config: {e}"
                     )))
                 })?;
 
@@ -677,11 +676,11 @@ impl WalletManager {
 
         // Create wallet filename based on escrow_id (for later reopening)
         // Format: "{role}_temp_escrow_{escrow_id}"
-        let wallet_filename = format!("{}_temp_escrow_{}", role, escrow_id);
+        let wallet_filename = format!("{role}_temp_escrow_{escrow_id}");
 
         // SOLUTION #4: Auto-cleanup of orphaned wallet files before creation
         let wallet_path = Path::new("/var/monero/wallets").join(&wallet_filename);
-        let keys_path = Path::new("/var/monero/wallets").join(format!("{}.keys", wallet_filename));
+        let keys_path = Path::new("/var/monero/wallets").join(format!("{wallet_filename}.keys"));
 
         if wallet_path.exists() || keys_path.exists() {
             warn!(
@@ -691,7 +690,7 @@ impl WalletManager {
             let _ = std::fs::remove_file(&wallet_path);
             let _ = std::fs::remove_file(&keys_path);
             let _ = std::fs::remove_file(
-                Path::new("/var/monero/wallets").join(format!("{}.address.txt", wallet_filename)),
+                Path::new("/var/monero/wallets").join(format!("{wallet_filename}.address.txt")),
             );
             info!(
                 "✅ Cleaned up orphaned wallet files for {}",
@@ -825,7 +824,7 @@ impl WalletManager {
                 error!("❌ All {} attempts failed for role={}", max_attempts, role);
                 return Err(last_error.unwrap_or(WalletManagerError::InvalidState {
                     expected: "successful wallet creation".to_string(),
-                    actual: format!("failed after {} attempts", max_attempts),
+                    actual: format!("failed after {max_attempts} attempts"),
                 }));
             }
 
@@ -931,7 +930,7 @@ impl WalletManager {
         };
         // NOTE: The filename format should match WalletPool::wallet_filename()
         // Format: "{role}_temp_escrow_{escrow_id}"
-        let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
+        let wallet_filename = format!("{role_str}_temp_escrow_{escrow_id}");
 
         info!("📂 Opening wallet file: {}", wallet_filename);
 
@@ -944,7 +943,7 @@ impl WalletManager {
             Err(e) => {
                 error!("❌ Failed to open wallet '{}': {:?}", wallet_filename, e);
                 return Err(WalletManagerError::RpcError(CommonError::MoneroRpc(
-                    format!("Failed to open wallet '{}': {:?}", wallet_filename, e),
+                    format!("Failed to open wallet '{wallet_filename}': {e:?}"),
                 )));
             }
         }
@@ -1022,8 +1021,7 @@ impl WalletManager {
             pool.release_rpc(port).await.map_err(|e| {
                 warn!("Failed to release RPC port {} via pool: {}", port, e);
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to release RPC: {}",
-                    e
+                    "Failed to release RPC: {e}"
                 )))
             })?;
             info!(
@@ -1121,8 +1119,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Buyer export failed: {}",
-                    e
+                    "Buyer export failed: {e}"
                 )))
             })?;
 
@@ -1133,8 +1130,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Vendor export failed: {}",
-                    e
+                    "Vendor export failed: {e}"
                 )))
             })?;
 
@@ -1145,8 +1141,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Arbiter export failed: {}",
-                    e
+                    "Arbiter export failed: {e}"
                 )))
             })?;
 
@@ -1171,8 +1166,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Buyer import failed: {}",
-                    e
+                    "Buyer import failed: {e}"
                 )))
             })?;
 
@@ -1184,8 +1178,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Vendor import failed: {}",
-                    e
+                    "Vendor import failed: {e}"
                 )))
             })?;
 
@@ -1197,8 +1190,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Arbiter import failed: {}",
-                    e
+                    "Arbiter import failed: {e}"
                 )))
             })?;
 
@@ -1212,8 +1204,7 @@ impl WalletManager {
             .await
             .map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to get balance: {}",
-                    e
+                    "Failed to get balance: {e}"
                 )))
             })?;
 
@@ -1270,7 +1261,7 @@ impl WalletManager {
         let escrow_uuid =
             Uuid::parse_str(escrow_id).map_err(|e| WalletManagerError::InvalidState {
                 expected: "Valid UUID for escrow_id".to_string(),
-                actual: format!("Parse error: {}", e),
+                actual: format!("Parse error: {e}"),
             })?;
 
         for (uuid, instance) in &self.wallets {
@@ -1294,10 +1285,7 @@ impl WalletManager {
         // Persist to database
         repo.save_phase(escrow_id, &phase, &snapshot).map_err(|e| {
             error!(escrow_id, error = %e, "Failed to persist multisig state");
-            WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                "Persistence failed: {}",
-                e
-            )))
+            WalletManagerError::RpcError(CommonError::MoneroRpc(format!("Persistence failed: {e}")))
         })?;
 
         debug!(escrow_id, phase = ?phase, "✅ Multisig state persisted");
@@ -1380,8 +1368,7 @@ impl WalletManager {
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
                 .ok_or_else(|| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Wallet with role {:?} for escrow {} not found",
-                        role, escrow_id
+                        "Wallet with role {role:?} for escrow {escrow_id} not found"
                     )))
                 })?;
 
@@ -1426,7 +1413,7 @@ impl WalletManager {
                 WalletRole::Vendor => "vendor",
                 WalletRole::Arbiter => "arbiter",
             };
-            let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
+            let wallet_filename = format!("{role_str}_temp_escrow_{escrow_id}");
 
             info!(
                 "🔒 Round 1: Ensuring {:?} wallet is open before make_multisig",
@@ -1454,16 +1441,14 @@ impl WalletManager {
                 .await
                 .map_err(|e| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to open {:?} wallet '{}': {:?}",
-                        role, wallet_filename, e
+                        "Failed to open {role:?} wallet '{wallet_filename}': {e:?}"
                     )))
                 })?;
 
             // Step 3: VERIFY the correct wallet is open by checking FULL address
             let current_address = wallet.rpc_client.get_address().await.map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to get address for {:?}: {:?}",
-                    role, e
+                    "Failed to get address for {role:?}: {e:?}"
                 )))
             })?;
 
@@ -1595,8 +1580,7 @@ impl WalletManager {
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
                 .ok_or_else(|| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Wallet with role {:?} for escrow {} not found in Round 2",
-                        role, escrow_id
+                        "Wallet with role {role:?} for escrow {escrow_id} not found in Round 2"
                     )))
                 })?;
 
@@ -1614,7 +1598,7 @@ impl WalletManager {
                 WalletRole::Vendor => "vendor",
                 WalletRole::Arbiter => "arbiter",
             };
-            let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
+            let wallet_filename = format!("{role_str}_temp_escrow_{escrow_id}");
 
             info!(
                 "🔒 Round 2: Ensuring {:?} wallet is open before exchange_multisig_keys",
@@ -1642,16 +1626,14 @@ impl WalletManager {
                 .await
                 .map_err(|e| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to open {:?} wallet '{}' in Round 2: {:?}",
-                        role, wallet_filename, e
+                        "Failed to open {role:?} wallet '{wallet_filename}' in Round 2: {e:?}"
                     )))
                 })?;
 
             // Step 3: VERIFY the correct wallet is open
             let current_address = wallet.rpc_client.get_address().await.map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to get address for {:?} in Round 2: {:?}",
-                    role, e
+                    "Failed to get address for {role:?} in Round 2: {e:?}"
                 )))
             })?;
 
@@ -1743,8 +1725,7 @@ impl WalletManager {
                 .find(|w| &w.role == role && w.escrow_id == Some(escrow_id))
                 .ok_or_else(|| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Wallet with role {:?} for escrow {} not found in Round 3",
-                        role, escrow_id
+                        "Wallet with role {role:?} for escrow {escrow_id} not found in Round 3"
                     )))
                 })?;
 
@@ -1761,7 +1742,7 @@ impl WalletManager {
                 WalletRole::Vendor => "vendor",
                 WalletRole::Arbiter => "arbiter",
             };
-            let wallet_filename = format!("{}_temp_escrow_{}", role_str, escrow_id);
+            let wallet_filename = format!("{role_str}_temp_escrow_{escrow_id}");
 
             info!(
                 "🔒 Round 3: Ensuring {:?} wallet is open before final exchange_multisig_keys",
@@ -1778,8 +1759,7 @@ impl WalletManager {
                 .await
                 .map_err(|e| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to open {:?} wallet '{}' in Round 3: {:?}",
-                        role, wallet_filename, e
+                        "Failed to open {role:?} wallet '{wallet_filename}' in Round 3: {e:?}"
                     )))
                 })?;
 
@@ -2072,8 +2052,8 @@ impl WalletManager {
                 }
             } else {
                 return Err(WalletManagerError::InvalidState {
-                    expected: format!("balance > {}", fee_reserve),
-                    actual: format!("balance = {}", unlocked_balance),
+                    expected: format!("balance > {fee_reserve}"),
+                    actual: format!("balance = {unlocked_balance}"),
                 });
             }
         }
@@ -2434,8 +2414,8 @@ impl WalletManager {
             }
         } else {
             return Err(WalletManagerError::InvalidState {
-                expected: format!("balance > {}", fee_reserve),
-                actual: format!("balance = {}", unlocked_balance),
+                expected: format!("balance > {fee_reserve}"),
+                actual: format!("balance = {unlocked_balance}"),
             });
         };
 
@@ -2567,7 +2547,7 @@ impl WalletManager {
             .find(|(_, w)| w.role == role1)
             .map(|(id, _)| *id)
             .ok_or_else(|| WalletManagerError::InvalidState {
-                expected: format!("{:?} wallet", role1),
+                expected: format!("{role1:?} wallet"),
                 actual: "not found".to_string(),
             })?;
 
@@ -2577,7 +2557,7 @@ impl WalletManager {
             .find(|(_, w)| w.role == role2)
             .map(|(id, _)| *id)
             .ok_or_else(|| WalletManagerError::InvalidState {
-                expected: format!("{:?} wallet", role2),
+                expected: format!("{role2:?} wallet"),
                 actual: "not found".to_string(),
             })?;
 
@@ -2595,7 +2575,7 @@ impl WalletManager {
             MultisigState::Ready { .. } => Ok(()),
             state => Err(WalletManagerError::InvalidState {
                 expected: "Ready".to_string(),
-                actual: format!("{:?}", state),
+                actual: format!("{state:?}"),
             }),
         }
     }
@@ -2701,8 +2681,7 @@ impl WalletManager {
         let snapshots = repo.find_active_escrows().map_err(|e| {
             error!(error = %e, "Failed to query active escrows from database");
             WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                "Recovery query failed: {}",
-                e
+                "Recovery query failed: {e}"
             )))
         })?;
 
@@ -2772,16 +2751,14 @@ impl WalletManager {
 
                 let mut conn = pool.get().map_err(|e| {
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to get DB connection during recovery: {}",
-                        e
+                        "Failed to get DB connection during recovery: {e}"
                     )))
                 })?;
 
                 WalletRpcConfig::find_by_escrow(&mut conn, escrow_id).map_err(|e| {
                     warn!(escrow_id, error = %e, "Failed to load RPC configs from DB");
                     WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                        "Failed to load RPC configs: {}",
-                        e
+                        "Failed to load RPC configs: {e}"
                     )))
                 })?
             } else {
@@ -2819,7 +2796,7 @@ impl WalletManager {
             )
             .map_err(|e| WalletManagerError::InvalidState {
                 expected: "Valid wallet UUID".to_string(),
-                actual: format!("Invalid UUID: {}", e),
+                actual: format!("Invalid UUID: {e}"),
             })?;
 
             let role = match rpc_config.role.as_str() {
@@ -2839,21 +2816,19 @@ impl WalletManager {
                 .map_err(|e| {
                     error!(escrow_id, wallet_id = %wallet_uuid, error = %e, "Failed to decrypt RPC URL");
                     WalletManagerError::RpcError(CommonError::MoneroRpc(
-                        format!("Decryption failed: {}", e)
+                        format!("Decryption failed: {e}")
                     ))
                 })?;
 
             let rpc_user = rpc_config.decrypt_user(encryption_key).map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to decrypt RPC user: {}",
-                    e
+                    "Failed to decrypt RPC user: {e}"
                 )))
             })?;
 
             let rpc_password = rpc_config.decrypt_password(encryption_key).map_err(|e| {
                 WalletManagerError::RpcError(CommonError::MoneroRpc(format!(
-                    "Failed to decrypt RPC password: {}",
-                    e
+                    "Failed to decrypt RPC password: {e}"
                 )))
             })?;
             info!(
@@ -2892,7 +2867,7 @@ impl WalletManager {
                 .map_err(|e| {
                     error!(escrow_id, wallet_id = %wallet_uuid, error = %e, "Failed to get wallet info during recovery");
                     WalletManagerError::RpcError(CommonError::MoneroRpc(
-                        format!("Failed to get wallet info: {}", e),
+                        format!("Failed to get wallet info: {e}"),
                     ))
                 })?;
             info!(
@@ -2932,7 +2907,7 @@ impl WalletManager {
             let escrow_uuid =
                 Uuid::parse_str(escrow_id).map_err(|e| WalletManagerError::InvalidState {
                     expected: "Valid UUID for escrow_id in recovery".to_string(),
-                    actual: format!("Parse error: {}", e),
+                    actual: format!("Parse error: {e}"),
                 })?;
 
             // Reconstruct WalletInstance
@@ -3004,9 +2979,9 @@ fn convert_monero_error(e: MoneroError) -> CommonError {
         MoneroError::WalletBusy => CommonError::Wallet("Wallet busy".to_string()),
         MoneroError::ValidationError(msg) => CommonError::InvalidInput(msg),
         MoneroError::InvalidResponse(msg) => {
-            CommonError::MoneroRpc(format!("Invalid response: {}", msg))
+            CommonError::MoneroRpc(format!("Invalid response: {msg}"))
         }
-        MoneroError::NetworkError(msg) => CommonError::Internal(format!("Network error: {}", msg)),
+        MoneroError::NetworkError(msg) => CommonError::Internal(format!("Network error: {msg}")),
         MoneroError::RpcError(msg) => CommonError::MoneroRpc(msg),
     }
 }
@@ -3046,7 +3021,7 @@ impl WalletManager {
             .values()
             .find(|w| w.role == WalletRole::Arbiter)
             .ok_or_else(|| {
-                CommonError::Internal(format!("Arbiter wallet not found for escrow {}", escrow_id))
+                CommonError::Internal(format!("Arbiter wallet not found for escrow {escrow_id}"))
             })?;
 
         // Get co-signer role based on resolution
@@ -3055,8 +3030,7 @@ impl WalletManager {
             "pay_vendor" => WalletRole::Vendor,
             _ => {
                 return Err(CommonError::InvalidInput(format!(
-                    "Invalid resolution: {}",
-                    resolution
+                    "Invalid resolution: {resolution}"
                 )))
             }
         };
@@ -3068,8 +3042,7 @@ impl WalletManager {
             .find(|w| w.role == co_signer_role)
             .ok_or_else(|| {
                 CommonError::Internal(format!(
-                    "Co-signer ({:?}) wallet not found for escrow {}",
-                    co_signer_role, escrow_id
+                    "Co-signer ({co_signer_role:?}) wallet not found for escrow {escrow_id}"
                 ))
             })?;
 
@@ -3116,11 +3089,11 @@ impl WalletManager {
 
         for (role, role_str) in &roles {
             let wallet_uuid = Uuid::new_v4();
-            let mock_address = format!("mock_address_{}_{}", escrow_id, role_str);
+            let mock_address = format!("mock_address_{escrow_id}_{role_str}");
 
             // Create a mock RPC client with the first available config
             let rpc_client = MoneroClient::new(self.rpc_configs[0].clone()).map_err(|e| {
-                CommonError::Internal(format!("Failed to create mock RPC client: {}", e))
+                CommonError::Internal(format!("Failed to create mock RPC client: {e}"))
             })?;
 
             let wallet_instance = WalletInstance {

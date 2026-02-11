@@ -44,9 +44,10 @@ impl HealthChecker {
 
     /// Create a new health checker with custom timeout
     pub fn with_timeout(timeout: Duration) -> Result<Self, MoneroError> {
-        let client = Client::builder().timeout(timeout).build().map_err(|e| {
-            MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e))
-        })?;
+        let client = Client::builder()
+            .timeout(timeout)
+            .build()
+            .map_err(|e| MoneroError::NetworkError(format!("Failed to build HTTP client: {e}")))?;
 
         Ok(Self { client, timeout })
     }
@@ -139,7 +140,7 @@ impl HealthChecker {
                         height: None,
                         network: None,
                         version: None,
-                        error: Some(format!("JSON parse error: {}", e)),
+                        error: Some(format!("JSON parse error: {e}")),
                         checked_at,
                     },
                 }
@@ -210,7 +211,7 @@ impl HealthChecker {
                             let version = result
                                 .get("version")
                                 .and_then(|v| v.as_u64())
-                                .map(|v| format!("0x{:x}", v));
+                                .map(|v| format!("0x{v:x}"));
 
                             HealthCheckResult {
                                 url: url.to_string(),
@@ -234,7 +235,7 @@ impl HealthChecker {
                                 height: None,
                                 network: None,
                                 version: None,
-                                error: Some(format!("RPC error: {}", message)),
+                                error: Some(format!("RPC error: {message}")),
                                 checked_at,
                             }
                         } else {
@@ -257,7 +258,7 @@ impl HealthChecker {
                         height: None,
                         network: None,
                         version: None,
-                        error: Some(format!("JSON parse error: {}", e)),
+                        error: Some(format!("JSON parse error: {e}")),
                         checked_at,
                     },
                 }

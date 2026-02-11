@@ -31,10 +31,10 @@ fn main() {
     let outpk1 = hex_to_point(outpk1_hex).expect("Invalid outPk1");
     let h_point = CompressedEdwardsY(H_BYTES).decompress().expect("Invalid H");
 
-    println!("pseudo_out: {}", pseudo_out_hex);
-    println!("outPk[0]:   {}", outpk0_hex);
-    println!("outPk[1]:   {}", outpk1_hex);
-    println!("fee:        {} piconero\n", fee);
+    println!("pseudo_out: {pseudo_out_hex}");
+    println!("outPk[0]:   {outpk0_hex}");
+    println!("outPk[1]:   {outpk1_hex}");
+    println!("fee:        {fee} piconero\n");
 
     // Compute: sum(outPk) + fee * H
     let fee_scalar = Scalar::from(fee);
@@ -54,7 +54,7 @@ fn main() {
         "sum(outPk) + fee*H:  {}",
         hex::encode(expected.compress().to_bytes())
     );
-    println!("pseudo_out:          {}", pseudo_out_hex);
+    println!("pseudo_out:          {pseudo_out_hex}");
 
     let balance_ok = expected.compress() == pseudo_out.compress();
     println!(
@@ -93,7 +93,7 @@ fn main() {
             "\npseudo - outPk[0] - fee*H = {}",
             hex::encode(remainder.compress().to_bytes())
         );
-        println!("Expected outPk[1]:          {}", outpk1_hex);
+        println!("Expected outPk[1]:          {outpk1_hex}");
 
         if remainder.compress() == outpk1.compress() {
             println!("✅ Actually balanced! (remainder matches outPk[1])");

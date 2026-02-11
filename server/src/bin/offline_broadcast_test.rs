@@ -113,8 +113,8 @@ fn compute_derivation(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index:
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -187,11 +187,7 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
     let mut indices: Vec<u64> = Vec::with_capacity(16);
 
     // Add some decoys before the real output
-    let start = if real_index > 1000 {
-        real_index - 1000
-    } else {
-        0
-    };
+    let start = real_index.saturating_sub(1000);
     for i in 0..15 {
         let idx = start + i * 60 + (i * 7) % 50; // Spread out decoys
         if idx != real_index && idx < real_index + 1000 {
@@ -212,7 +208,7 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
     indices.push(real_index);
     indices.sort();
 
-    println!("Ring indices: {:?}", indices);
+    println!("Ring indices: {indices:?}");
     println!(
         "Real output at position: {}",
         indices.iter().position(|&x| x == real_index).unwrap()
@@ -232,7 +228,7 @@ async fn fetch_ring_members(client: &reqwest::Client, real_index: u64) -> Result
 
     let daemon_url = get_daemon_url();
     let response = client
-        .post(&format!("{}/get_outs", daemon_url))
+        .post(format!("{daemon_url}/get_outs"))
         .json(&params)
         .send()
         .await
@@ -257,7 +253,7 @@ async fn check_key_image_spent(client: &reqwest::Client, key_image: &str) -> Res
 
     let daemon_url = get_daemon_url();
     let response = client
-        .post(&format!("{}/is_key_image_spent", daemon_url))
+        .post(format!("{daemon_url}/is_key_image_spent"))
         .json(&params)
         .send()
         .await
@@ -340,7 +336,7 @@ fn sign_clsag_frost(
 
     let ring_size = ring_keys.len();
     if ring_size != 16 {
-        anyhow::bail!("Ring size must be 16, got {}", ring_size);
+        anyhow::bail!("Ring size must be 16, got {ring_size}");
     }
 
     let p = &ring_keys[real_index];
@@ -522,7 +518,7 @@ async fn main() -> Result<()> {
         .position(|o| o.key == EXPECTED_ONE_TIME_PUBKEY);
 
     match real_ring_idx {
-        Some(idx) => println!("✅ Real output found at ring index {}", idx),
+        Some(idx) => println!("✅ Real output found at ring index {idx}"),
         None => {
             println!("⚠️  Real output not in fetched ring - checking if key matches...");
             for (i, o) in ring_members.iter().enumerate() {
@@ -590,7 +586,7 @@ async fn main() -> Result<()> {
         hasher.finalize().into()
     };
 
-    println!("tx_prefix_hash: {}", hex::encode(&tx_prefix_hash));
+    println!("tx_prefix_hash: {}", hex::encode(tx_prefix_hash));
 
     // Step 6: Sign CLSAG
     println!("\n=== STEP 6: CLSAG Signature ===\n");

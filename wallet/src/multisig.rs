@@ -37,11 +37,9 @@ impl MultisigManager {
                 MoneroError::WalletLocked => Error::Wallet("Wallet locked".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
             })
@@ -78,11 +76,9 @@ impl MultisigManager {
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
             })
     }
@@ -131,11 +127,9 @@ impl MultisigManager {
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
             })
     }
@@ -160,11 +154,9 @@ impl MultisigManager {
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
                 MoneroError::AlreadyMultisig => {
                     Error::Multisig("Already in multisig mode".to_string())
@@ -198,11 +190,9 @@ impl MultisigManager {
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
                 MoneroError::AlreadyMultisig => {
                     Error::Multisig("Already in multisig mode".to_string())
@@ -279,9 +269,9 @@ impl MultisigManager {
             MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
             MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
             MoneroError::InvalidResponse(msg) => {
-                Error::MoneroRpc(format!("Invalid response: {}", msg))
+                Error::MoneroRpc(format!("Invalid response: {msg}"))
             }
-            MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {}", msg)),
+            MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
             MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
         })
     }
@@ -301,11 +291,9 @@ impl MultisigManager {
                 MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
                 MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
                 MoneroError::InvalidResponse(msg) => {
-                    Error::MoneroRpc(format!("Invalid response: {}", msg))
+                    Error::MoneroRpc(format!("Invalid response: {msg}"))
                 }
-                MoneroError::NetworkError(msg) => {
-                    Error::Internal(format!("Network error: {}", msg))
-                }
+                MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
                 MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
                 MoneroError::AlreadyMultisig => {
                     Error::Multisig("Already in multisig mode".to_string())

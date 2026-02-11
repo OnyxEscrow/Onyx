@@ -51,7 +51,7 @@ fn decode_monero_address(address: &str) -> Result<[u8; 32]> {
             let idx = ALPHABET
                 .iter()
                 .position(|&x| x == c as u8)
-                .ok_or_else(|| anyhow::anyhow!("Invalid base58 character: {}", c))?;
+                .ok_or_else(|| anyhow::anyhow!("Invalid base58 character: {c}"))?;
             n = n * 58 + idx as u128;
         }
         let bytes = n.to_be_bytes();
@@ -116,8 +116,7 @@ fn main() -> Result<()> {
     }
 
     let query = format!(
-        "SELECT multisig_address, frost_group_pubkey FROM escrows WHERE id = '{}'",
-        escrow_id
+        "SELECT multisig_address, frost_group_pubkey FROM escrows WHERE id = '{escrow_id}'"
     );
 
     let rows: Vec<EscrowRow> = diesel::sql_query(&query)
@@ -127,7 +126,7 @@ fn main() -> Result<()> {
     let row = rows
         .into_iter()
         .next()
-        .ok_or_else(|| anyhow::anyhow!("Escrow not found: {}", escrow_id))?;
+        .ok_or_else(|| anyhow::anyhow!("Escrow not found: {escrow_id}"))?;
 
     let address = row
         .multisig_address
@@ -137,20 +136,20 @@ fn main() -> Result<()> {
         .frost_group_pubkey
         .unwrap_or_else(|| "NOT SET".to_string());
 
-    println!("Escrow ID: {}", escrow_id);
+    println!("Escrow ID: {escrow_id}");
     println!(
         "Multisig Address: {}...{}",
         &address[..12],
         &address[address.len() - 8..]
     );
     println!();
-    println!("Current frost_group_pubkey: {}", current_pubkey);
+    println!("Current frost_group_pubkey: {current_pubkey}");
 
     // Decode address to get correct spend pubkey
     let correct_pubkey = decode_monero_address(&address)?;
     let correct_pubkey_hex = hex::encode(correct_pubkey);
 
-    println!("Correct spend pubkey:       {}", correct_pubkey_hex);
+    println!("Correct spend pubkey:       {correct_pubkey_hex}");
     println!();
 
     if current_pubkey == correct_pubkey_hex {
@@ -161,8 +160,8 @@ fn main() -> Result<()> {
     println!("❌ MISMATCH DETECTED!");
     println!();
     println!("Difference:");
-    println!("  Current: {}", current_pubkey);
-    println!("  Correct: {}", correct_pubkey_hex);
+    println!("  Current: {current_pubkey}");
+    println!("  Correct: {correct_pubkey_hex}");
 
     // Find where they diverge
     let current_bytes = current_pubkey.as_bytes();
@@ -174,10 +173,7 @@ fn main() -> Result<()> {
             break;
         }
     }
-    println!(
-        "  Diverge at position: {} (first {} chars match)",
-        diverge_pos, diverge_pos
-    );
+    println!("  Diverge at position: {diverge_pos} (first {diverge_pos} chars match)");
     println!();
 
     if dry_run {
@@ -190,8 +186,7 @@ fn main() -> Result<()> {
     println!("🔧 Applying fix...");
 
     let update_query = format!(
-        "UPDATE escrows SET frost_group_pubkey = '{}' WHERE id = '{}'",
-        correct_pubkey_hex, escrow_id
+        "UPDATE escrows SET frost_group_pubkey = '{correct_pubkey_hex}' WHERE id = '{escrow_id}'"
     );
 
     diesel::sql_query(&update_query)
@@ -200,7 +195,7 @@ fn main() -> Result<()> {
 
     println!("✅ frost_group_pubkey FIXED!");
     println!();
-    println!("New value: {}", correct_pubkey_hex);
+    println!("New value: {correct_pubkey_hex}");
     println!();
     println!("You can now rerun the offline broadcast test.");
 

@@ -83,7 +83,7 @@ impl RpcInstance {
     pub fn new(port: u16) -> Self {
         Self {
             port,
-            url: format!("http://127.0.0.1:{}/json_rpc", port),
+            url: format!("http://127.0.0.1:{port}/json_rpc"),
             loaded_wallet: None,
             locked_until: None,
         }
@@ -99,7 +99,7 @@ impl RpcInstance {
         }
 
         // Free if no wallet loaded or lock expired
-        self.loaded_wallet.is_none() || self.locked_until.map_or(true, |u| Instant::now() >= u)
+        self.loaded_wallet.is_none() || self.locked_until.is_none_or(|u| Instant::now() >= u)
     }
 
     /// Acquire lock on this RPC instance for specified duration
@@ -216,7 +216,7 @@ impl WalletPool {
             info!(port, "Released RPC instance");
             Ok(())
         } else {
-            Err(anyhow::anyhow!("RPC instance with port {} not found", port))
+            Err(anyhow::anyhow!("RPC instance with port {port} not found"))
         }
     }
 
@@ -253,7 +253,7 @@ impl WalletPool {
 
         // Create MoneroClient for this RPC instance
         let config = MoneroConfig {
-            rpc_url: format!("http://127.0.0.1:{}", port),
+            rpc_url: format!("http://127.0.0.1:{port}"),
             ..Default::default()
         };
 
@@ -305,7 +305,7 @@ impl WalletPool {
                 // Release RPC on failure
                 self.release_rpc(port).await?;
 
-                Err(anyhow::anyhow!("Failed to open wallet: {}", e))
+                Err(anyhow::anyhow!("Failed to open wallet: {e}"))
             }
         }
     }
@@ -314,7 +314,7 @@ impl WalletPool {
     pub async fn close_wallet(&self, port: u16) -> Result<()> {
         // Create temporary client to close wallet
         let config = MoneroConfig {
-            rpc_url: format!("http://127.0.0.1:{}", port),
+            rpc_url: format!("http://127.0.0.1:{port}"),
             ..Default::default()
         };
 

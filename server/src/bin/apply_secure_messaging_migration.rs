@@ -18,7 +18,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let encryption_key =
         env::var("DATABASE_ENCRYPTION_KEY").expect("DATABASE_ENCRYPTION_KEY must be set in .env");
 
-    println!("📁 Database: {}", database_url);
+    println!("📁 Database: {database_url}");
 
     // Create connection pool with SQLCipher
     let pool = server::db::create_pool(&database_url, &encryption_key)?;

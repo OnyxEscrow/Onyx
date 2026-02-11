@@ -41,7 +41,7 @@ fn hex_to_point(hex: &str) -> EdwardsPoint {
     arr.copy_from_slice(&bytes);
     curve25519_dalek::edwards::CompressedEdwardsY(arr)
         .decompress()
-        .unwrap_or_else(|| panic!("Invalid point: {}", hex))
+        .unwrap_or_else(|| panic!("Invalid point: {hex}"))
 }
 
 fn encode_varint(value: u64) -> Vec<u8> {
@@ -62,7 +62,7 @@ fn compute_derivation(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index:
     // Hash shared_secret || varint(output_index) to derivation scalar
     let mut hasher = Keccak256::new();
     hasher.update(shared_secret.compress().as_bytes());
-    hasher.update(&encode_varint(output_index as u64));
+    hasher.update(encode_varint(output_index as u64));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -86,21 +86,21 @@ fn main() {
 
     // Step 1: Compute derivation
     let view_key = hex_to_scalar(VIEW_KEY_PRIV);
-    println!("Parsing tx_pubkey: {}", EXPECTED_TX_PUBKEY);
+    println!("Parsing tx_pubkey: {EXPECTED_TX_PUBKEY}");
     let tx_pubkey = hex_to_point(EXPECTED_TX_PUBKEY);
     println!("Parsed tx_pubkey OK");
     let derivation = compute_derivation(&view_key, &tx_pubkey, OUTPUT_INDEX);
     println!("Derivation (d): {}", hex::encode(derivation.as_bytes()));
 
     // Step 2: Verify one-time pubkey
-    println!("Parsing group_pubkey: {}", GROUP_PUBKEY);
+    println!("Parsing group_pubkey: {GROUP_PUBKEY}");
     let group_pubkey = hex_to_point(GROUP_PUBKEY);
     println!("Parsed group_pubkey OK");
     let d_point = &derivation * ED25519_BASEPOINT_TABLE;
     let one_time_pubkey = d_point + group_pubkey;
     let one_time_pubkey_hex = hex::encode(one_time_pubkey.compress().as_bytes());
-    println!("Computed one-time pubkey: {}", one_time_pubkey_hex);
-    println!("Expected one-time pubkey: {}", EXPECTED_ONE_TIME_PUBKEY);
+    println!("Computed one-time pubkey: {one_time_pubkey_hex}");
+    println!("Expected one-time pubkey: {EXPECTED_ONE_TIME_PUBKEY}");
     println!(
         "Match: {}",
         if one_time_pubkey_hex == EXPECTED_ONE_TIME_PUBKEY {
@@ -141,8 +141,8 @@ fn main() {
     // Step 5: Compute expected KI = x_total * Hp(P)
     let expected_ki = x_total * hp_p;
     let expected_ki_hex = hex::encode(expected_ki.compress().as_bytes());
-    println!("\nExpected Key Image: {}", expected_ki_hex);
-    println!("TX Key Image:       {}", TX_KEY_IMAGE);
+    println!("\nExpected Key Image: {expected_ki_hex}");
+    println!("TX Key Image:       {TX_KEY_IMAGE}");
     println!(
         "Match: {}",
         if expected_ki_hex == TX_KEY_IMAGE {
@@ -157,7 +157,7 @@ fn main() {
     // For multisig: b = b1 + b2 + b3 (but we only have shares)
     let tx_secret = hex_to_scalar(TX_SECRET_KEY);
     println!("\n=== VERIFICATION WITH TX_SECRET_KEY ===");
-    println!("tx_secret_key: {}", TX_SECRET_KEY);
+    println!("tx_secret_key: {TX_SECRET_KEY}");
 
     // The full output secret should be: x = d + tx_secret_key
     let full_secret = derivation + tx_secret;
@@ -169,7 +169,7 @@ fn main() {
     // Key image from full secret
     let ki_from_full = full_secret * hp_p;
     let ki_from_full_hex = hex::encode(ki_from_full.compress().as_bytes());
-    println!("KI from full secret: {}", ki_from_full_hex);
+    println!("KI from full secret: {ki_from_full_hex}");
 
     // Compare x_total to full_secret
     println!("\n=== COMPARING RECONSTRUCTED VS FULL SECRET ===");
@@ -196,10 +196,7 @@ fn main() {
             "\nReconstructed group secret (2*buyer - vendor): {}",
             hex::encode(reconstructed_group_secret.as_bytes())
         );
-        println!(
-            "TX_SECRET_KEY:                                  {}",
-            TX_SECRET_KEY
-        );
+        println!("TX_SECRET_KEY:                                  {TX_SECRET_KEY}");
         if hex::encode(reconstructed_group_secret.as_bytes()) == TX_SECRET_KEY.to_lowercase() {
             println!("Match: ✅ Group secret reconstruction is CORRECT");
         } else {
@@ -213,8 +210,8 @@ fn main() {
     println!("\n=== VERIFYING x_total * G == P ===");
     let x_total_pubkey = &x_total * ED25519_BASEPOINT_TABLE;
     let x_total_pubkey_hex = hex::encode(x_total_pubkey.compress().as_bytes());
-    println!("x_total * G:        {}", x_total_pubkey_hex);
-    println!("Expected P:         {}", EXPECTED_ONE_TIME_PUBKEY);
+    println!("x_total * G:        {x_total_pubkey_hex}");
+    println!("Expected P:         {EXPECTED_ONE_TIME_PUBKEY}");
 
     if x_total_pubkey_hex == EXPECTED_ONE_TIME_PUBKEY.to_lowercase() {
         println!("Match: ✅ Secret correctly opens to one-time pubkey!");

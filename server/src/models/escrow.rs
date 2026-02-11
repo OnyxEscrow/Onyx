@@ -212,7 +212,7 @@ impl Escrow {
                     escrow_id, new_escrow.order_id, new_escrow.buyer_id, new_escrow.vendor_id,
                     new_escrow.arbiter_id, new_escrow.amount, new_escrow.status,
                     new_escrow.multisig_phase, new_escrow.recovery_mode);
-                anyhow::anyhow!("Failed to insert escrow: {}", e)
+                anyhow::anyhow!("Failed to insert escrow: {e}")
             })?;
 
         escrows::table
@@ -226,7 +226,7 @@ impl Escrow {
         escrows::table
             .filter(escrows::id.eq(escrow_id.clone()))
             .first(conn)
-            .context(format!("Escrow with ID {} not found", escrow_id))
+            .context(format!("Escrow with ID {escrow_id} not found"))
     }
 
     /// Find escrows by buyer ID
@@ -234,7 +234,7 @@ impl Escrow {
         escrows::table
             .filter(escrows::buyer_id.eq(buyer_id.clone()))
             .load(conn)
-            .context(format!("Failed to load escrows for buyer {}", buyer_id))
+            .context(format!("Failed to load escrows for buyer {buyer_id}"))
     }
 
     /// Find escrows by vendor ID
@@ -242,7 +242,7 @@ impl Escrow {
         escrows::table
             .filter(escrows::vendor_id.eq(vendor_id.clone()))
             .load(conn)
-            .context(format!("Failed to load escrows for vendor {}", vendor_id))
+            .context(format!("Failed to load escrows for vendor {vendor_id}"))
     }
 
     /// Find escrows by arbiter ID
@@ -250,7 +250,7 @@ impl Escrow {
         escrows::table
             .filter(escrows::arbiter_id.eq(arbiter_id.clone()))
             .load(conn)
-            .context(format!("Failed to load escrows for arbiter {}", arbiter_id))
+            .context(format!("Failed to load escrows for arbiter {arbiter_id}"))
     }
 
     /// Find escrow by order ID (legacy - use find_by_external_reference for EaaS)
@@ -258,7 +258,7 @@ impl Escrow {
         escrows::table
             .filter(escrows::order_id.eq(order_id.clone()))
             .first(conn)
-            .context(format!("Escrow for order {} not found", order_id))
+            .context(format!("Escrow for order {order_id} not found"))
     }
 
     /// Find escrow by external reference (EaaS API)
@@ -273,8 +273,7 @@ impl Escrow {
             .filter(escrows::external_reference.eq(external_ref))
             .first(conn)
             .context(format!(
-                "Escrow with external_reference {} not found",
-                external_ref
+                "Escrow with external_reference {external_ref} not found"
             ))
     }
 
@@ -290,7 +289,7 @@ impl Escrow {
                 escrows::updated_at.eq(diesel::dsl::now),
             ))
             .execute(conn)
-            .context(format!("Failed to update status for escrow {}", escrow_id))?;
+            .context(format!("Failed to update status for escrow {escrow_id}"))?;
         Ok(())
     }
 
@@ -307,8 +306,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update multisig address for escrow {}",
-                escrow_id
+                "Failed to update multisig address for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -330,8 +328,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update multisig view key for escrow {}",
-                escrow_id
+                "Failed to update multisig view key for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -353,12 +350,11 @@ impl Escrow {
             "arbiter" => diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.clone())))
                 .set(escrows::arbiter_wallet_info.eq(Some(encrypted_info)))
                 .execute(conn),
-            _ => return Err(anyhow::anyhow!("Invalid party: {}", party)),
+            _ => return Err(anyhow::anyhow!("Invalid party: {party}")),
         };
 
         update_result.context(format!(
-            "Failed to store wallet info for {} in escrow {}",
-            party, escrow_id
+            "Failed to store wallet info for {party} in escrow {escrow_id}"
         ))?;
         Ok(())
     }
@@ -414,8 +410,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update transaction_hash for escrow {}",
-                escrow_id
+                "Failed to update transaction_hash for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -437,8 +432,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update last_activity_at for escrow {}",
-                escrow_id
+                "Failed to update last_activity_at for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -464,8 +458,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update expires_at for escrow {}",
-                escrow_id
+                "Failed to update expires_at for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -599,8 +592,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update funding commitment data for escrow {}",
-                escrow_id
+                "Failed to update funding commitment data for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -633,8 +625,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update ring_data_json for escrow {}",
-                escrow_id
+                "Failed to update ring_data_json for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -683,15 +674,13 @@ impl Escrow {
                 .execute(conn),
             _ => {
                 return Err(anyhow::anyhow!(
-                    "Invalid role for partial key image: {}",
-                    role
+                    "Invalid role for partial key image: {role}"
                 ))
             }
         };
 
         update_result.context(format!(
-            "Failed to store partial key image for {} in escrow {}",
-            role, escrow_id
+            "Failed to store partial key image for {role} in escrow {escrow_id}"
         ))?;
         Ok(())
     }
@@ -843,8 +832,7 @@ impl Escrow {
                 ))
                 .execute(conn)
                 .context(format!(
-                    "Failed to update aggregated key image and ring_data for escrow {}",
-                    escrow_id
+                    "Failed to update aggregated key image and ring_data for escrow {escrow_id}"
                 ))?;
         } else {
             diesel::update(escrows::table.filter(escrows::id.eq(escrow_id.clone())))
@@ -854,8 +842,7 @@ impl Escrow {
                 ))
                 .execute(conn)
                 .context(format!(
-                    "Failed to update aggregated key image for escrow {}",
-                    escrow_id
+                    "Failed to update aggregated key image for escrow {escrow_id}"
                 ))?;
         }
         Ok(())
@@ -891,8 +878,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update balance_received for escrow {}",
-                escrow_id
+                "Failed to update balance_received for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -916,8 +902,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to start grace period for escrow {}",
-                escrow_id
+                "Failed to start grace period for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -940,8 +925,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to record refund request for escrow {}",
-                escrow_id
+                "Failed to record refund request for escrow {escrow_id}"
             ))?;
         Ok(())
     }
@@ -993,8 +977,7 @@ impl Escrow {
             ))
             .execute(conn)
             .context(format!(
-                "Failed to update shipped status for escrow {}",
-                escrow_id
+                "Failed to update shipped status for escrow {escrow_id}"
             ))?;
         Ok(())
     }

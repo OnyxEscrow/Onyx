@@ -30,7 +30,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 pub fn generate_ephemeral_keypair() -> CryptoResult<EphemeralKeypair> {
     let mut secret_bytes = [0u8; 32];
     getrandom::getrandom(&mut secret_bytes).map_err(|e| {
-        CryptoError::NonceGenerationFailed(format!("Keypair generation failed: {}", e))
+        CryptoError::NonceGenerationFailed(format!("Keypair generation failed: {e}"))
     })?;
 
     let secret = StaticSecret::from(secret_bytes);
@@ -50,7 +50,7 @@ pub fn generate_ephemeral_keypair() -> CryptoResult<EphemeralKeypair> {
 /// Derive a shared encryption key using X25519 ECDH.
 ///
 /// Computes the shared secret and hashes it with SHA3-256 to produce
-/// a 32-byte key suitable for ChaCha20Poly1305.
+/// a 32-byte key suitable for `ChaCha20Poly1305`.
 ///
 /// # Arguments
 ///
@@ -79,7 +79,7 @@ pub fn derive_shared_key(
 ) -> CryptoResult<[u8; 32]> {
     // Parse private key
     let private_bytes = hex::decode(my_private_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {e}")))?;
 
     if private_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -96,7 +96,7 @@ pub fn derive_shared_key(
 
     // Parse peer public key
     let peer_bytes = hex::decode(peer_public_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid peer pubkey hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid peer pubkey hex: {e}")))?;
 
     if peer_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -135,7 +135,7 @@ pub fn derive_shared_key(
 /// Public key as hex string.
 pub fn derive_public_key(private_key_hex: &str) -> CryptoResult<String> {
     let private_bytes = hex::decode(private_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {e}")))?;
 
     if private_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {

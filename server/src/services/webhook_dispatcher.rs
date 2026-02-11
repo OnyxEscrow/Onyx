@@ -166,7 +166,7 @@ impl WebhookDispatcher {
             .client
             .post(&webhook.url)
             .header("Content-Type", "application/json")
-            .header("X-Nexus-Signature", format!("sha256={}", signature))
+            .header("X-Nexus-Signature", format!("sha256={signature}"))
             .header("X-Nexus-Timestamp", timestamp.to_string())
             .header("X-Nexus-Event", &delivery.event_type)
             .header("X-Nexus-Delivery", &delivery.id)
@@ -205,7 +205,7 @@ impl WebhookDispatcher {
                     );
                 } else {
                     // HTTP error
-                    let error_msg = format!("HTTP {} - {}", status_code, body);
+                    let error_msg = format!("HTTP {status_code} - {body}");
                     let is_final = WebhookDelivery::mark_failed(
                         &delivery.id,
                         Some(status_code),
@@ -252,7 +252,7 @@ impl WebhookDispatcher {
     fn sign_payload(&self, secret: &str, timestamp: i64, payload: &str) -> String {
         type HmacSha256 = Hmac<Sha256>;
 
-        let message = format!("{}.{}", timestamp, payload);
+        let message = format!("{timestamp}.{payload}");
         let mut mac =
             HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC can take key of any size");
         mac.update(message.as_bytes());

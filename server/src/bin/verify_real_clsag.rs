@@ -88,7 +88,7 @@ fn compute_aggregation_coefficients(
 ) -> (Scalar, Scalar) {
     // mu_P = H_s(str_agg0 || P || C_nonzero || I || D || C_offset)
     let mut hasher_p = Keccak256::new();
-    hasher_p.update(&domain_agg_0()); // 32 bytes with zero padding
+    hasher_p.update(domain_agg_0()); // 32 bytes with zero padding
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
     }
@@ -102,7 +102,7 @@ fn compute_aggregation_coefficients(
 
     // mu_C = H_s(str_agg1 || P || C_nonzero || I || D || C_offset)
     let mut hasher_c = Keccak256::new();
-    hasher_c.update(&domain_agg_1()); // 32 bytes with zero padding
+    hasher_c.update(domain_agg_1()); // 32 bytes with zero padding
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
     }
@@ -127,7 +127,7 @@ fn compute_round_hash(
 ) -> Scalar {
     // c = H_s(str_round || P || C_nonzero || C_offset || m || L || R)
     let mut hasher = Keccak256::new();
-    hasher.update(&domain_round()); // 32 bytes with zero padding
+    hasher.update(domain_round()); // 32 bytes with zero padding
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -176,9 +176,9 @@ fn verify_clsag(
     for i in 0..ring_size {
         let c_p = mu_p * c;
         let c_c = mu_c * c;
-        let c_adjusted = &ring_commitments[i] - pseudo_out;
-        let l_i = &s_values[i] * ED25519_BASEPOINT_TABLE + c_p * &ring_keys[i] + c_c * c_adjusted;
-        let r_i = &s_values[i] * &hp_values[i] + c_p * key_image + c_c * d_full;
+        let c_adjusted = ring_commitments[i] - pseudo_out;
+        let l_i = &s_values[i] * ED25519_BASEPOINT_TABLE + c_p * ring_keys[i] + c_c * c_adjusted;
+        let r_i = s_values[i] * hp_values[i] + c_p * key_image + c_c * d_full;
         c = compute_round_hash(ring_keys, ring_commitments, pseudo_out, message, &l_i, &r_i);
         if i < 2 || i == ring_size - 1 {
             println!(
@@ -280,7 +280,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // hashes[0] = tx_prefix_hash
     let tx_prefix_hash: [u8; 32] = Keccak256::digest(&tx[..prefix_end]).into();
-    println!("hashes[0] prefix: {}", hex::encode(&tx_prefix_hash));
+    println!("hashes[0] prefix: {}", hex::encode(tx_prefix_hash));
 
     // RCT base
     let rct_base_start = pos;
@@ -298,7 +298,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // hashes[1] = hash(rctSigBase)
     let rct_base_hash: [u8; 32] = Keccak256::digest(&tx[rct_base_start..rct_base_end]).into();
-    println!("hashes[1] rctBase: {}", hex::encode(&rct_base_hash));
+    println!("hashes[1] rctBase: {}", hex::encode(rct_base_hash));
 
     // BP+ - extract just the keys (no varints)
     let _bp_count = read_varint(&tx, &mut pos);
@@ -327,7 +327,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bp_hash: [u8; 32] = Keccak256::digest(&bp_kv).into();
     println!(
         "hashes[2] BP+ kv: {} ({} keys)",
-        hex::encode(&bp_hash),
+        hex::encode(bp_hash),
         bp_kv.len() / 32
     );
 
@@ -335,12 +335,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // cn_fast_hash(tx_prefix_hash || rctSigBase_hash || bp_kv_hash)
     // All three are raw 32-byte hashes, concatenated directly
     let clsag_message: [u8; 32] = Keccak256::new()
-        .chain_update(&tx_prefix_hash) // raw 32 bytes
-        .chain_update(&rct_base_hash) // raw 32 bytes
-        .chain_update(&bp_hash) // raw 32 bytes
+        .chain_update(tx_prefix_hash) // raw 32 bytes
+        .chain_update(rct_base_hash) // raw 32 bytes
+        .chain_update(bp_hash) // raw 32 bytes
         .finalize()
         .into();
-    println!("CLSAG msg: {}", hex::encode(&clsag_message));
+    println!("CLSAG msg: {}", hex::encode(clsag_message));
 
     // Read CLSAGs
     let mut clsag_data: Vec<(Vec<Scalar>, Scalar, EdwardsPoint)> = Vec::new();
@@ -363,7 +363,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Verify
     for i in 0..input_count as usize {
-        println!("\n=== CLSAG[{}] ===", i);
+        println!("\n=== CLSAG[{i}] ===");
 
         let ring_resp: serde_json::Value = client.post(format!("{}/get_outs", &get_daemon_url()))
             .json(&serde_json::json!({

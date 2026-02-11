@@ -70,7 +70,7 @@ fn hash_to_point(data: &[u8]) -> EdwardsPoint {
         }
         // Hash again if point is not on curve
         let mut hasher = Keccak256::new();
-        hasher.update(&attempt);
+        hasher.update(attempt);
         attempt = hasher.finalize().into();
     }
 }
@@ -235,8 +235,8 @@ fn main() {
     println!("PKI should be: (Hs + spend_share) * Hp(P)");
     println!();
     println!("Stored PKIs:");
-    println!("  Buyer PKI:  {}", BUYER_PKI_HEX);
-    println!("  Vendor PKI: {}", VENDOR_PKI_HEX);
+    println!("  Buyer PKI:  {BUYER_PKI_HEX}");
+    println!("  Vendor PKI: {VENDOR_PKI_HEX}");
     println!();
 
     // We can't verify individual PKIs without the spend shares,
@@ -259,8 +259,8 @@ fn main() {
     let computed_ki = (lambda_buyer * buyer_pki) + (lambda_vendor * vendor_pki);
     let computed_ki_hex = hex::encode(computed_ki.compress().to_bytes());
 
-    println!("Computed KI: {}", computed_ki_hex);
-    println!("Stored KI:   {}", AGG_KEY_IMAGE_HEX);
+    println!("Computed KI: {computed_ki_hex}");
+    println!("Stored KI:   {AGG_KEY_IMAGE_HEX}");
     println!();
 
     if computed_ki_hex == AGG_KEY_IMAGE_HEX {

@@ -111,7 +111,7 @@ pub async fn init_multisig_session(
 ) -> Result<JsValue, JsValue> {
     // Parse participants
     let participants: Vec<ParticipantDto> = serde_json::from_str(&participants_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid participants JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid participants JSON: {e}")))?;
 
     let request = InitSessionRequest {
         escrow_id: escrow_id.clone(),
@@ -119,7 +119,7 @@ pub async fn init_multisig_session(
     };
 
     // Call server API
-    let response = fetch_post(&format!("{}/init", API_BASE), &request).await?;
+    let response = fetch_post(&format!("{API_BASE}/init"), &request).await?;
 
     Ok(response)
 }
@@ -155,7 +155,7 @@ pub async fn submit_multisig_info(
         stage,
     };
 
-    let response = fetch_post(&format!("{}/submit", API_BASE), &request).await?;
+    let response = fetch_post(&format!("{API_BASE}/submit"), &request).await?;
 
     Ok(response)
 }
@@ -180,7 +180,7 @@ pub async fn get_peer_multisig_info(
     escrow_id: String,
     user_id: String,
 ) -> Result<JsValue, JsValue> {
-    let url = format!("{}/peer-info/{}?user_id={}", API_BASE, escrow_id, user_id);
+    let url = format!("{API_BASE}/peer-info/{escrow_id}?user_id={user_id}");
 
     let response = fetch_get(&url).await?;
 
@@ -196,7 +196,7 @@ pub async fn get_peer_multisig_info(
 /// - StatusResponse with current stage and multisig address (if Ready)
 #[wasm_bindgen]
 pub async fn get_multisig_status(escrow_id: String) -> Result<JsValue, JsValue> {
-    let url = format!("{}/status/{}", API_BASE, escrow_id);
+    let url = format!("{API_BASE}/status/{escrow_id}");
 
     let response = fetch_get(&url).await?;
 
@@ -214,7 +214,7 @@ async fn fetch_post<T: Serialize>(url: &str, body: &T) -> Result<JsValue, JsValu
 
     // Serialize body
     let body_json = serde_json::to_string(body)
-        .map_err(|e| JsValue::from_str(&format!("JSON serialization error: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("JSON serialization error: {e}")))?;
 
     // Create request
     let mut opts = RequestInit::new();
@@ -223,18 +223,18 @@ async fn fetch_post<T: Serialize>(url: &str, body: &T) -> Result<JsValue, JsValu
     opts.body(Some(&JsValue::from_str(&body_json)));
 
     let request = Request::new_with_str_and_init(url, &opts)
-        .map_err(|e| JsValue::from_str(&format!("Request creation failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Request creation failed: {e:?}")))?;
 
     request
         .headers()
         .set("Content-Type", "application/json")
-        .map_err(|e| JsValue::from_str(&format!("Header set failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Header set failed: {e:?}")))?;
 
     // Send request
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window object"))?;
     let resp_value = JsFuture::from(window.fetch_with_request(&request))
         .await
-        .map_err(|e| JsValue::from_str(&format!("Fetch failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Fetch failed: {e:?}")))?;
 
     let resp: Response = resp_value
         .dyn_into()
@@ -260,7 +260,7 @@ async fn fetch_post<T: Serialize>(url: &str, body: &T) -> Result<JsValue, JsValu
     // Parse JSON response
     let json = JsFuture::from(
         resp.json()
-            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {:?}", e)))?,
+            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {e:?}")))?,
     )
     .await?;
 
@@ -277,12 +277,12 @@ async fn fetch_get(url: &str) -> Result<JsValue, JsValue> {
     opts.mode(RequestMode::Cors);
 
     let request = Request::new_with_str_and_init(url, &opts)
-        .map_err(|e| JsValue::from_str(&format!("Request creation failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Request creation failed: {e:?}")))?;
 
     let window = web_sys::window().ok_or_else(|| JsValue::from_str("No window object"))?;
     let resp_value = JsFuture::from(window.fetch_with_request(&request))
         .await
-        .map_err(|e| JsValue::from_str(&format!("Fetch failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Fetch failed: {e:?}")))?;
 
     let resp: Response = resp_value
         .dyn_into()
@@ -306,7 +306,7 @@ async fn fetch_get(url: &str) -> Result<JsValue, JsValue> {
 
     let json = JsFuture::from(
         resp.json()
-            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {:?}", e)))?,
+            .map_err(|e| JsValue::from_str(&format!("JSON parse failed: {e:?}")))?,
     )
     .await?;
 

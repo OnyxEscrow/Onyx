@@ -393,9 +393,9 @@ impl FrostCoordinator {
         signer2_role: &str,
     ) -> Result<(String, String)> {
         let role1 = FrostRole::from_str(signer1_role)
-            .ok_or_else(|| anyhow::anyhow!("Invalid role: {}", signer1_role))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid role: {signer1_role}"))?;
         let role2 = FrostRole::from_str(signer2_role)
-            .ok_or_else(|| anyhow::anyhow!("Invalid role: {}", signer2_role))?;
+            .ok_or_else(|| anyhow::anyhow!("Invalid role: {signer2_role}"))?;
 
         Ok(compute_lagrange_coefficients(role1, role2))
     }
@@ -460,24 +460,24 @@ impl FrostCoordinator {
     /// The secret must be stored securely (Redis via ArbiterKeyVault)
     pub fn generate_arbiter_round1() -> Result<(String, String)> {
         let id_arbiter = Identifier::try_from(3u16)
-            .map_err(|e| anyhow::anyhow!("Failed to create arbiter identifier: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to create arbiter identifier: {e:?}"))?;
 
         let threshold = 2u16;
         let max_signers = 3u16;
 
-        let (r1_secret, r1_package) = dkg::part1(id_arbiter, max_signers, threshold, &mut OsRng)
-            .map_err(|e| anyhow::anyhow!("FROST DKG part1 failed: {:?}", e))?;
+        let (r1_secret, r1_package) = dkg::part1(id_arbiter, max_signers, threshold, OsRng)
+            .map_err(|e| anyhow::anyhow!("FROST DKG part1 failed: {e:?}"))?;
 
         // Serialize to hex
         let package_hex = hex::encode(
             r1_package
                 .serialize()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize R1 package: {:?}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to serialize R1 package: {e:?}"))?,
         );
         let secret_hex = hex::encode(
             r1_secret
                 .serialize()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize R1 secret: {:?}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to serialize R1 secret: {e:?}"))?,
         );
 
         info!("Generated arbiter Round 1 package");
@@ -538,7 +538,7 @@ impl FrostCoordinator {
         let r1_secret_bytes =
             hex::decode(arbiter_r1_secret_hex).context("Failed to decode arbiter R1 secret hex")?;
         let r1_secret = dkg::round1::SecretPackage::deserialize(&r1_secret_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize R1 secret: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize R1 secret: {e:?}"))?;
 
         // Get other parties' R1 packages
         let id_buyer = Identifier::try_from(1u16).unwrap();
@@ -560,9 +560,9 @@ impl FrostCoordinator {
         .context("Failed to decode vendor R1 package")?;
 
         let buyer_r1 = dkg::round1::Package::deserialize(&buyer_r1_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize buyer R1: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize buyer R1: {e:?}"))?;
         let vendor_r1 = dkg::round1::Package::deserialize(&vendor_r1_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize vendor R1: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize vendor R1: {e:?}"))?;
 
         // Build map of other R1 packages
         let mut other_r1 = BTreeMap::new();
@@ -571,7 +571,7 @@ impl FrostCoordinator {
 
         // Generate Round 2
         let (r2_secret, r2_packages) = dkg::part2(r1_secret, &other_r1)
-            .map_err(|e| anyhow::anyhow!("FROST DKG part2 failed: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("FROST DKG part2 failed: {e:?}"))?;
 
         // Convert to HashMap<String, String> (recipient_index -> package_hex)
         let mut packages = std::collections::HashMap::new();
@@ -587,7 +587,7 @@ impl FrostCoordinator {
             };
             let pkg_hex = hex::encode(
                 pkg.serialize()
-                    .map_err(|e| anyhow::anyhow!("Failed to serialize R2 package: {:?}", e))?,
+                    .map_err(|e| anyhow::anyhow!("Failed to serialize R2 package: {e:?}"))?,
             );
             packages.insert(index, pkg_hex);
         }
@@ -595,7 +595,7 @@ impl FrostCoordinator {
         let secret_hex = hex::encode(
             r2_secret
                 .serialize()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize R2 secret: {:?}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to serialize R2 secret: {e:?}"))?,
         );
 
         info!(
@@ -654,7 +654,7 @@ impl FrostCoordinator {
         let r2_secret_bytes =
             hex::decode(arbiter_r2_secret_hex).context("Failed to decode arbiter R2 secret hex")?;
         let r2_secret = dkg::round2::SecretPackage::deserialize(&r2_secret_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 secret: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 secret: {e:?}"))?;
 
         // Get other parties' R1 packages (needed for part3)
         let id_buyer = Identifier::try_from(1u16).unwrap();
@@ -674,9 +674,9 @@ impl FrostCoordinator {
         )?;
 
         let buyer_r1 = dkg::round1::Package::deserialize(&buyer_r1_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize buyer R1: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize buyer R1: {e:?}"))?;
         let vendor_r1 = dkg::round1::Package::deserialize(&vendor_r1_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize vendor R1: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize vendor R1: {e:?}"))?;
 
         let mut other_r1 = BTreeMap::new();
         other_r1.insert(id_buyer, buyer_r1);
@@ -697,9 +697,9 @@ impl FrostCoordinator {
         )?;
 
         let r2_from_buyer = dkg::round2::Package::deserialize(&r2_from_buyer_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 from buyer: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 from buyer: {e:?}"))?;
         let r2_from_vendor = dkg::round2::Package::deserialize(&r2_from_vendor_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 from vendor: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to deserialize R2 from vendor: {e:?}"))?;
 
         let mut r2_for_arbiter = BTreeMap::new();
         r2_for_arbiter.insert(id_buyer, r2_from_buyer);
@@ -707,19 +707,19 @@ impl FrostCoordinator {
 
         // Finalize Round 3
         let (key_package, pub_package) = dkg::part3(&r2_secret, &other_r1, &r2_for_arbiter)
-            .map_err(|e| anyhow::anyhow!("FROST DKG part3 failed: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("FROST DKG part3 failed: {e:?}"))?;
 
         // Serialize
         let key_package_hex = hex::encode(
             key_package
                 .serialize()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize key_package: {:?}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to serialize key_package: {e:?}"))?,
         );
         let group_pubkey_hex = hex::encode(
             pub_package
                 .verifying_key()
                 .serialize()
-                .map_err(|e| anyhow::anyhow!("Failed to serialize group pubkey: {:?}", e))?,
+                .map_err(|e| anyhow::anyhow!("Failed to serialize group pubkey: {e:?}"))?,
         );
 
         info!(

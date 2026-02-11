@@ -111,7 +111,7 @@ pub fn encrypt_partial_signature(
 ) -> Result<JsValue, JsValue> {
     // Parse private key
     let private_bytes = hex::decode(my_private_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid private key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid private key hex: {e}")))?;
 
     if private_bytes.len() != 32 {
         return Err(JsValue::from_str("Private key must be 32 bytes"));
@@ -124,7 +124,7 @@ pub fn encrypt_partial_signature(
 
     // Parse peer public key
     let peer_bytes = hex::decode(peer_pubkey_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid peer pubkey hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid peer pubkey hex: {e}")))?;
 
     if peer_bytes.len() != 32 {
         return Err(JsValue::from_str("Peer public key must be 32 bytes"));
@@ -145,19 +145,19 @@ pub fn encrypt_partial_signature(
 
     // Create cipher
     let cipher = ChaCha20Poly1305::new_from_slice(&key_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Cipher init failed: {e}")))?;
 
     // Generate random nonce (12 bytes)
     let mut nonce_bytes = [0u8; 12];
     getrandom::getrandom(&mut nonce_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Nonce generation failed: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Nonce generation failed: {e}")))?;
     let nonce = Nonce::from_slice(&nonce_bytes);
 
     // Encrypt the partial data
     let plaintext = partial_data_json.as_bytes();
     let ciphertext = cipher
         .encrypt(nonce, plaintext)
-        .map_err(|e| JsValue::from_str(&format!("Encryption failed: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Encryption failed: {e}")))?;
 
     // Return result
     let my_public = PublicKey::from(&my_secret);
@@ -189,7 +189,7 @@ pub fn decrypt_partial_signature(
 ) -> Result<JsValue, JsValue> {
     // Parse private key
     let private_bytes = hex::decode(my_private_key_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid private key hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid private key hex: {e}")))?;
 
     if private_bytes.len() != 32 {
         return Err(JsValue::from_str("Private key must be 32 bytes"));
@@ -202,7 +202,7 @@ pub fn decrypt_partial_signature(
 
     // Parse peer public key
     let peer_bytes = hex::decode(peer_pubkey_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid peer pubkey hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid peer pubkey hex: {e}")))?;
 
     if peer_bytes.len() != 32 {
         return Err(JsValue::from_str("Peer public key must be 32 bytes"));
@@ -214,7 +214,7 @@ pub fn decrypt_partial_signature(
 
     // Parse nonce
     let nonce_bytes = hex::decode(nonce_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid nonce hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid nonce hex: {e}")))?;
 
     if nonce_bytes.len() != 12 {
         return Err(JsValue::from_str("Nonce must be 12 bytes"));
@@ -224,7 +224,7 @@ pub fn decrypt_partial_signature(
 
     // Decode ciphertext
     let ciphertext = base64::decode(encrypted_blob_base64)
-        .map_err(|e| JsValue::from_str(&format!("Invalid base64: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid base64: {e}")))?;
 
     // Derive shared secret via ECDH
     let shared_secret = my_secret.diffie_hellman(&peer_public);
@@ -237,16 +237,16 @@ pub fn decrypt_partial_signature(
 
     // Create cipher
     let cipher = ChaCha20Poly1305::new_from_slice(&key_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Cipher init failed: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Cipher init failed: {e}")))?;
 
     // Decrypt
     let plaintext = cipher
         .decrypt(nonce, ciphertext.as_ref())
-        .map_err(|e| JsValue::from_str(&format!("Decryption failed: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Decryption failed: {e}")))?;
 
     // Convert to string
     let partial_data_json = String::from_utf8(plaintext)
-        .map_err(|e| JsValue::from_str(&format!("Invalid UTF-8: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid UTF-8: {e}")))?;
 
     let result = DecryptedPartialResult { partial_data_json };
 

@@ -82,8 +82,8 @@ fn hash_to_point(data: [u8; 32]) -> EdwardsPoint {
     let mut counter = 0u8;
     loop {
         let mut hasher = Keccak256::new();
-        hasher.update(&data);
-        hasher.update(&[counter]);
+        hasher.update(data);
+        hasher.update([counter]);
         let hash: [u8; 32] = hasher.finalize().into();
         if let Some(point) = CompressedEdwardsY(hash).decompress() {
             return point.mul_by_cofactor();
@@ -166,8 +166,8 @@ fn main() {
     // Compute derivation
     let shared_secret = (view_key * tx_pub_key).mul_by_cofactor();
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret.compress().to_bytes());
-    hasher.update(&encode_varint(OUTPUT_INDEX));
+    hasher.update(shared_secret.compress().to_bytes());
+    hasher.update(encode_varint(OUTPUT_INDEX));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -189,7 +189,7 @@ fn main() {
             "       Computed: {}",
             hex::encode(computed_otp.compress().as_bytes())
         );
-        println!("       DB:       {}", DB_ONE_TIME_PUBKEY);
+        println!("       DB:       {DB_ONE_TIME_PUBKEY}");
         return;
     }
 
@@ -312,7 +312,7 @@ fn main() {
             // Real commitment for our output
             let mask = random_scalar();
             let commitment =
-                &mask * ED25519_BASEPOINT_TABLE + &Scalar::from(AMOUNT) * hash_to_point([0u8; 32]); // H point
+                &mask * ED25519_BASEPOINT_TABLE + Scalar::from(AMOUNT) * hash_to_point([0u8; 32]); // H point
             ring_commitments.push(commitment);
         } else {
             // Random decoys
@@ -322,8 +322,8 @@ fn main() {
     }
 
     println!("4.1 Ring Setup:");
-    println!("    Ring size: {}", ring_size);
-    println!("    Signer index: {}", signer_index);
+    println!("    Ring size: {ring_size}");
+    println!("    Signer index: {signer_index}");
     println!(
         "    ring[{}] = P = {}",
         signer_index,
@@ -572,10 +572,10 @@ fn main() {
     println!("4. CLSAG signing computes mu_P, mu_C with wrong KI");
     println!("5. s-value is computed with wrong mu values");
     println!("6. Verification fails because mu mismatch");
-    println!("");
+    println!();
     println!("CORRECT VALUES FOR THIS ESCROW:");
     println!("================================");
-    println!("one_time_pubkey: {}", DB_ONE_TIME_PUBKEY);
+    println!("one_time_pubkey: {DB_ONE_TIME_PUBKEY}");
     println!(
         "key_image:       {}",
         hex::encode(key_image.compress().as_bytes())
@@ -588,7 +588,7 @@ fn main() {
         "PKI_buyer:       {}",
         hex::encode(pki_buyer.compress().as_bytes())
     );
-    println!("");
+    println!();
     println!("FIX REQUIRED:");
     println!("=============");
     println!("1. sign-action.js must re-submit PKI for BOTH signers with correct λ");

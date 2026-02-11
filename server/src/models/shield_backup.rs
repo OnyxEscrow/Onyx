@@ -60,7 +60,7 @@ impl ShieldBackup {
         let new_backup = NewShieldBackup {
             id: format!(
                 "shld_{}",
-                Uuid::new_v4().to_string().replace("-", "")[..16].to_string()
+                &Uuid::new_v4().to_string().replace("-", "")[..16]
             ),
             escrow_id: escrow_id.to_string(),
             user_id: user_id.to_string(),

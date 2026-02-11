@@ -16,7 +16,7 @@ use frost_ed25519::{
 };
 use rand_core::{CryptoRng, RngCore};
 
-/// A simple RNG wrapper using getrandom for no_std compatibility.
+/// A simple RNG wrapper using getrandom for `no_std` compatibility.
 struct GetrandomRng;
 
 impl RngCore for GetrandomRng {
@@ -65,7 +65,7 @@ use super::types::{DkgFinalResult, DkgRound1Result, DkgRound2Result};
 /// * `max_signers` - Total number of signers (always 3)
 ///
 /// # Returns
-/// * `Ok(DkgRound1Result)` - Contains round1_package and secret_package (hex encoded)
+/// * `Ok(DkgRound1Result)` - Contains `round1_package` and `secret_package` (hex encoded)
 /// * `Err(CryptoError)` - If parameters are invalid
 ///
 /// # Example
@@ -82,32 +82,30 @@ pub fn dkg_part1(
     // Validate inputs
     if participant_index < 1 || participant_index > max_signers {
         return Err(CryptoError::FrostDkgError(format!(
-            "participant_index must be 1-{}, got {}",
-            max_signers, participant_index
+            "participant_index must be 1-{max_signers}, got {participant_index}"
         )));
     }
     if threshold < 2 || threshold > max_signers {
         return Err(CryptoError::FrostDkgError(format!(
-            "threshold must be 2-{}, got {}",
-            max_signers, threshold
+            "threshold must be 2-{max_signers}, got {threshold}"
         )));
     }
 
     // Create identifier for this participant
     let identifier = Identifier::try_from(participant_index)
-        .map_err(|e| CryptoError::FrostDkgError(format!("Invalid identifier: {:?}", e)))?;
+        .map_err(|e| CryptoError::FrostDkgError(format!("Invalid identifier: {e:?}")))?;
 
     // Generate Round 1 package
     let (round1_secret, round1_package) =
         dkg::part1(identifier, max_signers, threshold, &mut GetrandomRng)
-            .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 1 failed: {:?}", e)))?;
+            .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 1 failed: {e:?}")))?;
 
     // Serialize for storage/transmission
     let secret_bytes = round1_secret.serialize().map_err(|e| {
-        CryptoError::SerializationError(format!("Failed to serialize secret: {:?}", e))
+        CryptoError::SerializationError(format!("Failed to serialize secret: {e:?}"))
     })?;
     let package_bytes = round1_package.serialize().map_err(|e| {
-        CryptoError::SerializationError(format!("Failed to serialize package: {:?}", e))
+        CryptoError::SerializationError(format!("Failed to serialize package: {e:?}"))
     })?;
 
     Ok(DkgRound1Result {
@@ -121,11 +119,11 @@ pub fn dkg_part1(
 /// Called after all participants have submitted their Round 1 packages.
 ///
 /// # Arguments
-/// * `secret_package_hex` - The secret_package from dkg_part1 (hex)
+/// * `secret_package_hex` - The `secret_package` from `dkg_part1` (hex)
 /// * `all_round1_packages` - All participants' Round 1 packages: { "1": "hex...", "2": "hex...", "3": "hex..." }
 ///
 /// # Returns
-/// * `Ok(DkgRound2Result)` - Contains round2_packages for each recipient and round2_secret
+/// * `Ok(DkgRound2Result)` - Contains `round2_packages` for each recipient and `round2_secret`
 /// * `Err(CryptoError)` - If deserialization or computation fails
 ///
 /// # Security
@@ -135,31 +133,29 @@ pub fn dkg_part2(
     all_round1_packages: &BTreeMap<String, String>,
 ) -> CryptoResult<DkgRound2Result> {
     // Deserialize secret package
-    let secret_bytes = hex::decode(secret_package_hex).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid secret_package hex: {:?}", e))
-    })?;
+    let secret_bytes = hex::decode(secret_package_hex)
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid secret_package hex: {e:?}")))?;
     let round1_secret = round1::SecretPackage::deserialize(&secret_bytes).map_err(|e| {
-        CryptoError::DeserializationError(format!("Failed to deserialize secret: {:?}", e))
+        CryptoError::DeserializationError(format!("Failed to deserialize secret: {e:?}"))
     })?;
 
     // Parse all round1 packages
     let mut round1_packages: BTreeMap<Identifier, round1::Package> = BTreeMap::new();
 
     for (id_str, pkg_hex) in all_round1_packages {
-        let id_num: u16 = id_str.parse().map_err(|_| {
-            CryptoError::FrostDkgError(format!("Invalid participant ID: {}", id_str))
-        })?;
+        let id_num: u16 = id_str
+            .parse()
+            .map_err(|_| CryptoError::FrostDkgError(format!("Invalid participant ID: {id_str}")))?;
         let identifier = Identifier::try_from(id_num).map_err(|e| {
-            CryptoError::FrostDkgError(format!("Invalid identifier {}: {:?}", id_num, e))
+            CryptoError::FrostDkgError(format!("Invalid identifier {id_num}: {e:?}"))
         })?;
 
         let pkg_bytes = hex::decode(pkg_hex).map_err(|e| {
-            CryptoError::HexDecodeFailed(format!("Invalid package hex for {}: {:?}", id_str, e))
+            CryptoError::HexDecodeFailed(format!("Invalid package hex for {id_str}: {e:?}"))
         })?;
         let package = round1::Package::deserialize(&pkg_bytes).map_err(|e| {
             CryptoError::DeserializationError(format!(
-                "Failed to deserialize package {}: {:?}",
-                id_str, e
+                "Failed to deserialize package {id_str}: {e:?}"
             ))
         })?;
 
@@ -168,7 +164,7 @@ pub fn dkg_part2(
 
     // Execute Round 2
     let (round2_secret, round2_packages) = dkg::part2(round1_secret, &round1_packages)
-        .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 2 failed: {:?}", e)))?;
+        .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 2 failed: {e:?}")))?;
 
     // Serialize Round 2 packages for each recipient
     let mut packages_out: BTreeMap<String, String> = BTreeMap::new();
@@ -176,14 +172,14 @@ pub fn dkg_part2(
         let id_bytes = recipient_id.serialize();
         let id_num = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
         let pkg_bytes = package.serialize().map_err(|e| {
-            CryptoError::SerializationError(format!("Failed to serialize round2 package: {:?}", e))
+            CryptoError::SerializationError(format!("Failed to serialize round2 package: {e:?}"))
         })?;
         packages_out.insert(id_num.to_string(), hex::encode(&pkg_bytes));
     }
 
     // Serialize secret for Round 3
     let secret_bytes = round2_secret.serialize().map_err(|e| {
-        CryptoError::SerializationError(format!("Failed to serialize round2 secret: {:?}", e))
+        CryptoError::SerializationError(format!("Failed to serialize round2 secret: {e:?}"))
     })?;
 
     Ok(DkgRound2Result {
@@ -192,17 +188,17 @@ pub fn dkg_part2(
     })
 }
 
-/// DKG Round 3: Finalize and get KeyPackage
+/// DKG Round 3: Finalize and get `KeyPackage`
 ///
 /// Called after receiving Round 2 packages from other participants.
 ///
 /// # Arguments
-/// * `round2_secret_hex` - The round2_secret from dkg_part2 (hex)
+/// * `round2_secret_hex` - The `round2_secret` from `dkg_part2` (hex)
 /// * `round1_packages` - All Round 1 packages: { "1": "hex...", "2": "hex...", "3": "hex..." }
 /// * `round2_packages` - Round 2 packages received from others: { "1": "hex...", "2": "hex..." }
 ///
 /// # Returns
-/// * `Ok(DkgFinalResult)` - Contains key_package, group_public_key, and verifying_share
+/// * `Ok(DkgFinalResult)` - Contains `key_package`, `group_public_key`, and `verifying_share`
 /// * `Err(CryptoError)` - If finalization fails
 ///
 /// # Security
@@ -214,9 +210,9 @@ pub fn dkg_part3(
 ) -> CryptoResult<DkgFinalResult> {
     // Deserialize Round 2 secret
     let secret_bytes = hex::decode(round2_secret_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid round2_secret hex: {:?}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid round2_secret hex: {e:?}")))?;
     let round2_secret = round2::SecretPackage::deserialize(&secret_bytes).map_err(|e| {
-        CryptoError::DeserializationError(format!("Failed to deserialize round2 secret: {:?}", e))
+        CryptoError::DeserializationError(format!("Failed to deserialize round2 secret: {e:?}"))
     })?;
 
     // Parse Round 1 packages
@@ -251,22 +247,22 @@ pub fn dkg_part3(
 
     // Execute Round 3 - finalize
     let (key_package, public_key_package) = dkg::part3(&round2_secret, &r1_packages, &r2_packages)
-        .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 3 failed: {:?}", e)))?;
+        .map_err(|e| CryptoError::FrostDkgError(format!("DKG Round 3 failed: {e:?}")))?;
 
     // Serialize results
     let key_pkg_bytes = key_package.serialize().map_err(|e| {
-        CryptoError::SerializationError(format!("Failed to serialize key_package: {:?}", e))
+        CryptoError::SerializationError(format!("Failed to serialize key_package: {e:?}"))
     })?;
 
     let group_key_bytes = public_key_package
         .verifying_key()
         .serialize()
         .map_err(|e| {
-            CryptoError::SerializationError(format!("Failed to serialize group key: {:?}", e))
+            CryptoError::SerializationError(format!("Failed to serialize group key: {e:?}"))
         })?;
 
     let verifying_share_bytes = key_package.verifying_share().serialize().map_err(|e| {
-        CryptoError::SerializationError(format!("Failed to serialize verifying share: {:?}", e))
+        CryptoError::SerializationError(format!("Failed to serialize verifying share: {e:?}"))
     })?;
 
     Ok(DkgFinalResult {
@@ -276,12 +272,12 @@ pub fn dkg_part3(
     })
 }
 
-/// Extract the secret share scalar from a KeyPackage
+/// Extract the secret share scalar from a `KeyPackage`
 ///
 /// Returns the raw 32-byte secret share as hex, suitable for use in CLSAG signing.
 ///
 /// # Arguments
-/// * `key_package_hex` - The hex-encoded KeyPackage from DKG Round 3
+/// * `key_package_hex` - The hex-encoded `KeyPackage` from DKG Round 3
 ///
 /// # Returns
 /// * `Ok(String)` - The 64-character hex string of the secret share scalar
@@ -291,9 +287,9 @@ pub fn dkg_part3(
 /// This exposes the raw secret scalar. Handle with extreme care!
 pub fn extract_secret_share(key_package_hex: &str) -> CryptoResult<String> {
     let key_bytes = hex::decode(key_package_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid key_package hex: {:?}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid key_package hex: {e:?}")))?;
     let key_package = KeyPackage::deserialize(&key_bytes).map_err(|e| {
-        CryptoError::DeserializationError(format!("Failed to deserialize key_package: {:?}", e))
+        CryptoError::DeserializationError(format!("Failed to deserialize key_package: {e:?}"))
     })?;
 
     // Get the signing share (secret scalar)

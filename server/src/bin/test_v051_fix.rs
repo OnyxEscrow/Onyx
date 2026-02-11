@@ -155,8 +155,8 @@ fn compute_derivation(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index:
 
     // Hash: H_s(shared_secret || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
 
     Scalar::from_bytes_mod_order(hash)
@@ -318,7 +318,7 @@ fn main() {
         "P from x_total (BUG):     {}",
         hex::encode(p_computed_bug.compress().to_bytes())
     );
-    println!("P expected:               {}", EXPECTED_ONE_TIME_PUBKEY);
+    println!("P expected:               {EXPECTED_ONE_TIME_PUBKEY}");
 
     if p_computed_correct == p_expected {
         println!("\n✅ CORRECT formula: x_total * G == P");
@@ -351,7 +351,7 @@ fn main() {
         "Key Image (BUG):     {}",
         hex::encode(ki_bug.compress().to_bytes())
     );
-    println!("Key Image expected:  {}", EXPECTED_KEY_IMAGE);
+    println!("Key Image expected:  {EXPECTED_KEY_IMAGE}");
 
     if hex::encode(ki_correct.compress().to_bytes()) == EXPECTED_KEY_IMAGE {
         println!("\n✅ Key Image MATCHES with CORRECT formula!");
@@ -369,8 +369,8 @@ fn main() {
     let pseudo_out_mask = hex_to_scalar(PSEUDO_OUT_MASK);
     let mask_delta = z - pseudo_out_mask;
 
-    println!("funding_mask (z):    {}", FUNDING_MASK);
-    println!("pseudo_out_mask:     {}", PSEUDO_OUT_MASK);
+    println!("funding_mask (z):    {FUNDING_MASK}");
+    println!("pseudo_out_mask:     {PSEUDO_OUT_MASK}");
     println!(
         "mask_delta (z-pom):  {}",
         hex::encode(mask_delta.to_bytes())

@@ -109,7 +109,7 @@ fn validate_edwards_point_hex(hex_key: &str) -> Result<(), String> {
     }
 
     // Decode hex
-    let bytes = hex::decode(hex_key).map_err(|e| format!("Invalid hex: {}", e))?;
+    let bytes = hex::decode(hex_key).map_err(|e| format!("Invalid hex: {e}"))?;
 
     // Convert to fixed array
     let mut arr = [0u8; 32];
@@ -145,12 +145,12 @@ fn validate_ring_outputs(ring: &[[String; 2]]) -> Result<(), String> {
 
         // Validate public key
         if let Err(e) = validate_edwards_point_hex(public_key) {
-            return Err(format!("Ring member {} public_key invalid: {}", i, e));
+            return Err(format!("Ring member {i} public_key invalid: {e}"));
         }
 
         // Validate commitment (also an Edwards point)
         if let Err(e) = validate_edwards_point_hex(commitment) {
-            return Err(format!("Ring member {} commitment invalid: {}", i, e));
+            return Err(format!("Ring member {i} commitment invalid: {e}"));
         }
     }
 
@@ -850,7 +850,7 @@ pub async fn initiate_dispute(
         let reason = payload.reason.clone();
         let current_arbiter = escrow.arbiter_id.clone();
         if let Err(e) = web::block(move || {
-            let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+            let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
 
             // If arbiter_id is "system_arbiter" or "pending", resolve to real UUID
             let resolved_arbiter =
@@ -874,7 +874,7 @@ pub async fn initiate_dispute(
                     escrows::updated_at.eq(diesel::dsl::now),
                 ))
                 .execute(&mut conn)
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
         })
         .await
         {
@@ -1001,13 +1001,13 @@ pub async fn resolve_dispute(
         let pool_ref = _pool.clone();
         let uid = user_id.to_string();
         let is_arbiter = match web::block(move || {
-            let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+            let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
             users::table
                 .filter(users::id.eq(&uid))
                 .select(users::role)
                 .first::<String>(&mut conn)
                 .optional()
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
         })
         .await
         {
@@ -1082,7 +1082,7 @@ pub async fn resolve_dispute(
         let addr = payload.recipient_address.clone();
 
         if let Err(e) = web::block(move || {
-            let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+            let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
             diesel::update(escrows::table.filter(escrows::id.eq(&eid)))
                 .set((
                     escrows::dispute_signing_pair.eq(Some(&pair)),
@@ -1090,7 +1090,7 @@ pub async fn resolve_dispute(
                     escrows::updated_at.eq(diesel::dsl::now),
                 ))
                 .execute(&mut conn)
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
         })
         .await
         {
@@ -1123,14 +1123,14 @@ pub async fn resolve_dispute(
         };
 
         if let Err(e) = web::block(move || {
-            let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+            let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
             diesel::update(escrows::table.filter(escrows::id.eq(&eid)))
                 .set((
                     escrows::status.eq(resolved_status),
                     escrows::updated_at.eq(diesel::dsl::now),
                 ))
                 .execute(&mut conn)
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
         })
         .await
         {
@@ -1171,14 +1171,14 @@ pub async fn resolve_dispute(
         };
 
         if let Err(e) = web::block(move || {
-            let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+            let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
             diesel::update(escrows::table.filter(escrows::id.eq(&eid)))
                 .set((
                     escrows::status.eq(new_status),
                     escrows::updated_at.eq(diesel::dsl::now),
                 ))
                 .execute(&mut conn)
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
         })
         .await
         {
@@ -1258,11 +1258,11 @@ pub async fn resolve_dispute(
                 "completed"
             };
             let _ = web::block(move || {
-                let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+                let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
                 diesel::update(escrows.filter(id.eq(&eid)))
                     .set((status.eq(final_status), broadcast_tx_hash.eq(&txh)))
                     .execute(&mut conn)
-                    .map_err(|e| format!("{}", e))
+                    .map_err(|e| format!("{e}"))
             })
             .await;
         }
@@ -1670,7 +1670,7 @@ pub async fn get_multisig_address(
                 escrow_id: escrow.id,
                 multisig_address: escrow.multisig_address,
                 status: escrow.status,
-                amount_xmr: format!("{:.12}", amount_xmr),
+                amount_xmr: format!("{amount_xmr:.12}"),
             })
         }
         Err(e) => HttpResponse::NotFound().json(serde_json::json!({
@@ -1840,9 +1840,9 @@ pub async fn request_partial_refund(
     let db_result = tokio::task::spawn_blocking(move || {
         let mut conn = db_pool
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+            .map_err(|e| format!("DB connection error: {e}"))?;
         Escrow::request_refund(&mut conn, escrow_id_for_db, &refund_addr_clone)
-            .map_err(|e| format!("Failed to record refund request: {}", e))
+            .map_err(|e| format!("Failed to record refund request: {e}"))
     })
     .await;
 
@@ -1873,10 +1873,9 @@ pub async fn request_partial_refund(
                     NotificationType::EscrowUpdate,
                     "Refund Request Pending".to_string(),
                     format!(
-                        "Buyer has requested refund of {:.6} XMR from underfunded escrow. Please sign to approve.",
-                        balance_xmr
+                        "Buyer has requested refund of {balance_xmr:.6} XMR from underfunded escrow. Please sign to approve."
                     ),
-                    Some(format!("/escrow/{}", escrow_id_for_notif)),
+                    Some(format!("/escrow/{escrow_id_for_notif}")),
                     Some(serde_json::json!({
                         "escrow_id": escrow_id_for_notif,
                         "event": "refund_requested",
@@ -1895,7 +1894,7 @@ pub async fn request_partial_refund(
                 escrow_id: escrow.id,
                 status: "refund_requested".to_string(),
                 balance_recoverable: escrow.balance_received,
-                balance_recoverable_xmr: format!("{:.6}", balance_xmr),
+                balance_recoverable_xmr: format!("{balance_xmr:.6}"),
                 refund_address: refund_address.to_string(),
                 requires_arbiter_signature: true,
                 message: "Refund request submitted. Arbiter will process within 48-72 hours."
@@ -1935,9 +1934,9 @@ pub async fn request_partial_refund(
 /// CRITICAL: This prevents loss of funds from invalid or wrong-network addresses
 fn validate_monero_address(address: &str) -> Result<(), String> {
     let network =
-        get_configured_network().map_err(|e| format!("Network configuration error: {}", e))?;
+        get_configured_network().map_err(|e| format!("Network configuration error: {e}"))?;
 
-    validate_address_for_network(address, network).map_err(|e| format!("{}", e))
+    validate_address_for_network(address, network).map_err(|e| format!("{e}"))
 }
 
 // ============================================================================
@@ -2059,9 +2058,9 @@ pub async fn check_escrow_balance(
                 success: true,
                 escrow_id: escrow_id.to_string(),
                 balance_atomic: balance,
-                balance_xmr: format!("{:.12}", balance_xmr),
+                balance_xmr: format!("{balance_xmr:.12}"),
                 unlocked_balance_atomic: unlocked_balance,
-                unlocked_balance_xmr: format!("{:.12}", unlocked_balance_xmr),
+                unlocked_balance_xmr: format!("{unlocked_balance_xmr:.12}"),
                 multisig_address: escrow.multisig_address.unwrap_or_default(),
             })
         }
@@ -2267,7 +2266,7 @@ pub async fn sign_action(
         );
 
         return HttpResponse::Ok().json(SignActionResponse {
-            signature: format!("wasm_seed_validated_{}", escrow_id),
+            signature: format!("wasm_seed_validated_{escrow_id}"),
             tx_set: None,
             status: "wasm_signing_pending".to_string(),
             signatures_count: 1,
@@ -2435,7 +2434,7 @@ pub async fn sign_action(
     // Return success response (signature exchange will be implemented when
     // wallet RPC is integrated with AppState)
     HttpResponse::Ok().json(SignActionResponse {
-        signature: format!("phase6_crypto_pipeline_success_{}", escrow_id),
+        signature: format!("phase6_crypto_pipeline_success_{escrow_id}"),
         tx_set: None,
         status: "crypto_pipeline_validated".to_string(),
         signatures_count: 1,
@@ -2552,7 +2551,7 @@ pub async fn send_message(
     };
 
     ws_server.do_send(crate::websocket::WsEvent::NewMessage {
-        escrow_id: escrow_id,
+        escrow_id,
         sender_id: sender_uuid,
         message_id: message.id.clone(),
     });
@@ -2818,14 +2817,14 @@ async fn call_daemon_get_outs(
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(45)) // v0.43.0: Increased from 10s for bootstrap daemon
         .build()
-        .map_err(|e| format!("HTTP client error: {}", e))?;
+        .map_err(|e| format!("HTTP client error: {e}"))?;
 
     // Convert daemon_url to base URL and append /get_outs
     // Handle both "http://127.0.0.1:38081" and "http://127.0.0.1:38081/json_rpc" formats
     let base_url = daemon_url
         .trim_end_matches('/')
         .trim_end_matches("/json_rpc");
-    let get_outs_url = format!("{}/get_outs", base_url);
+    let get_outs_url = format!("{base_url}/get_outs");
 
     info!(
         "Calling daemon get_outs: {} with {} outputs (indices: {:?})",
@@ -2840,29 +2839,29 @@ async fn call_daemon_get_outs(
         .json(&request)
         .send()
         .await
-        .map_err(|e| format!("Daemon request failed: {}", e))?;
+        .map_err(|e| format!("Daemon request failed: {e}"))?;
 
     let response_json: serde_json::Value = response
         .json()
         .await
-        .map_err(|e| format!("Failed to parse daemon response: {}", e))?;
+        .map_err(|e| format!("Failed to parse daemon response: {e}"))?;
 
     // Check for error in response
     if let Some(error) = response_json.get("error") {
-        return Err(format!("Daemon error: {}", error));
+        return Err(format!("Daemon error: {error}"));
     }
 
     // Check status field
     if let Some(status) = response_json.get("status").and_then(|s| s.as_str()) {
         if status != "OK" {
-            return Err(format!("Daemon returned status: {}", status));
+            return Err(format!("Daemon returned status: {status}"));
         }
     }
 
     // Parse directly (response is not wrapped in "result")
     let get_outs_response: monero_marketplace_common::types::GetOutsResponse =
         serde_json::from_value(response_json.clone())
-            .map_err(|e| format!("Failed to deserialize get_outs response: {}", e))?;
+            .map_err(|e| format!("Failed to deserialize get_outs response: {e}"))?;
 
     info!(
         "Received {} output keys from daemon (status: {})",
@@ -3344,7 +3343,7 @@ pub async fn prepare_sign(
                         let mut tx_secret_hasher = Keccak256::new();
                         tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
                         tx_secret_hasher.update(escrow.id.as_bytes());
-                        tx_secret_hasher.update(&escrow.amount.to_le_bytes());
+                        tx_secret_hasher.update(escrow.amount.to_le_bytes());
                         let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
                         let tx_pubkey = generate_tx_pubkey(&tx_secret_key);
@@ -3819,7 +3818,7 @@ pub async fn prepare_sign(
                 let mut tx_secret_hasher = Keccak256::new();
                 tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
                 tx_secret_hasher.update(escrow.id.as_bytes());
-                tx_secret_hasher.update(&escrow.amount.to_le_bytes());
+                tx_secret_hasher.update(escrow.amount.to_le_bytes());
                 let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
                 let output_mask = match derive_output_mask(&tx_secret_key, &dest_view_pub, 0) {
@@ -4492,7 +4491,7 @@ pub async fn prepare_sign(
     let mut tx_secret_hasher = Keccak256::new();
     tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
     tx_secret_hasher.update(escrow.id.as_bytes());
-    tx_secret_hasher.update(&escrow.amount.to_le_bytes());
+    tx_secret_hasher.update(escrow.amount.to_le_bytes());
     let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
     let tx_pubkey = generate_tx_pubkey(&tx_secret_key);
@@ -4784,7 +4783,7 @@ pub async fn prepare_sign(
     // Step 2: Compute full CLSAG message = hash(tx_prefix_hash || ss_hash || bp_kv_hash)
     let clsag_message: String = match builder.compute_clsag_message(&[pseudo_out]) {
         Ok(msg) => {
-            let msg_hex = hex::encode(&msg);
+            let msg_hex = hex::encode(msg);
             info!(
                 escrow_id = %escrow_id_str,
                 clsag_message = %msg_hex,
@@ -4829,8 +4828,8 @@ pub async fn prepare_sign(
         "output_index": escrow.funding_output_index,
         // v0.10.6 FIX: Store server-computed pseudo_out and output_commitment
         // These MUST match what signers compute and what broadcast uses
-        "pseudo_out": hex::encode(&pseudo_out),
-        "output_commitment": hex::encode(&output_commitment),
+        "pseudo_out": hex::encode(pseudo_out),
+        "output_commitment": hex::encode(output_commitment),
         // v0.27.0: Store canonical funding_output_pubkey for debugging
         // This is the pubkey used to compute partial key images (pKI = x * Hp(P))
         // ring_public_keys[signer_index] MUST equal this value
@@ -4844,17 +4843,17 @@ pub async fn prepare_sign(
         "bulletproof_plus_hex": bulletproof_plus_hex,
         // v0.62.0 DIAGNOSTIC: Store encrypted_amount for output 0
         // This goes into ecdhInfo in rctSigBase -> affects clsag_message
-        "encrypted_amount_0": hex::encode(&encrypted_amount),
+        "encrypted_amount_0": hex::encode(encrypted_amount),
         // =========================================================================
         // v0.70.0: Platform fee data (2 REAL outputs)
         // CRITICAL: broadcast MUST use these exact values for tx_prefix consistency
         // =========================================================================
         "platform_stealth_address": hex::encode(platform_stealth_address),
-        "platform_commitment": hex::encode(&platform_commitment),
-        "platform_encrypted_amount": hex::encode(&platform_encrypted_amount),
+        "platform_commitment": hex::encode(platform_commitment),
+        "platform_encrypted_amount": hex::encode(platform_encrypted_amount),
         "platform_view_tag": platform_view_tag,
-        "platform_mask": hex::encode(&platform_mask),
-        "output_mask": hex::encode(&output_mask),
+        "platform_mask": hex::encode(platform_mask),
+        "output_mask": hex::encode(output_mask),
         "recipient_amount": recipient_amount,
         "platform_fee": platform_fee,
         "is_refund": is_refund
@@ -4917,13 +4916,13 @@ pub async fn prepare_sign(
         let save_result = web::block(move || {
             let mut conn = pool_clone
                 .get()
-                .map_err(|e| format!("DB pool error: {}", e))?;
+                .map_err(|e| format!("DB pool error: {e}"))?;
             crate::models::escrow::Escrow::update_ring_data_json(
                 &mut conn,
                 escrow_id_clone,
                 &ring_json_clone,
             )
-            .map_err(|e| format!("Failed to save ring data: {}", e))
+            .map_err(|e| format!("Failed to save ring data: {e}"))
         })
         .await;
 
@@ -5784,7 +5783,7 @@ pub async fn submit_signature(
                 match serde_json::from_str::<serde_json::Value>(ring_json) {
                     Ok(mut ring_data) => {
                         // Add or update the share based on role
-                        let share_key = format!("{}_frost_share", user_role);
+                        let share_key = format!("{user_role}_frost_share");
                         ring_data[&share_key] = serde_json::json!(frost_share);
 
                         let updated_ring_json = ring_data.to_string();
@@ -5900,7 +5899,7 @@ pub async fn submit_signature(
                 if let Err(e) = Escrow::update_partial_key_image(
                     &mut conn,
                     escrow_id.to_string(),
-                    &user_role,
+                    user_role,
                     partial_ki,
                 ) {
                     warn!(
@@ -5967,7 +5966,7 @@ pub async fn submit_signature(
     if updated_escrow
         .multisig_state_json
         .as_ref()
-        .map_or(false, |s| s.contains("key_image"))
+        .is_some_and(|s| s.contains("key_image"))
     {
         sig_count += 1;
     }
@@ -6125,7 +6124,7 @@ pub async fn submit_signature(
                         &escrow_id.to_string()[..8],
                         action_label
                     ),
-                    Some(format!("/escrow/{}", escrow_id)),
+                    Some(format!("/escrow/{escrow_id}")),
                     Some(
                         serde_json::json!({
                             "escrow_id": escrow_id.to_string(),
@@ -6139,7 +6138,7 @@ pub async fn submit_signature(
                 if let Err(e) = Notification::create(notification, &mut conn) {
                     tracing::warn!(
                         escrow_id = %sanitize_escrow_id(&escrow_id.to_string()),
-                        user_id = %sanitize_user_id(&next_id),
+                        user_id = %sanitize_user_id(next_id),
                         error = %e,
                         "Failed to create persistent notification for SignatureRequired"
                     );
@@ -6423,11 +6422,11 @@ pub async fn broadcast_transaction(
                 let escrow_id_clone = escrow_id.to_string();
                 let tx_hash_clone = tx_hash.clone();
                 let _ = web::block(move || {
-                    let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
+                    let mut conn = pool_clone.get().map_err(|e| format!("{e}"))?;
                     diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
                         .set((status.eq("completed"), broadcast_tx_hash.eq(&tx_hash_clone)))
                         .execute(&mut conn)
-                        .map_err(|e| format!("{}", e))
+                        .map_err(|e| format!("{e}"))
                 })
                 .await;
             }
@@ -6920,7 +6919,7 @@ pub async fn broadcast_transaction(
             info!(
                 escrow_id = %escrow_id,
                 pseudo_out = %buyer_sig.pseudo_out,
-                output_commitment = %hex::encode(&commitment),
+                output_commitment = %hex::encode(commitment),
                 fee = fee_atomic,
                 "Computed balanced output commitment (2-output)"
             );
@@ -6940,7 +6939,7 @@ pub async fn broadcast_transaction(
         use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
         use curve25519_dalek::scalar::Scalar;
         let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-        (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+        (ED25519_BASEPOINT_TABLE * &mask_scalar)
             .compress()
             .to_bytes()
     };
@@ -6984,7 +6983,7 @@ pub async fn broadcast_transaction(
             info!(
                 escrow_id = %escrow_id,
                 payout_amount = payout_amount,
-                encrypted_hex = %hex::encode(&enc),
+                encrypted_hex = %hex::encode(enc),
                 "Encrypted amount for recipient privacy"
             );
             enc
@@ -7242,7 +7241,7 @@ pub async fn broadcast_transaction(
         info!(
             escrow_id = %escrow_id,
             s_count = aggregated_s.len(),
-            s0_preview = %&aggregated_s.get(0).map(|s| &s[..16.min(s.len())]).unwrap_or(""),
+            s0_preview = %&aggregated_s.first().map(|s| &s[..16.min(s.len())]).unwrap_or(""),
             "Aggregated {} s-values from both signers",
             aggregated_s.len()
         );
@@ -7283,7 +7282,7 @@ pub async fn broadcast_transaction(
     info!(
         escrow_id = %escrow_id,
         tx_hex_len = tx_hex.len(),
-        tx_hash = %hex::encode(&tx_hash),
+        tx_hash = %hex::encode(tx_hash),
         "Transaction built, broadcasting to daemon at {}",
         daemon_url
     );
@@ -7292,7 +7291,7 @@ pub async fn broadcast_transaction(
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
         .build()
-        .map_err(|e| format!("HTTP client error: {}", e));
+        .map_err(|e| format!("HTTP client error: {e}"));
 
     let client = match client {
         Ok(c) => c,
@@ -7341,7 +7340,7 @@ pub async fn broadcast_transaction(
         sanity_check_failed: bool,
     }
 
-    let send_raw_url = format!("{}/send_raw_transaction", daemon_url);
+    let send_raw_url = format!("{daemon_url}/send_raw_transaction");
 
     let broadcast_result = client
         .post(&send_raw_url)
@@ -7452,10 +7451,7 @@ pub async fn broadcast_transaction(
             hasher.update(escrow_id_str.as_bytes());
             hasher.update(b":network_error:");
             hasher.update(chrono::Utc::now().timestamp().to_string().as_bytes());
-            (
-                hex::encode(hasher.finalize()),
-                format!("network_error:{}", e),
-            )
+            (hex::encode(hasher.finalize()), format!("network_error:{e}"))
         }
     };
 
@@ -7509,8 +7505,7 @@ pub async fn broadcast_transaction(
         tx_hash: Some(tx_hash),
         fee_atomic: Some(fee_atomic),
         message: format!(
-            "Payment sent successfully! Status: {}. Will be visible after ~2 blocks.",
-            final_status
+            "Payment sent successfully! Status: {final_status}. Will be visible after ~2 blocks."
         ),
         status: final_status.to_string(),
     })
@@ -7683,9 +7678,8 @@ pub async fn notify_funding(
     let escrow_result = tokio::task::spawn_blocking(move || {
         let mut conn = pool_clone
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
-        Escrow::find_by_id(&mut conn, escrow_id_clone)
-            .map_err(|e| format!("Escrow not found: {}", e))
+            .map_err(|e| format!("DB connection error: {e}"))?;
+        Escrow::find_by_id(&mut conn, escrow_id_clone).map_err(|e| format!("Escrow not found: {e}"))
     })
     .await;
 
@@ -7732,7 +7726,7 @@ pub async fn notify_funding(
     let update_result = tokio::task::spawn_blocking(move || {
         let mut conn = pool_clone
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+            .map_err(|e| format!("DB connection error: {e}"))?;
 
         // Update funding commitment data
         Escrow::update_funding_commitment_data(
@@ -7745,7 +7739,7 @@ pub async fn notify_funding(
             None, // output_pubkey not available from this endpoint
             None, // tx_pubkey not available from this endpoint (v0.8.2)
         )
-        .map_err(|e| format!("Failed to store commitment data: {}", e))?;
+        .map_err(|e| format!("Failed to store commitment data: {e}"))?;
 
         // Update escrow status to 'active'
         // BUG #C6 FIX: Use atomic UPDATE with status check to prevent TOCTOU race
@@ -7763,7 +7757,7 @@ pub async fn notify_funding(
             dsl::updated_at.eq(diesel::dsl::now),
         ))
         .execute(&mut conn)
-        .map_err(|e| format!("Failed to update escrow status: {}", e))?;
+        .map_err(|e| format!("Failed to update escrow status: {e}"))?;
 
         if rows_updated == 0 {
             return Err("Escrow status changed during processing (TOCTOU prevented)".to_string());
@@ -7784,7 +7778,7 @@ pub async fn notify_funding(
             );
 
             // === NOTIFICATION "IT'S YOUR TURN" POUR LES 3 PARTIES ===
-            let escrow_link = format!("/escrow/{}", escrow_id);
+            let escrow_link = format!("/escrow/{escrow_id}");
             let escrow_short = &escrow_id.to_string()[..8];
 
             // Clone data needed for spawn_blocking
@@ -7823,7 +7817,7 @@ pub async fn notify_funding(
                     buyer_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Escrow Active - Awaiting Delivery".to_string(),
-                    format!("Escrow {} is funded. Await delivery from vendor.", short_id),
+                    format!("Escrow {short_id} is funded. Await delivery from vendor."),
                     Some(link.clone()),
                     None,
                 );
@@ -7841,10 +7835,7 @@ pub async fn notify_funding(
                     vendor_id.clone(),
                     NotificationType::EscrowUpdate,
                     "It's Your Turn - Ship Order".to_string(),
-                    format!(
-                        "Escrow {} funded! Ship the order and mark as shipped.",
-                        short_id
-                    ),
+                    format!("Escrow {short_id} funded! Ship the order and mark as shipped."),
                     Some(link.clone()),
                     None,
                 );
@@ -7862,10 +7853,7 @@ pub async fn notify_funding(
                     arbiter_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Escrow Active - Monitoring".to_string(),
-                    format!(
-                        "Escrow {} is active. Monitor for potential disputes.",
-                        short_id
-                    ),
+                    format!("Escrow {short_id} is active. Monitor for potential disputes."),
                     Some(link),
                     None,
                 );
@@ -7944,7 +7932,7 @@ pub async fn debug_reset_escrow_status(
         use crate::schema::escrows::dsl::*;
         use diesel::prelude::*;
 
-        let mut conn = pool_clone.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut conn = pool_clone.get().map_err(|e| format!("DB error: {e}"))?;
 
         diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
             .set((
@@ -7986,7 +7974,7 @@ pub async fn debug_reset_escrow_status(
                 first_signer_had_r_agg.eq(None::<i32>),
             ))
             .execute(&mut conn)
-            .map_err(|e| format!("Update error: {}", e))
+            .map_err(|e| format!("Update error: {e}"))
     })
     .await
     {
@@ -8191,7 +8179,7 @@ pub async fn debug_broadcast_transaction(
     let mut tx_secret_hasher = Keccak256::new();
     tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
     tx_secret_hasher.update(escrow.id.as_bytes());
-    tx_secret_hasher.update(&escrow.amount.to_le_bytes());
+    tx_secret_hasher.update(escrow.amount.to_le_bytes());
     let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
     info!(
@@ -8232,8 +8220,8 @@ pub async fn debug_broadcast_transaction(
 
     info!(
         escrow_id = %escrow.id,
-        tx_pubkey = %hex::encode(&tx_pubkey),
-        stealth_address = %hex::encode(&stealth_address),
+        tx_pubkey = %hex::encode(tx_pubkey),
+        stealth_address = %hex::encode(stealth_address),
         output_mask_prefix = %hex::encode(&output_mask[..8]),
         "v0.9.5: Derived consistent transaction parameters"
     );
@@ -8510,13 +8498,13 @@ pub async fn debug_broadcast_transaction(
     info!(
         escrow_id = %escrow_id,
         tx_hex_len = tx_hex.len(),
-        tx_hash = %hex::encode(&tx_hash),
+        tx_hash = %hex::encode(tx_hash),
         "Transaction built, broadcasting to daemon at {}",
         daemon_url
     );
 
     // Save TX hex for debugging (debug_broadcast_transaction)
-    let debug_path = format!("/tmp/tx_debug_{}.hex", escrow_id);
+    let debug_path = format!("/tmp/tx_debug_{escrow_id}.hex");
     if let Err(e) = std::fs::write(&debug_path, &tx_hex) {
         warn!("Failed to save debug TX hex: {}", e);
     } else {
@@ -8570,7 +8558,7 @@ pub async fn debug_broadcast_transaction(
         sanity_check_failed: bool, // v0.14.0: Added for proper error detection
     }
 
-    let send_raw_url = format!("{}/send_raw_transaction", daemon_url);
+    let send_raw_url = format!("{daemon_url}/send_raw_transaction");
 
     let broadcast_result = client
         .post(&send_raw_url)
@@ -9953,8 +9941,8 @@ fn aggregate_s_values(hex1: &str, hex2: &str) -> Result<String, String> {
         return Err("Empty s-value".to_string());
     }
 
-    let bytes1 = hex::decode(hex1).map_err(|e| format!("Invalid hex s1: {}", e))?;
-    let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex s2: {}", e))?;
+    let bytes1 = hex::decode(hex1).map_err(|e| format!("Invalid hex s1: {e}"))?;
+    let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex s2: {e}"))?;
 
     if bytes1.len() != 32 || bytes2.len() != 32 {
         return Err(format!(
@@ -9987,8 +9975,8 @@ fn aggregate_d_points(hex1: &str, hex2: &str) -> Result<String, String> {
         return Err("Empty D point".to_string());
     }
 
-    let bytes1 = hex::decode(hex1).map_err(|e| format!("Invalid hex D1: {}", e))?;
-    let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex D2: {}", e))?;
+    let bytes1 = hex::decode(hex1).map_err(|e| format!("Invalid hex D1: {e}"))?;
+    let bytes2 = hex::decode(hex2).map_err(|e| format!("Invalid hex D2: {e}"))?;
 
     if bytes1.len() != 32 || bytes2.len() != 32 {
         return Err(format!(
@@ -10282,7 +10270,7 @@ async fn broadcast_round_robin_transaction(
         info!(
             escrow_id = %escrow.id,
             s_count = aggregated_s.len(),
-            s0_preview = aggregated_s.get(0).map(|s| &s[..16.min(s.len())]).unwrap_or(""),
+            s0_preview = aggregated_s.first().map(|s| &s[..16.min(s.len())]).unwrap_or(""),
             s15_full = aggregated_s.get(15).map(|s| s.as_str()).unwrap_or(""),
             "Aggregated {} s-values with SELECTIVE method",
             aggregated_s.len()
@@ -10816,7 +10804,7 @@ async fn broadcast_round_robin_transaction(
     let mut tx_secret_hasher = Keccak256::new();
     tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
     tx_secret_hasher.update(escrow.id.as_bytes());
-    tx_secret_hasher.update(&escrow.amount.to_le_bytes());
+    tx_secret_hasher.update(escrow.amount.to_le_bytes());
     let tx_secret_key: [u8; 32] = tx_secret_hasher.finalize().into();
 
     // USE STORED TX_PUBKEY if available (from prepare_sign), otherwise compute
@@ -11126,14 +11114,14 @@ async fn broadcast_round_robin_transaction(
             stored_platform_commitment.unwrap_or_else(|| {
                 // Fallback: compute dummy commitment if platform commitment missing
                 let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-                (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+                (ED25519_BASEPOINT_TABLE * &mask_scalar)
                     .compress()
                     .to_bytes()
             })
         } else {
             // Legacy: compute dummy_commitment for 2-output verification
             let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-            (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+            (ED25519_BASEPOINT_TABLE * &mask_scalar)
                 .compress()
                 .to_bytes()
         };
@@ -11405,7 +11393,7 @@ async fn broadcast_round_robin_transaction(
         // Compute tx_prefix_hash from this broadcast transaction
         let broadcast_tx_prefix_hash = match builder.compute_prefix_hash() {
             Ok(hash) => hex::encode(hash),
-            Err(e) => format!("COMPUTE_ERROR: {}", e),
+            Err(e) => format!("COMPUTE_ERROR: {e}"),
         };
 
         // Primary check: ring_data vs broadcast (most reliable)
@@ -11450,7 +11438,7 @@ async fn broadcast_round_robin_transaction(
     {
         if let Some(ref stored_msg) = stored_clsag_message {
             // Compute clsag_message from current builder state
-            let pseudo_out_bytes = match hex::decode(&pseudo_out) {
+            let pseudo_out_bytes = match hex::decode(pseudo_out) {
                 Ok(bytes) if bytes.len() == 32 => {
                     let mut arr = [0u8; 32];
                     arr.copy_from_slice(&bytes);
@@ -11464,7 +11452,7 @@ async fn broadcast_round_robin_transaction(
 
             match builder.compute_clsag_message(&[pseudo_out_bytes]) {
                 Ok(broadcast_clsag_msg) => {
-                    let broadcast_msg_hex = hex::encode(&broadcast_clsag_msg);
+                    let broadcast_msg_hex = hex::encode(broadcast_clsag_msg);
 
                     if stored_msg == &broadcast_msg_hex {
                         info!(
@@ -11487,7 +11475,7 @@ async fn broadcast_round_robin_transaction(
                         // Log encrypted_amount for diagnosis (this goes into rctSigBase)
                         error!(
                             escrow_id = %escrow.id,
-                            encrypted_amount_broadcast = %hex::encode(&encrypted_amount),
+                            encrypted_amount_broadcast = %hex::encode(encrypted_amount),
                             stored_encrypted_amount_0 = ?stored_encrypted_amount_0,
                             amount_to_send = amount_to_send,
                             "[v0.62.0] Encrypted amount diagnosis (goes into rctSigBase -> clsag_message)"
@@ -11535,7 +11523,7 @@ async fn broadcast_round_robin_transaction(
     // Using a different pseudo_out in the TX causes daemon rejection because
     // the CLSAG signature was computed with the stored pseudo_out.
     let pseudo_out_for_tx = stored_pseudo_out
-        .map(|p| hex::encode(p))
+        .map(hex::encode)
         .unwrap_or_else(|| {
             warn!(
                 escrow_id = %escrow.id,
@@ -11590,7 +11578,7 @@ async fn broadcast_round_robin_transaction(
     info!(
         escrow_id = %escrow.id,
         tx_hex_len = tx_hex.len(),
-        tx_hash = %hex::encode(&tx_hash),
+        tx_hash = %hex::encode(tx_hash),
         "Transaction built successfully"
     );
 
@@ -11674,7 +11662,7 @@ async fn broadcast_round_robin_transaction(
             use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
             use curve25519_dalek::scalar::Scalar;
             let mask_scalar = Scalar::from_bytes_mod_order(dummy_mask);
-            (&*ED25519_BASEPOINT_TABLE * &mask_scalar)
+            (ED25519_BASEPOINT_TABLE * &mask_scalar)
                 .compress()
                 .to_bytes()
         };
@@ -11721,19 +11709,19 @@ async fn broadcast_round_robin_transaction(
             let _ = writeln!(file, "\n=== Transaction Debug {} ===", chrono::Utc::now());
             let _ = writeln!(file, "escrow_id: {}", escrow.id);
             let _ = writeln!(file, "tx_hex_len: {}", tx_hex.len());
-            let _ = writeln!(file, "tx_hex: {}", tx_hex);
-            let _ = writeln!(file, "key_image: {}", final_key_image);
-            let _ = writeln!(file, "pseudo_out: {}", pseudo_out);
-            let _ = writeln!(file, "d: {}", d);
-            let _ = writeln!(file, "c1: {}", c1);
+            let _ = writeln!(file, "tx_hex: {tx_hex}");
+            let _ = writeln!(file, "key_image: {final_key_image}");
+            let _ = writeln!(file, "pseudo_out: {pseudo_out}");
+            let _ = writeln!(file, "d: {d}");
+            let _ = writeln!(file, "c1: {c1}");
             let _ = writeln!(file, "s_values: {:?}", client_sig.signature.s);
-            let _ = writeln!(file, "ring_indices: {:?}", ring_indices);
+            let _ = writeln!(file, "ring_indices: {ring_indices:?}");
             let _ = writeln!(
                 file,
                 "output_commitment: {}",
                 hex::encode(output_commitment)
             );
-            let _ = writeln!(file, "fee: {}", fee_atomic);
+            let _ = writeln!(file, "fee: {fee_atomic}");
         }
     }
 
@@ -11880,17 +11868,17 @@ async fn broadcast_round_robin_transaction(
                     // v0.57.0 DIAGNOSTIC: Log ALL verification inputs for debugging
                     info!(
                         escrow_id = %escrow.id,
-                        s0 = %hex::encode(&s_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                        s_signer = %hex::encode(&s_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
-                        c1_input = %hex::encode(&c1_val),
-                        d_inv8 = %hex::encode(&d_val),
-                        key_image = %hex::encode(&ki_val),
-                        pseudo_out = %hex::encode(&pseudo_out_val),
-                        tx_prefix = %hex::encode(&tx_prefix_val),
-                        ring_key_0 = %hex::encode(&ring_keys_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                        ring_key_15 = %hex::encode(&ring_keys_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
-                        ring_commit_0 = %hex::encode(&ring_commits_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
-                        ring_commit_15 = %hex::encode(&ring_commits_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        s0 = %hex::encode(s_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        s_signer = %hex::encode(s_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        c1_input = %hex::encode(c1_val),
+                        d_inv8 = %hex::encode(d_val),
+                        key_image = %hex::encode(ki_val),
+                        pseudo_out = %hex::encode(pseudo_out_val),
+                        tx_prefix = %hex::encode(tx_prefix_val),
+                        ring_key_0 = %hex::encode(ring_keys_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        ring_key_15 = %hex::encode(ring_keys_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
+                        ring_commit_0 = %hex::encode(ring_commits_bytes.first().map(|v| &v[..]).unwrap_or(&[])),
+                        ring_commit_15 = %hex::encode(ring_commits_bytes.get(15).map(|v| &v[..]).unwrap_or(&[])),
                         has_stored_mu_p = stored_mu_p.is_some(),
                         has_stored_mu_c = stored_mu_c.is_some(),
                         "[v0.57.0 DIAG] CLSAG VERIFICATION INPUTS - compare with test binary output"
@@ -11916,10 +11904,10 @@ async fn broadcast_round_robin_transaction(
                     if !verification_result.valid {
                         error!(
                             escrow_id = %escrow.id,
-                            mu_p = %hex::encode(&verification_result.mu_p),
-                            mu_c = %hex::encode(&verification_result.mu_c),
-                            c_computed = %hex::encode(&verification_result.c_computed),
-                            c_expected = %hex::encode(&verification_result.c_expected),
+                            mu_p = %hex::encode(verification_result.mu_p),
+                            mu_c = %hex::encode(verification_result.mu_c),
+                            c_computed = %hex::encode(verification_result.c_computed),
+                            c_expected = %hex::encode(verification_result.c_expected),
                             d_point = %d,
                             key_image = %key_image_for_prefix,
                             pseudo_out = %pseudo_out,
@@ -12024,7 +12012,7 @@ async fn broadcast_round_robin_transaction(
         sanity_check_failed: bool,
     }
 
-    let send_raw_url = format!("{}/send_raw_transaction", daemon_url);
+    let send_raw_url = format!("{daemon_url}/send_raw_transaction");
 
     info!(
         escrow_id = %escrow.id,
@@ -12188,7 +12176,7 @@ async fn broadcast_round_robin_transaction(
     let pool_clone = pool.clone();
 
     let update_result = web::block(move || {
-        let mut conn = pool_clone.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut conn = pool_clone.get().map_err(|e| format!("DB error: {e}"))?;
         use crate::schema::escrows;
         use diesel::prelude::*;
 
@@ -12199,7 +12187,7 @@ async fn broadcast_round_robin_transaction(
                 escrows::updated_at.eq(diesel::dsl::now),
             ))
             .execute(&mut conn)
-            .map_err(|e| format!("Update error: {}", e))
+            .map_err(|e| format!("Update error: {e}"))
     })
     .await;
 
@@ -13373,11 +13361,11 @@ pub async fn broadcast_via_cli(
             let escrow_id_clone = escrow_id.clone();
             let tx_hash_clone = tx_hash.clone();
             let _ = web::block(move || {
-                let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
+                let mut conn = pool_clone.get().map_err(|e| format!("{e}"))?;
                 diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
                     .set((status.eq("completed"), broadcast_tx_hash.eq(&tx_hash_clone)))
                     .execute(&mut conn)
-                    .map_err(|e| format!("{}", e))
+                    .map_err(|e| format!("{e}"))
             })
             .await;
         }
@@ -13607,13 +13595,13 @@ pub async fn broadcast_dispute_cli(
             let rj = ring_json.clone();
             if let Err(e) = web::block(move || {
                 use diesel::prelude::*;
-                let mut conn = pool_ref.get().map_err(|e| format!("{}", e))?;
+                let mut conn = pool_ref.get().map_err(|e| format!("{e}"))?;
                 diesel::update(
                     crate::schema::escrows::table.filter(crate::schema::escrows::id.eq(&eid)),
                 )
                 .set(crate::schema::escrows::ring_data_json.eq(rj))
                 .execute(&mut conn)
-                .map_err(|e| format!("{}", e))
+                .map_err(|e| format!("{e}"))
             })
             .await
             {
@@ -13828,14 +13816,14 @@ pub async fn broadcast_dispute_cli(
                 "completed"
             };
             let _ = web::block(move || {
-                let mut conn = pool_clone.get().map_err(|e| format!("{}", e))?;
+                let mut conn = pool_clone.get().map_err(|e| format!("{e}"))?;
                 diesel::update(escrows.filter(id.eq(&escrow_id_clone)))
                     .set((
                         status.eq(final_status),
                         broadcast_tx_hash.eq(&tx_hash_clone),
                     ))
                     .execute(&mut conn)
-                    .map_err(|e| format!("{}", e))
+                    .map_err(|e| format!("{e}"))
             })
             .await;
         }

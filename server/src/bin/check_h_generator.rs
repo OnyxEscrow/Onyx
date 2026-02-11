@@ -7,7 +7,7 @@ fn main() {
 
     // H from monero-generators
     let h_from_lib = H.compress().to_bytes();
-    println!("H from monero-generators: {}", hex::encode(&h_from_lib));
+    println!("H from monero-generators: {}", hex::encode(h_from_lib));
 
     // H from our code
     let h_our: [u8; 32] = [
@@ -15,7 +15,7 @@ fn main() {
         0xea, 0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c,
         0x1f, 0x94,
     ];
-    println!("H from our code:                  {}", hex::encode(&h_our));
+    println!("H from our code:                  {}", hex::encode(h_our));
 
     if h_from_lib == h_our {
         println!("\n✅ H generators MATCH!");

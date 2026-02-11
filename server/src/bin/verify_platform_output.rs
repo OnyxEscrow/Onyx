@@ -28,9 +28,9 @@ fn main() {
     };
 
     println!("=== PLATFORM OUTPUT VERIFICATION ===\n");
-    println!("TX Hash: {}", tx_hash);
-    println!("Escrow ID: {}", escrow_id);
-    println!("Amount: {} atomic", amount);
+    println!("TX Hash: {tx_hash}");
+    println!("Escrow ID: {escrow_id}");
+    println!("Amount: {amount} atomic");
     println!(
         "Platform Address: {}...{}",
         &PLATFORM_ADDRESS[..12],
@@ -53,9 +53,9 @@ fn main() {
     platform_spend_pub.copy_from_slice(&decoded[1..33]);
     platform_view_pub.copy_from_slice(&decoded[33..65]);
 
-    println!("Network byte: {} (24=stagenet, 18=mainnet)", network_byte);
-    println!("Platform spend_pub: {}", hex::encode(&platform_spend_pub));
-    println!("Platform view_pub:  {}", hex::encode(&platform_view_pub));
+    println!("Network byte: {network_byte} (24=stagenet, 18=mainnet)");
+    println!("Platform spend_pub: {}", hex::encode(platform_spend_pub));
+    println!("Platform view_pub:  {}", hex::encode(platform_view_pub));
     println!();
 
     // Step 2: Compute deterministic tx_secret_key
@@ -64,16 +64,16 @@ fn main() {
         let mut hasher = Keccak256::new();
         hasher.update(b"NEXUS_TX_SECRET_V1");
         hasher.update(escrow_id.as_bytes());
-        hasher.update(&amount.to_le_bytes());
+        hasher.update(amount.to_le_bytes());
         hasher.finalize().into()
     };
-    println!("tx_secret_key: {}", hex::encode(&tx_secret_key));
+    println!("tx_secret_key: {}", hex::encode(tx_secret_key));
 
     // Step 3: Compute tx_pubkey (R = r*G)
     println!("\n--- Step 3: Compute TX Pubkey ---");
     let r = Scalar::from_bytes_mod_order(tx_secret_key);
-    let tx_pubkey = (&*ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
-    println!("tx_pubkey (R = r*G): {}", hex::encode(&tx_pubkey));
+    let tx_pubkey = (ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
+    println!("tx_pubkey (R = r*G): {}", hex::encode(tx_pubkey));
     println!();
 
     // Step 4: Compute derivation for platform (output index 1)
@@ -90,7 +90,7 @@ fn main() {
     // derivation = 8 * r * V (cofactor multiplication)
     let derivation = (r * view_pub_point).mul_by_cofactor();
     let derivation_bytes = derivation.compress().to_bytes();
-    println!("derivation (8*r*V): {}", hex::encode(&derivation_bytes));
+    println!("derivation (8*r*V): {}", hex::encode(derivation_bytes));
 
     // Step 5: Compute H_s(derivation || output_index)
     println!("\n--- Step 5: Compute H_s for Stealth Address ---");
@@ -99,50 +99,46 @@ fn main() {
     // Varint encoding for output_index
     let mut output_index_varint = Vec::new();
     encode_varint(&mut output_index_varint, output_index);
-    println!("output_index varint: {:?}", output_index_varint);
+    println!("output_index varint: {output_index_varint:?}");
 
     let mut hasher = Keccak256::new();
-    hasher.update(&derivation_bytes);
+    hasher.update(derivation_bytes);
     hasher.update(&output_index_varint);
     let hash: [u8; 32] = hasher.finalize().into();
     let h_s = Scalar::from_bytes_mod_order(hash);
-    println!("H_s(derivation || 1): {}", hex::encode(&hash));
+    println!("H_s(derivation || 1): {}", hex::encode(hash));
 
     // Step 6: Compute stealth address P = H_s*G + S
     println!("\n--- Step 6: Compute Stealth Address ---");
-    let h_s_g = &*ED25519_BASEPOINT_TABLE * &h_s;
+    let h_s_g = ED25519_BASEPOINT_TABLE * &h_s;
     let stealth_address = (h_s_g + spend_pub_point).compress().to_bytes();
-    println!(
-        "EXPECTED stealth_address: {}",
-        hex::encode(&stealth_address)
-    );
+    println!("EXPECTED stealth_address: {}", hex::encode(stealth_address));
 
     // Step 7: Compute view_tag
     println!("\n--- Step 7: Compute View Tag ---");
     let mut vt_hasher = Keccak256::new();
     vt_hasher.update(b"view_tag"); // 8 bytes, no null
-    vt_hasher.update(&derivation_bytes);
+    vt_hasher.update(derivation_bytes);
     vt_hasher.update(&output_index_varint);
     let vt_hash: [u8; 32] = vt_hasher.finalize().into();
     let view_tag = vt_hash[0];
-    println!("EXPECTED view_tag: 0x{:02x} ({})", view_tag, view_tag);
+    println!("EXPECTED view_tag: 0x{view_tag:02x} ({view_tag})");
 
     println!("\n=== SUMMARY ===");
     println!("To verify, check the blockchain TX and compare:");
     println!(
         "  1. TX extra field should contain tx_pubkey: {}",
-        hex::encode(&tx_pubkey)
+        hex::encode(tx_pubkey)
     );
     println!(
         "  2. Output[1] target key should be: {}",
-        hex::encode(&stealth_address)
+        hex::encode(stealth_address)
     );
-    println!("  3. Output[1] view_tag should be: 0x{:02x}", view_tag);
+    println!("  3. Output[1] view_tag should be: 0x{view_tag:02x}");
 
     println!("\n=== CURL COMMAND TO FETCH TX ===");
     println!(
-        r#"curl -s -X POST http://stagenet.xmr-tw.org:38081/get_transactions -d '{{"txs_hashes":["{}"],"decode_as_json":true}}' -H "Content-Type: application/json" | jq '.txs[0].as_json' -r | jq ."#,
-        tx_hash
+        r#"curl -s -X POST http://stagenet.xmr-tw.org:38081/get_transactions -d '{{"txs_hashes":["{tx_hash}"],"decode_as_json":true}}' -H "Content-Type: application/json" | jq '.txs[0].as_json' -r | jq ."#
     );
 
     println!("\n=== MANUAL VERIFICATION ===");

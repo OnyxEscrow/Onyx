@@ -100,7 +100,7 @@ pub fn parse_partial_signature(signature_json: &str, role: &str) -> Result<Parti
     // Parse s values
     let mut s_values = Vec::with_capacity(stored.signature.s.len());
     for (i, s_hex) in stored.signature.s.iter().enumerate() {
-        let s_bytes = hex::decode(s_hex).context(format!("Failed to decode s[{}] hex", i))?;
+        let s_bytes = hex::decode(s_hex).context(format!("Failed to decode s[{i}] hex"))?;
         if s_bytes.len() != 32 {
             anyhow::bail!("s[{}] must be 32 bytes, got {}", i, s_bytes.len());
         }
@@ -268,12 +268,12 @@ pub fn compute_d_from_key_image(aggregated_key_image: &str) -> Result<[u8; 32]> 
 
 /// Convert aggregated signature to JSON format for transaction builder
 pub fn aggregated_to_json(sig: &AggregatedClsagSignature) -> serde_json::Value {
-    let s_hex: Vec<String> = sig.s_values.iter().map(|s| hex::encode(s)).collect();
+    let s_hex: Vec<String> = sig.s_values.iter().map(hex::encode).collect();
 
     serde_json::json!({
-        "D": hex::encode(&sig.d),
+        "D": hex::encode(sig.d),
         "s": s_hex,
-        "c1": hex::encode(&sig.c1)
+        "c1": hex::encode(sig.c1)
     })
 }
 
@@ -285,9 +285,9 @@ pub fn aggregated_to_client_signature(
 ) -> crate::services::transaction_builder::ClientSignature {
     crate::services::transaction_builder::ClientSignature {
         signature: crate::services::transaction_builder::ClsagSignatureJson {
-            d: hex::encode(&sig.d),
-            s: sig.s_values.iter().map(|s| hex::encode(s)).collect(),
-            c1: hex::encode(&sig.c1),
+            d: hex::encode(sig.d),
+            s: sig.s_values.iter().map(hex::encode).collect(),
+            c1: hex::encode(sig.c1),
         },
         key_image: aggregated_key_image.to_string(),
         partial_key_image: None, // Already aggregated

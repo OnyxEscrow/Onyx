@@ -7,7 +7,7 @@
 )]
 //! # onyx-crypto-core
 //!
-//! Core cryptographic library for Onyx Escrow-as-a-Service (EaaS).
+//! Core cryptographic library for Onyx Escrow-as-a-Service (`EaaS`).
 //!
 //! This crate provides the cryptographic primitives for non-custodial Monero escrow:
 //!
@@ -21,7 +21,7 @@
 //!
 //! The crate is designed with the following principles:
 //!
-//! 1. **no_std Compatible**: Can run in WASM environments
+//! 1. **`no_std` Compatible**: Can run in WASM environments
 //! 2. **Constant-Time Operations**: Prevents timing side-channels
 //! 3. **Zeroize on Drop**: Sensitive data is cleared from memory
 //! 4. **Type-Safe**: Strong typing prevents key misuse
@@ -34,7 +34,7 @@
 //! - [`cmd`]: Commitment Mask Derivation protocol for output identification
 //! - [`nonce`]: MuSig2-style nonce commitments and aggregation
 //! - [`clsag`]: CLSAG ring signature verification
-//! - [`encryption`]: X25519 ECDH and ChaCha20Poly1305 encryption
+//! - [`encryption`]: X25519 ECDH and `ChaCha20Poly1305` encryption
 //!
 //! ## Example
 //!

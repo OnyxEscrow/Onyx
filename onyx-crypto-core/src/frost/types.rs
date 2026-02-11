@@ -26,7 +26,7 @@ pub struct DkgRound1Result {
 /// and secret material for Round 3.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DkgRound2Result {
-    /// Packages to send to each other participant (participant_id -> hex package)
+    /// Packages to send to each other participant (`participant_id` -> hex package)
     ///
     /// Each participant receives a unique package encrypted for them.
     pub round2_packages: BTreeMap<String, String>,

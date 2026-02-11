@@ -33,9 +33,9 @@ fn main() {
     let input_count = read_varint(&tx, &mut pos);
 
     println!("TX PREFIX:");
-    println!("  Version: {}", version);
-    println!("  Unlock time: {}", unlock_time);
-    println!("  Input count: {}", input_count);
+    println!("  Version: {version}");
+    println!("  Unlock time: {unlock_time}");
+    println!("  Input count: {input_count}");
 
     for _ in 0..input_count {
         let input_type = tx[pos];
@@ -56,7 +56,7 @@ fn main() {
     }
 
     let output_count = read_varint(&tx, &mut pos);
-    println!("  Output count: {}", output_count);
+    println!("  Output count: {output_count}");
 
     for i in 0..output_count {
         let _amount = read_varint(&tx, &mut pos);
@@ -89,14 +89,14 @@ fn main() {
     let mut hasher = Keccak256::new();
     hasher.update(prefix);
     let prefix_hash: [u8; 32] = hasher.finalize().into();
-    println!("\n  TX PREFIX HASH: {}", hex::encode(&prefix_hash));
+    println!("\n  TX PREFIX HASH: {}", hex::encode(prefix_hash));
 
     // === RCT BASE ===
     println!("\nRCT BASE:");
 
     let rct_type = tx[pos];
     pos += 1;
-    println!("  RCT type: {} (BulletproofPlus)", rct_type);
+    println!("  RCT type: {rct_type} (BulletproofPlus)");
 
     let fee = read_varint(&tx, &mut pos);
     println!(
@@ -121,21 +121,18 @@ fn main() {
         println!("    [{}]: {}", i, hex::encode(outpk));
     }
 
-    println!(
-        "\n  RCT BASE ends at pos {} (expected around 178+1+varints+16+64=262)",
-        pos
-    );
+    println!("\n  RCT BASE ends at pos {pos} (expected around 178+1+varints+16+64=262)");
 
     // === RCT PRUNABLE ===
-    println!("\nRCT PRUNABLE (starts at pos {}):", pos);
+    println!("\nRCT PRUNABLE (starts at pos {pos}):");
 
     // Bulletproof Plus count
     let bp_count = read_varint(&tx, &mut pos);
-    println!("  BP+ count: {} (pos={})", bp_count, pos);
+    println!("  BP+ count: {bp_count} (pos={pos})");
 
     for bp_idx in 0..bp_count {
         let bp_start = pos;
-        println!("  BP+[{}] starts at pos {}:", bp_idx, bp_start);
+        println!("  BP+[{bp_idx}] starts at pos {bp_start}:");
 
         // A (32 bytes)
         let a = &tx[pos..pos + 32];
@@ -169,7 +166,7 @@ fn main() {
 
         // L array - count then points
         let l_count = read_varint(&tx, &mut pos);
-        println!("    L count: {} (pos={})", l_count, pos);
+        println!("    L count: {l_count} (pos={pos})");
         for i in 0..l_count {
             let l = &tx[pos..pos + 32];
             pos += 32;
@@ -177,11 +174,11 @@ fn main() {
                 println!("      L[{}]: {}...", i, &hex::encode(l)[..16]);
             }
         }
-        println!("    After L: pos={}", pos);
+        println!("    After L: pos={pos}");
 
         // R array - count then points
         let r_count = read_varint(&tx, &mut pos);
-        println!("    R count: {} (pos={})", r_count, pos);
+        println!("    R count: {r_count} (pos={pos})");
         for i in 0..r_count {
             let r = &tx[pos..pos + 32];
             pos += 32;
@@ -189,21 +186,21 @@ fn main() {
                 println!("      R[{}]: {}...", i, &hex::encode(r)[..16]);
             }
         }
-        println!("    After R: pos={}", pos);
+        println!("    After R: pos={pos}");
         println!("    BP+[{}] size: {} bytes", bp_idx, pos - bp_start);
     }
 
     // For RCT type 6: NO CLSAG count varint - number of CLSAGs = number of BP+ = number of inputs
     // CLSAGs follow directly after BP+ section
     let clsag_count = input_count;
-    println!("\n  CLSAGs (count=inputs={}): at pos {}", clsag_count, pos);
+    println!("\n  CLSAGs (count=inputs={clsag_count}): at pos {pos}");
 
     for clsag_idx in 0..clsag_count {
-        println!("  CLSAG[{}]:", clsag_idx);
+        println!("  CLSAG[{clsag_idx}]:");
 
         // s values - ring_size * 32 bytes (ring_size = key_offset_count from input = 16)
         let ring_size = 16u64; // We know this from parsing input
-        println!("    s values ({} scalars):", ring_size);
+        println!("    s values ({ring_size} scalars):");
 
         let mut s_values = Vec::new();
         for i in 0..ring_size {
@@ -227,7 +224,7 @@ fn main() {
         pos += 32;
         println!("    D: {}", hex::encode(d));
 
-        println!("    CLSAG ends at pos {}", pos);
+        println!("    CLSAG ends at pos {pos}");
     }
 
     // pseudo_outs (input_count * 32 bytes)

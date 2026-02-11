@@ -43,19 +43,17 @@ fn main() -> Result<()> {
     let global_index_1 = 9647632u64;
 
     println!("Input parameters:");
-    println!("  View key:      {}", view_key_hex);
-    println!("  TX pub key:    {}", tx_pub_key_hex);
-    println!("  Stored mask:   {}", stored_mask_hex);
-    println!("  Amount:        {} piconeros (0.003 XMR)", amount);
+    println!("  View key:      {view_key_hex}");
+    println!("  TX pub key:    {tx_pub_key_hex}");
+    println!("  Stored mask:   {stored_mask_hex}");
+    println!("  Amount:        {amount} piconeros (0.003 XMR)");
     println!();
     println!("On-chain transaction outputs:");
     println!(
-        "  Output 0: key={} view_tag={:02x} global_idx={}",
-        output_key_0, view_tag_0, global_index_0
+        "  Output 0: key={output_key_0} view_tag={view_tag_0:02x} global_idx={global_index_0}"
     );
     println!(
-        "  Output 1: key={} view_tag={:02x} global_idx={}",
-        output_key_1, view_tag_1, global_index_1
+        "  Output 1: key={output_key_1} view_tag={view_tag_1:02x} global_idx={global_index_1}"
     );
     println!();
 
@@ -86,7 +84,7 @@ fn main() -> Result<()> {
     let derivation_bytes = derivation.compress().to_bytes();
 
     println!("=== ECDH Derivation ===");
-    println!("derivation = {}", hex::encode(&derivation_bytes));
+    println!("derivation = {}", hex::encode(derivation_bytes));
     println!();
 
     // Find which output belongs to us
@@ -107,21 +105,21 @@ fn main() -> Result<()> {
             "Multisig address network: {} (24=stagenet)",
             decoded_addr[0]
         );
-        println!("Multisig spend pubkey: {}", hex::encode(&spend_pub_bytes));
+        println!("Multisig spend pubkey: {}", hex::encode(spend_pub_bytes));
         println!();
 
         // Check each output
         for output_idx in [0u64, 1] {
-            println!("--- Testing output index {} ---", output_idx);
+            println!("--- Testing output index {output_idx} ---");
 
             // 1. Compute derivation_to_scalar: Hs(derivation || varint(output_idx))
             let mut hasher = Keccak256::new();
-            hasher.update(&derivation_bytes);
-            hasher.update(&encode_varint(output_idx));
+            hasher.update(derivation_bytes);
+            hasher.update(encode_varint(output_idx));
             let shared_secret: [u8; 32] = hasher.finalize().into();
             let scalar = Scalar::from_bytes_mod_order(shared_secret);
 
-            println!("  shared_secret = {}", hex::encode(&shared_secret));
+            println!("  shared_secret = {}", hex::encode(shared_secret));
 
             // 2. Check view_tag (first byte of shared_secret before reduce)
             let expected_view_tag = shared_secret[0];
@@ -131,11 +129,10 @@ fn main() -> Result<()> {
                 view_tag_1
             };
             if expected_view_tag == onchain_view_tag {
-                println!("  ✅ view_tag matches: {:02x}", expected_view_tag);
+                println!("  ✅ view_tag matches: {expected_view_tag:02x}");
             } else {
                 println!(
-                    "  ❌ view_tag mismatch: expected {:02x}, onchain {:02x}",
-                    expected_view_tag, onchain_view_tag
+                    "  ❌ view_tag mismatch: expected {expected_view_tag:02x}, onchain {onchain_view_tag:02x}"
                 );
             }
 
@@ -153,8 +150,8 @@ fn main() -> Result<()> {
                 println!("  ✅ OUTPUT KEY MATCHES - This output belongs to us!");
             } else {
                 println!("  ❌ output key doesn't match");
-                println!("     expected: {}", expected_output_key_hex);
-                println!("     onchain:  {}", onchain_output_key);
+                println!("     expected: {expected_output_key_hex}");
+                println!("     onchain:  {onchain_output_key}");
             }
 
             // 4. Derive amount decryption key: Hs("amount" || shared_secret)
@@ -193,7 +190,7 @@ fn main() -> Result<()> {
             let mask_scalar = Scalar::from_bytes_mod_order(mask_bytes);
             let derived_mask_hex = hex::encode(mask_scalar.as_bytes());
 
-            println!("  derived mask = {}", derived_mask_hex);
+            println!("  derived mask = {derived_mask_hex}");
 
             // 6. Verify commitment: C = mask*G + amount*H
             let amount_scalar = Scalar::from(amount);
@@ -206,14 +203,14 @@ fn main() -> Result<()> {
             } else {
                 commitment_1_hex
             };
-            println!("  computed commitment = {}", computed_commitment);
-            println!("  onchain commitment  = {}", onchain_commitment);
+            println!("  computed commitment = {computed_commitment}");
+            println!("  onchain commitment  = {onchain_commitment}");
 
             if computed_commitment == onchain_commitment {
                 println!("  ✅✅✅ COMMITMENT MATCHES! This is our output!");
                 println!();
                 println!("***** CORRECT VALUES FOR ESCROW *****");
-                println!("  funding_output_index = {}", output_idx);
+                println!("  funding_output_index = {output_idx}");
                 println!(
                     "  funding_global_index = {}",
                     if output_idx == 0 {
@@ -222,7 +219,7 @@ fn main() -> Result<()> {
                         global_index_1
                     }
                 );
-                println!("  funding_commitment_mask = {}", derived_mask_hex);
+                println!("  funding_commitment_mask = {derived_mask_hex}");
                 println!("*************************************");
             }
 
@@ -232,7 +229,7 @@ fn main() -> Result<()> {
 
     // Also show comparison with stored mask
     println!("=== Comparison with Stored Values ===");
-    println!("Stored mask:           {}", stored_mask_hex);
+    println!("Stored mask:           {stored_mask_hex}");
     println!("Currently stored output_index: 0");
     println!("Currently stored global_index: 9647632 (which is actually output 1!)");
 
@@ -266,14 +263,14 @@ fn derive_commitment_mask(
 
     // shared_secret = Hs(derivation || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&derivation_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(derivation_bytes);
+    hasher.update(encode_varint(output_index));
     let shared_secret = hasher.finalize();
 
     // mask = Hs("commitment_mask" || shared_secret)
     let mut mask_hasher = Keccak256::new();
     mask_hasher.update(b"commitment_mask");
-    mask_hasher.update(&shared_secret);
+    mask_hasher.update(shared_secret);
     let mask = mask_hasher.finalize();
 
     // Reduce to scalar

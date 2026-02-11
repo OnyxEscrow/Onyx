@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Get current height
     let daemon_url = get_daemon_url();
     let height_resp: serde_json::Value = client
-        .post(format!("{}/json_rpc", daemon_url))
+        .post(format!("{daemon_url}/json_rpc"))
         .json(&serde_json::json!({
             "jsonrpc": "2.0",
             "id": "0",
@@ -112,13 +112,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let height = height_resp["result"]["count"].as_u64().unwrap_or(0);
-    println!("Current height: {}", height);
+    println!("Current height: {height}");
 
     // Get a recent block with transactions
     let mut tx_hash = String::new();
     for h in (height - 100..height).rev() {
         let block_resp: serde_json::Value = client
-            .post(format!("{}/json_rpc", daemon_url))
+            .post(format!("{daemon_url}/json_rpc"))
             .json(&serde_json::json!({
                 "jsonrpc": "2.0",
                 "id": "0",
@@ -147,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Fetch the full transaction
     println!("\nFetching full TX data...");
     let tx_resp: serde_json::Value = client
-        .post(format!("{}/get_transactions", daemon_url))
+        .post(format!("{daemon_url}/get_transactions"))
         .json(&serde_json::json!({
             "txs_hashes": [&tx_hash],
             "decode_as_json": false
@@ -176,14 +176,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut pos = 0;
 
     let version = read_varint(&tx, &mut pos);
-    println!("Version: {}", version);
+    println!("Version: {version}");
 
     let unlock_time = read_varint(&tx, &mut pos);
-    println!("Unlock time: {}", unlock_time);
+    println!("Unlock time: {unlock_time}");
 
     // Inputs
     let input_count = read_varint(&tx, &mut pos);
-    println!("Input count: {}", input_count);
+    println!("Input count: {input_count}");
 
     let mut key_images: Vec<[u8; 32]> = Vec::new();
     let mut ring_indices: Vec<Vec<u64>> = Vec::new();
@@ -220,7 +220,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Outputs
     let output_count = read_varint(&tx, &mut pos);
-    println!("Output count: {}", output_count);
+    println!("Output count: {output_count}");
 
     for i in 0..output_count {
         let amount = read_varint(&tx, &mut pos);
@@ -238,12 +238,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let extra_len = read_varint(&tx, &mut pos);
     let extra_end = pos + extra_len as usize;
     pos = extra_end;
-    println!("Extra length: {}", extra_len);
+    println!("Extra length: {extra_len}");
 
     // RCT base
     let rct_type = tx[pos];
     pos += 1;
-    println!("RCT type: {} (6=BulletproofPlus)", rct_type);
+    println!("RCT type: {rct_type} (6=BulletproofPlus)");
 
     if rct_type == 0 {
         println!("No RCT data");
@@ -251,7 +251,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let fee = read_varint(&tx, &mut pos);
-    println!("Fee: {} atomic", fee);
+    println!("Fee: {fee} atomic");
 
     // ecdhInfo
     for _ in 0..output_count {
@@ -271,7 +271,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // BP+ count
     let bp_count = read_varint(&tx, &mut pos);
-    println!("BP+ count: {}", bp_count);
+    println!("BP+ count: {bp_count}");
 
     // Skip BP+ data (A, A1, B, r1, s1, d1, L[], R[])
     pos += 32 * 6; // A, A1, B, r1, s1, d1
@@ -279,13 +279,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     pos += 32 * l_count as usize;
     let r_count = read_varint(&tx, &mut pos);
     pos += 32 * r_count as usize;
-    println!("BP+ L/R counts: {}/{}", l_count, r_count);
+    println!("BP+ L/R counts: {l_count}/{r_count}");
 
     // CLSAG signatures (one per input)
     println!("\n=== CLSAG SIGNATURES ===");
     for i in 0..input_count as usize {
         let ring_size = ring_indices[i].len();
-        println!("\nCLSAG[{}] (ring_size={}):", i, ring_size);
+        println!("\nCLSAG[{i}] (ring_size={ring_size}):");
 
         // s values
         let mut s_values: Vec<Scalar> = Vec::new();
@@ -307,17 +307,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let d_point = CompressedEdwardsY(d_bytes).decompress();
         println!(
             "  D: {} (valid: {})",
-            hex::encode(&d_bytes),
+            hex::encode(d_bytes),
             d_point.is_some()
         );
 
         // Now verify this CLSAG!
-        println!("\n  === VERIFYING CLSAG[{}] ===", i);
+        println!("\n  === VERIFYING CLSAG[{i}] ===");
 
         // Fetch ring members
         let indices = &ring_indices[i];
         let ring_resp: serde_json::Value = client
-            .post(format!("{}/get_outs", daemon_url))
+            .post(format!("{daemon_url}/get_outs"))
             .json(&serde_json::json!({
                 "outputs": indices.iter().map(|idx| {
                     serde_json::json!({"amount": 0, "index": idx})

@@ -56,7 +56,7 @@ impl From<FeeEstimate> for FeeEstimateResponse {
             estimated_fee_custom: None,
             priority: format!("{:?}", estimate.priority).to_lowercase(),
             live: estimate.available,
-            fee_xmr: format!("{:.12}", fee_xmr),
+            fee_xmr: format!("{fee_xmr:.12}"),
         }
     }
 }

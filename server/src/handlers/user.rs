@@ -597,10 +597,7 @@ pub async fn create_escrow(
     let arbiter_id = "pending".to_string();
 
     // Generate escrow ID
-    let escrow_id = format!(
-        "esc_{}",
-        Uuid::new_v4().to_string().replace("-", "")[..16].to_string()
-    );
+    let escrow_id = format!("esc_{}", &Uuid::new_v4().to_string().replace("-", "")[..16]);
     // EaaS: Use escrow_id as order_id (self-reference for standalone escrows)
     let order_id: Option<String> = Some(escrow_id.clone());
 

@@ -10,7 +10,6 @@
 use curve25519_dalek::{
     constants::ED25519_BASEPOINT_POINT as G, edwards::EdwardsPoint, scalar::Scalar,
 };
-use hex;
 use monero_generators::hash_to_point as monero_hash_to_point;
 use sha3::{Digest, Keccak256};
 
@@ -146,8 +145,8 @@ fn main() {
     // Ring configuration
     let ring_size: usize = 16;
     let real_index: usize = 7;
-    println!("\nRing size: {}", ring_size);
-    println!("Real index: {}", real_index);
+    println!("\nRing size: {ring_size}");
+    println!("Real index: {real_index}");
 
     // ═══════════════════════════════════════════════════════════════════════════
     // PHASE 2: LAGRANGE COEFFICIENTS
@@ -290,7 +289,7 @@ fn main() {
             );
         } else {
             // Generate decoy: hash(i) -> point
-            let decoy_seed = format!("decoy_ring_member_{}", i);
+            let decoy_seed = format!("decoy_ring_member_{i}");
             let decoy = hash_to_point(decoy_seed.as_bytes());
             ring.push(decoy);
             println!(
@@ -382,7 +381,7 @@ fn main() {
 
     // Mock message (tx prefix hash)
     let message = Keccak256::digest(b"test_transaction_prefix");
-    println!("message (tx_prefix):     {}", hex::encode(&message));
+    println!("message (tx_prefix):     {}", hex::encode(message));
 
     // c[real+1] = Hn(ring || message || L[real] || R[real])
     let mut c_input = Vec::new();

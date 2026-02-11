@@ -21,7 +21,7 @@ pub enum CryptoError {
     /// Invalid participant identifier (must be 1-255)
     InvalidIdentifier(String),
 
-    /// Invalid threshold parameters (threshold > max_signers or threshold < 2)
+    /// Invalid threshold parameters (threshold > `max_signers` or threshold < 2)
     InvalidThreshold {
         /// The requested threshold
         threshold: u16,

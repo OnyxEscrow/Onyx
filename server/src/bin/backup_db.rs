@@ -23,7 +23,7 @@ fn main() -> Result<()> {
 
     let db_path = PathBuf::from(DB_PATH);
     if !db_path.exists() {
-        bail!("Database not found: {}", DB_PATH);
+        bail!("Database not found: {DB_PATH}");
     }
 
     // Create backup directory
@@ -64,7 +64,7 @@ fn main() -> Result<()> {
 }
 
 fn checkpoint_wal(db_path: &Path, key: &str) -> Result<()> {
-    let sql = format!("PRAGMA key = '{}'; PRAGMA wal_checkpoint(TRUNCATE);", key);
+    let sql = format!("PRAGMA key = '{key}'; PRAGMA wal_checkpoint(TRUNCATE);");
 
     let output = Command::new("sqlcipher")
         .arg(db_path)
@@ -74,7 +74,7 @@ fn checkpoint_wal(db_path: &Path, key: &str) -> Result<()> {
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("WAL checkpoint failed: {}", stderr);
+        bail!("WAL checkpoint failed: {stderr}");
     }
 
     Ok(())
@@ -82,7 +82,7 @@ fn checkpoint_wal(db_path: &Path, key: &str) -> Result<()> {
 
 fn create_backup(db_path: &Path, backup_dir: &Path, key: &str) -> Result<PathBuf> {
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-    let backup_filename = format!("nexus_backup_{}.db", timestamp);
+    let backup_filename = format!("nexus_backup_{timestamp}.db");
     let backup_path = backup_dir.join(&backup_filename);
 
     // Use VACUUM INTO for atomic backup
@@ -100,14 +100,14 @@ fn create_backup(db_path: &Path, backup_dir: &Path, key: &str) -> Result<PathBuf
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("Backup creation failed: {}", stderr);
+        bail!("Backup creation failed: {stderr}");
     }
 
     Ok(backup_path)
 }
 
 fn verify_backup(backup_path: &Path, key: &str) -> Result<()> {
-    let sql = format!("PRAGMA key = '{}'; PRAGMA integrity_check;", key);
+    let sql = format!("PRAGMA key = '{key}'; PRAGMA integrity_check;");
 
     let output = Command::new("sqlcipher")
         .arg(backup_path)
@@ -117,7 +117,7 @@ fn verify_backup(backup_path: &Path, key: &str) -> Result<()> {
 
     let result = String::from_utf8_lossy(&output.stdout);
     if !result.contains("ok") {
-        bail!("Backup integrity check failed: {}", result);
+        bail!("Backup integrity check failed: {result}");
     }
 
     Ok(())

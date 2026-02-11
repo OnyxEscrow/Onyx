@@ -107,9 +107,9 @@ impl MultisigChallenge {
         hasher.update(b"MONERO_MARKETPLACE_MULTISIG_CHALLENGE");
 
         // Challenge components
-        hasher.update(&self.nonce);
+        hasher.update(self.nonce);
         hasher.update(self.escrow_id.as_bytes());
-        hasher.update(&self.created_at.to_le_bytes());
+        hasher.update(self.created_at.to_le_bytes());
 
         hasher.finalize().to_vec()
     }
@@ -134,11 +134,7 @@ impl MultisigChallenge {
             .as_secs();
 
         let elapsed = now - self.created_at;
-        if elapsed >= CHALLENGE_EXPIRY_SECS {
-            0
-        } else {
-            CHALLENGE_EXPIRY_SECS - elapsed
-        }
+        CHALLENGE_EXPIRY_SECS.saturating_sub(elapsed)
     }
 }
 
@@ -277,10 +273,9 @@ pub fn verify_multisig_submission(
 
     public_key.verify(&message, &sig).map_err(|e| {
         anyhow::anyhow!(
-            "Signature verification failed: {}. \
+            "Signature verification failed: {e}. \
                  This means the submitter does not control the private key \
-                 for the submitted multisig_info.",
-            e
+                 for the submitted multisig_info."
         )
     })?;
 
@@ -346,9 +341,8 @@ fn extract_public_key_from_multisig_info(multisig_info: &str) -> Result<Verifyin
 
     VerifyingKey::from_bytes(pubkey_bytes.try_into().context("Invalid key length")?).map_err(|e| {
         anyhow::anyhow!(
-            "Invalid public key in multisig_info: {}. \
-             The extracted bytes do not form a valid Ed25519 public key.",
-            e
+            "Invalid public key in multisig_info: {e}. \
+             The extracted bytes do not form a valid Ed25519 public key."
         )
     })
 }

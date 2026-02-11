@@ -134,7 +134,7 @@ fn main() -> Result<()> {
         .load(&mut conn)?;
 
     if result.is_empty() {
-        eprintln!("No escrow found with ID: {}", escrow_id);
+        eprintln!("No escrow found with ID: {escrow_id}");
         std::process::exit(1);
     }
 
@@ -166,26 +166,26 @@ fn main() -> Result<()> {
     ) = &result[0];
 
     println!("=== ESCROW DATA ===");
-    println!("First Signer Role: {:?}", first_signer_role);
-    println!("Vendor Signed At: {:?}", vendor_signed_ts);
-    println!("Buyer Signed At: {:?}", buyer_signed_ts);
-    println!("ID: {}", id);
-    println!("Status: {}", status);
-    println!("Multisig Address: {:?}", addr);
-    println!("Multisig View Key: {:?}", view_key);
-    println!("Funding TX Hash: {:?}", tx_hash);
-    println!("Funding Output Index: {:?}", out_idx);
-    println!("Funding Global Index: {:?}", global_idx);
-    println!("Funding Commitment Mask: {:?}", mask);
-    println!("Funding TX Pubkey (DB column): {:?}", funding_tx_pk);
+    println!("First Signer Role: {first_signer_role:?}");
+    println!("Vendor Signed At: {vendor_signed_ts:?}");
+    println!("Buyer Signed At: {buyer_signed_ts:?}");
+    println!("ID: {id}");
+    println!("Status: {status}");
+    println!("Multisig Address: {addr:?}");
+    println!("Multisig View Key: {view_key:?}");
+    println!("Funding TX Hash: {tx_hash:?}");
+    println!("Funding Output Index: {out_idx:?}");
+    println!("Funding Global Index: {global_idx:?}");
+    println!("Funding Commitment Mask: {mask:?}");
+    println!("Funding TX Pubkey (DB column): {funding_tx_pk:?}");
     println!("Amount: {} atomic ({} XMR)", amount, *amount as f64 / 1e12);
-    println!("Vendor Payout Address: {:?}", payout_addr);
+    println!("Vendor Payout Address: {payout_addr:?}");
 
     println!("\n=== PARTIAL KEY IMAGES ===");
-    println!("Buyer Partial KI: {:?}", buyer_pki);
-    println!("Vendor Partial KI: {:?}", vendor_pki);
-    println!("Arbiter Partial KI: {:?}", arbiter_pki);
-    println!("Aggregated Key Image: {:?}", aggregated_ki);
+    println!("Buyer Partial KI: {buyer_pki:?}");
+    println!("Vendor Partial KI: {vendor_pki:?}");
+    println!("Arbiter Partial KI: {arbiter_pki:?}");
+    println!("Aggregated Key Image: {aggregated_ki:?}");
 
     println!("\n=== MuSig2 NONCE STATUS ===");
     let has_vendor_nonce = vendor_nonce.is_some();
@@ -291,38 +291,38 @@ fn main() -> Result<()> {
 
                 if has_tx_prefix {
                     if let Some(hash) = obj.get("tx_prefix_hash").and_then(|v| v.as_str()) {
-                        println!("\ntx_prefix_hash value: {}", hash);
+                        println!("\ntx_prefix_hash value: {hash}");
                     }
                 }
 
                 // Show signer_index
                 if let Some(idx) = obj.get("signer_index") {
-                    println!("signer_index: {:?}", idx);
+                    println!("signer_index: {idx:?}");
                 }
 
                 // Show key_image
                 if let Some(ki) = obj.get("key_image").and_then(|v| v.as_str()) {
-                    println!("key_image: {}", ki);
+                    println!("key_image: {ki}");
                 }
 
                 // Show real_global_index
                 if let Some(rgi) = obj.get("real_global_index") {
-                    println!("real_global_index: {:?}", rgi);
+                    println!("real_global_index: {rgi:?}");
                 }
 
                 // Show stealth_address
                 if let Some(sa) = obj.get("stealth_address").and_then(|v| v.as_str()) {
-                    println!("stealth_address: {}", sa);
+                    println!("stealth_address: {sa}");
                 }
 
                 // Show tx_pubkey from ring_data
                 if let Some(tp) = obj.get("tx_pubkey").and_then(|v| v.as_str()) {
-                    println!("tx_pubkey (ring_data): {}", tp);
+                    println!("tx_pubkey (ring_data): {tp}");
                 }
 
                 // Show funding_output_pubkey from ring_data
                 if let Some(fop) = obj.get("funding_output_pubkey").and_then(|v| v.as_str()) {
-                    println!("funding_output_pubkey (ring_data): {}", fop);
+                    println!("funding_output_pubkey (ring_data): {fop}");
                 }
 
                 // Show ring_public_keys array
@@ -355,10 +355,10 @@ fn main() -> Result<()> {
                         .and_then(|v| v.as_str())
                         .unwrap_or("");
 
-                    println!("\n=== P[{}] MATCH CHECK ===", signer_idx);
-                    println!("P[{}]:                  {}", signer_idx, p_signer);
-                    println!("stealth_address:        {}", stealth);
-                    println!("funding_output_pubkey:  {}", fop);
+                    println!("\n=== P[{signer_idx}] MATCH CHECK ===");
+                    println!("P[{signer_idx}]:                  {p_signer}");
+                    println!("stealth_address:        {stealth}");
+                    println!("funding_output_pubkey:  {fop}");
                     println!(
                         "P[{}] == stealth_address?       {}",
                         signer_idx,
@@ -393,7 +393,7 @@ fn main() -> Result<()> {
 
     // Debug: print vendor_signature JSON
     if let Some(ref sig) = vendor_sig {
-        println!("Vendor Signature JSON: {}", sig);
+        println!("Vendor Signature JSON: {sig}");
     }
 
     // Extract c1 from signatures
@@ -448,8 +448,8 @@ fn main() -> Result<()> {
     let buyer_d = extract_d(buyer_sig);
     let vendor_d = extract_d(vendor_sig);
 
-    println!("Buyer c1:  {}", buyer_c1);
-    println!("Vendor c1: {}", vendor_c1);
+    println!("Buyer c1:  {buyer_c1}");
+    println!("Vendor c1: {vendor_c1}");
     println!(
         "c1 match:  {}",
         if buyer_c1 == vendor_c1 {
@@ -459,8 +459,8 @@ fn main() -> Result<()> {
         }
     );
 
-    println!("\nBuyer D:   {}", buyer_d);
-    println!("Vendor D:  {}", vendor_d);
+    println!("\nBuyer D:   {buyer_d}");
+    println!("Vendor D:  {vendor_d}");
     println!(
         "D match:   {}",
         if buyer_d == vendor_d {

@@ -119,7 +119,7 @@ pub fn encrypt_field(plaintext: &str, key: &[u8]) -> Result<Vec<u8>> {
     // Encrypt
     let ciphertext = cipher
         .encrypt(nonce, plaintext.as_bytes())
-        .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Encryption failed: {e}"))?;
 
     // Prepend nonce to ciphertext for storage
     let mut result = Vec::with_capacity(NONCE_SIZE + ciphertext.len());
@@ -188,8 +188,7 @@ pub fn decrypt_field(ciphertext_with_nonce: &[u8], key: &[u8]) -> Result<String>
         .decrypt(nonce, ciphertext)
         .map_err(|e| {
             anyhow::anyhow!(
-                "Decryption failed: {}. This indicates wrong key, corrupted data, or tampered ciphertext.",
-                e
+                "Decryption failed: {e}. This indicates wrong key, corrupted data, or tampered ciphertext."
             )
         })?;
 
@@ -240,10 +239,7 @@ pub fn decrypt_bytes(ciphertext_with_nonce: &[u8], key: &[u8]) -> Result<Vec<u8>
     let ciphertext = &ciphertext_with_nonce[NONCE_SIZE..];
 
     cipher.decrypt(nonce, ciphertext).map_err(|e| {
-        anyhow::anyhow!(
-            "Decryption failed: {}. This likely means wrong key or tampered data.",
-            e
-        )
+        anyhow::anyhow!("Decryption failed: {e}. This likely means wrong key or tampered data.")
     })
 }
 
@@ -282,7 +278,7 @@ pub fn encrypt_bytes(plaintext: &[u8], key: &[u8]) -> Result<Vec<u8>> {
 
     let ciphertext = cipher
         .encrypt(nonce, plaintext)
-        .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Encryption failed: {e}"))?;
 
     let mut result = nonce_bytes.to_vec();
     result.extend_from_slice(&ciphertext);
@@ -432,10 +428,7 @@ pub fn generate_random_salt(size: usize) -> Result<Vec<u8>> {
 /// * `Err` with specific failure reason
 pub fn validate_password_strength(password: &str) -> Result<()> {
     if password.len() < MIN_PASSWORD_LENGTH {
-        anyhow::bail!(
-            "Password must be at least {} characters",
-            MIN_PASSWORD_LENGTH
-        );
+        anyhow::bail!("Password must be at least {MIN_PASSWORD_LENGTH} characters");
     }
 
     if !password.chars().any(|c| c.is_uppercase()) {

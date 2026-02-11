@@ -50,8 +50,7 @@ impl DbMultisigCoordinator {
             "ready" => Ok(MultisigStage::Ready),
             "signing" => Ok(MultisigStage::Signing),
             _ => Err(MultisigCoordinationError::InvalidMultisigData(format!(
-                "Unknown stage: {}",
-                stage
+                "Unknown stage: {stage}"
             ))),
         }
     }
@@ -95,8 +94,7 @@ impl DbMultisigCoordinator {
                 Ok(ParticipantType::Remote { user_id: uid })
             }
             _ => Err(MultisigCoordinationError::InvalidMultisigData(format!(
-                "Unknown participant type: {}",
-                ptype
+                "Unknown participant type: {ptype}"
             ))),
         }
     }
@@ -136,7 +134,7 @@ impl DbMultisigCoordinator {
     /// Load full MultisigSession from database
     fn load_session(&self, escrow_id: Uuid) -> Result<MultisigSession, MultisigCoordinationError> {
         let mut conn = self.pool.get().map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
+            MultisigCoordinationError::StorageError(format!("Connection pool: {e}"))
         })?;
 
         let db_session = DbMultisigSession::find_by_escrow(&mut conn, &escrow_id.to_string())
@@ -144,7 +142,7 @@ impl DbMultisigCoordinator {
 
         let db_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
             .map_err(|e| {
-                MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
+                MultisigCoordinationError::StorageError(format!("Load participants: {e}"))
             })?;
 
         let stage = Self::parse_stage(&db_session.stage)?;
@@ -175,7 +173,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         participants: Vec<(String, ParticipantType)>,
     ) -> Result<(), MultisigCoordinationError> {
         let mut conn = self.pool.get().map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
+            MultisigCoordinationError::StorageError(format!("Connection pool: {e}"))
         })?;
 
         let session_id = Uuid::new_v4().to_string();
@@ -226,9 +224,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
 
             Ok(())
         })
-        .map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Transaction failed: {}", e))
-        })?;
+        .map_err(|e| MultisigCoordinationError::StorageError(format!("Transaction failed: {e}")))?;
 
         tracing::info!(
             "✅ Multisig session initialized for escrow {} (session: {})",
@@ -254,7 +250,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         }
 
         let mut conn = self.pool.get().map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
+            MultisigCoordinationError::StorageError(format!("Connection pool: {e}"))
         })?;
 
         // Load session to get session_id
@@ -268,8 +264,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
             .first::<DbMultisigParticipant>(&mut conn)
             .map_err(|_| {
                 MultisigCoordinationError::UnauthorizedParticipant(format!(
-                    "User {} not found in session",
-                    user_id
+                    "User {user_id} not found in session"
                 ))
             })?;
 
@@ -291,7 +286,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
                     &info,
                 )
                 .map_err(|e| {
-                    MultisigCoordinationError::StorageError(format!("Update round1: {}", e))
+                    MultisigCoordinationError::StorageError(format!("Update round1: {e}"))
                 })?;
 
                 tracing::info!(
@@ -323,7 +318,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
                     &info,
                 )
                 .map_err(|e| {
-                    MultisigCoordinationError::StorageError(format!("Update round2: {}", e))
+                    MultisigCoordinationError::StorageError(format!("Update round2: {e}"))
                 })?;
 
                 tracing::info!(
@@ -335,7 +330,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
             _ => {
                 return Err(MultisigCoordinationError::InvalidState {
                     expected: "Initialization or KeyExchange".to_string(),
-                    actual: format!("{:?}", stage),
+                    actual: format!("{stage:?}"),
                 });
             }
         }
@@ -343,7 +338,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         // Check if we can advance stage
         let all_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
             .map_err(|e| {
-                MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
+                MultisigCoordinationError::StorageError(format!("Load participants: {e}"))
             })?;
 
         let current_stage = Self::parse_stage(&db_session.stage)?;
@@ -358,7 +353,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
                         Self::stage_to_db(&MultisigStage::Round1Complete),
                     )
                     .map_err(|e| {
-                        MultisigCoordinationError::StorageError(format!("Update stage: {}", e))
+                        MultisigCoordinationError::StorageError(format!("Update stage: {e}"))
                     })?;
 
                     tracing::info!(
@@ -376,7 +371,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
                         Self::stage_to_db(&MultisigStage::Ready),
                     )
                     .map_err(|e| {
-                        MultisigCoordinationError::StorageError(format!("Update stage: {}", e))
+                        MultisigCoordinationError::StorageError(format!("Update stage: {e}"))
                     })?;
 
                     tracing::info!(
@@ -397,7 +392,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         user_id: String,
     ) -> Result<Vec<String>, MultisigCoordinationError> {
         let mut conn = self.pool.get().map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
+            MultisigCoordinationError::StorageError(format!("Connection pool: {e}"))
         })?;
 
         let db_session = DbMultisigSession::find_by_escrow(&mut conn, &escrow_id.to_string())
@@ -410,15 +405,14 @@ impl MultisigCoordinator for DbMultisigCoordinator {
             .first::<DbMultisigParticipant>(&mut conn)
             .map_err(|_| {
                 MultisigCoordinationError::UnauthorizedParticipant(format!(
-                    "User {} not in session",
-                    user_id
+                    "User {user_id} not in session"
                 ))
             })?;
 
         // Load all participants
         let all_participants = DbMultisigParticipant::find_by_session(&mut conn, &db_session.id)
             .map_err(|e| {
-                MultisigCoordinationError::StorageError(format!("Load participants: {}", e))
+                MultisigCoordinationError::StorageError(format!("Load participants: {e}"))
             })?;
 
         let current_stage = Self::parse_stage(&db_session.stage)?;
@@ -460,7 +454,7 @@ impl MultisigCoordinator for DbMultisigCoordinator {
         escrow_id: Uuid,
     ) -> Result<MultisigStage, MultisigCoordinationError> {
         let mut conn = self.pool.get().map_err(|e| {
-            MultisigCoordinationError::StorageError(format!("Connection pool: {}", e))
+            MultisigCoordinationError::StorageError(format!("Connection pool: {e}"))
         })?;
 
         let db_session = DbMultisigSession::find_by_escrow(&mut conn, &escrow_id.to_string())

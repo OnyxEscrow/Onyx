@@ -8,7 +8,7 @@ use sha3::{Digest, Keccak256};
 
 use super::constants::{pad_domain_separator, CLSAG_AGG_0, CLSAG_AGG_1, CLSAG_DOMAIN};
 
-/// Compute mixing coefficients μ_P and μ_C for CLSAG.
+/// Compute mixing coefficients `μ_P` and `μ_C` for CLSAG.
 ///
 /// Reference: `clsag_hash_agg()` in Monero's rctSigs.cpp
 ///
@@ -27,6 +27,7 @@ use super::constants::{pad_domain_separator, CLSAG_AGG_0, CLSAG_AGG_1, CLSAG_DOM
 ///
 /// # Returns
 /// Tuple `(μ_P, μ_C)` as scalars
+#[must_use]
 pub fn compute_mixing_coefficients(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
@@ -36,7 +37,7 @@ pub fn compute_mixing_coefficients(
 ) -> (Scalar, Scalar) {
     // μ_P = H(CLSAG_agg_0 || ring || I || D || pseudo_out)
     let mut hasher_p = Keccak256::new();
-    hasher_p.update(&pad_domain_separator(CLSAG_AGG_0));
+    hasher_p.update(pad_domain_separator(CLSAG_AGG_0));
 
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
@@ -55,7 +56,7 @@ pub fn compute_mixing_coefficients(
 
     // μ_C = H(CLSAG_agg_1 || ring || I || D || pseudo_out)
     let mut hasher_c = Keccak256::new();
-    hasher_c.update(&pad_domain_separator(CLSAG_AGG_1));
+    hasher_c.update(pad_domain_separator(CLSAG_AGG_1));
 
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
@@ -97,6 +98,7 @@ pub fn compute_mixing_coefficients(
 ///
 /// # Returns
 /// Challenge scalar for the next ring position
+#[must_use]
 pub fn compute_round_hash(
     ring_keys: &[EdwardsPoint],
     ring_commitments: &[EdwardsPoint],
@@ -110,7 +112,7 @@ pub fn compute_round_hash(
     let mut hasher = Keccak256::new();
 
     // Domain separator (32 bytes padded)
-    hasher.update(&pad_domain_separator(CLSAG_DOMAIN));
+    hasher.update(pad_domain_separator(CLSAG_DOMAIN));
 
     // Ring keys
     for key in ring_keys {
@@ -149,6 +151,7 @@ pub fn compute_round_hash(
 ///
 /// This is Keccak256 with the result interpreted as a scalar mod l.
 #[inline]
+#[must_use]
 pub fn keccak256_to_scalar(data: &[u8]) -> Scalar {
     let hash = Keccak256::digest(data);
     let mut bytes = [0u8; 32];

@@ -248,7 +248,7 @@ where
 
             // No cached response - mark as in-progress and process
             // Set a short TTL lock to prevent concurrent duplicates
-            let lock_key = format!("{}:lock", cache_key);
+            let lock_key = format!("{cache_key}:lock");
             let lock_result: Result<bool, _> = redis_conn
                 .set_ex(&lock_key, "processing", 30) // 30 second lock
                 .await;
@@ -276,9 +276,8 @@ where
                 };
 
                 if let Ok(cached_json) = serde_json::to_string(&cached_response) {
-                    let _: Result<(), _> = redis_conn
-                        .set_ex(&cache_key, &cached_json, ttl_secs as u64)
-                        .await;
+                    let _: Result<(), _> =
+                        redis_conn.set_ex(&cache_key, &cached_json, ttl_secs).await;
                 }
             }
 

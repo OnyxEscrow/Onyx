@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     let db_path = PathBuf::from(DB_PATH);
 
     if !db_path.exists() {
-        bail!("Database file not found: {}", DB_PATH);
+        bail!("Database file not found: {DB_PATH}");
     }
 
     println!("📁 Database: {}", db_path.display());
@@ -66,8 +66,7 @@ fn check_encryption_status(db_path: &Path, key: &str) -> Result<EncryptionStatus
     let encrypted_test = Command::new("sqlcipher")
         .arg(db_path)
         .arg(format!(
-            "PRAGMA key = '{}'; SELECT COUNT(*) FROM sqlite_master;",
-            key
+            "PRAGMA key = '{key}'; SELECT COUNT(*) FROM sqlite_master;"
         ))
         .output()
         .context("Failed to run sqlcipher (is it installed?)")?;
@@ -117,7 +116,7 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
         // Restore original if failed
         std::fs::rename(&temp_unencrypted, db_path).ok();
         let stderr = String::from_utf8_lossy(&output.stderr);
-        bail!("init_db failed: {}", stderr);
+        bail!("init_db failed: {stderr}");
     }
 
     // Now we have an empty encrypted DB at db_path
@@ -141,7 +140,7 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
 
     if !table_output.status.success() {
         let stderr = String::from_utf8_lossy(&table_output.stderr);
-        bail!("Failed to list tables: {}", stderr);
+        bail!("Failed to list tables: {stderr}");
     }
 
     let tables = String::from_utf8_lossy(&table_output.stdout);
@@ -163,13 +162,13 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
             .arg(db_path)
             .arg(&copy_sql)
             .output()
-            .context(format!("Failed to copy table {}", table))?;
+            .context(format!("Failed to copy table {table}"))?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            bail!("Failed to copy table {}: {}", table, stderr);
+            bail!("Failed to copy table {table}: {stderr}");
         }
-        println!("   ✓ Copied table: {}", table);
+        println!("   ✓ Copied table: {table}");
     }
 
     println!("2️⃣ Verifying encrypted copy...");
@@ -195,7 +194,7 @@ fn encrypt_database(db_path: &Path, key: &str) -> Result<()> {
 
 fn verify_encrypted_database(db_path: &Path, key: &str) -> Result<()> {
     // Run integrity check
-    let integrity_sql = format!("PRAGMA key = '{}'; PRAGMA integrity_check;", key);
+    let integrity_sql = format!("PRAGMA key = '{key}'; PRAGMA integrity_check;");
 
     let output = Command::new("sqlcipher")
         .arg(db_path)
@@ -206,14 +205,12 @@ fn verify_encrypted_database(db_path: &Path, key: &str) -> Result<()> {
     let result = String::from_utf8_lossy(&output.stdout);
 
     if !result.contains("ok") {
-        bail!("Integrity check failed: {}", result);
+        bail!("Integrity check failed: {result}");
     }
 
     // Count tables
-    let count_sql = format!(
-        "PRAGMA key = '{}'; SELECT COUNT(*) FROM sqlite_master WHERE type='table';",
-        key
-    );
+    let count_sql =
+        format!("PRAGMA key = '{key}'; SELECT COUNT(*) FROM sqlite_master WHERE type='table';");
 
     let output = Command::new("sqlcipher")
         .arg(db_path)
@@ -222,7 +219,7 @@ fn verify_encrypted_database(db_path: &Path, key: &str) -> Result<()> {
         .context("Failed to count tables")?;
 
     let count = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    println!("   Tables found: {}", count);
+    println!("   Tables found: {count}");
 
     Ok(())
 }

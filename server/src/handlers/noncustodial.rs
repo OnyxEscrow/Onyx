@@ -155,9 +155,9 @@ pub async fn register_client_wallet(
                 .unwrap();
 
             let awaiting = vec![
-                (!status.buyer_rpc_url.is_some()).then_some("buyer"),
-                (!status.seller_rpc_url.is_some()).then_some("seller"),
-                (!status.arbiter_rpc_url.is_some()).then_some("arbiter"),
+                status.buyer_rpc_url.is_none().then_some("buyer"),
+                status.seller_rpc_url.is_none().then_some("seller"),
+                status.arbiter_rpc_url.is_none().then_some("arbiter"),
             ]
             .into_iter()
             .filter_map(|x| x.map(String::from))
@@ -379,9 +379,7 @@ pub async fn coordinate_sync_round(req: web::Json<SyncRoundRequest>) -> impl Res
     // Store our export
     {
         let mut storage = SYNC_STORAGE.lock().unwrap();
-        let round_exports = storage
-            .entry(escrow_key.clone())
-            .or_insert_with(HashMap::new);
+        let round_exports = storage.entry(escrow_key.clone()).or_default();
         round_exports.insert(req.role.clone(), req.export_info.clone());
 
         info!(
@@ -473,7 +471,7 @@ pub async fn funds_received_notification(
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = db_clone
             .get()
-            .map_err(|e| anyhow::anyhow!("Failed to get DB connection: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to get DB connection: {e}"))?;
 
         diesel::update(escrows::table.filter(escrows::id.eq(&escrow_id)))
             .set((
@@ -481,7 +479,7 @@ pub async fn funds_received_notification(
                 escrows::updated_at.eq(chrono::Utc::now().naive_utc()),
             ))
             .execute(&mut conn)
-            .map_err(|e| anyhow::anyhow!("Failed to update escrow status: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to update escrow status: {e}"))?;
 
         Ok::<(), anyhow::Error>(())
     })

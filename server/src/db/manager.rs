@@ -70,7 +70,7 @@ impl DatabaseManager {
             .context("DB_ENCRYPTION_KEY not set - required for SQLCipher integrity check")?;
 
         // Use sqlcipher command-line tool with encryption key
-        let pragma_cmd = format!("PRAGMA key = '{}'; PRAGMA integrity_check;", encryption_key);
+        let pragma_cmd = format!("PRAGMA key = '{encryption_key}'; PRAGMA integrity_check;");
         let output = std::process::Command::new("sqlcipher")
             .arg(db_path)
             .arg(&pragma_cmd)
@@ -109,7 +109,7 @@ impl DatabaseManager {
         let backup_path = self
             .config
             .backup_dir
-            .join(format!("nexus_{}_{}.db", backup_reason, timestamp));
+            .join(format!("nexus_{backup_reason}_{timestamp}.db"));
 
         info!(
             "Creating backup: {:?} (reason: {})",
@@ -148,7 +148,7 @@ impl DatabaseManager {
     /// Restore database from a backup file
     pub fn restore_from_backup(&self, backup_path: &Path) -> Result<()> {
         if !backup_path.exists() {
-            anyhow::bail!("Backup file {:?} does not exist", backup_path);
+            anyhow::bail!("Backup file {backup_path:?} does not exist");
         }
 
         // Verify backup is valid before restoring
@@ -211,7 +211,7 @@ impl DatabaseManager {
                         if elapsed > retention_duration {
                             let size = metadata.len();
                             fs::remove_file(&path)
-                                .context(format!("Failed to remove backup: {:?}", path))?;
+                                .context(format!("Failed to remove backup: {path:?}"))?;
                             cleaned_count += 1;
                             total_freed += size;
                             debug!("Removed old backup: {:?}", path);
@@ -242,19 +242,17 @@ impl DatabaseManager {
         let entries =
             fs::read_dir(&self.config.backup_dir).context("Failed to read backup directory")?;
 
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("db") {
-                    if let Ok(metadata) = entry.metadata() {
-                        backup_count += 1;
-                        total_size += metadata.len();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("db") {
+                if let Ok(metadata) = entry.metadata() {
+                    backup_count += 1;
+                    total_size += metadata.len();
 
-                        if let Ok(modified) = metadata.modified() {
-                            if oldest_time.is_none() || Some(&modified) < oldest_time.as_ref() {
-                                oldest_time = Some(modified);
-                                oldest_backup = Some(path);
-                            }
+                    if let Ok(modified) = metadata.modified() {
+                        if oldest_time.is_none() || Some(&modified) < oldest_time.as_ref() {
+                            oldest_time = Some(modified);
+                            oldest_backup = Some(path);
                         }
                     }
                 }

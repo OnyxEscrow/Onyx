@@ -154,7 +154,7 @@ fn compute_mixing_coefficients(
     let mut hasher_p = Keccak256::new();
     let mut domain_agg_0 = [0u8; 32];
     domain_agg_0[..CLSAG_AGG_0.len()].copy_from_slice(CLSAG_AGG_0);
-    hasher_p.update(&domain_agg_0);
+    hasher_p.update(domain_agg_0);
 
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
@@ -175,7 +175,7 @@ fn compute_mixing_coefficients(
     let mut hasher_c = Keccak256::new();
     let mut domain_agg_1 = [0u8; 32];
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
-    hasher_c.update(&domain_agg_1);
+    hasher_c.update(domain_agg_1);
 
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
@@ -209,7 +209,7 @@ fn compute_round_hash(
 
     let mut domain_sep = [0u8; 32];
     domain_sep[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
-    hasher.update(&domain_sep);
+    hasher.update(domain_sep);
 
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
@@ -351,7 +351,7 @@ fn phase1_setup(conn: &mut SqliteConnection, escrow_id: &str) -> Result<EscrowDa
         .load(conn)?;
 
     if result.is_empty() {
-        bail!("Escrow {} not found", escrow_id);
+        bail!("Escrow {escrow_id} not found");
     }
 
     let row = &result[0];
@@ -594,8 +594,8 @@ fn phase2_pki_analysis(escrow: &EscrowData) -> Result<()> {
         println!("  ✅ PKI AGGREGATION CORRECT: buyer_pki + vendor_pki = aggregated_ki");
     } else {
         println!("  ❌ PKI AGGREGATION MISMATCH!");
-        println!("     Expected: {}", expected_hex);
-        println!("     Stored:   {}", aggregated_ki);
+        println!("     Expected: {expected_hex}");
+        println!("     Stored:   {aggregated_ki}");
         println!("\n  DIAGNOSIS: This indicates that either:");
         println!(
             "    1. First signer re-submitted PKI with derivation (double-counted derivation)"
@@ -729,7 +729,7 @@ fn phase3_first_signer_trace(escrow: &EscrowData) -> Result<Option<(SignatureDat
 
     // Determine which signature is first
     let first_role = escrow.first_signer_role.as_deref().unwrap_or("unknown");
-    println!("First signer role: {}", first_role);
+    println!("First signer role: {first_role}");
 
     let first_sig_json = match first_role {
         "vendor" => &escrow.vendor_signature,
@@ -750,7 +750,7 @@ fn phase3_first_signer_trace(escrow: &EscrowData) -> Result<Option<(SignatureDat
     let sig_json = match first_sig_json {
         Some(s) => s,
         None => {
-            println!("⚠ First signer ({}) has not signed yet", first_role);
+            println!("⚠ First signer ({first_role}) has not signed yet");
             return Ok(None);
         }
     };
@@ -838,7 +838,7 @@ fn phase4_second_signer_trace(
     } else {
         "vendor"
     };
-    println!("Second signer role: {}", second_role);
+    println!("Second signer role: {second_role}");
 
     let second_sig_json = match second_role {
         "vendor" => &escrow.vendor_signature,
@@ -849,7 +849,7 @@ fn phase4_second_signer_trace(
     let sig_json = match second_sig_json {
         Some(s) => s,
         None => {
-            println!("⚠ Second signer ({}) has not signed yet", second_role);
+            println!("⚠ Second signer ({second_role}) has not signed yet");
             return Ok(None);
         }
     };
@@ -949,13 +949,13 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
     let mut ring_commitments: Vec<EdwardsPoint> = Vec::new();
 
     for (i, key_hex) in ring.ring_keys.iter().enumerate() {
-        let key = parse_point(key_hex).context(format!("Failed to parse ring_key[{}]", i))?;
+        let key = parse_point(key_hex).context(format!("Failed to parse ring_key[{i}]"))?;
         ring_keys.push(key);
     }
 
     for (i, commit_hex) in ring.ring_commitments.iter().enumerate() {
         let commit =
-            parse_point(commit_hex).context(format!("Failed to parse ring_commitment[{}]", i))?;
+            parse_point(commit_hex).context(format!("Failed to parse ring_commitment[{i}]"))?;
         ring_commitments.push(commit);
     }
 
@@ -967,7 +967,7 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
     }
 
     let ring_size = ring_keys.len();
-    println!("Ring size: {}", ring_size);
+    println!("Ring size: {ring_size}");
     println!("Signer index: {}", ring.signer_index);
 
     // Compute mixing coefficients
@@ -988,7 +988,7 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
 
     // Compare with stored mu values
     if let Some(stored_mu_p) = &escrow.mu_p {
-        println!("\n  Stored mu_P:   {}", stored_mu_p);
+        println!("\n  Stored mu_P:   {stored_mu_p}");
         if &computed_mu_p_hex == stored_mu_p {
             println!("  ✅ mu_P MATCH");
         } else {
@@ -997,7 +997,7 @@ fn phase5_verification(escrow: &EscrowData, sig: &SignatureData, ring: &RingData
     }
 
     if let Some(stored_mu_c) = &escrow.mu_c {
-        println!("  Stored mu_C:   {}", stored_mu_c);
+        println!("  Stored mu_C:   {stored_mu_c}");
         if &computed_mu_c_hex == stored_mu_c {
             println!("  ✅ mu_C MATCH");
         } else {
@@ -1173,7 +1173,7 @@ fn phase6_diagnosis(
         if fs.s_values.len() == ss.s_values.len() {
             for i in 0..fs.s_values.len() {
                 if fs.s_values[i] != ss.s_values[i] {
-                    println!("   s[{}] differs (expected for signer index)", i);
+                    println!("   s[{i}] differs (expected for signer index)");
                 }
             }
         }
@@ -1219,7 +1219,7 @@ fn main() -> Result<()> {
     println!("║         ONYX CLSAG Debug Script v0.38.9                          ║");
     println!("║         Comprehensive Signing Flow Analysis                      ║");
     println!("╚══════════════════════════════════════════════════════════════════╝");
-    println!("\nEscrow ID: {}", escrow_id);
+    println!("\nEscrow ID: {escrow_id}");
 
     // Connect to database
     let db_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());

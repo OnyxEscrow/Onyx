@@ -57,8 +57,7 @@ impl std::str::FromStr for FeePriority {
             "elevated" | "high" => Ok(FeePriority::Elevated),
             "priority" | "urgent" => Ok(FeePriority::Priority),
             _ => Err(format!(
-                "Unknown priority: {}. Valid: unimportant, normal, elevated, priority",
-                s
+                "Unknown priority: {s}. Valid: unimportant, normal, elevated, priority"
             )),
         }
     }
@@ -99,7 +98,7 @@ fn quantize_fee(fee: u64, mask: u64) -> u64 {
     if mask == 0 {
         return fee;
     }
-    ((fee + mask - 1) / mask) * mask
+    fee.div_ceil(mask) * mask
 }
 
 /// Response from daemon RPC get_fee_estimate
@@ -134,9 +133,7 @@ impl FeeEstimator {
         let client = Client::builder()
             .timeout(Duration::from_secs(10))
             .build()
-            .map_err(|e| {
-                MoneroError::NetworkError(format!("Failed to build HTTP client: {}", e))
-            })?;
+            .map_err(|e| MoneroError::NetworkError(format!("Failed to build HTTP client: {e}")))?;
 
         Ok(Self {
             daemon_url: daemon_url.trim_end_matches('/').to_string(),
@@ -190,7 +187,7 @@ impl FeeEstimator {
         let rpc_response: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {e}")))?;
 
         // Check for RPC error
         if let Some(error) = rpc_response.get("error") {
@@ -222,7 +219,7 @@ impl FeeEstimator {
             .unwrap_or("OK");
 
         if status != "OK" {
-            return Err(MoneroError::RpcError(format!("Daemon status: {}", status)));
+            return Err(MoneroError::RpcError(format!("Daemon status: {status}")));
         }
 
         // Apply priority multiplier

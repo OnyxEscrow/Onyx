@@ -120,26 +120,26 @@ pub async fn restore_ephemeral_wallet(
 ) -> Result<String, MoneroError> {
     // Step 1: Derive decryption key from password
     let decryption_key = derive_key_from_password(password, salt)
-        .map_err(|e| MoneroError::InvalidResponse(format!("Password derivation failed: {}", e)))?;
+        .map_err(|e| MoneroError::InvalidResponse(format!("Password derivation failed: {e}")))?;
 
     // Step 2: Decrypt master seed
     let master_seed = SensitiveBytes::new(
         decrypt_bytes(encrypted_master_seed, &decryption_key).map_err(|e| {
-            MoneroError::InvalidResponse(format!("Decryption failed (wrong password?): {}", e))
+            MoneroError::InvalidResponse(format!("Decryption failed (wrong password?): {e}"))
         })?,
     );
 
     // Step 3: Derive escrow-specific wallet seed
     let escrow_seed = SensitiveBytes::new(
         derive_escrow_wallet_seed(master_seed.as_slice(), escrow_id, role)
-            .map_err(|e| MoneroError::InvalidResponse(format!("Seed derivation failed: {}", e)))?,
+            .map_err(|e| MoneroError::InvalidResponse(format!("Seed derivation failed: {e}")))?,
     );
 
     // Step 4: Convert to hex for Monero RPC
     let escrow_seed_hex = hex::encode(escrow_seed.as_slice());
 
     // Step 5: Restore wallet in RPC daemon
-    let wallet_name = format!("escrow_{}_{}", escrow_id, role);
+    let wallet_name = format!("escrow_{escrow_id}_{role}");
 
     let address = rpc_client
         .restore_deterministic_wallet(

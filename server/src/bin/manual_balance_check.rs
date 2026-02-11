@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
     // Enable wallet pool functionality
     if let Err(e) = wallet_manager.enable_wallet_pool(std::path::PathBuf::from("./testnet-wallets"))
     {
-        eprintln!("Warning: Failed to enable wallet pool: {}", e);
+        eprintln!("Warning: Failed to enable wallet pool: {e}");
     }
 
     // Create dummy websocket server (not used in this test)
@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
     let escrow_id_str = "11959eae-dda8-4f46-bf31-05ecf6a82f20";
     let escrow_id = escrow_id_str.parse::<Uuid>()?;
 
-    println!("🔍 Checking balance for escrow: {}", escrow_id_str);
+    println!("🔍 Checking balance for escrow: {escrow_id_str}");
 
     // Call the lazy sync function directly
     match orchestrator.sync_and_get_balance(escrow_id).await {
@@ -77,13 +77,9 @@ async fn main() -> Result<()> {
             let unlocked_xmr = unlocked_balance_atomic as f64 / 1_000_000_000_000.0;
 
             println!("✅ Balance check successful!");
+            println!("💰 Balance: {balance_atomic} atomic units ({balance_xmr:.12} XMR)");
             println!(
-                "💰 Balance: {} atomic units ({:.12} XMR)",
-                balance_atomic, balance_xmr
-            );
-            println!(
-                "🔓 Unlocked: {} atomic units ({:.12} XMR)",
-                unlocked_balance_atomic, unlocked_xmr
+                "🔓 Unlocked: {unlocked_balance_atomic} atomic units ({unlocked_xmr:.12} XMR)"
             );
 
             // Expected transaction amount: 0.000000000246 XMR = 246 atomic units
@@ -93,18 +89,15 @@ async fn main() -> Result<()> {
                 println!("✅ Transaction confirmed in multisig address");
                 println!("✅ Lazy sync multisig system working correctly");
             } else if balance_atomic > 0 {
-                println!(
-                    "ℹ️  Partial amount detected: {} atomic units",
-                    balance_atomic
-                );
-                println!("⚠️  Expected at least: {} atomic units", expected_atomic);
+                println!("ℹ️  Partial amount detected: {balance_atomic} atomic units");
+                println!("⚠️  Expected at least: {expected_atomic} atomic units");
             } else {
                 println!("⚠️  Balance still showing 0 - transaction may still be confirming");
                 println!("💡 This could be due to blockchain confirmation time");
             }
         }
         Err(e) => {
-            eprintln!("❌ Failed to check balance: {}", e);
+            eprintln!("❌ Failed to check balance: {e}");
             eprintln!("💡 This might be due to:");
             eprintln!("   - RPC instances not responding");
             eprintln!("   - Wallet files not properly created");

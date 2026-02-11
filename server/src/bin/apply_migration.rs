@@ -26,7 +26,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
 
-    println!("📂 Database: {}", database_url);
+    println!("📂 Database: {database_url}");
 
     // Get encryption key from environment (same as server uses)
     let encryption_key = env::var("DB_ENCRYPTION_KEY")
@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = pool.get()?;
 
     // Set encryption key (same as server does)
-    diesel::sql_query(format!("PRAGMA key = '{}';", encryption_key)).execute(&mut conn)?;
+    diesel::sql_query(format!("PRAGMA key = '{encryption_key}';")).execute(&mut conn)?;
 
     println!("✅ Successfully connected to encrypted database");
     println!();

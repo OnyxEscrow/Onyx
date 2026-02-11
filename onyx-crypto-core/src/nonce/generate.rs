@@ -15,7 +15,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 #[derive(Clone, Zeroize)]
 #[zeroize(drop)]
 pub struct NonceCommitmentResult {
-    /// Keccak256 commitment hash: H("MUSIG2_NONCE_COMMITMENT" || R || R')
+    /// Keccak256 commitment hash: `H("MUSIG2_NONCE_COMMITMENT`" || R || R')
     #[zeroize(skip)]
     pub commitment_hash: String,
 
@@ -39,7 +39,7 @@ pub struct NonceCommitmentResult {
 /// 1. Each signer generates random α (nonce)
 /// 2. Computes R = α*G and R' = α*Hp(P)
 /// 3. Computes commitment H(R || R')
-/// 4. Returns {commitment_hash, r_public, r_prime_public, alpha_secret}
+/// 4. Returns {`commitment_hash`, `r_public`, `r_prime_public`, `alpha_secret`}
 ///
 /// # Security
 ///
@@ -58,13 +58,12 @@ pub struct NonceCommitmentResult {
 ///
 /// # Errors
 ///
-/// - `InvalidInput` if multisig_pub_key is invalid hex or wrong length
+/// - `InvalidInput` if `multisig_pub_key` is invalid hex or wrong length
 /// - `CryptoOperation` if RNG fails
 pub fn generate_nonce_commitment(multisig_pub_key: &str) -> CryptoResult<NonceCommitmentResult> {
     // Validate multisig public key
-    let pubkey_bytes = hex::decode(multisig_pub_key).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {}", e))
-    })?;
+    let pubkey_bytes = hex::decode(multisig_pub_key)
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid multisig_pub_key hex: {e}")))?;
 
     if pubkey_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -80,7 +79,7 @@ pub fn generate_nonce_commitment(multisig_pub_key: &str) -> CryptoResult<NonceCo
     // Generate random nonce (alpha) using getrandom
     let mut alpha_bytes = [0u8; 32];
     getrandom::getrandom(&mut alpha_bytes)
-        .map_err(|e| CryptoError::NonceGenerationFailed(format!("RNG error: {}", e)))?;
+        .map_err(|e| CryptoError::NonceGenerationFailed(format!("RNG error: {e}")))?;
 
     let alpha = Scalar::from_bytes_mod_order(alpha_bytes);
 

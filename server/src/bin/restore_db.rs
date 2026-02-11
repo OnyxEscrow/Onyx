@@ -22,13 +22,13 @@ fn main() -> Result<()> {
 
     let backup_dir = PathBuf::from(BACKUP_DIR);
     if !backup_dir.exists() {
-        bail!("Backup directory not found: {}", BACKUP_DIR);
+        bail!("Backup directory not found: {BACKUP_DIR}");
     }
 
     // List available backups
     let backups = list_backups(&backup_dir)?;
     if backups.is_empty() {
-        bail!("No backups found in {}", BACKUP_DIR);
+        bail!("No backups found in {BACKUP_DIR}");
     }
 
     println!("📋 Available backups:\n");
@@ -117,7 +117,7 @@ fn list_backups(backup_dir: &Path) -> Result<Vec<(PathBuf, u64, chrono::DateTime
 }
 
 fn verify_backup(backup_path: &Path, key: &str) -> Result<()> {
-    let sql = format!("PRAGMA key = '{}'; PRAGMA integrity_check;", key);
+    let sql = format!("PRAGMA key = '{key}'; PRAGMA integrity_check;");
 
     let output = Command::new("sqlcipher")
         .arg(backup_path)
@@ -127,7 +127,7 @@ fn verify_backup(backup_path: &Path, key: &str) -> Result<()> {
 
     let result = String::from_utf8_lossy(&output.stdout);
     if !result.contains("ok") {
-        bail!("Backup integrity check failed: {}", result);
+        bail!("Backup integrity check failed: {result}");
     }
 
     Ok(())

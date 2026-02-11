@@ -50,16 +50,16 @@ fn main() {
     println!("  Buyer   (index 1)");
     println!("  Vendor  (index 2)");
     println!("  Arbiter (index 3)");
-    println!("  Threshold: {}-of-{}\n", threshold, max_signers);
+    println!("  Threshold: {threshold}-of-{max_signers}\n");
 
     // Round 1: Each participant generates commitment
     println!("Round 1: Generating commitments...");
     let (r1_secret_buyer, r1_pkg_buyer) =
-        dkg::part1(id_buyer, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_buyer, max_signers, threshold, OsRng).unwrap();
     let (r1_secret_vendor, r1_pkg_vendor) =
-        dkg::part1(id_vendor, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_vendor, max_signers, threshold, OsRng).unwrap();
     let (r1_secret_arbiter, r1_pkg_arbiter) =
-        dkg::part1(id_arbiter, max_signers, threshold, &mut OsRng).unwrap();
+        dkg::part1(id_arbiter, max_signers, threshold, OsRng).unwrap();
     println!("  ✓ All 3 participants generated Round 1 packages\n");
 
     // Round 2: Each participant computes packages for others
@@ -163,13 +163,13 @@ fn main() {
     // Verify: share * G == verifying_share
     println!("Verifying share * G == verifying_share:");
 
-    let computed_buyer = (&*ED25519_BASEPOINT_TABLE * &share_buyer)
+    let computed_buyer = (ED25519_BASEPOINT_TABLE * &share_buyer)
         .compress()
         .to_bytes();
-    let computed_vendor = (&*ED25519_BASEPOINT_TABLE * &share_vendor)
+    let computed_vendor = (ED25519_BASEPOINT_TABLE * &share_vendor)
         .compress()
         .to_bytes();
-    let computed_arbiter = (&*ED25519_BASEPOINT_TABLE * &share_arbiter)
+    let computed_arbiter = (ED25519_BASEPOINT_TABLE * &share_arbiter)
         .compress()
         .to_bytes();
 
@@ -184,7 +184,7 @@ fn main() {
         } else {
             "✗ MISMATCH"
         },
-        hex::encode(&computed_buyer)
+        hex::encode(computed_buyer)
     );
     println!(
         "  Vendor:  {} (computed: {})",
@@ -193,7 +193,7 @@ fn main() {
         } else {
             "✗ MISMATCH"
         },
-        hex::encode(&computed_vendor)
+        hex::encode(computed_vendor)
     );
     println!(
         "  Arbiter: {} (computed: {})\n",
@@ -202,7 +202,7 @@ fn main() {
         } else {
             "✗ MISMATCH"
         },
-        hex::encode(&computed_arbiter)
+        hex::encode(computed_arbiter)
     );
 
     if !buyer_ok || !vendor_ok || !arbiter_ok {
@@ -228,7 +228,7 @@ fn main() {
 
     // Reconstruct group secret: x = λ₁*share₁ + λ₂*share₂
     let reconstructed_secret = lambda1 * share_buyer + lambda2 * share_vendor;
-    let reconstructed_pubkey = (&*ED25519_BASEPOINT_TABLE * &reconstructed_secret)
+    let reconstructed_pubkey = (ED25519_BASEPOINT_TABLE * &reconstructed_secret)
         .compress()
         .to_bytes();
 
@@ -239,7 +239,7 @@ fn main() {
     );
     println!(
         "  Reconstructed pubkey: {}",
-        hex::encode(&reconstructed_pubkey)
+        hex::encode(reconstructed_pubkey)
     );
     println!(
         "  Expected group pubkey: {}",
@@ -270,7 +270,7 @@ fn main() {
     let lambda1_ba = Scalar::from(3u64) * Scalar::from(2u64).invert();
     let lambda3_ba = -Scalar::ONE * Scalar::from(2u64).invert();
     let reconstructed_ba = lambda1_ba * share_buyer + lambda3_ba * share_arbiter;
-    let reconstructed_pubkey_ba = (&*ED25519_BASEPOINT_TABLE * &reconstructed_ba)
+    let reconstructed_pubkey_ba = (ED25519_BASEPOINT_TABLE * &reconstructed_ba)
         .compress()
         .to_bytes();
     let ba_ok = reconstructed_pubkey_ba == group_pubkey_buyer.as_slice();
@@ -285,7 +285,7 @@ fn main() {
     let lambda2_va = Scalar::from(3u64);
     let lambda3_va = -Scalar::from(2u64);
     let reconstructed_va = lambda2_va * share_vendor + lambda3_va * share_arbiter;
-    let reconstructed_pubkey_va = (&*ED25519_BASEPOINT_TABLE * &reconstructed_va)
+    let reconstructed_pubkey_va = (ED25519_BASEPOINT_TABLE * &reconstructed_va)
         .compress()
         .to_bytes();
     let va_ok = reconstructed_pubkey_va == group_pubkey_buyer.as_slice();
@@ -314,7 +314,7 @@ fn main() {
 
     // Simulate Hp(P) as a random point (in real code, use proper hash_to_point)
     let hp_scalar = Scalar::from(12345u64); // Deterministic for testing
-    let hp_point = &*ED25519_BASEPOINT_TABLE * &hp_scalar;
+    let hp_point = ED25519_BASEPOINT_TABLE * &hp_scalar;
 
     // Full key image (what we need)
     let full_key_image = reconstructed_secret * hp_point;

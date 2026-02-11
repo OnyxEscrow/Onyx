@@ -18,12 +18,12 @@ pub struct ClsagSignature {
     /// D point (hex, 32 bytes compressed).
     ///
     /// D = z * Hp(P) where z is the mask delta.
-    /// Stored as D_inv8 = D / 8 in the signature.
+    /// Stored as `D_inv8` = D / 8 in the signature.
     pub d: String,
 
     /// Pseudo-output commitment (hex, 32 bytes compressed).
     ///
-    /// pseudo_out = amount * H + output_mask * G
+    /// `pseudo_out` = amount * H + `output_mask` * G
     pub pseudo_out: String,
 
     /// Key image (hex, 32 bytes compressed).
@@ -47,10 +47,10 @@ pub struct ClsagVerificationResult {
     /// Expected challenge (c1 from the signature).
     pub c_expected: [u8; 32],
 
-    /// Mixing coefficient μ_P used in verification.
+    /// Mixing coefficient `μ_P` used in verification.
     pub mu_p: [u8; 32],
 
-    /// Mixing coefficient μ_C used in verification.
+    /// Mixing coefficient `μ_C` used in verification.
     pub mu_c: [u8; 32],
 
     /// Description of the step where verification failed (if any).
@@ -62,6 +62,7 @@ pub struct ClsagVerificationResult {
 
 impl ClsagVerificationResult {
     /// Create a successful verification result.
+    #[must_use]
     pub fn success(
         c_computed: [u8; 32],
         c_expected: [u8; 32],
@@ -81,6 +82,7 @@ impl ClsagVerificationResult {
     }
 
     /// Create a failed verification result.
+    #[must_use]
     pub fn failure(
         c_computed: [u8; 32],
         c_expected: [u8; 32],
@@ -101,6 +103,7 @@ impl ClsagVerificationResult {
     }
 
     /// Create an early failure result (before mu computation).
+    #[must_use]
     pub fn early_failure(
         c_expected: [u8; 32],
         failure_step: String,

@@ -124,8 +124,8 @@ fn hash_to_point(data: [u8; 32]) -> EdwardsPoint {
     let mut counter = 0u8;
     loop {
         let mut hasher = Keccak256::new();
-        hasher.update(&data);
-        hasher.update(&[counter]);
+        hasher.update(data);
+        hasher.update([counter]);
         let hash: [u8; 32] = hasher.finalize().into();
 
         if let Some(point) = CompressedEdwardsY(hash).decompress() {
@@ -146,8 +146,8 @@ fn compute_derivation(view_key: &Scalar, tx_pub_key: &EdwardsPoint, output_index
 
     // Hash to derivation scalar
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
 
     Scalar::from_bytes_mod_order(derivation_hash)
@@ -264,7 +264,7 @@ fn clsag_agg_0(
     // CRITICAL: Domain separator must be 32-byte padded (Monero uses 32-byte key slots)
     let mut domain_sep = [0u8; 32];
     domain_sep[..11].copy_from_slice(b"CLSAG_agg_0");
-    hasher.update(&domain_sep);
+    hasher.update(domain_sep);
 
     for p in ring {
         hasher.update(p.compress().as_bytes());
@@ -293,7 +293,7 @@ fn clsag_agg_1(
 
     let mut domain_sep = [0u8; 32];
     domain_sep[..11].copy_from_slice(b"CLSAG_agg_1");
-    hasher.update(&domain_sep);
+    hasher.update(domain_sep);
 
     for p in ring {
         hasher.update(p.compress().as_bytes());
@@ -347,12 +347,12 @@ async fn create_session(role: &str) -> Result<Client> {
 
     let login_req = TestLoginRequest {
         user_id: user_id.to_string(),
-        username: format!("test_{}", role),
+        username: format!("test_{role}"),
         role: role.to_string(),
     };
 
     let resp = client
-        .post(format!("{}/api/debug/test-login", SERVER_URL))
+        .post(format!("{SERVER_URL}/api/debug/test-login"))
         .json(&login_req)
         .send()
         .await
@@ -361,7 +361,7 @@ async fn create_session(role: &str) -> Result<Client> {
     if !resp.status().is_success() {
         let status = resp.status();
         let body = resp.text().await.unwrap_or_default();
-        anyhow::bail!("Login failed ({}): {}", status, body);
+        anyhow::bail!("Login failed ({status}): {body}");
     }
 
     Ok(client)
@@ -416,7 +416,7 @@ fn compute_pki_no_derivation(share: &str, one_time_pubkey: &str, lambda: Scalar)
 #[tokio::main]
 async fn main() -> Result<()> {
     println!("=== FROST SIGNING FLOW E2E TEST ===");
-    println!("Escrow: {}\n", ESCROW_ID);
+    println!("Escrow: {ESCROW_ID}\n");
 
     // ========================================================================
     // STEP 1: Compute expected values
@@ -428,9 +428,9 @@ async fn main() -> Result<()> {
     let tx_pub_key = &tx_secret_key * ED25519_BASEPOINT_TABLE;
     let tx_pub_key_hex = hex::encode(tx_pub_key.compress().as_bytes());
 
-    println!("  TX Public Key (R): {}", tx_pub_key_hex);
+    println!("  TX Public Key (R): {tx_pub_key_hex}");
     if tx_pub_key_hex != EXPECTED_TX_PUBKEY {
-        println!("  ❌ MISMATCH! Expected: {}", EXPECTED_TX_PUBKEY);
+        println!("  ❌ MISMATCH! Expected: {EXPECTED_TX_PUBKEY}");
         anyhow::bail!("TX pubkey mismatch - check TX_SECRET_KEY");
     }
     println!("  ✓ TX pubkey matches expected\n");
@@ -445,9 +445,9 @@ async fn main() -> Result<()> {
     let one_time_pubkey = d_point + group_pubkey;
     let one_time_pubkey_hex = hex::encode(one_time_pubkey.compress().as_bytes());
 
-    println!("  One-time pubkey (P): {}", one_time_pubkey_hex);
+    println!("  One-time pubkey (P): {one_time_pubkey_hex}");
     if one_time_pubkey_hex != EXPECTED_ONE_TIME_PUBKEY {
-        println!("  ❌ MISMATCH! Expected: {}", EXPECTED_ONE_TIME_PUBKEY);
+        println!("  ❌ MISMATCH! Expected: {EXPECTED_ONE_TIME_PUBKEY}");
         anyhow::bail!("One-time pubkey mismatch");
     }
     println!("  ✓ One-time pubkey matches expected\n");
@@ -475,9 +475,9 @@ async fn main() -> Result<()> {
     let expected_ki = vendor_pki_point + buyer_pki_point;
     let expected_ki_hex = hex::encode(expected_ki.compress().as_bytes());
 
-    println!("  Expected vendor PKI: {}", expected_vendor_pki);
-    println!("  Expected buyer PKI:  {}", expected_buyer_pki);
-    println!("  Expected KI:         {}", expected_ki_hex);
+    println!("  Expected vendor PKI: {expected_vendor_pki}");
+    println!("  Expected buyer PKI:  {expected_buyer_pki}");
+    println!("  Expected KI:         {expected_ki_hex}");
     println!();
 
     // ========================================================================
@@ -491,7 +491,7 @@ async fn main() -> Result<()> {
             c
         }
         Err(e) => {
-            println!("  ❌ Vendor login FAILED: {}", e);
+            println!("  ❌ Vendor login FAILED: {e}");
             println!("\n  HINT: Make sure server is running with TEST_AUTH_BYPASS=1");
             println!("        TEST_AUTH_BYPASS=1 cargo run --release");
             anyhow::bail!("Vendor login failed");
@@ -504,7 +504,7 @@ async fn main() -> Result<()> {
             c
         }
         Err(e) => {
-            println!("  ❌ Buyer login FAILED: {}", e);
+            println!("  ❌ Buyer login FAILED: {e}");
             anyhow::bail!("Buyer login failed");
         }
     };
@@ -514,12 +514,9 @@ async fn main() -> Result<()> {
     // STEP 3: Submit Vendor PKI (first submitter, WITH derivation)
     // ========================================================================
     println!("[3/6] Submit Vendor PKI (first submitter, WITH derivation)...");
-    println!("  PKI: {}", expected_vendor_pki);
+    println!("  PKI: {expected_vendor_pki}");
 
-    let submit_url = format!(
-        "{}/api/v2/escrow/{}/submit-partial-key-image",
-        SERVER_URL, ESCROW_ID
-    );
+    let submit_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/submit-partial-key-image");
     let pki_req = SubmitPkiRequest {
         role: "vendor".to_string(),
         partial_key_image: expected_vendor_pki.clone(),
@@ -540,7 +537,7 @@ async fn main() -> Result<()> {
     if status.is_success() {
         println!("  ✓ Vendor PKI submitted successfully");
         if let Some(agg) = submit_resp["aggregated_key_image"].as_str() {
-            println!("  ⚠️  Aggregated immediately (unexpected): {}", agg);
+            println!("  ⚠️  Aggregated immediately (unexpected): {agg}");
         }
     } else if status.as_u16() == 409 {
         // PKI already submitted - check if it matches
@@ -548,17 +545,14 @@ async fn main() -> Result<()> {
             if expected_vendor_pki.starts_with(existing) {
                 println!("  ✓ Vendor PKI already submitted (same value, OK)");
             } else {
-                println!(
-                    "  ❌ PKI conflict: existing prefix {} doesn't match",
-                    existing
-                );
+                println!("  ❌ PKI conflict: existing prefix {existing} doesn't match");
                 anyhow::bail!("Vendor PKI conflict");
             }
         } else {
-            println!("  ⚠️  PKI already submitted (409): {}", body);
+            println!("  ⚠️  PKI already submitted (409): {body}");
         }
     } else {
-        println!("  ❌ Submit FAILED ({}): {}", status, body);
+        println!("  ❌ Submit FAILED ({status}): {body}");
         anyhow::bail!("Vendor PKI submission failed");
     }
     println!();
@@ -567,7 +561,7 @@ async fn main() -> Result<()> {
     // STEP 4: Submit Buyer PKI (second submitter, NO derivation)
     // ========================================================================
     println!("[4/6] Submit Buyer PKI (second submitter, NO derivation)...");
-    println!("  PKI: {}", expected_buyer_pki);
+    println!("  PKI: {expected_buyer_pki}");
 
     let pki_req = SubmitPkiRequest {
         role: "buyer".to_string(),
@@ -592,8 +586,8 @@ async fn main() -> Result<()> {
         // Check aggregated key image
         if let Some(agg) = submit_resp["aggregated_key_image"].as_str() {
             println!("\n  === AGGREGATED KEY IMAGE ===");
-            println!("  Got:      {}", agg);
-            println!("  Expected: {}", expected_ki_hex);
+            println!("  Got:      {agg}");
+            println!("  Expected: {expected_ki_hex}");
 
             if agg == expected_ki_hex {
                 println!("  ✅ MATCH! Key image is correct!");
@@ -615,19 +609,16 @@ async fn main() -> Result<()> {
                 println!("  ✓ Buyer PKI already submitted (same value, OK)");
                 // Verify the aggregated KI from DB
                 println!("\n  === KEY IMAGE (from previous aggregation) ===");
-                println!("  Expected: {}", expected_ki_hex);
+                println!("  Expected: {expected_ki_hex}");
             } else {
-                println!(
-                    "  ❌ PKI conflict: existing prefix {} doesn't match",
-                    existing
-                );
+                println!("  ❌ PKI conflict: existing prefix {existing} doesn't match");
                 anyhow::bail!("Buyer PKI conflict");
             }
         } else {
-            println!("  ⚠️  PKI already submitted (409): {}", body);
+            println!("  ⚠️  PKI already submitted (409): {body}");
         }
     } else {
-        println!("  ❌ Submit FAILED ({}): {}", status, body);
+        println!("  ❌ Submit FAILED ({status}): {body}");
         anyhow::bail!("Buyer PKI submission failed");
     }
     println!();
@@ -637,7 +628,7 @@ async fn main() -> Result<()> {
     // ========================================================================
     println!("[5/6] Prepare signing (vendor)...");
 
-    let prepare_url = format!("{}/api/v2/escrow/{}/prepare-sign", SERVER_URL, ESCROW_ID);
+    let prepare_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/prepare-sign");
     let resp = vendor_client
         .get(&prepare_url)
         .send()
@@ -660,10 +651,10 @@ async fn main() -> Result<()> {
                     println!("    Ring size: {}", ring.len());
                 }
                 if let Some(idx) = input.get("signer_index") {
-                    println!("    Signer index: {}", idx);
+                    println!("    Signer index: {idx}");
                 }
                 if let Some(ki) = input.get("key_image").and_then(|k| k.as_str()) {
-                    println!("    Key image: {}", ki);
+                    println!("    Key image: {ki}");
                 }
                 if let Some(tph) = input.get("message_hash").and_then(|m| m.as_str()) {
                     println!("    Message hash: {}...", &tph[..16.min(tph.len())]);
@@ -680,7 +671,7 @@ async fn main() -> Result<()> {
             println!("    {}", &body[..500.min(body.len())]);
         }
     } else {
-        println!("  ❌ prepare-sign FAILED ({}): {}", status, body);
+        println!("  ❌ prepare-sign FAILED ({status}): {body}");
         println!("\n  This might be expected if ring data is not ready.");
     }
     println!();
@@ -705,10 +696,10 @@ async fn main() -> Result<()> {
                         }
                         Value::String(s) => format!("{} (len={})", s.clone(), s.len()),
                         Value::Array(a) => format!("[{} items]", a.len()),
-                        Value::Number(n) => format!("{}", n),
-                        _ => format!("{}", val),
+                        Value::Number(n) => format!("{n}"),
+                        _ => format!("{val}"),
                     };
-                    eprintln!("    {}: {}", key, val_preview);
+                    eprintln!("    {key}: {val_preview}");
                 }
             }
         }
@@ -798,7 +789,7 @@ async fn main() -> Result<()> {
         ring_json.len(),
         signer_index
     );
-    println!("  Amount: {} piconero", amount);
+    println!("  Amount: {amount} piconero");
 
     // Parse ring members
     let mut ring_keys: Vec<EdwardsPoint> = Vec::new();
@@ -849,8 +840,7 @@ async fn main() -> Result<()> {
     };
 
     // Compute pseudo_out = commitment_mask * G + amount * H
-    let pseudo_out =
-        &*ED25519_BASEPOINT_TABLE * &commitment_mask + &*H * &Scalar::from(real_amount);
+    let pseudo_out = ED25519_BASEPOINT_TABLE * &commitment_mask + *H * Scalar::from(real_amount);
     let pseudo_out_hex = hex::encode(pseudo_out.compress().as_bytes());
     println!("  Pseudo_out: {}...", &pseudo_out_hex[..16]);
 
@@ -869,7 +859,7 @@ async fn main() -> Result<()> {
     let d_point = mask_delta * hp_signer;
     let d_hex = hex::encode(d_point.compress().as_bytes());
     println!("  D point: {}...", &d_hex[..16]);
-    println!("  (D = mask_delta * Hp(P_{}) )", signer_index);
+    println!("  (D = mask_delta * Hp(P_{signer_index}) )");
 
     // Compute D_inv8 = D / 8 (multiply by inverse of 8)
     // This is what the server uses in mu computation per clsag_verifier.rs
@@ -919,7 +909,7 @@ async fn main() -> Result<()> {
     let alpha = Scalar::random(&mut OsRng);
 
     // Compute R = alpha * G
-    let r_public = &*ED25519_BASEPOINT_TABLE * &alpha;
+    let r_public = ED25519_BASEPOINT_TABLE * &alpha;
 
     // Compute R' = alpha * Hp(P) where P is our public key (ring_keys[signer_index])
     let p_bytes = ring_keys[signer_index].compress().to_bytes();
@@ -994,7 +984,7 @@ async fn main() -> Result<()> {
         let c_minus_pseudo = c_point - pseudo_out;
 
         let combined = mu_p * p_point + mu_c * c_minus_pseudo;
-        let l_point = &*ED25519_BASEPOINT_TABLE * &s + c * combined;
+        let l_point = ED25519_BASEPOINT_TABLE * &s + c * combined;
 
         // R = s*Hp(P) + c*(mu_p*I + mu_c*D)
         let hp_pi = monero_hash_to_point(p_point.compress().to_bytes());
@@ -1076,7 +1066,7 @@ async fn main() -> Result<()> {
         let c_minus_pseudo = c_point - pseudo_out;
 
         let combined = mu_p * p_point + mu_c * c_minus_pseudo;
-        let l_point = &*ED25519_BASEPOINT_TABLE * &s + verify_c * combined;
+        let l_point = ED25519_BASEPOINT_TABLE * &s + verify_c * combined;
 
         // R = s*Hp(P) + c*(mu_p*I + mu_c*D)
         let hp_pi = monero_hash_to_point(p_point.compress().to_bytes());
@@ -1152,7 +1142,7 @@ async fn main() -> Result<()> {
 
         // L = s*G + c*(mu_p*P + mu_c*(C - pseudo_out))
         let combined = mu_p * p_point + mu_c * c_minus_pseudo;
-        let l_point = &*ED25519_BASEPOINT_TABLE * &s + full_c * combined;
+        let l_point = ED25519_BASEPOINT_TABLE * &s + full_c * combined;
 
         // R = s*Hp(P) + c*(mu_p*I + mu_c*D)
         let hp_pi = monero_hash_to_point(p_point.compress().to_bytes());
@@ -1226,7 +1216,7 @@ async fn main() -> Result<()> {
     // ========================================================================
     println!("\n[7/9] Submitting vendor signature...");
 
-    let sign_init_url = format!("{}/api/v2/escrow/{}/sign/init", SERVER_URL, ESCROW_ID);
+    let sign_init_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/sign/init");
     let sign_init_req = SignInitRequest {
         role: "vendor".to_string(),
         partial_tx: partial_tx_json.clone(),
@@ -1245,7 +1235,7 @@ async fn main() -> Result<()> {
     if status.is_success() {
         println!("  ✓ Vendor signature submitted");
     } else {
-        println!("  ❌ Vendor sign_init FAILED ({}): {}", status, body);
+        println!("  ❌ Vendor sign_init FAILED ({status}): {body}");
     }
 
     // ========================================================================
@@ -1259,7 +1249,7 @@ async fn main() -> Result<()> {
     // 3. Add buyer's contribution to s_π
     // This is complex - let's at least call prepare-sign to verify state
 
-    let prepare_url = format!("{}/api/v2/escrow/{}/prepare-sign", SERVER_URL, ESCROW_ID);
+    let prepare_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/prepare-sign");
     let resp = buyer_client
         .get(&prepare_url)
         .send()
@@ -1316,7 +1306,7 @@ async fn main() -> Result<()> {
 
                 // L = s*G + c*(mu_p*P + mu_c*(C - pseudo_out))
                 let combined = mu_p * p_point + mu_c * c_minus_pseudo;
-                let l_point = &*ED25519_BASEPOINT_TABLE * &s + c_input * combined;
+                let l_point = ED25519_BASEPOINT_TABLE * &s + c_input * combined;
 
                 // R = s*Hp(P) + c*(mu_p*I + mu_c*D)
                 let hp_pi = monero_hash_to_point(p_point.compress().to_bytes());
@@ -1332,7 +1322,7 @@ async fn main() -> Result<()> {
                 verify_complete_c = Scalar::from_bytes_mod_order(c_next_arr);
 
                 if idx == signer_index {
-                    println!("      idx={} (SIGNER):", idx);
+                    println!("      idx={idx} (SIGNER):");
                     println!("        s_π = {}...", hex::encode(&s.as_bytes()[..8]));
                     println!(
                         "        c_π (input) = {}...",
@@ -1353,7 +1343,7 @@ async fn main() -> Result<()> {
 
                     // Check individual components
                     println!("\n        --- Component check ---");
-                    let s_g = &*ED25519_BASEPOINT_TABLE * &s;
+                    let s_g = ED25519_BASEPOINT_TABLE * &s;
                     println!(
                         "        s*G = {}...",
                         hex::encode(&s_g.compress().as_bytes()[..8])
@@ -1424,11 +1414,11 @@ async fn main() -> Result<()> {
                 "    s_signer (s15):  {}",
                 hex::encode(s_values_complete[15].as_bytes())
             );
-            println!("    c1_input:        {}", c1_hex);
-            println!("    d_inv8:          {}", d_inv8_hex);
-            println!("    key_image:       {}", key_image_hex);
-            println!("    pseudo_out:      {}", pseudo_out_hex);
-            println!("    tx_prefix:       {}", tx_prefix_hash);
+            println!("    c1_input:        {c1_hex}");
+            println!("    d_inv8:          {d_inv8_hex}");
+            println!("    key_image:       {key_image_hex}");
+            println!("    pseudo_out:      {pseudo_out_hex}");
+            println!("    tx_prefix:       {tx_prefix_hash}");
             println!(
                 "    ring_key_0:      {}",
                 hex::encode(ring_keys[0].compress().as_bytes())
@@ -1445,8 +1435,8 @@ async fn main() -> Result<()> {
                 "    ring_commit_15:  {}",
                 hex::encode(ring_commitments[15].compress().as_bytes())
             );
-            println!("    mu_p FULL:       {}", mu_p_hex);
-            println!("    mu_c FULL:       {}", mu_c_hex);
+            println!("    mu_p FULL:       {mu_p_hex}");
+            println!("    mu_c FULL:       {mu_c_hex}");
             println!("    === END v0.57.0 DIAG ===\n");
 
             let completed = CompletedClsag {
@@ -1464,8 +1454,7 @@ async fn main() -> Result<()> {
             let completed_json = serde_json::to_string(&completed)?;
 
             // Submit completed signature
-            let sign_complete_url =
-                format!("{}/api/v2/escrow/{}/sign/complete", SERVER_URL, ESCROW_ID);
+            let sign_complete_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/sign/complete");
             let sign_complete_req = SignCompleteRequest {
                 role: "buyer".to_string(),
                 completed_clsag: completed_json,
@@ -1484,13 +1473,13 @@ async fn main() -> Result<()> {
             if status.is_success() {
                 println!("  ✓ Buyer signature submitted - CLSAG complete!");
             } else {
-                println!("  ❌ Buyer sign_complete FAILED ({}): {}", status, body);
+                println!("  ❌ Buyer sign_complete FAILED ({status}): {body}");
             }
         } else {
             println!("  ⚠️  No first_signer data yet");
         }
     } else {
-        println!("  ❌ Buyer prepare-sign FAILED ({}): {}", status, body);
+        println!("  ❌ Buyer prepare-sign FAILED ({status}): {body}");
     }
 
     // ========================================================================
@@ -1498,7 +1487,7 @@ async fn main() -> Result<()> {
     // ========================================================================
     println!("\n[9/9] Broadcasting transaction...");
 
-    let broadcast_url = format!("{}/api/v2/escrow/{}/broadcast-tx", SERVER_URL, ESCROW_ID);
+    let broadcast_url = format!("{SERVER_URL}/api/v2/escrow/{ESCROW_ID}/broadcast-tx");
     let resp = vendor_client
         .post(&broadcast_url)
         .send()
@@ -1512,11 +1501,11 @@ async fn main() -> Result<()> {
         println!("  ✅ BROADCAST SUCCESS!");
         let resp_json: Value = serde_json::from_str(&body).unwrap_or_default();
         if let Some(tx_hash) = resp_json["tx_hash"].as_str() {
-            println!("  TX Hash: {}", tx_hash);
+            println!("  TX Hash: {tx_hash}");
         }
     } else {
-        println!("  ❌ BROADCAST FAILED ({})", status);
-        println!("  Response: {}", body);
+        println!("  ❌ BROADCAST FAILED ({status})");
+        println!("  Response: {body}");
     }
 
     println!("\n========================================");

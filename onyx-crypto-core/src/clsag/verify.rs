@@ -43,6 +43,7 @@ use super::types::ClsagVerificationResult;
 ///
 /// # Returns
 /// Verification result with debug information
+#[must_use]
 pub fn verify_clsag(
     s_values: &[[u8; 32]],
     c1: [u8; 32],
@@ -56,7 +57,7 @@ pub fn verify_clsag(
     let mut debug_info = Vec::new();
     let ring_size = ring_keys_bytes.len();
 
-    debug_info.push(format!("Ring size: {}", ring_size));
+    debug_info.push(format!("Ring size: {ring_size}"));
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!("D_inv8: {}...", hex::encode(&d_inv8_bytes[..8])));
     debug_info.push(format!(
@@ -118,7 +119,7 @@ pub fn verify_clsag(
             None => {
                 return ClsagVerificationResult::early_failure(
                     c1,
-                    format!("Failed to decompress ring_key[{}]", i),
+                    format!("Failed to decompress ring_key[{i}]"),
                     debug_info,
                 );
             }
@@ -129,7 +130,7 @@ pub fn verify_clsag(
             None => {
                 return ClsagVerificationResult::early_failure(
                     c1,
-                    format!("Failed to decompress ring_commitment[{}]", i),
+                    format!("Failed to decompress ring_commitment[{i}]"),
                     debug_info,
                 );
             }
@@ -226,9 +227,9 @@ pub fn verify_clsag(
     let c_computed = c.to_bytes();
     let valid = c_computed == c1;
 
-    debug_info.push(format!("c_computed: {}", hex::encode(&c_computed)));
-    debug_info.push(format!("c_expected: {}", hex::encode(&c1)));
-    debug_info.push(format!("MATCH: {}", valid));
+    debug_info.push(format!("c_computed: {}", hex::encode(c_computed)));
+    debug_info.push(format!("c_expected: {}", hex::encode(c1)));
+    debug_info.push(format!("MATCH: {valid}"));
 
     if valid {
         ClsagVerificationResult::success(
@@ -258,6 +259,7 @@ pub fn verify_clsag(
 /// they MUST be passed here to ensure verification uses the exact same values.
 ///
 /// If `stored_mu_p` and `stored_mu_c` are `None`, falls back to recomputation.
+#[must_use]
 pub fn verify_clsag_with_mu(
     s_values: &[[u8; 32]],
     c1: [u8; 32],
@@ -273,16 +275,18 @@ pub fn verify_clsag_with_mu(
     let mut debug_info = Vec::new();
     let ring_size = ring_keys_bytes.len();
 
-    debug_info.push(format!("Ring size: {}", ring_size));
+    debug_info.push(format!("Ring size: {ring_size}"));
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!(
         "stored_mu_p: {}, stored_mu_c: {}",
-        stored_mu_p
-            .map(|m| format!("{}...", hex::encode(&m[..8])))
-            .unwrap_or_else(|| "NONE".to_string()),
-        stored_mu_c
-            .map(|m| format!("{}...", hex::encode(&m[..8])))
-            .unwrap_or_else(|| "NONE".to_string())
+        stored_mu_p.map_or_else(
+            || "NONE".to_string(),
+            |m| format!("{}...", hex::encode(&m[..8]))
+        ),
+        stored_mu_c.map_or_else(
+            || "NONE".to_string(),
+            |m| format!("{}...", hex::encode(&m[..8]))
+        )
     ));
 
     // Parse D_inv8
@@ -331,7 +335,7 @@ pub fn verify_clsag_with_mu(
             None => {
                 return ClsagVerificationResult::early_failure(
                     c1,
-                    format!("Failed to decompress ring_key[{}]", i),
+                    format!("Failed to decompress ring_key[{i}]"),
                     debug_info,
                 );
             }
@@ -342,7 +346,7 @@ pub fn verify_clsag_with_mu(
             None => {
                 return ClsagVerificationResult::early_failure(
                     c1,
-                    format!("Failed to decompress ring_commitment[{}]", i),
+                    format!("Failed to decompress ring_commitment[{i}]"),
                     debug_info,
                 );
             }
@@ -359,24 +363,21 @@ pub fn verify_clsag_with_mu(
     }
 
     // Use stored mu values or recompute
-    let (mu_p, mu_c) = match (stored_mu_p, stored_mu_c) {
-        (Some(mp), Some(mc)) => {
-            debug_info.push("Using STORED mu values".to_string());
-            (
-                Scalar::from_bytes_mod_order(mp),
-                Scalar::from_bytes_mod_order(mc),
-            )
-        }
-        _ => {
-            debug_info.push("RECOMPUTING mu values (legacy)".to_string());
-            compute_mixing_coefficients(
-                &ring_keys,
-                &ring_commitments,
-                &key_image,
-                &d_inv8,
-                &pseudo_out,
-            )
-        }
+    let (mu_p, mu_c) = if let (Some(mp), Some(mc)) = (stored_mu_p, stored_mu_c) {
+        debug_info.push("Using STORED mu values".to_string());
+        (
+            Scalar::from_bytes_mod_order(mp),
+            Scalar::from_bytes_mod_order(mc),
+        )
+    } else {
+        debug_info.push("RECOMPUTING mu values (legacy)".to_string());
+        compute_mixing_coefficients(
+            &ring_keys,
+            &ring_commitments,
+            &key_image,
+            &d_inv8,
+            &pseudo_out,
+        )
     };
 
     debug_info.push(format!("mu_P: {}...", hex::encode(&mu_p.to_bytes()[..8])));
@@ -423,9 +424,9 @@ pub fn verify_clsag_with_mu(
     let c_computed = c.to_bytes();
     let valid = c_computed == c1;
 
-    debug_info.push(format!("c_computed: {}", hex::encode(&c_computed)));
-    debug_info.push(format!("c_expected: {}", hex::encode(&c1)));
-    debug_info.push(format!("MATCH: {}", valid));
+    debug_info.push(format!("c_computed: {}", hex::encode(c_computed)));
+    debug_info.push(format!("c_expected: {}", hex::encode(c1)));
+    debug_info.push(format!("MATCH: {valid}"));
 
     if valid {
         ClsagVerificationResult::success(

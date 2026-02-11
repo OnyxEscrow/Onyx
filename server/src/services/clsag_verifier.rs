@@ -60,7 +60,7 @@ fn compute_mixing_coefficients(
     let mut hasher_p = Keccak256::new();
     let mut domain_agg_0 = [0u8; 32];
     domain_agg_0[..CLSAG_AGG_0.len()].copy_from_slice(CLSAG_AGG_0);
-    hasher_p.update(&domain_agg_0);
+    hasher_p.update(domain_agg_0);
 
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
@@ -81,7 +81,7 @@ fn compute_mixing_coefficients(
     let mut hasher_c = Keccak256::new();
     let mut domain_agg_1 = [0u8; 32];
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
-    hasher_c.update(&domain_agg_1);
+    hasher_c.update(domain_agg_1);
 
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
@@ -119,7 +119,7 @@ fn compute_round_hash(
     // v0.13.1 FIX: Was using 11-byte unpadded, now matches WASM and Monero spec
     let mut domain_sep = [0u8; 32];
     domain_sep[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
-    hasher.update(&domain_sep);
+    hasher.update(domain_sep);
 
     // Ring keys
     for key in ring_keys {
@@ -178,7 +178,7 @@ pub fn verify_clsag(
     let mut debug_info = Vec::new();
     let ring_size = ring_keys_bytes.len();
 
-    debug_info.push(format!("Ring size: {}", ring_size));
+    debug_info.push(format!("Ring size: {ring_size}"));
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!("D_inv8: {}...", hex::encode(&d_inv8_bytes[..8])));
     debug_info.push(format!(
@@ -254,7 +254,7 @@ pub fn verify_clsag(
                     c_expected: c1,
                     mu_p: [0u8; 32],
                     mu_c: [0u8; 32],
-                    failure_step: Some(format!("Failed to decompress ring_key[{}]", i)),
+                    failure_step: Some(format!("Failed to decompress ring_key[{i}]")),
                     debug_info,
                 };
             }
@@ -269,7 +269,7 @@ pub fn verify_clsag(
                     c_expected: c1,
                     mu_p: [0u8; 32],
                     mu_c: [0u8; 32],
-                    failure_step: Some(format!("Failed to decompress ring_commitment[{}]", i)),
+                    failure_step: Some(format!("Failed to decompress ring_commitment[{i}]")),
                     debug_info,
                 };
             }
@@ -363,7 +363,7 @@ pub fn verify_clsag(
                 "Round {} (idx={}) INPUT: c={}, s={}..., c_p={}..., c_c={}...",
                 i,
                 idx,
-                hex::encode(&c.to_bytes()),
+                hex::encode(c.to_bytes()),
                 hex::encode(&s.to_bytes()[..8]),
                 hex::encode(&c_p.to_bytes()[..8]),
                 hex::encode(&c_c.to_bytes()[..8])
@@ -377,9 +377,9 @@ pub fn verify_clsag(
     let c_computed = c.to_bytes();
     let valid = c_computed == c1;
 
-    debug_info.push(format!("c_computed: {}", hex::encode(&c_computed)));
-    debug_info.push(format!("c_expected: {}", hex::encode(&c1)));
-    debug_info.push(format!("MATCH: {}", valid));
+    debug_info.push(format!("c_computed: {}", hex::encode(c_computed)));
+    debug_info.push(format!("c_expected: {}", hex::encode(c1)));
+    debug_info.push(format!("MATCH: {valid}"));
 
     ClsagVerificationResult {
         valid,
@@ -418,7 +418,7 @@ pub fn verify_clsag_with_mu(
     let mut debug_info = Vec::new();
     let ring_size = ring_keys_bytes.len();
 
-    debug_info.push(format!("Ring size: {}", ring_size));
+    debug_info.push(format!("Ring size: {ring_size}"));
     debug_info.push(format!("c1: {}...", hex::encode(&c1[..8])));
     debug_info.push(format!("D_inv8: {}...", hex::encode(&d_inv8_bytes[..8])));
     debug_info.push(format!(
@@ -503,7 +503,7 @@ pub fn verify_clsag_with_mu(
                     c_expected: c1,
                     mu_p: [0u8; 32],
                     mu_c: [0u8; 32],
-                    failure_step: Some(format!("Failed to decompress ring_key[{}]", i)),
+                    failure_step: Some(format!("Failed to decompress ring_key[{i}]")),
                     debug_info,
                 };
             }
@@ -518,7 +518,7 @@ pub fn verify_clsag_with_mu(
                     c_expected: c1,
                     mu_p: [0u8; 32],
                     mu_c: [0u8; 32],
-                    failure_step: Some(format!("Failed to decompress ring_commitment[{}]", i)),
+                    failure_step: Some(format!("Failed to decompress ring_commitment[{i}]")),
                     debug_info,
                 };
             }
@@ -564,22 +564,22 @@ pub fn verify_clsag_with_mu(
     // v0.41.0 DIAGNOSTIC: Log FULL mu values for comparison with WASM
     debug_info.push(format!(
         "[v0.41.0 DIAG] VERIFIER mu_p FULL: {}",
-        hex::encode(&mu_p.to_bytes())
+        hex::encode(mu_p.to_bytes())
     ));
     debug_info.push(format!(
         "[v0.41.0 DIAG] VERIFIER mu_c FULL: {}",
-        hex::encode(&mu_c.to_bytes())
+        hex::encode(mu_c.to_bytes())
     ));
 
     // v0.41.0 DIAGNOSTIC: Log all s values for comparison
     debug_info.push(format!(
         "[v0.41.0 DIAG] VERIFIER s[0] FULL: {}",
-        hex::encode(&s_scalars[0].to_bytes())
+        hex::encode(s_scalars[0].to_bytes())
     ));
     if ring_size > 1 {
         debug_info.push(format!(
             "[v0.41.0 DIAG] VERIFIER s[1] FULL: {}",
-            hex::encode(&s_scalars[1].to_bytes())
+            hex::encode(s_scalars[1].to_bytes())
         ));
     }
 
@@ -600,11 +600,11 @@ pub fn verify_clsag_with_mu(
     if !hp_values.is_empty() {
         debug_info.push(format!(
             "[v0.41.0 DIAG] VERIFIER Hp(P[0]) FULL: {}",
-            hex::encode(&hp_values[0].compress().to_bytes())
+            hex::encode(hp_values[0].compress().to_bytes())
         ));
         debug_info.push(format!(
             "[v0.41.0 DIAG] VERIFIER P[0] (ring_key[0]) FULL: {}",
-            hex::encode(&ring_keys[0].compress().to_bytes())
+            hex::encode(ring_keys[0].compress().to_bytes())
         ));
     }
 
@@ -651,27 +651,27 @@ pub fn verify_clsag_with_mu(
                 "[v0.42.0] VERIFIER Round {} (idx={}) c (input c1): {}",
                 i,
                 idx,
-                hex::encode(&c.to_bytes())
+                hex::encode(c.to_bytes())
             ));
             debug_info.push(format!(
                 "[v0.42.0] VERIFIER Round {} c_p FULL (mu_p * c): {}",
                 i,
-                hex::encode(&c_p.to_bytes())
+                hex::encode(c_p.to_bytes())
             ));
             debug_info.push(format!(
                 "[v0.42.0] VERIFIER Round {} c_c FULL (mu_c * c): {}",
                 i,
-                hex::encode(&c_c.to_bytes())
+                hex::encode(c_c.to_bytes())
             ));
             debug_info.push(format!(
                 "[v0.42.0] VERIFIER Round {} L: {}",
                 i,
-                hex::encode(&l_point.compress().to_bytes())
+                hex::encode(l_point.compress().to_bytes())
             ));
             debug_info.push(format!(
                 "[v0.42.0] VERIFIER Round {} R: {}",
                 i,
-                hex::encode(&r_point.compress().to_bytes())
+                hex::encode(r_point.compress().to_bytes())
             ));
         }
 
@@ -690,7 +690,7 @@ pub fn verify_clsag_with_mu(
                 "Round {} (idx={}) INPUT: c={}, s={}..., c_p={}..., c_c={}...",
                 i,
                 idx,
-                hex::encode(&c.to_bytes()),
+                hex::encode(c.to_bytes()),
                 hex::encode(&s.to_bytes()[..8]),
                 hex::encode(&c_p.to_bytes()[..8]),
                 hex::encode(&c_c.to_bytes()[..8])
@@ -699,12 +699,12 @@ pub fn verify_clsag_with_mu(
             debug_info.push(format!(
                 "[v0.41.1 DIAG] SIGNER_POS ring_commitment[{}] = {}",
                 idx,
-                hex::encode(&c_i.compress().to_bytes())
+                hex::encode(c_i.compress().to_bytes())
             ));
             debug_info.push(format!(
                 "[v0.41.1 DIAG] SIGNER_POS C[{}] - pseudo_out = {}",
                 idx,
-                hex::encode(&c_adjusted.compress().to_bytes())
+                hex::encode(c_adjusted.compress().to_bytes())
             ));
         }
 
@@ -715,9 +715,9 @@ pub fn verify_clsag_with_mu(
     let c_computed = c.to_bytes();
     let valid = c_computed == c1;
 
-    debug_info.push(format!("c_computed: {}", hex::encode(&c_computed)));
-    debug_info.push(format!("c_expected: {}", hex::encode(&c1)));
-    debug_info.push(format!("MATCH: {}", valid));
+    debug_info.push(format!("c_computed: {}", hex::encode(c_computed)));
+    debug_info.push(format!("c_expected: {}", hex::encode(c1)));
+    debug_info.push(format!("MATCH: {valid}"));
 
     ClsagVerificationResult {
         valid,
@@ -744,10 +744,10 @@ pub fn log_verification_result(result: &ClsagVerificationResult, escrow_id: &str
     } else {
         error!(
             escrow_id = %escrow_id,
-            c_computed = %hex::encode(&result.c_computed),
-            c_expected = %hex::encode(&result.c_expected),
-            mu_p = %hex::encode(&result.mu_p),
-            mu_c = %hex::encode(&result.mu_c),
+            c_computed = %hex::encode(result.c_computed),
+            c_expected = %hex::encode(result.c_expected),
+            mu_p = %hex::encode(result.mu_p),
+            mu_c = %hex::encode(result.mu_c),
             failure_step = ?result.failure_step,
             "CLSAG verification FAILED"
         );
@@ -779,7 +779,7 @@ pub fn compute_mu_from_hex(
     // Parse helper
     let parse_point = |hex_str: &str, name: &str| -> Result<EdwardsPoint, String> {
         let bytes =
-            hex::decode(hex_str).map_err(|e| format!("Failed to decode {} hex: {}", name, e))?;
+            hex::decode(hex_str).map_err(|e| format!("Failed to decode {name} hex: {e}"))?;
         if bytes.len() != 32 {
             return Err(format!("{} must be 32 bytes, got {}", name, bytes.len()));
         }
@@ -787,21 +787,21 @@ pub fn compute_mu_from_hex(
         arr.copy_from_slice(&bytes);
         CompressedEdwardsY(arr)
             .decompress()
-            .ok_or_else(|| format!("Failed to decompress {} point", name))
+            .ok_or_else(|| format!("Failed to decompress {name} point"))
     };
 
     // Parse all ring keys
     let ring_keys: Vec<EdwardsPoint> = ring_keys_hex
         .iter()
         .enumerate()
-        .map(|(i, hex)| parse_point(hex, &format!("ring_key[{}]", i)))
+        .map(|(i, hex)| parse_point(hex, &format!("ring_key[{i}]")))
         .collect::<Result<Vec<_>, _>>()?;
 
     // Parse all ring commitments
     let ring_commitments: Vec<EdwardsPoint> = ring_commitments_hex
         .iter()
         .enumerate()
-        .map(|(i, hex)| parse_point(hex, &format!("ring_commitment[{}]", i)))
+        .map(|(i, hex)| parse_point(hex, &format!("ring_commitment[{i}]")))
         .collect::<Result<Vec<_>, _>>()?;
 
     // Parse key image, D, pseudo_out

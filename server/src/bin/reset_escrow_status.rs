@@ -73,10 +73,7 @@ fn main() -> Result<()> {
         .execute(&mut conn)
         .context("Failed to update escrow")?;
 
-    println!(
-        "✅ Escrow {} reset to 'funded' state (signatures cleared)",
-        escrow_id
-    );
+    println!("✅ Escrow {escrow_id} reset to 'funded' state (signatures cleared)");
 
     // Verify
     let result: Vec<(String, String)> = escrows::table
@@ -86,8 +83,8 @@ fn main() -> Result<()> {
         .context("Failed to query")?;
 
     for (id, status) in result {
-        println!("ID: {}", id);
-        println!("Status: {}", status);
+        println!("ID: {id}");
+        println!("Status: {status}");
         println!("Signatures: cleared (need re-signing with updated WASM)");
     }
 

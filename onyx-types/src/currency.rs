@@ -70,7 +70,7 @@ impl std::str::FromStr for Currency {
             "BTC" | "BITCOIN" => Ok(Currency::BTC),
             "BTC_LN" | "LIGHTNING" | "LN" => Ok(Currency::BtcLightning),
             "XMR" | "MONERO" => Ok(Currency::XMR),
-            _ => Err(format!("Unknown currency: {}", s)),
+            _ => Err(format!("Unknown currency: {s}")),
         }
     }
 }
@@ -221,7 +221,7 @@ impl std::str::FromStr for PaymentMethod {
             "xmr" => Ok(PaymentMethod::Xmr),
             "btc_onchain" => Ok(PaymentMethod::BtcOnchain),
             "btc_lightning" => Ok(PaymentMethod::BtcLightning),
-            _ => Err(format!("Unknown payment method: {}", s)),
+            _ => Err(format!("Unknown payment method: {s}")),
         }
     }
 }

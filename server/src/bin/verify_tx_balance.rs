@@ -42,7 +42,7 @@ fn main() {
     let _version = read_varint(&tx, &mut pos);
     let _unlock_time = read_varint(&tx, &mut pos);
     let input_count = read_varint(&tx, &mut pos);
-    println!("Input count: {}", input_count);
+    println!("Input count: {input_count}");
 
     // Skip inputs
     for _ in 0..input_count {
@@ -59,7 +59,7 @@ fn main() {
     }
 
     let output_count = read_varint(&tx, &mut pos);
-    println!("Output count: {}", output_count);
+    println!("Output count: {output_count}");
 
     // Skip outputs
     for _ in 0..output_count {
@@ -77,12 +77,12 @@ fn main() {
     let extra_len = read_varint(&tx, &mut pos);
     pos += extra_len as usize;
     let prefix_end = pos;
-    println!("Prefix ends at: {}", prefix_end);
+    println!("Prefix ends at: {prefix_end}");
 
     // Parse RCT base
     let rct_type = tx[pos];
     pos += 1;
-    println!("RCT type: {}", rct_type);
+    println!("RCT type: {rct_type}");
 
     let fee = read_varint(&tx, &mut pos);
     println!("Fee: {} atomic units ({:.12} XMR)", fee, fee as f64 / 1e12);
@@ -103,7 +103,7 @@ fn main() {
     let mut out_pk: Vec<EdwardsPoint> = Vec::new();
     for i in 0..output_count {
         let pk_bytes = &tx[pos..pos + 32];
-        let pk = bytes_to_point(pk_bytes).expect(&format!("Invalid outPk[{}]", i));
+        let pk = bytes_to_point(pk_bytes).unwrap_or_else(|| panic!("Invalid outPk[{i}]"));
         out_pk.push(pk);
         println!("outPk[{}] at {}: {}", i, pos, hex::encode(pk_bytes));
         pos += 32;
@@ -139,7 +139,7 @@ fn main() {
     // Compute: expected_pseudo = sum(outPk) + fee * H
     let mut sum_outpk = out_pk[0];
     for i in 1..out_pk.len() {
-        sum_outpk = sum_outpk + out_pk[i];
+        sum_outpk += out_pk[i];
     }
 
     let fee_h = Scalar::from(fee) * h_point;
@@ -182,9 +182,9 @@ fn main() {
                 0, 0, 0, 0,
             ];
         if is_identity {
-            println!("⚠️  outPk[{}] is identity point!", i);
+            println!("⚠️  outPk[{i}] is identity point!");
         } else {
-            println!("✅ outPk[{}] is valid non-identity point", i);
+            println!("✅ outPk[{i}] is valid non-identity point");
         }
     }
 

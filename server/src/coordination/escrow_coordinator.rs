@@ -94,8 +94,7 @@ impl CoordinationState {
             "sync_round2_complete" => Ok(CoordinationState::SyncRound2Complete),
             "ready" => Ok(CoordinationState::Ready),
             _ => Err(Error::InvalidInput(format!(
-                "Invalid coordination state: {}",
-                s
+                "Invalid coordination state: {s}"
             ))),
         }
     }
@@ -139,7 +138,7 @@ impl EscrowRole {
             "buyer" => Ok(EscrowRole::Buyer),
             "seller" => Ok(EscrowRole::Seller),
             "arbiter" => Ok(EscrowRole::Arbiter),
-            _ => Err(Error::InvalidInput(format!("Invalid role: {}", s))),
+            _ => Err(Error::InvalidInput(format!("Invalid role: {s}"))),
         }
     }
 
@@ -176,15 +175,15 @@ impl EscrowCoordinator {
         let mut conn = self
             .db
             .get()
-            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("DB connection failed: {e}")))?;
 
         // Load escrow record
         let escrow = Escrow::find_by_id(&mut conn, escrow_id.to_string())
-            .map_err(|e| Error::Internal(format!("Escrow not found: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Escrow not found: {e}")))?;
 
         // Load RPC configs for this escrow
         let rpc_configs = WalletRpcConfig::find_by_escrow(&mut conn, escrow_id)
-            .map_err(|e| Error::Internal(format!("Failed to load RPC configs: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to load RPC configs: {e}")))?;
 
         // Decrypt RPC URLs
         let mut buyer_rpc_url = None;
@@ -194,7 +193,7 @@ impl EscrowCoordinator {
         for config in rpc_configs {
             let decrypted_url = config
                 .decrypt_url(&self.encryption_key)
-                .map_err(|e| Error::Internal(format!("Failed to decrypt RPC URL: {}", e)))?;
+                .map_err(|e| Error::Internal(format!("Failed to decrypt RPC URL: {e}")))?;
 
             match config.role.as_str() {
                 "buyer" => buyer_rpc_url = Some(decrypted_url),
@@ -206,9 +205,8 @@ impl EscrowCoordinator {
 
         // Parse multisig state from JSON
         let multisig_infos = if let Some(json) = &escrow.multisig_state_json {
-            serde_json::from_str(json).map_err(|e| {
-                Error::Internal(format!("Failed to parse multisig_state_json: {}", e))
-            })?
+            serde_json::from_str(json)
+                .map_err(|e| Error::Internal(format!("Failed to parse multisig_state_json: {e}")))?
         } else {
             HashMap::new()
         };
@@ -263,7 +261,7 @@ impl EscrowCoordinator {
         // CRITICAL: Validate localhost strict (prevent remote wallet attacks)
         validate_localhost_strict(&rpc_url).map_err(|e| {
             error!("🚨 SECURITY: Non-localhost RPC URL rejected: {}", rpc_url);
-            Error::Security(format!("RPC must be localhost: {}", e))
+            Error::Security(format!("RPC must be localhost: {e}"))
         })?;
 
         // PRODUCTION ONLY: Verify RPC connectivity (mandatory)
@@ -274,12 +272,12 @@ impl EscrowCoordinator {
 
         let client = MoneroRpcClient::new(config).map_err(|e| {
             error!("Failed to create RPC client for {}: {}", rpc_url, e);
-            Error::MoneroRpc(format!("Invalid RPC config: {}", e))
+            Error::MoneroRpc(format!("Invalid RPC config: {e}"))
         })?;
 
         client.check_connection().await.map_err(|e| {
             error!("Cannot connect to RPC at {}: {}", rpc_url, e);
-            Error::MoneroRpc(format!("RPC unreachable: {}", e))
+            Error::MoneroRpc(format!("RPC unreachable: {e}"))
         })?;
 
         self.store_wallet_registration(escrow_id, role, rpc_url)
@@ -329,7 +327,7 @@ impl EscrowCoordinator {
         let mut conn = self
             .db
             .get()
-            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("DB connection failed: {e}")))?;
 
         // 1. Save encrypted RPC URL to wallet_rpc_configs
         let wallet_id = Uuid::new_v4().to_string();
@@ -343,7 +341,7 @@ impl EscrowCoordinator {
             None, // rpc_password
             &self.encryption_key,
         )
-        .map_err(|e| Error::Internal(format!("Failed to save RPC config: {}", e)))?;
+        .map_err(|e| Error::Internal(format!("Failed to save RPC config: {e}")))?;
 
         info!(
             "✅ Saved {} RPC config for escrow {}",
@@ -353,7 +351,7 @@ impl EscrowCoordinator {
 
         // 2. Check if all 3 wallets are now registered
         let rpc_configs = WalletRpcConfig::find_by_escrow(&mut conn, escrow_id)
-            .map_err(|e| Error::Internal(format!("Failed to load RPC configs: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to load RPC configs: {e}")))?;
 
         let roles: Vec<String> = rpc_configs.iter().map(|c| c.role.clone()).collect();
         let has_buyer = roles.iter().any(|r| r == "buyer");
@@ -381,7 +379,7 @@ impl EscrowCoordinator {
                 escrows::multisig_updated_at.eq(chrono::Utc::now().timestamp() as i32),
             ))
             .execute(&mut conn)
-            .map_err(|e| Error::Internal(format!("Failed to update multisig_phase: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to update multisig_phase: {e}")))?;
 
         // 4. Send WebSocket notification when all wallets registered (Step 2)
         if new_phase == "all_registered" {
@@ -485,13 +483,13 @@ impl EscrowCoordinator {
         multisig_infos.insert("arbiter".to_string(), arbiter_info.clone());
 
         let multisig_state_json = serde_json::to_string(&multisig_infos)
-            .map_err(|e| Error::Internal(format!("Failed to serialize multisig_infos: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to serialize multisig_infos: {e}")))?;
 
         use crate::schema::escrows;
         let mut conn = self
             .db
             .get()
-            .map_err(|e| Error::Internal(format!("DB connection failed: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("DB connection failed: {e}")))?;
 
         diesel::update(escrows::table.filter(escrows::id.eq(escrow_id)))
             .set((
@@ -500,7 +498,7 @@ impl EscrowCoordinator {
                 escrows::multisig_updated_at.eq(chrono::Utc::now().timestamp() as i32),
             ))
             .execute(&mut conn)
-            .map_err(|e| Error::Internal(format!("Failed to update multisig state: {}", e)))?;
+            .map_err(|e| Error::Internal(format!("Failed to update multisig state: {e}")))?;
 
         info!(
             "✅ Multisig info exchange coordinated for escrow {}",
@@ -554,17 +552,17 @@ impl EscrowCoordinator {
                 "Failed to create RPC client for {} at {}: {}",
                 role, rpc_url, e
             );
-            Error::MoneroRpc(format!("RPC client creation failed: {}", e))
+            Error::MoneroRpc(format!("RPC client creation failed: {e}"))
         })?;
 
         let info: MultisigInfo = client.prepare_multisig().await.map_err(|e| {
             error!("prepare_multisig failed for {} at {}: {}", role, rpc_url, e);
             match e {
                 MoneroError::AlreadyMultisig => {
-                    Error::InvalidState(format!("{} wallet already in multisig mode", role))
+                    Error::InvalidState(format!("{role} wallet already in multisig mode"))
                 }
-                MoneroError::WalletLocked => Error::Wallet(format!("{} wallet is locked", role)),
-                _ => Error::MoneroRpc(format!("prepare_multisig failed for {}: {}", role, e)),
+                MoneroError::WalletLocked => Error::Wallet(format!("{role} wallet is locked")),
+                _ => Error::MoneroRpc(format!("prepare_multisig failed for {role}: {e}")),
             }
         })?;
 
@@ -605,8 +603,7 @@ impl EscrowCoordinator {
         // Format validation (should start with "MultisigV1")
         if !info.starts_with("MultisigV1") && !info.starts_with("MultisigxV1") {
             return Err(Error::InvalidInput(format!(
-                "{} multisig_info has invalid format (should start with MultisigV1 or MultisigxV1)",
-                role
+                "{role} multisig_info has invalid format (should start with MultisigV1 or MultisigxV1)"
             )));
         }
 

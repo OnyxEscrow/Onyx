@@ -160,7 +160,7 @@ pub async fn store_encrypted_relay(
     if body.encrypted_blob.len() > MAX_PAYLOAD_SIZE {
         return HttpResponse::BadRequest().json(ErrorResponse {
             success: false,
-            error: format!("Encrypted blob too large (max {} bytes)", MAX_PAYLOAD_SIZE),
+            error: format!("Encrypted blob too large (max {MAX_PAYLOAD_SIZE} bytes)"),
         });
     }
 
@@ -404,8 +404,7 @@ pub async fn get_encrypted_relay(
         return HttpResponse::Forbidden().json(ErrorResponse {
             success: false,
             error: format!(
-                "Only '{}' can retrieve this relay (you are '{}')",
-                expected_retriever_role, user_role
+                "Only '{expected_retriever_role}' can retrieve this relay (you are '{user_role}')"
             ),
         });
     }
@@ -544,7 +543,7 @@ pub async fn broadcast_signed_transaction(
             HttpResponse::InternalServerError().json(BroadcastResponse {
                 success: false,
                 tx_hash: Some(tx_hash), // Still return hash for debugging
-                error: Some(format!("Broadcast failed: {:?}", e)),
+                error: Some(format!("Broadcast failed: {e:?}")),
             })
         }
     }

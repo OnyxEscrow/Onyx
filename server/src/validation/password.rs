@@ -66,10 +66,10 @@ pub fn validate_password_strength(password: &str, user_inputs: &[&str]) -> Passw
 
     if let Some(feedback) = entropy.feedback() {
         if let Some(warning) = feedback.warning() {
-            feedback_messages.push(format!("Warning: {}", warning));
+            feedback_messages.push(format!("Warning: {warning}"));
         }
         for suggestion in feedback.suggestions() {
-            feedback_messages.push(format!("Suggestion: {}", suggestion));
+            feedback_messages.push(format!("Suggestion: {suggestion}"));
         }
     }
 

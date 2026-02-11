@@ -59,7 +59,7 @@ fn main() -> Result<()> {
         .map(|s| s.as_str())
         .unwrap_or("1bacd695-7587-418d-94d3-9373065145cd");
 
-    println!("=== Mask Verification for Escrow {} ===\n", escrow_id);
+    println!("=== Mask Verification for Escrow {escrow_id} ===\n");
 
     // Connect to encrypted database
     let db_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
@@ -84,7 +84,7 @@ fn main() -> Result<()> {
         Option<String>,
         Option<String>,
     ) = escrows
-        .filter(id.like(format!("{}%", escrow_id)))
+        .filter(id.like(format!("{escrow_id}%")))
         .select((
             id,
             status,
@@ -105,7 +105,7 @@ fn main() -> Result<()> {
     );
 
     let funding_mask_hex = escrow.3.as_ref().context("No funding_commitment_mask")?;
-    println!("\nFunding Mask: {}", funding_mask_hex);
+    println!("\nFunding Mask: {funding_mask_hex}");
 
     // Parse ring_data_json to get ring_commitments and signer_index
     let ring_data: serde_json::Value =
@@ -122,8 +122,8 @@ fn main() -> Result<()> {
         .context("No C[signer]")?;
     let pseudo_out_ring = ring_data["pseudo_out"].as_str();
 
-    println!("Signer Index: {}", signer_index);
-    println!("C[{}] (signer commitment): {}", signer_index, c_signer);
+    println!("Signer Index: {signer_index}");
+    println!("C[{signer_index}] (signer commitment): {c_signer}");
 
     // Parse vendor signature to get pseudo_out
     let vendor_sig: serde_json::Value =
@@ -131,9 +131,9 @@ fn main() -> Result<()> {
     let pseudo_out_hex = vendor_sig["pseudo_out"]
         .as_str()
         .context("No pseudo_out in signature")?;
-    println!("Pseudo_out (from signature): {}", pseudo_out_hex);
+    println!("Pseudo_out (from signature): {pseudo_out_hex}");
     if let Some(p) = pseudo_out_ring {
-        println!("Pseudo_out (from ring_data):  {}", p);
+        println!("Pseudo_out (from ring_data):  {p}");
         if p != pseudo_out_hex {
             println!("  ⚠️  MISMATCH between ring_data and signature!");
         }
@@ -164,8 +164,8 @@ fn main() -> Result<()> {
     let computed_c_hex = hex::encode(computed_commitment.compress().as_bytes());
 
     println!("=== Funding Commitment Verification ===");
-    println!("C[{}] computed: {}", signer_index, computed_c_hex);
-    println!("C[{}] on-chain: {}", signer_index, c_signer);
+    println!("C[{signer_index}] computed: {computed_c_hex}");
+    println!("C[{signer_index}] on-chain: {c_signer}");
     if computed_c_hex == c_signer {
         println!("  ✅ MATCH! funding_mask is CORRECT");
     } else {
@@ -194,7 +194,7 @@ fn main() -> Result<()> {
     let c_minus_pseudo_hex = hex::encode(c_minus_pseudo.compress().as_bytes());
 
     println!("=== C[signer] - pseudo_out Verification ===");
-    println!("C[{}] - pseudo_out = {}", signer_index, c_minus_pseudo_hex);
+    println!("C[{signer_index}] - pseudo_out = {c_minus_pseudo_hex}");
 
     // For the L equation to close properly:
     // L[signer] = s*G + c_p*P[signer] + c_c*(C[signer] - pseudo_out)
@@ -211,10 +211,7 @@ fn main() -> Result<()> {
     let expected_delta = computed_commitment - pseudo_point;
     let expected_delta_hex = hex::encode(expected_delta.compress().as_bytes());
 
-    println!(
-        "Expected (funding_mask*G + amount*H - pseudo_out): {}",
-        expected_delta_hex
-    );
+    println!("Expected (funding_mask*G + amount*H - pseudo_out): {expected_delta_hex}");
 
     if c_minus_pseudo_hex == expected_delta_hex {
         println!("  ✅ MATCH! Delta computation is consistent");
@@ -241,13 +238,13 @@ fn main() -> Result<()> {
 
     println!();
     println!("=== Pseudo_out Mask Extraction ===");
-    println!("pseudo_out - amount*H = {}", pseudo_minus_aH_hex);
+    println!("pseudo_out - amount*H = {pseudo_minus_aH_hex}");
     println!("This should equal pseudo_out_mask * G");
 
     // Compute funding_mask * G to compare
     let funding_mask_G = &funding_mask * ED25519_BASEPOINT_TABLE;
     let funding_mask_G_hex = hex::encode(funding_mask_G.compress().as_bytes());
-    println!("funding_mask * G = {}", funding_mask_G_hex);
+    println!("funding_mask * G = {funding_mask_G_hex}");
 
     // If pseudo_out uses the funding_mask, then pseudo_out - amount*H should equal funding_mask * G
     if pseudo_minus_aH_hex == funding_mask_G_hex {

@@ -56,7 +56,7 @@ impl WasmMultisigStore {
 
     pub fn submit(&self, escrow_id: &str, role: &str, info: &str, view_key: Option<&str>) -> usize {
         let mut infos = self.infos.lock().unwrap();
-        let entry = infos.entry(escrow_id.to_string()).or_insert_with(Vec::new);
+        let entry = infos.entry(escrow_id.to_string()).or_default();
 
         let participant = MultisigParticipant {
             role: role.to_string(),
@@ -459,7 +459,7 @@ pub async fn finalize_multisig(
 
             HttpResponse::Ok().json(FinalizeMultisigResponse {
                 success: true,
-                message: format!("Multisig address{} saved successfully", view_key_msg),
+                message: format!("Multisig address{view_key_msg} saved successfully"),
             })
         }
         Ok(Err(e)) => {

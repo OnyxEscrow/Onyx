@@ -71,8 +71,8 @@ fn compute_derivation(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index:
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -146,8 +146,8 @@ fn main() {
     let ki_corrected_hex = hex::encode(ki_corrected.compress().to_bytes());
 
     println!("\nKI_corrected = KI_partial + d*Hp(P)");
-    println!("KI_corrected: {}", ki_corrected_hex);
-    println!("KI_expected:  {}", EXPECTED_KEY_IMAGE);
+    println!("KI_corrected: {ki_corrected_hex}");
+    println!("KI_expected:  {EXPECTED_KEY_IMAGE}");
 
     let ki_matches = ki_corrected_hex == EXPECTED_KEY_IMAGE;
     println!(
@@ -169,7 +169,7 @@ fn main() {
         "x_total * G: {}",
         hex::encode(p_computed.compress().to_bytes())
     );
-    println!("P expected:  {}", EXPECTED_ONE_TIME_PUBKEY);
+    println!("P expected:  {EXPECTED_ONE_TIME_PUBKEY}");
 
     let p_matches = p_computed == p_expected;
     println!(

@@ -19,7 +19,9 @@ use crate::schema::api_keys;
 /// API Key tier determines rate limits
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum ApiKeyTier {
+    #[default]
     Free,
     Pro,
     Enterprise,
@@ -52,12 +54,6 @@ impl ApiKeyTier {
             ApiKeyTier::Pro => "pro",
             ApiKeyTier::Enterprise => "enterprise",
         }
-    }
-}
-
-impl Default for ApiKeyTier {
-    fn default() -> Self {
-        ApiKeyTier::Free
     }
 }
 
@@ -220,7 +216,7 @@ impl ApiKey {
     /// Returns (raw_key, key_hash, key_prefix)
     pub fn generate_key() -> (String, String, String) {
         let uuid = Uuid::new_v4().to_string().replace("-", "");
-        let raw_key = format!("nxs_{}", uuid);
+        let raw_key = format!("nxs_{uuid}");
         let key_hash = Self::hash_key(&raw_key);
         // Key prefix is "nxs_" + first 8 chars of UUID
         let key_prefix = format!("nxs_{}...", &uuid[..8]);

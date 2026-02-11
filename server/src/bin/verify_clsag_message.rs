@@ -46,9 +46,9 @@ fn main() {
     let unlock_time = read_varint(&tx, &mut pos);
     let input_count = read_varint(&tx, &mut pos);
 
-    println!("Version: {}", version);
-    println!("Unlock time: {}", unlock_time);
-    println!("Input count: {}", input_count);
+    println!("Version: {version}");
+    println!("Unlock time: {unlock_time}");
+    println!("Input count: {input_count}");
 
     for _ in 0..input_count {
         let input_type = tx[pos];
@@ -64,7 +64,7 @@ fn main() {
     }
 
     let output_count = read_varint(&tx, &mut pos);
-    println!("Output count: {}", output_count);
+    println!("Output count: {output_count}");
 
     for _ in 0..output_count {
         let _amount = read_varint(&tx, &mut pos);
@@ -84,14 +84,14 @@ fn main() {
     hasher.update(&tx[..prefix_end]);
     let tx_prefix_hash: [u8; 32] = hasher.finalize().into();
     println!("\n=== Component 1: tx_prefix_hash ===");
-    println!("  {}", hex::encode(&tx_prefix_hash));
+    println!("  {}", hex::encode(tx_prefix_hash));
 
     // Parse RCT base
     let rct_type = tx[pos];
     pos += 1;
     let fee = read_varint(&tx, &mut pos);
-    println!("\nRCT type: {} (should be 6 for BulletproofPlus)", rct_type);
-    println!("Fee: {} atomic units", fee);
+    println!("\nRCT type: {rct_type} (should be 6 for BulletproofPlus)");
+    println!("Fee: {fee} atomic units");
 
     // ecdhInfo (8 bytes per output for type 6)
     let ecdh_start = pos;
@@ -110,7 +110,7 @@ fn main() {
 
     // Parse Bulletproof+
     let bp_count = read_varint(&tx, &mut pos);
-    println!("\nBP+ count: {}", bp_count);
+    println!("\nBP+ count: {bp_count}");
 
     let bp_start = pos - 1; // include the count varint
     for _ in 0..bp_count {
@@ -157,14 +157,14 @@ fn main() {
     let mut ss_hasher = Keccak256::new();
     ss_hasher.update(ss_blob);
     let ss_hash: [u8; 32] = ss_hasher.finalize().into();
-    println!("ss hash: {}", hex::encode(&ss_hash));
+    println!("ss hash: {}", hex::encode(ss_hash));
 
     // pseudo_outs hash
     let pseudo_outs_blob = &tx[pseudo_outs_start..pseudo_outs_end];
     let mut po_hasher = Keccak256::new();
     po_hasher.update(pseudo_outs_blob);
     let pseudo_outs_hash: [u8; 32] = po_hasher.finalize().into();
-    println!("pseudo_outs hash: {}", hex::encode(&pseudo_outs_hash));
+    println!("pseudo_outs hash: {}", hex::encode(pseudo_outs_hash));
 
     // Final message = hash(sc_reduce(tx_prefix_hash) || hash_to_scalar(ss) || hash_to_scalar(pseudo_outs))
     // CRITICAL: Monero applies sc_reduce32 to each component before concatenating!
@@ -177,27 +177,27 @@ fn main() {
     // hash2 = hash_to_scalar(pseudo_outs_blob) = sc_reduce32(cn_fast_hash(pseudo_outs_blob))
     let hash2 = Scalar::from_bytes_mod_order(pseudo_outs_hash).to_bytes();
 
-    println!("\nhash0 (sc_reduce32(prefix)):     {}", hex::encode(&hash0));
-    println!("hash1 (h2s(ss)):                 {}", hex::encode(&hash1));
-    println!("hash2 (h2s(pseudo)):             {}", hex::encode(&hash2));
+    println!("\nhash0 (sc_reduce32(prefix)):     {}", hex::encode(hash0));
+    println!("hash1 (h2s(ss)):                 {}", hex::encode(hash1));
+    println!("hash2 (h2s(pseudo)):             {}", hex::encode(hash2));
 
     let mut final_hasher = Keccak256::new();
-    final_hasher.update(&hash0);
-    final_hasher.update(&hash1);
-    final_hasher.update(&hash2);
+    final_hasher.update(hash0);
+    final_hasher.update(hash1);
+    final_hasher.update(hash2);
     let mlsag_message: [u8; 32] = final_hasher.finalize().into();
 
     println!("\n=== CLSAG Message (get_pre_mlsag_hash) ===");
-    println!("  {}", hex::encode(&mlsag_message));
+    println!("  {}", hex::encode(mlsag_message));
 
     println!("\n=== Comparison ===");
     println!(
         "tx_prefix_hash used in signing: {}",
-        hex::encode(&tx_prefix_hash)
+        hex::encode(tx_prefix_hash)
     );
     println!(
         "Full CLSAG message should be:   {}",
-        hex::encode(&mlsag_message)
+        hex::encode(mlsag_message)
     );
 
     if tx_prefix_hash == mlsag_message {
@@ -209,6 +209,6 @@ fn main() {
     }
 
     // Save the correct message for use in signing
-    fs::write("/tmp/clsag_message.hex", hex::encode(&mlsag_message)).expect("Failed to write");
+    fs::write("/tmp/clsag_message.hex", hex::encode(mlsag_message)).expect("Failed to write");
     println!("\nSaved correct CLSAG message to /tmp/clsag_message.hex");
 }

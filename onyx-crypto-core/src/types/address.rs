@@ -80,6 +80,7 @@ impl MoneroNetwork {
     }
 
     /// Parse network from string
+    #[must_use]
     pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "mainnet" | "main" => Some(Self::Mainnet),

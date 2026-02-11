@@ -159,7 +159,7 @@ pub fn network_timeout() -> HttpResponse {
 pub fn waiting_for_participants(current: u8, required: u8) -> HttpResponse {
     HttpResponse::Accepted().json(ErrorResponse::new(
         "MSIG-001",
-        &format!("Waiting for participants ({}/{})", current, required),
+        &format!("Waiting for participants ({current}/{required})"),
         true,
     ))
 }
@@ -221,7 +221,7 @@ pub fn invalid_key_format() -> HttpResponse {
 pub fn escrow_not_found(escrow_id: &str) -> HttpResponse {
     HttpResponse::NotFound().json(
         ErrorResponse::new("ESC-001", "Escrow not found or has been deleted.", false)
-            .with_details(&format!("escrow_id: {}", escrow_id)),
+            .with_details(&format!("escrow_id: {escrow_id}")),
     )
 }
 
@@ -233,7 +233,7 @@ pub fn unauthorized_escrow_action(action: &str, role: &str) -> HttpResponse {
             "You are not authorized to perform this action.",
             false,
         )
-        .with_details(&format!("action: {}, role: {}", action, role)),
+        .with_details(&format!("action: {action}, role: {role}")),
     )
 }
 
@@ -246,8 +246,7 @@ pub fn invalid_escrow_state(current_state: &str, required_state: &str) -> HttpRe
             true,
         )
         .with_details(&format!(
-            "current: {}, required: {}",
-            current_state, required_state
+            "current: {current_state}, required: {required_state}"
         )),
     )
 }
@@ -283,10 +282,7 @@ pub fn wrong_password() -> HttpResponse {
 pub fn account_locked(minutes: u32) -> HttpResponse {
     HttpResponse::TooManyRequests().json(ErrorResponse::new(
         "AUTH-003",
-        &format!(
-            "Too many failed attempts. Try again in {} minutes.",
-            minutes
-        ),
+        &format!("Too many failed attempts. Try again in {minutes} minutes."),
         true,
     ))
 }

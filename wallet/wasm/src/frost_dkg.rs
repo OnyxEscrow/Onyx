@@ -79,33 +79,30 @@ pub fn frost_dkg_part1(
     // Validate inputs
     if participant_index < 1 || participant_index > max_signers {
         return Err(JsValue::from_str(&format!(
-            "participant_index must be 1-{}, got {}",
-            max_signers, participant_index
+            "participant_index must be 1-{max_signers}, got {participant_index}"
         )));
     }
     if threshold < 2 || threshold > max_signers {
         return Err(JsValue::from_str(&format!(
-            "threshold must be 2-{}, got {}",
-            max_signers, threshold
+            "threshold must be 2-{max_signers}, got {threshold}"
         )));
     }
 
     // Create identifier for this participant
     let identifier = Identifier::try_from(participant_index)
-        .map_err(|e| JsValue::from_str(&format!("Invalid identifier: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid identifier: {e:?}")))?;
 
     // Generate Round 1 package
-    let (round1_secret, round1_package) =
-        dkg::part1(identifier, max_signers, threshold, &mut OsRng)
-            .map_err(|e| JsValue::from_str(&format!("DKG Round 1 failed: {:?}", e)))?;
+    let (round1_secret, round1_package) = dkg::part1(identifier, max_signers, threshold, OsRng)
+        .map_err(|e| JsValue::from_str(&format!("DKG Round 1 failed: {e:?}")))?;
 
     // Serialize for storage/transmission
     let secret_bytes = round1_secret
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize secret: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize secret: {e:?}")))?;
     let package_bytes = round1_package
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize package: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize package: {e:?}")))?;
 
     let result = DkgRound1Result {
         round1_package: hex::encode(&package_bytes),
@@ -113,7 +110,7 @@ pub fn frost_dkg_part1(
     };
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {:?}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e:?}")))
 }
 
 /// DKG Round 2: Compute secret shares from OTHER participants' Round 1 packages
@@ -131,14 +128,14 @@ pub fn frost_dkg_part2(
 ) -> Result<JsValue, JsValue> {
     // Deserialize secret package
     let secret_bytes = hex::decode(secret_package_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid secret_package hex: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid secret_package hex: {e:?}")))?;
     let round1_secret = round1::SecretPackage::deserialize(&secret_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize secret: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize secret: {e:?}")))?;
 
     // Parse all round1 packages
     let packages_map: std::collections::HashMap<String, String> =
         serde_json::from_str(all_round1_packages_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid JSON: {:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid JSON: {e:?}")))?;
 
     let mut round1_packages: std::collections::BTreeMap<Identifier, round1::Package> =
         std::collections::BTreeMap::new();
@@ -146,18 +143,14 @@ pub fn frost_dkg_part2(
     for (id_str, pkg_hex) in packages_map {
         let id_num: u16 = id_str
             .parse()
-            .map_err(|_| JsValue::from_str(&format!("Invalid participant ID: {}", id_str)))?;
+            .map_err(|_| JsValue::from_str(&format!("Invalid participant ID: {id_str}")))?;
         let identifier = Identifier::try_from(id_num)
-            .map_err(|e| JsValue::from_str(&format!("Invalid identifier {}: {:?}", id_num, e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid identifier {id_num}: {e:?}")))?;
 
-        let pkg_bytes = hex::decode(&pkg_hex).map_err(|e| {
-            JsValue::from_str(&format!("Invalid package hex for {}: {:?}", id_str, e))
-        })?;
+        let pkg_bytes = hex::decode(&pkg_hex)
+            .map_err(|e| JsValue::from_str(&format!("Invalid package hex for {id_str}: {e:?}")))?;
         let package = round1::Package::deserialize(&pkg_bytes).map_err(|e| {
-            JsValue::from_str(&format!(
-                "Failed to deserialize package {}: {:?}",
-                id_str, e
-            ))
+            JsValue::from_str(&format!("Failed to deserialize package {id_str}: {e:?}"))
         })?;
 
         round1_packages.insert(identifier, package);
@@ -165,7 +158,7 @@ pub fn frost_dkg_part2(
 
     // Execute Round 2
     let (round2_secret, round2_packages) = dkg::part2(round1_secret, &round1_packages)
-        .map_err(|e| JsValue::from_str(&format!("DKG Round 2 failed: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("DKG Round 2 failed: {e:?}")))?;
 
     // Serialize Round 2 packages for each recipient
     let mut packages_out: std::collections::HashMap<String, String> =
@@ -174,7 +167,7 @@ pub fn frost_dkg_part2(
         let id_bytes = recipient_id.serialize();
         let id_num = u16::from_le_bytes([id_bytes[0], id_bytes[1]]);
         let pkg_bytes = package.serialize().map_err(|e| {
-            JsValue::from_str(&format!("Failed to serialize round2 package: {:?}", e))
+            JsValue::from_str(&format!("Failed to serialize round2 package: {e:?}"))
         })?;
         packages_out.insert(id_num.to_string(), hex::encode(&pkg_bytes));
     }
@@ -182,7 +175,7 @@ pub fn frost_dkg_part2(
     // Serialize secret for Round 3
     let secret_bytes = round2_secret
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize round2 secret: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize round2 secret: {e:?}")))?;
 
     let result = DkgRound2Result {
         round2_packages: packages_out,
@@ -194,7 +187,7 @@ pub fn frost_dkg_part2(
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
     result
         .serialize(&serializer)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {:?}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e:?}")))
 }
 
 /// DKG Round 3: Finalize and get KeyPackage
@@ -213,14 +206,14 @@ pub fn frost_dkg_part3(
 ) -> Result<JsValue, JsValue> {
     // Deserialize Round 2 secret
     let secret_bytes = hex::decode(round2_secret_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid round2_secret hex: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid round2_secret hex: {e:?}")))?;
     let round2_secret = round2::SecretPackage::deserialize(&secret_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize round2 secret: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize round2 secret: {e:?}")))?;
 
     // Parse Round 1 packages
     let r1_map: std::collections::HashMap<String, String> =
         serde_json::from_str(round1_packages_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid round1 JSON: {:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid round1 JSON: {e:?}")))?;
 
     let mut round1_packages: std::collections::BTreeMap<Identifier, round1::Package> =
         std::collections::BTreeMap::new();
@@ -240,7 +233,7 @@ pub fn frost_dkg_part3(
     // Parse Round 2 packages
     let r2_map: std::collections::HashMap<String, String> =
         serde_json::from_str(round2_packages_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid round2 JSON: {:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid round2 JSON: {e:?}")))?;
 
     let mut round2_packages: std::collections::BTreeMap<Identifier, round2::Package> =
         std::collections::BTreeMap::new();
@@ -260,22 +253,22 @@ pub fn frost_dkg_part3(
     // Execute Round 3 - finalize
     let (key_package, public_key_package) =
         dkg::part3(&round2_secret, &round1_packages, &round2_packages)
-            .map_err(|e| JsValue::from_str(&format!("DKG Round 3 failed: {:?}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("DKG Round 3 failed: {e:?}")))?;
 
     // Serialize results
     let key_pkg_bytes = key_package
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize key_package: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize key_package: {e:?}")))?;
 
     let group_key_bytes = public_key_package
         .verifying_key()
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize group key: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize group key: {e:?}")))?;
 
     let verifying_share_bytes = key_package
         .verifying_share()
         .serialize()
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize verifying share: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize verifying share: {e:?}")))?;
 
     let result = DkgFinalResult {
         key_package: hex::encode(&key_pkg_bytes),
@@ -284,7 +277,7 @@ pub fn frost_dkg_part3(
     };
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {:?}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e:?}")))
 }
 
 /// Extract the secret share scalar from a KeyPackage
@@ -293,9 +286,9 @@ pub fn frost_dkg_part3(
 #[wasm_bindgen]
 pub fn frost_extract_secret_share(key_package_hex: &str) -> Result<String, JsValue> {
     let key_bytes = hex::decode(key_package_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid key_package hex: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid key_package hex: {e:?}")))?;
     let key_package = KeyPackage::deserialize(&key_bytes)
-        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize key_package: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to deserialize key_package: {e:?}")))?;
 
     // Get the signing share (secret scalar)
     let signing_share = key_package.signing_share();
@@ -326,8 +319,7 @@ pub fn frost_compute_lagrange_coefficient(
     // Validate indices
     if signer_index != signer1_index && signer_index != signer2_index {
         return Err(JsValue::from_str(&format!(
-            "signer_index {} must be one of the participating indices [{}, {}]",
-            signer_index, signer1_index, signer2_index
+            "signer_index {signer_index} must be one of the participating indices [{signer1_index}, {signer2_index}]"
         )));
     }
 
@@ -367,7 +359,7 @@ pub fn frost_role_to_index(role: &str) -> Result<u16, JsValue> {
         "buyer" => Ok(1),
         "vendor" => Ok(2),
         "arbiter" => Ok(3),
-        _ => Err(JsValue::from_str(&format!("Unknown role: {}", role))),
+        _ => Err(JsValue::from_str(&format!("Unknown role: {role}"))),
     }
 }
 
@@ -417,7 +409,7 @@ pub fn frost_derive_address(
 
     // Parse group public key (spend key)
     let group_pubkey_bytes = hex::decode(group_pubkey_hex)
-        .map_err(|e| JsValue::from_str(&format!("Invalid group_pubkey hex: {:?}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid group_pubkey hex: {e:?}")))?;
 
     if group_pubkey_bytes.len() != 32 {
         return Err(JsValue::from_str(&format!(
@@ -451,7 +443,7 @@ pub fn frost_derive_address(
         &view_pub_bytes,
         network_byte,
     )
-    .map_err(|e| JsValue::from_str(&format!("Address generation failed: {}", e)))?;
+    .map_err(|e| JsValue::from_str(&format!("Address generation failed: {e}")))?;
 
     let result = FrostAddressResult {
         address,
@@ -461,7 +453,7 @@ pub fn frost_derive_address(
     };
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {:?}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e:?}")))
 }
 
 #[cfg(test)]

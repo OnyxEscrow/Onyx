@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let encryption_key =
         env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY must be set in .env file")?;
 
-    println!("📁 Database: {}", database_url);
+    println!("📁 Database: {database_url}");
     println!("🔑 Using encryption key from .env\n");
 
     // Create connection pool with SQLCipher using server's create_pool function
@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     println!("🔄 Running migrations...\n");
 
     conn.run_pending_migrations(MIGRATIONS)
-        .map_err(|e| anyhow::anyhow!("Migration error: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Migration error: {e}"))?;
 
     println!("\n✅ All migrations applied successfully!");
     println!("🎉 Database is ready to use\n");

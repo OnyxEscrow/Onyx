@@ -134,10 +134,7 @@ impl WalletRpcConfig {
         wallet_rpc_configs::table
             .filter(wallet_rpc_configs::escrow_id.eq(escrow_id))
             .load(conn)
-            .context(format!(
-                "Failed to load RPC configs for escrow {}",
-                escrow_id
-            ))
+            .context(format!("Failed to load RPC configs for escrow {escrow_id}"))
     }
 
     /// Find wallet RPC config by wallet ID
@@ -156,7 +153,7 @@ impl WalletRpcConfig {
         wallet_rpc_configs::table
             .filter(wallet_rpc_configs::wallet_id.eq(wallet_id))
             .first(conn)
-            .context(format!("Wallet RPC config not found: {}", wallet_id))
+            .context(format!("Wallet RPC config not found: {wallet_id}"))
     }
 
     /// Decrypt the RPC URL
@@ -244,8 +241,7 @@ impl WalletRpcConfig {
         .set(wallet_rpc_configs::last_connected_at.eq(Some(now as i32)))
         .execute(conn)
         .context(format!(
-            "Failed to update last_connected_at for wallet {}",
-            wallet_id
+            "Failed to update last_connected_at for wallet {wallet_id}"
         ))?;
 
         Ok(())
@@ -279,8 +275,7 @@ impl WalletRpcConfig {
         ))
         .execute(conn)
         .context(format!(
-            "Failed to increment connection_attempts for wallet {}",
-            wallet_id
+            "Failed to increment connection_attempts for wallet {wallet_id}"
         ))?;
 
         Ok(())
@@ -305,7 +300,7 @@ impl WalletRpcConfig {
             wallet_rpc_configs::table.filter(wallet_rpc_configs::wallet_id.eq(wallet_id)),
         )
         .execute(conn)
-        .context(format!("Failed to delete wallet RPC config {}", wallet_id))?;
+        .context(format!("Failed to delete wallet RPC config {wallet_id}"))?;
 
         Ok(())
     }

@@ -34,9 +34,9 @@ fn main() {
     let all_three_hex = hex::encode(all_three.compress().as_bytes());
 
     println!("=== PKI AGGREGATION VERIFICATION ===");
-    println!("Stored Aggregated: {}", stored_agg);
+    println!("Stored Aggregated: {stored_agg}");
     println!();
-    println!("buyer + vendor:   {}", buyer_vendor_hex);
+    println!("buyer + vendor:   {buyer_vendor_hex}");
     println!(
         "  MATCH? {}",
         if buyer_vendor_hex == stored_agg {
@@ -46,7 +46,7 @@ fn main() {
         }
     );
     println!();
-    println!("vendor + arbiter: {}", vendor_arbiter_hex);
+    println!("vendor + arbiter: {vendor_arbiter_hex}");
     println!(
         "  MATCH? {}",
         if vendor_arbiter_hex == stored_agg {
@@ -56,7 +56,7 @@ fn main() {
         }
     );
     println!();
-    println!("buyer + arbiter:  {}", buyer_arbiter_hex);
+    println!("buyer + arbiter:  {buyer_arbiter_hex}");
     println!(
         "  MATCH? {}",
         if buyer_arbiter_hex == stored_agg {
@@ -66,7 +66,7 @@ fn main() {
         }
     );
     println!();
-    println!("all three:        {}", all_three_hex);
+    println!("all three:        {all_three_hex}");
     println!(
         "  MATCH? {}",
         if all_three_hex == stored_agg {

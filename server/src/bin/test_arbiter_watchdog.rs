@@ -1,7 +1,6 @@
 use anyhow::Result;
 use std::sync::Arc;
 use tracing::{error, info};
-use tracing_subscriber;
 
 use server::db::create_pool;
 use server::redis_pool::init_redis_pool;
@@ -34,7 +33,7 @@ async fn main() -> Result<()> {
         }
         Err(e) => {
             error!("Failed to initialize Redis pool: {}", e);
-            return Err(e.into());
+            return Err(e);
         }
     };
 

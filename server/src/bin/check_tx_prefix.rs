@@ -29,11 +29,11 @@ fn main() {
     // version + unlock_time
     let version = read_varint(&data, &mut pos);
     let unlock = read_varint(&data, &mut pos);
-    println!("Version: {}, Unlock: {}", version, unlock);
+    println!("Version: {version}, Unlock: {unlock}");
 
     // vin
     let vin_count = read_varint(&data, &mut pos);
-    println!("Vin count: {}", vin_count);
+    println!("Vin count: {vin_count}");
     for _ in 0..vin_count {
         let in_type = data[pos];
         pos += 1;
@@ -49,12 +49,12 @@ fn main() {
 
     // vout
     let vout_count = read_varint(&data, &mut pos);
-    println!("Vout count: {}", vout_count);
+    println!("Vout count: {vout_count}");
     for _ in 0..vout_count {
         let _amount = read_varint(&data, &mut pos);
         let out_type = data[pos];
         pos += 1;
-        println!("  Output type: 0x{:02x}", out_type);
+        println!("  Output type: 0x{out_type:02x}");
         if out_type == 0x02 {
             pos += 32;
         } else if out_type == 0x03 {
@@ -64,7 +64,7 @@ fn main() {
 
     // extra
     let extra_len = read_varint(&data, &mut pos) as usize;
-    println!("Extra len: {}", extra_len);
+    println!("Extra len: {extra_len}");
     pos += extra_len;
 
     let tx_prefix = &data[start..pos];
@@ -78,14 +78,13 @@ fn main() {
     hasher.update(tx_prefix);
     let hash: [u8; 32] = hasher.finalize().into();
 
-    println!("\nComputed tx_prefix_hash: {}", hex::encode(&hash));
+    println!("\nComputed tx_prefix_hash: {}", hex::encode(hash));
     println!(
         "Expected:                f09c87e8e7d938bc8fbe8dd6b9c4464617708b3cd04945e0412623ab2bb60763"
     );
     println!(
         "Match: {}",
-        if hex::encode(&hash) == "f09c87e8e7d938bc8fbe8dd6b9c4464617708b3cd04945e0412623ab2bb60763"
-        {
+        if hex::encode(hash) == "f09c87e8e7d938bc8fbe8dd6b9c4464617708b3cd04945e0412623ab2bb60763" {
             "✅"
         } else {
             "❌"

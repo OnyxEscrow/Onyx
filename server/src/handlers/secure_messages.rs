@@ -168,13 +168,12 @@ fn get_user_id(session: &Session) -> Result<String, HttpResponse> {
 fn validate_base64_field(value: &str, name: &str, max_len: usize) -> Result<(), HttpResponse> {
     if value.is_empty() {
         return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} is required", name))));
+            .json(ApiResponse::<()>::error(format!("{name} is required"))));
     }
     if value.len() > max_len {
         return Err(
             HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
-                "{} exceeds maximum size",
-                name
+                "{name} exceeds maximum size"
             ))),
         );
     }
@@ -185,8 +184,7 @@ fn validate_base64_field(value: &str, name: &str, max_len: usize) -> Result<(), 
     {
         return Err(
             HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
-                "{} is not valid base64",
-                name
+                "{name} is not valid base64"
             ))),
         );
     }
@@ -201,13 +199,12 @@ fn validate_encrypted_key_field(
 ) -> Result<(), HttpResponse> {
     if value.is_empty() {
         return Err(HttpResponse::BadRequest()
-            .json(ApiResponse::<()>::error(format!("{} is required", name))));
+            .json(ApiResponse::<()>::error(format!("{name} is required"))));
     }
     if value.len() > max_len {
         return Err(
             HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
-                "{} exceeds maximum size",
-                name
+                "{name} exceeds maximum size"
             ))),
         );
     }
@@ -215,8 +212,7 @@ fn validate_encrypted_key_field(
     if !value.starts_with('{') || !value.ends_with('}') {
         return Err(
             HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
-                "{} must be JSON format",
-                name
+                "{name} must be JSON format"
             ))),
         );
     }
@@ -224,8 +220,7 @@ fn validate_encrypted_key_field(
     if !value.contains("ciphertext") || !value.contains("iv") {
         return Err(
             HttpResponse::BadRequest().json(ApiResponse::<()>::error(format!(
-                "{} missing required fields",
-                name
+                "{name} missing required fields"
             ))),
         );
     }

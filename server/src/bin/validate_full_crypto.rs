@@ -306,8 +306,8 @@ impl CryptoValidator {
         // Hs(shared_secret || output_index) - MUST use varint encoding
         let output_index = self.funding_output_index.unwrap_or(0);
         let mut hasher = Keccak256::new();
-        hasher.update(&shared_secret_bytes);
-        hasher.update(&encode_varint(output_index as u64)); // Monero uses varint!
+        hasher.update(shared_secret_bytes);
+        hasher.update(encode_varint(output_index as u64)); // Monero uses varint!
         let derivation_scalar_bytes: [u8; 32] = hasher.finalize().into();
         self.derivation = Some(Scalar::from_bytes_mod_order(derivation_scalar_bytes));
 
@@ -320,7 +320,7 @@ impl CryptoValidator {
         let b_point = CompressedEdwardsY(group_pubkey)
             .decompress()
             .context("Invalid group_pubkey point")?;
-        let one_time = &*ED25519_BASEPOINT_TABLE * &self.derivation.unwrap() + b_point;
+        let one_time = ED25519_BASEPOINT_TABLE * &self.derivation.unwrap() + b_point;
         self.one_time_address = Some(one_time.compress().to_bytes());
 
         println!(
@@ -538,7 +538,7 @@ impl CryptoValidator {
         self.add_result(
             "4a. Amount balance",
             &format!("{} = {} + {}", self.escrow_amount, payout_amount, self.fee),
-            &format!("{}", amount_balance),
+            &format!("{amount_balance}"),
             amount_balance,
         );
 
@@ -590,10 +590,10 @@ impl CryptoValidator {
 
                         ring_size = s_values;
 
-                        println!("  {} signature:", name);
+                        println!("  {name} signature:");
                         println!("    c1: {}...", &c1[..16.min(c1.len())]);
                         println!("    D: {}...", &d[..16.min(d.len())]);
-                        println!("    s-values: {} elements", s_values);
+                        println!("    s-values: {s_values} elements");
 
                         if let Some(s_array) = sig.get("s").and_then(|v| v.as_array()) {
                             let valid_s = s_array
@@ -615,8 +615,8 @@ impl CryptoValidator {
             return Ok(());
         }
 
-        println!("\n  Signature count: {}/2", sig_count);
-        println!("  Ring size: {}", ring_size);
+        println!("\n  Signature count: {sig_count}/2");
+        println!("  Ring size: {ring_size}");
 
         let sig_ok = sig_count == 2;
         let ring_ok = ring_size == 16;
@@ -624,10 +624,10 @@ impl CryptoValidator {
         self.add_result(
             "5a. Both signatures present",
             "2",
-            &format!("{}", sig_count),
+            &format!("{sig_count}"),
             sig_ok,
         );
-        self.add_result("5b. Ring size", "16", &format!("{}", ring_size), ring_ok);
+        self.add_result("5b. Ring size", "16", &format!("{ring_size}"), ring_ok);
 
         Ok(())
     }
@@ -658,9 +658,9 @@ impl CryptoValidator {
                     .and_then(|v| v.as_str())
                     .unwrap_or("MISSING");
 
-                println!("  Ring public keys: {}", ring_size);
-                println!("  Ring commitments: {}", commitment_count);
-                println!("  Signer index: {}", signer_index);
+                println!("  Ring public keys: {ring_size}");
+                println!("  Ring commitments: {commitment_count}");
+                println!("  Signer index: {signer_index}");
                 println!(
                     "  TX prefix hash: {}...",
                     &tx_prefix_hash[..16.min(tx_prefix_hash.len())]
@@ -672,13 +672,13 @@ impl CryptoValidator {
                 self.add_result(
                     "6a. Ring data consistency",
                     "16 keys = 16 commitments",
-                    &format!("{} keys, {} commitments", ring_size, commitment_count),
+                    &format!("{ring_size} keys, {commitment_count} commitments"),
                     ring_match,
                 );
                 self.add_result(
                     "6b. Signer index valid",
-                    &format!("< {}", ring_size),
-                    &format!("{}", signer_index),
+                    &format!("< {ring_size}"),
+                    &format!("{signer_index}"),
                     index_valid,
                 );
             }
@@ -698,7 +698,7 @@ impl CryptoValidator {
         let passed = self.results.iter().filter(|r| r.passed).count();
         let total = self.results.len();
 
-        println!("\n  Results: {}/{} checks passed\n", passed, total);
+        println!("\n  Results: {passed}/{total} checks passed\n");
 
         for result in &self.results {
             let icon = if result.passed { "✓" } else { "✗" };
@@ -739,7 +739,7 @@ fn hash_to_point(data: &[u8; 32]) -> EdwardsPoint {
     loop {
         let mut hasher = Keccak256::new();
         hasher.update(data);
-        hasher.update(&[counter]);
+        hasher.update([counter]);
         let hash: [u8; 32] = hasher.finalize().into();
 
         if let Some(point) = CompressedEdwardsY(hash).decompress() {
@@ -764,7 +764,7 @@ fn main() -> Result<()> {
         "ef57f177-f873-40c3-a175-4ab87c195ad8".to_string()
     };
 
-    println!("Escrow ID: {}", escrow_id);
+    println!("Escrow ID: {escrow_id}");
 
     // Connect to database using rusqlite (simpler for read-only)
     dotenvy::dotenv().ok();
@@ -775,7 +775,7 @@ fn main() -> Result<()> {
         rusqlite::Connection::open(&database_url)?
     } else {
         let conn = rusqlite::Connection::open(&database_url)?;
-        conn.execute_batch(&format!("PRAGMA key = '{}';", encryption_key))?;
+        conn.execute_batch(&format!("PRAGMA key = '{encryption_key}';"))?;
         conn
     };
 

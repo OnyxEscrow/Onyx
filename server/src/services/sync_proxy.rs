@@ -190,17 +190,11 @@ impl SyncProxyService {
     pub fn new(monero_rpc_url: String, daemon_rpc_url: String) -> Result<Self> {
         // Validate localhost only for both URLs
         if !monero_rpc_url.contains("127.0.0.1") && !monero_rpc_url.contains("localhost") {
-            anyhow::bail!(
-                "Monero wallet RPC must be localhost only. Got: {}",
-                monero_rpc_url
-            );
+            anyhow::bail!("Monero wallet RPC must be localhost only. Got: {monero_rpc_url}");
         }
 
         if !daemon_rpc_url.contains("127.0.0.1") && !daemon_rpc_url.contains("localhost") {
-            anyhow::bail!(
-                "Monero daemon RPC must be localhost only. Got: {}",
-                daemon_rpc_url
-            );
+            anyhow::bail!("Monero daemon RPC must be localhost only. Got: {daemon_rpc_url}");
         }
 
         let client = reqwest::Client::builder()
@@ -388,12 +382,10 @@ impl SyncProxyService {
             .json(&rpc_request)
             .send()
             .await
-            .map_err(|e| {
-                SyncProxyError::DaemonNotConnected(format!("Cannot reach daemon: {}", e))
-            })?;
+            .map_err(|e| SyncProxyError::DaemonNotConnected(format!("Cannot reach daemon: {e}")))?;
 
         let rpc_response: RpcResponse = response.json().await.map_err(|e| {
-            SyncProxyError::DaemonNotConnected(format!("Invalid daemon response: {}", e))
+            SyncProxyError::DaemonNotConnected(format!("Invalid daemon response: {e}"))
         })?;
 
         if let Some(error) = rpc_response.error {
@@ -514,12 +506,12 @@ impl SyncProxyService {
             .json(&rpc_request)
             .send()
             .await
-            .map_err(|e| SyncProxyError::BroadcastError(format!("HTTP error: {}", e)))?;
+            .map_err(|e| SyncProxyError::BroadcastError(format!("HTTP error: {e}")))?;
 
         let rpc_response: RpcResponse = response
             .json()
             .await
-            .map_err(|e| SyncProxyError::BroadcastError(format!("JSON parse error: {}", e)))?;
+            .map_err(|e| SyncProxyError::BroadcastError(format!("JSON parse error: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(SyncProxyError::BroadcastError(error.message));
@@ -725,12 +717,12 @@ impl SyncProxyService {
             .json(&request)
             .send()
             .await
-            .map_err(|e| SyncProxyError::MoneroRpc(format!("Daemon HTTP error: {}", e)))?;
+            .map_err(|e| SyncProxyError::MoneroRpc(format!("Daemon HTTP error: {e}")))?;
 
         let rpc_response: RpcResponse<R> = response
             .json()
             .await
-            .map_err(|e| SyncProxyError::MoneroRpc(format!("Daemon JSON parse error: {}", e)))?;
+            .map_err(|e| SyncProxyError::MoneroRpc(format!("Daemon JSON parse error: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(SyncProxyError::DecoyError(error.message));
@@ -765,7 +757,7 @@ impl SyncProxyService {
 
         // Monero requires full address, derive it from pub keys
         // For now, use a placeholder - production needs proper address derivation
-        let address = format!("4{}{}", spend_key_pub, view_key_pub);
+        let address = format!("4{spend_key_pub}{view_key_pub}");
 
         let params = Params {
             filename: wallet_name.to_string(),
@@ -936,12 +928,12 @@ impl SyncProxyService {
             .json(&request)
             .send()
             .await
-            .map_err(|e| SyncProxyError::MoneroRpc(format!("HTTP error: {}", e)))?;
+            .map_err(|e| SyncProxyError::MoneroRpc(format!("HTTP error: {e}")))?;
 
         let rpc_response: RpcResponse<R> = response
             .json()
             .await
-            .map_err(|e| SyncProxyError::MoneroRpc(format!("JSON parse error: {}", e)))?;
+            .map_err(|e| SyncProxyError::MoneroRpc(format!("JSON parse error: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(SyncProxyError::MoneroRpc(error.message));

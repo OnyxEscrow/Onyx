@@ -10,7 +10,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 /// Contains the aggregated R values that both signers use for L computation.
 #[derive(Debug, Clone)]
 pub struct AggregatedNonces {
-    /// R_agg = R₁ + R₂ (hex, compressed Edwards point)
+    /// `R_agg` = R₁ + R₂ (hex, compressed Edwards point)
     pub r_agg: String,
 
     /// R'_agg = R'₁ + R'₂ (hex, compressed Edwards point)
@@ -20,10 +20,10 @@ pub struct AggregatedNonces {
 /// Aggregate two signers' nonces for MuSig2-style CLSAG.
 ///
 /// After commitment reveal, the server (or either signer) computes:
-/// - R_agg = R₁ + R₂
+/// - `R_agg` = R₁ + R₂
 /// - R'_agg = R'₁ + R'₂
 ///
-/// Both signers then use R_agg in their L computation, ensuring L₁ = L₂.
+/// Both signers then use `R_agg` in their L computation, ensuring L₁ = L₂.
 ///
 /// # Arguments
 ///
@@ -47,10 +47,10 @@ pub fn aggregate_nonces(r1: &str, r2: &str) -> CryptoResult<String> {
     Ok(hex::encode(r_agg.compress().to_bytes()))
 }
 
-/// Aggregate both R and R' nonces for complete MuSig2 aggregation.
+/// Aggregate both R and R' nonces for complete `MuSig2` aggregation.
 ///
 /// This is the full aggregation needed for CLSAG:
-/// - R_agg = R₁ + R₂ (for public key nonce)
+/// - `R_agg` = R₁ + R₂ (for public key nonce)
 /// - R'_agg = R'₁ + R'₂ (for key image nonce)
 ///
 /// # Arguments
@@ -62,7 +62,7 @@ pub fn aggregate_nonces(r1: &str, r2: &str) -> CryptoResult<String> {
 ///
 /// # Returns
 ///
-/// `AggregatedNonces` containing both R_agg and R'_agg
+/// `AggregatedNonces` containing both `R_agg` and R'_agg
 pub fn aggregate_nonces_full(
     r1: &str,
     r1_prime: &str,
@@ -86,7 +86,7 @@ pub fn aggregate_nonces_full(
 /// Parse a hex-encoded compressed Edwards point.
 fn parse_compressed_point(hex_str: &str, name: &str) -> CryptoResult<EdwardsPoint> {
     let bytes = hex::decode(hex_str)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid {} hex: {}", name, e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid {name} hex: {e}")))?;
 
     if bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -100,9 +100,9 @@ fn parse_compressed_point(hex_str: &str, name: &str) -> CryptoResult<EdwardsPoin
     arr.copy_from_slice(&bytes);
 
     let compressed = CompressedEdwardsY(arr);
-    compressed.decompress().ok_or_else(|| {
-        CryptoError::InvalidPublicKey(format!("{} is not a valid curve point", name))
-    })
+    compressed
+        .decompress()
+        .ok_or_else(|| CryptoError::InvalidPublicKey(format!("{name} is not a valid curve point")))
 }
 
 /// Verify that aggregated nonces match the component nonces.

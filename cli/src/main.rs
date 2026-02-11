@@ -468,7 +468,7 @@ async fn main() -> Result<()> {
                 }
                 Err(e) => {
                     error!("❌ RPC connection failed: {}", e);
-                    return Err(anyhow::anyhow!("RPC connection failed: {}", e));
+                    return Err(anyhow::anyhow!("RPC connection failed: {e}"));
                 }
             }
         }
@@ -490,18 +490,18 @@ async fn handle_wallet_generate(server_url: Option<String>) -> Result<()> {
     info!("✅ New seed generated successfully!");
 
     // SECURITY: Use println! instead of info! to avoid logging mnemonic to files
-    println!("");
+    println!();
     println!("⚠️  IMPORTANT: Write down these 24 words in order:");
     println!("========================================");
     println!("{}", seed.mnemonic_phrase);
     println!("========================================");
-    println!("");
+    println!();
     println!("⚠️  SECURITY WARNINGS:");
     println!("   - Never share these words with anyone");
     println!("   - Never type them into untrusted software");
     println!("   - Store them securely (encrypted, offline)");
     println!("   - If anyone learns these words, they can control your wallet");
-    println!("");
+    println!();
 
     // Optionally register with server
     if let Some(url) = server_url {

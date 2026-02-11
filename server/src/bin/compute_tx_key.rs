@@ -11,13 +11,13 @@ fn main() {
         let mut tx_secret_hasher = Keccak256::new();
         tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
         tx_secret_hasher.update(escrow_id.as_bytes());
-        tx_secret_hasher.update(&amount.to_le_bytes());
+        tx_secret_hasher.update(amount.to_le_bytes());
         tx_secret_hasher.finalize().into()
     };
 
     // Compute tx_pubkey = r * G
     let r = Scalar::from_bytes_mod_order(tx_secret_key);
-    let tx_pubkey = (&*ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
+    let tx_pubkey = (ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
 
     // Expected tx_pubkey from blockchain (extracted from extra field)
     // Extra: [1, 12, 130, 174, ...] -> bytes 1-32 are the pubkey
@@ -26,15 +26,15 @@ fn main() {
         52, 28, 99, 1, 220, 56, 236, 13, 1, 120, 51, 117,
     ];
 
-    println!("Escrow ID: {}", escrow_id);
-    println!("Amount: {} atomic", amount);
+    println!("Escrow ID: {escrow_id}");
+    println!("Amount: {amount} atomic");
     println!();
-    println!("tx_secret_key:            {}", hex::encode(&tx_secret_key));
+    println!("tx_secret_key:            {}", hex::encode(tx_secret_key));
     println!();
-    println!("Computed tx_pubkey (r*G): {}", hex::encode(&tx_pubkey));
+    println!("Computed tx_pubkey (r*G): {}", hex::encode(tx_pubkey));
     println!(
         "Blockchain tx_pubkey:     {}",
-        hex::encode(&blockchain_tx_pubkey)
+        hex::encode(blockchain_tx_pubkey)
     );
     println!();
     println!("TX PUBKEYS MATCH? {}", tx_pubkey == blockchain_tx_pubkey);

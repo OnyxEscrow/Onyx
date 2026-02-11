@@ -22,7 +22,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
 
-    println!("📂 Database: {}", database_url);
+    println!("📂 Database: {database_url}");
 
     // Connect directly (database is not encrypted in dev mode)
     let mut conn = SqliteConnection::establish(&database_url)?;

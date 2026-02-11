@@ -98,8 +98,8 @@ pub async fn request_multisig_challenge(
 
     // Prepare response
     let response = ChallengeResponse {
-        nonce: hex::encode(&challenge.nonce),
-        message: hex::encode(&challenge.message()),
+        nonce: hex::encode(challenge.nonce),
+        message: hex::encode(challenge.message()),
         expires_at: challenge.created_at + 300,
         time_remaining: challenge.time_remaining(),
     };
@@ -206,7 +206,7 @@ pub async fn submit_multisig_info_with_signature(
 
     // Decode signature from hex
     let signature = hex::decode(&payload.signature).map_err(|e| {
-        actix_web::error::ErrorBadRequest(format!("Invalid signature hex encoding: {}", e))
+        actix_web::error::ErrorBadRequest(format!("Invalid signature hex encoding: {e}"))
     })?;
 
     // Verify multisig submission
@@ -217,7 +217,7 @@ pub async fn submit_multisig_info_with_signature(
             escrow_id,
             e
         );
-        actix_web::error::ErrorForbidden(format!("Signature verification failed: {}", e))
+        actix_web::error::ErrorForbidden(format!("Signature verification failed: {e}"))
     })?;
 
     // Delete challenge (one-time use)

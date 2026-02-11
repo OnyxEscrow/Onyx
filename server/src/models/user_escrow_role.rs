@@ -38,7 +38,7 @@ impl std::str::FromStr for EscrowRole {
             "buyer" => Ok(EscrowRole::Buyer),
             "seller" => Ok(EscrowRole::Seller),
             "arbiter" => Ok(EscrowRole::Arbiter),
-            _ => anyhow::bail!("Invalid escrow role: {}", s),
+            _ => anyhow::bail!("Invalid escrow role: {s}"),
         }
     }
 }
@@ -120,10 +120,7 @@ impl UserEscrowRole {
             .filter(user_escrow_roles::user_id.eq(user_id.to_string()))
             .filter(user_escrow_roles::escrow_id.eq(escrow_id.to_string()))
             .first(conn)
-            .context(format!(
-                "User {} has no role in escrow {}",
-                user_id, escrow_id
-            ))?;
+            .context(format!("User {user_id} has no role in escrow {escrow_id}"))?;
 
         role_record.role.parse::<EscrowRole>()
     }

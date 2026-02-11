@@ -125,7 +125,7 @@ impl BlockchainMonitor {
     async fn kill_process_on_port(&self, port: u16) -> bool {
         // Method 1: fuser (Linux)
         if let Ok(output) = std::process::Command::new("fuser")
-            .args(["-k", &format!("{}/tcp", port)])
+            .args(["-k", &format!("{port}/tcp")])
             .output()
         {
             if output.status.success() || !output.stderr.is_empty() {
@@ -135,7 +135,7 @@ impl BlockchainMonitor {
 
         // Method 2: lsof + kill (macOS, BSD)
         if let Ok(output) = std::process::Command::new("lsof")
-            .args(["-t", "-i", &format!(":{}", port)])
+            .args(["-t", "-i", &format!(":{port}")])
             .output()
         {
             if output.status.success() {
@@ -154,7 +154,7 @@ impl BlockchainMonitor {
         // Method 3: pkill by name (fallback - kills ALL monero-wallet-rpc)
         // Only use as last resort since it kills all instances
         if let Ok(output) = std::process::Command::new("pkill")
-            .args(["-9", "-f", &format!("monero-wallet-rpc.*{}", port)])
+            .args(["-9", "-f", &format!("monero-wallet-rpc.*{port}")])
             .output()
         {
             return output.status.success();
@@ -174,7 +174,7 @@ impl BlockchainMonitor {
             "testnet" => 28081,
             _ => 38081,
         };
-        let daemon_url = format!("http://127.0.0.1:{}/json_rpc", daemon_port);
+        let daemon_url = format!("http://127.0.0.1:{daemon_port}/json_rpc");
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(10))
@@ -277,7 +277,7 @@ impl BlockchainMonitor {
     ///
     /// PRODUCTION CRITICAL: This prevents funding detection failures
     async fn ensure_wallet_rpc_healthy(&self, port: u16) -> bool {
-        let url = format!("http://127.0.0.1:{}/json_rpc", port);
+        let url = format!("http://127.0.0.1:{port}/json_rpc");
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .build()
@@ -320,7 +320,7 @@ impl BlockchainMonitor {
         // Step 3: Start new wallet-rpc process
         let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
         let wallet_dir =
-            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{}-wallets", network));
+            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{network}-wallets"));
         let daemon_port = match network.as_str() {
             "mainnet" => 18081,
             "testnet" => 28081,
@@ -348,7 +348,7 @@ impl BlockchainMonitor {
             "--wallet-dir",
             &wallet_dir,
             "--daemon-address",
-            &format!("127.0.0.1:{}", daemon_port),
+            &format!("127.0.0.1:{daemon_port}"),
             "--trusted-daemon",
             "--log-level",
             "1",
@@ -487,7 +487,7 @@ impl BlockchainMonitor {
             info!(
                 "📊 [PARALLEL] Batch {}/{} completed: {} escrows in {:?}",
                 batch_idx + 1,
-                (total_funded + PARALLEL_BATCH_SIZE - 1) / PARALLEL_BATCH_SIZE,
+                total_funded.div_ceil(PARALLEL_BATCH_SIZE),
                 batch_size,
                 batch_start.elapsed()
             );
@@ -557,7 +557,7 @@ impl BlockchainMonitor {
         );
 
         for port in &rpc_ports {
-            let url = format!("http://127.0.0.1:{}/json_rpc", port);
+            let url = format!("http://127.0.0.1:{port}/json_rpc");
 
             // Try to close - ignore errors (wallet might not be open on this port)
             let result = client
@@ -601,10 +601,10 @@ impl BlockchainMonitor {
     fn cleanup_wallet_lock_files(&self, wallet_filename: &str) {
         let network = std::env::var("MONERO_NETWORK").unwrap_or_else(|_| "mainnet".to_string());
         let wallet_dir =
-            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{}-wallets", network));
+            std::env::var("WALLET_DIR").unwrap_or_else(|_| format!("./{network}-wallets"));
 
         // Check for .lock file (wallet-rpc creates this)
-        let lock_path = format!("{}/{}.lock", wallet_dir, wallet_filename);
+        let lock_path = format!("{wallet_dir}/{wallet_filename}.lock");
 
         if std::path::Path::new(&lock_path).exists() {
             match std::fs::remove_file(&lock_path) {
@@ -621,7 +621,7 @@ impl BlockchainMonitor {
         }
 
         // Also check for .keys.lock file (some versions create this)
-        let keys_lock_path = format!("{}/{}.keys.lock", wallet_dir, wallet_filename);
+        let keys_lock_path = format!("{wallet_dir}/{wallet_filename}.keys.lock");
 
         if std::path::Path::new(&keys_lock_path).exists() {
             match std::fs::remove_file(&keys_lock_path) {
@@ -659,7 +659,7 @@ impl BlockchainMonitor {
         const MAX_RETRIES: u32 = 3;
         const BASE_RETRY_DELAY_MS: u64 = 2000;
 
-        let wallet_filename = format!("view_only_escrow_{}", escrow_id);
+        let wallet_filename = format!("view_only_escrow_{escrow_id}");
 
         for attempt in 0..MAX_RETRIES {
             match self.check_escrow_funding(escrow_id, primary_port).await {
@@ -763,7 +763,7 @@ impl BlockchainMonitor {
         // Escrow must have a multisig address
         let multisig_address = escrow
             .multisig_address
-            .ok_or_else(|| anyhow::anyhow!("Escrow {} has no multisig address", escrow_id))?;
+            .ok_or_else(|| anyhow::anyhow!("Escrow {escrow_id} has no multisig address"))?;
 
         info!(
             "Checking funding for escrow {} at address {}",
@@ -801,8 +801,7 @@ impl BlockchainMonitor {
                 None => {
                     error!("🔬 [MONITOR-TRACE] FAILED at Step 2: Missing multisig_view_key");
                     return Err(anyhow::anyhow!(
-                        "WASM escrow {} missing multisig_view_key - finalization incomplete",
-                        escrow_id
+                        "WASM escrow {escrow_id} missing multisig_view_key - finalization incomplete"
                     ));
                 }
             };
@@ -811,8 +810,7 @@ impl BlockchainMonitor {
             if view_key.len() != 64 || !view_key.chars().all(|c| c.is_ascii_hexdigit()) {
                 error!("🔬 [MONITOR-TRACE] FAILED at Step 2b: Invalid view_key format");
                 return Err(anyhow::anyhow!(
-                    "Invalid multisig_view_key format for escrow {}",
-                    escrow_id
+                    "Invalid multisig_view_key format for escrow {escrow_id}"
                 ));
             }
             info!("🔬 [MONITOR-TRACE] Step 2b: view_key format valid");
@@ -835,9 +833,8 @@ impl BlockchainMonitor {
                         &multisig_address[..20]
                     );
                     return Err(anyhow::anyhow!(
-                        "Data corruption: view_key doesn't match multisig_address for escrow {}. \
-                         This escrow cannot be monitored until the correct view key is stored.",
-                        escrow_id
+                        "Data corruption: view_key doesn't match multisig_address for escrow {escrow_id}. \
+                         This escrow cannot be monitored until the correct view key is stored."
                     ));
                 }
                 Err(e) => {
@@ -846,9 +843,7 @@ impl BlockchainMonitor {
                         escrow_id, e
                     );
                     return Err(anyhow::anyhow!(
-                        "View key validation failed for escrow {}: {}",
-                        escrow_id,
-                        e
+                        "View key validation failed for escrow {escrow_id}: {e}"
                     ));
                 }
             }
@@ -861,8 +856,8 @@ impl BlockchainMonitor {
                 "stagenet" | _ => 38081,
             };
             // Use the RPC port passed as parameter (enables parallel checks on different ports)
-            let rpc_url = format!("http://127.0.0.1:{}/json_rpc", rpc_port);
-            let daemon_url = format!("http://127.0.0.1:{}/json_rpc", daemon_port);
+            let rpc_url = format!("http://127.0.0.1:{rpc_port}/json_rpc");
+            let daemon_url = format!("http://127.0.0.1:{daemon_port}/json_rpc");
             info!(
                 "🔬 [MONITOR-TRACE] Step 3: Using RPC port {} daemon {}",
                 rpc_port, daemon_url
@@ -906,11 +901,7 @@ impl BlockchainMonitor {
                 Ok(resp) => {
                     let height_json: serde_json::Value = resp.json().await.unwrap_or_default();
                     let current_height = height_json["result"]["height"].as_u64().unwrap_or(0);
-                    let calculated = if current_height > 100 {
-                        current_height - 100
-                    } else {
-                        0
-                    };
+                    let calculated = current_height.saturating_sub(100);
                     info!(
                         "🔬 [MONITOR-TRACE] Step 6 result: daemon height={}, restore_height={}",
                         current_height, calculated
@@ -926,8 +917,8 @@ impl BlockchainMonitor {
             // Generate or open view-only wallet
             // IMPORTANT: Try to OPEN first, only CREATE if doesn't exist
             // This preserves sync state and avoids repeated blockchain scans
-            let wallet_filename = format!("view_only_escrow_{}", escrow_id);
-            let wallet_password = format!("escrow_{}", escrow_id);
+            let wallet_filename = format!("view_only_escrow_{escrow_id}");
+            let wallet_password = format!("escrow_{escrow_id}");
 
             // Track if wallet already existed (affects refresh behavior)
             let mut wallet_was_opened = false;
@@ -1019,9 +1010,9 @@ impl BlockchainMonitor {
                             // Delete corrupted wallet files
                             let wallet_dir = std::env::var("WALLET_DIR")
                                 .unwrap_or_else(|_| "./stagenet-wallets".to_string());
-                            let wallet_base = format!("{}/{}", wallet_dir, wallet_filename);
+                            let wallet_base = format!("{wallet_dir}/{wallet_filename}");
                             for ext in &["", ".keys", ".address.txt"] {
-                                let path = format!("{}{}", wallet_base, ext);
+                                let path = format!("{wallet_base}{ext}");
                                 if std::path::Path::new(&path).exists() {
                                     if let Err(e) = std::fs::remove_file(&path) {
                                         warn!(
@@ -1069,8 +1060,7 @@ impl BlockchainMonitor {
                                             gen_err
                                         );
                                         return Err(anyhow::anyhow!(
-                                            "Failed to recreate corrupted wallet: {}",
-                                            gen_err
+                                            "Failed to recreate corrupted wallet: {gen_err}"
                                         ));
                                     }
                                     info!("🔬 [MONITOR-TRACE] Step 7a: ✅ Wallet RECREATED successfully");
@@ -1079,8 +1069,7 @@ impl BlockchainMonitor {
                                 Err(e) => {
                                     error!("🔬 [MONITOR-TRACE] FAILED to recreate wallet: {}", e);
                                     return Err(anyhow::anyhow!(
-                                        "Failed to recreate corrupted wallet: {}",
-                                        e
+                                        "Failed to recreate corrupted wallet: {e}"
                                     ));
                                 }
                             }
@@ -1167,8 +1156,7 @@ impl BlockchainMonitor {
                                                 gen_err
                                             );
                                             return Err(anyhow::anyhow!(
-                                                "Failed to create view-only wallet: {}",
-                                                gen_err
+                                                "Failed to create view-only wallet: {gen_err}"
                                             ));
                                         }
                                     }
@@ -1180,8 +1168,7 @@ impl BlockchainMonitor {
                                         e
                                     );
                                     return Err(anyhow::anyhow!(
-                                        "Failed to create view-only wallet: {}",
-                                        e
+                                        "Failed to create view-only wallet: {e}"
                                     ));
                                 }
                             }
@@ -1191,15 +1178,14 @@ impl BlockchainMonitor {
                                 "🔬 [MONITOR-TRACE] FAILED at Step 7a: Unexpected error: {}",
                                 err_msg
                             );
-                            return Err(anyhow::anyhow!("Failed to open wallet: {}", err_msg));
+                            return Err(anyhow::anyhow!("Failed to open wallet: {err_msg}"));
                         }
                     }
                 }
                 Err(e) => {
                     error!("🔬 [MONITOR-TRACE] FAILED at Step 7: HTTP error: {}", e);
                     return Err(anyhow::anyhow!(
-                        "Failed to open/create view-only wallet: {}",
-                        e
+                        "Failed to open/create view-only wallet: {e}"
                     ));
                 }
             }
@@ -1257,7 +1243,7 @@ impl BlockchainMonitor {
                         refresh_start.elapsed(),
                         e
                     );
-                    return Err(anyhow::anyhow!("Failed to send refresh request: {}", e));
+                    return Err(anyhow::anyhow!("Failed to send refresh request: {e}"));
                 }
                 Err(_) => {
                     // TIMEOUT - wallet-rpc may be stuck
@@ -1270,8 +1256,7 @@ impl BlockchainMonitor {
                         rpc_port
                     );
                     return Err(anyhow::anyhow!(
-                        "Refresh timeout after {}s - wallet-rpc may need restart",
-                        WALLET_REFRESH_TIMEOUT_SECS
+                        "Refresh timeout after {WALLET_REFRESH_TIMEOUT_SECS}s - wallet-rpc may need restart"
                     ));
                 }
             };
@@ -1283,11 +1268,7 @@ impl BlockchainMonitor {
                     "🔬 [MONITOR-TRACE] FAILED at Step 8: HTTP {} - {}",
                     status, error_text
                 );
-                return Err(anyhow::anyhow!(
-                    "Refresh HTTP error {}: {}",
-                    status,
-                    error_text
-                ));
+                return Err(anyhow::anyhow!("Refresh HTTP error {status}: {error_text}"));
             }
 
             let refresh_result: serde_json::Value = match refresh_response.json().await {
@@ -1300,7 +1281,7 @@ impl BlockchainMonitor {
                         "🔬 [MONITOR-TRACE] FAILED at Step 8: JSON parse error: {}",
                         e
                     );
-                    return Err(anyhow::anyhow!("Failed to parse refresh response: {}", e));
+                    return Err(anyhow::anyhow!("Failed to parse refresh response: {e}"));
                 }
             };
 
@@ -1309,7 +1290,7 @@ impl BlockchainMonitor {
                     "🔬 [MONITOR-TRACE] FAILED at Step 8: RPC error: {:?}",
                     error
                 );
-                return Err(anyhow::anyhow!("Refresh RPC error: {}", error));
+                return Err(anyhow::anyhow!("Refresh RPC error: {error}"));
             }
 
             let blocks_fetched = refresh_result["result"]["blocks_fetched"]
@@ -1379,7 +1360,7 @@ impl BlockchainMonitor {
                         "🔬 [MONITOR-TRACE] FAILED at Step 9: get_balance HTTP error: {}",
                         e
                     );
-                    return Err(anyhow::anyhow!("Failed to send get_balance request: {}", e));
+                    return Err(anyhow::anyhow!("Failed to send get_balance request: {e}"));
                 }
             };
 
@@ -1392,9 +1373,7 @@ impl BlockchainMonitor {
                     status, error_text
                 );
                 return Err(anyhow::anyhow!(
-                    "get_balance HTTP error {}: {}",
-                    status,
-                    error_text
+                    "get_balance HTTP error {status}: {error_text}"
                 ));
             }
 
@@ -1408,7 +1387,7 @@ impl BlockchainMonitor {
                         "🔬 [MONITOR-TRACE] FAILED at Step 9: JSON parse error: {}",
                         e
                     );
-                    return Err(anyhow::anyhow!("Failed to parse balance response: {}", e));
+                    return Err(anyhow::anyhow!("Failed to parse balance response: {e}"));
                 }
             };
 
@@ -1418,21 +1397,21 @@ impl BlockchainMonitor {
                     "🔬 [MONITOR-TRACE] FAILED at Step 9: RPC error: {:?}",
                     error
                 );
-                return Err(anyhow::anyhow!("get_balance RPC error: {}", error));
+                return Err(anyhow::anyhow!("get_balance RPC error: {error}"));
             }
 
             let total_balance = balance_result["result"]["balance"]
                 .as_u64()
                 .ok_or_else(|| {
                     error!("🔬 [MONITOR-TRACE] FAILED at Step 9: Missing 'balance' field");
-                    anyhow::anyhow!("Missing balance in response: {:?}", balance_result)
+                    anyhow::anyhow!("Missing balance in response: {balance_result:?}")
                 })?;
 
             let unlocked_balance = balance_result["result"]["unlocked_balance"]
                 .as_u64()
                 .ok_or_else(|| {
                     error!("🔬 [MONITOR-TRACE] FAILED at Step 9: Missing 'unlocked_balance' field");
-                    anyhow::anyhow!("Missing unlocked_balance in response: {:?}", balance_result)
+                    anyhow::anyhow!("Missing unlocked_balance in response: {balance_result:?}")
                 })?;
 
             info!(
@@ -1573,10 +1552,9 @@ impl BlockchainMonitor {
                                     NotificationType::EscrowUpdate,
                                     "Partial Payment Received".to_string(),
                                     format!(
-                                        "Received {:.6} XMR for escrow, but {:.6} XMR more is required. Send the remaining amount to complete funding.",
-                                        received_xmr, shortfall_xmr
+                                        "Received {received_xmr:.6} XMR for escrow, but {shortfall_xmr:.6} XMR more is required. Send the remaining amount to complete funding."
                                     ),
-                                    Some(format!("/escrow/{}", escrow_id_str)),
+                                    Some(format!("/escrow/{escrow_id_str}")),
                                     Some(serde_json::json!({
                                         "escrow_id": escrow_id_str,
                                         "balance_received": unlocked_balance,
@@ -1680,7 +1658,7 @@ impl BlockchainMonitor {
                         // BUG #C5 FIX: Use MONERO_DAEMON_URL env var instead of hardcoded port
                         let daemon_base = std::env::var("MONERO_DAEMON_URL")
                             .unwrap_or_else(|_| "http://127.0.0.1:18081".to_string());
-                        let daemon_url = format!("{}/get_transactions", daemon_base);
+                        let daemon_url = format!("{daemon_base}/get_transactions");
                         let daemon_response = client
                             .post(daemon_url)
                             .json(&serde_json::json!({
@@ -1942,7 +1920,7 @@ impl BlockchainMonitor {
             escrow_id
         );
 
-        let wallet_filename = format!("buyer_temp_escrow_{}", escrow_id);
+        let wallet_filename = format!("buyer_temp_escrow_{escrow_id}");
         // Use first available wallet-rpc port for the network
         let rpc_ports = get_monitoring_rpc_ports();
         let rpc_url = format!("http://127.0.0.1:{}/json_rpc", rpc_ports[0]);
@@ -2049,7 +2027,7 @@ impl BlockchainMonitor {
             // === v0.75.0: Create persistent notifications for all 3 parties ===
             let db_pool_notif = self.db.clone();
             let escrow_id_owned = escrow_id.to_string();
-            let escrow_link = format!("/escrow/{}", escrow_id_owned);
+            let escrow_link = format!("/escrow/{escrow_id_owned}");
             let escrow_short = &escrow_id_owned[..8];
             let buyer_id = escrow.buyer_id.clone();
             let vendor_id = escrow.vendor_id.clone();
@@ -2084,10 +2062,7 @@ impl BlockchainMonitor {
                     buyer_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Payment Received - Awaiting Shipment".to_string(),
-                    format!(
-                        "Escrow {} is funded. Vendor will now ship your order.",
-                        short_id
-                    ),
+                    format!("Escrow {short_id} is funded. Vendor will now ship your order."),
                     Some(link.clone()),
                     None,
                 );
@@ -2106,8 +2081,7 @@ impl BlockchainMonitor {
                     NotificationType::EscrowUpdate,
                     "Payment Received - Ship Now".to_string(),
                     format!(
-                        "Escrow {} funded! Ship the order and click 'Confirm Shipped'.",
-                        short_id
+                        "Escrow {short_id} funded! Ship the order and click 'Confirm Shipped'."
                     ),
                     Some(link.clone()),
                     None,
@@ -2126,10 +2100,7 @@ impl BlockchainMonitor {
                     arbiter_id.clone(),
                     NotificationType::EscrowUpdate,
                     "Escrow Funded - Monitoring".to_string(),
-                    format!(
-                        "Escrow {} is funded. Monitor for potential disputes.",
-                        short_id
-                    ),
+                    format!("Escrow {short_id} is funded. Monitor for potential disputes."),
                     Some(link),
                     None,
                 );

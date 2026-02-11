@@ -43,7 +43,7 @@ impl MoneroRpcClient {
 
         // TM-004 Fix: Validation stricte (pas de bypass avec evil-127.0.0.1.com)
         validate_localhost_strict(&url)
-            .map_err(|e| MoneroError::InvalidResponse(format!("OPSEC violation: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("OPSEC violation: {e}")))?;
 
         // Utiliser timeout depuis config
         let timeout_secs = config.timeout_seconds;
@@ -51,7 +51,7 @@ impl MoneroRpcClient {
         let client = Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
             .build()
-            .map_err(|e| MoneroError::NetworkError(format!("Client build: {}", e)))?;
+            .map_err(|e| MoneroError::NetworkError(format!("Client build: {e}")))?;
 
         Ok(Self {
             url,
@@ -136,7 +136,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -208,7 +208,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -260,7 +260,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -350,7 +350,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -410,7 +410,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -461,7 +461,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -587,7 +587,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(format!(
@@ -673,7 +673,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<PrepareMultisigResult> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         // Handle RPC errors
         if let Some(error) = rpc_response.error {
@@ -794,7 +794,7 @@ impl MoneroRpcClient {
         // 3. Valider chaque multisig_info
         for (i, info) in multisig_info.iter().enumerate() {
             validate_multisig_info(info).map_err(|e| {
-                MoneroError::ValidationError(format!("Invalid multisig_info[{}]: {}", i, e))
+                MoneroError::ValidationError(format!("Invalid multisig_info[{i}]: {e}"))
             })?;
         }
 
@@ -834,7 +834,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<MakeMultisigResult> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         // Handle RPC errors
         if let Some(error) = rpc_response.error {
@@ -970,7 +970,7 @@ impl MoneroRpcClient {
         // 2. Valider chaque multisig_info (doivent commencer par "MultisigxV2")
         for (i, info) in multisig_info.iter().enumerate() {
             validate_multisig_info(info).map_err(|e| {
-                MoneroError::ValidationError(format!("Invalid multisig_info[{}]: {}", i, e))
+                MoneroError::ValidationError(format!("Invalid multisig_info[{i}]: {e}"))
             })?;
         }
 
@@ -1009,7 +1009,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<ExchangeMultisigKeysResult> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         // Handle RPC errors
         if let Some(error) = rpc_response.error {
@@ -1145,7 +1145,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<ExportMultisigInfoResult> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         // Handle RPC errors
         if let Some(error) = rpc_response.error {
@@ -1272,10 +1272,7 @@ impl MoneroRpcClient {
         // 3. Valider chaque info
         for (i, info) in infos.iter().enumerate() {
             if info.is_empty() {
-                return Err(MoneroError::ValidationError(format!(
-                    "Info[{}] is empty",
-                    i
-                )));
+                return Err(MoneroError::ValidationError(format!("Info[{i}] is empty")));
             }
             if info.len() < 100 {
                 return Err(MoneroError::ValidationError(format!(
@@ -1321,7 +1318,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<ImportMultisigInfoResult> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         // Handle RPC errors
         if let Some(error) = rpc_response.error {
@@ -1378,7 +1375,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1433,7 +1430,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1497,7 +1494,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1563,7 +1560,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1658,7 +1655,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1737,7 +1734,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));
@@ -1804,7 +1801,7 @@ impl MoneroRpcClient {
         let rpc_response: RpcResponse<serde_json::Value> = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse: {e}")))?;
 
         if let Some(error) = rpc_response.error {
             return Err(MoneroError::RpcError(error.message));

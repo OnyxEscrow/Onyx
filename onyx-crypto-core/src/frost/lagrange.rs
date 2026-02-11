@@ -27,10 +27,10 @@ use crate::types::errors::{CryptoError, CryptoResult};
 ///
 /// # Mathematical Background
 /// For 2-of-3 with signers i and j participating:
-/// - λ_i = j / (j - i)
-/// - λ_j = i / (i - j)
+/// - `λ_i` = j / (j - i)
+/// - `λ_j` = i / (i - j)
 ///
-/// These coefficients satisfy: λ_i + λ_j = 1 (at x=0)
+/// These coefficients satisfy: `λ_i` + `λ_j` = 1 (at x=0)
 ///
 /// # Example
 /// ```rust
@@ -49,8 +49,7 @@ pub fn compute_lagrange_coefficient(
     // Validate that signer_index is one of the participants
     if signer_index != signer1_index && signer_index != signer2_index {
         return Err(CryptoError::FrostDkgError(format!(
-            "signer_index {} must be one of the participating indices [{}, {}]",
-            signer_index, signer1_index, signer2_index
+            "signer_index {signer_index} must be one of the participating indices [{signer1_index}, {signer2_index}]"
         )));
     }
 
@@ -58,12 +57,12 @@ pub fn compute_lagrange_coefficient(
     // For 2-of-3 with indices i and j participating:
     // λ_i = (0 - j) / (i - j) = -j / (i - j) = j / (j - i)
 
-    let i = signer_index as i64;
-    let j = if signer_index == signer1_index {
+    let i = i64::from(signer_index);
+    let j = i64::from(if signer_index == signer1_index {
         signer2_index
     } else {
         signer1_index
-    } as i64;
+    });
 
     // λ_i = j / (j - i)
     // In scalar field: λ_i = j * inverse(j - i)
@@ -96,10 +95,7 @@ pub fn role_to_index(role: &str) -> CryptoResult<u16> {
         "buyer" => Ok(1),
         "vendor" => Ok(2),
         "arbiter" => Ok(3),
-        _ => Err(CryptoError::FrostDkgError(format!(
-            "Unknown role: {}",
-            role
-        ))),
+        _ => Err(CryptoError::FrostDkgError(format!("Unknown role: {role}"))),
     }
 }
 
@@ -117,8 +113,7 @@ pub fn index_to_role(index: u16) -> CryptoResult<&'static str> {
         2 => Ok("vendor"),
         3 => Ok("arbiter"),
         _ => Err(CryptoError::FrostDkgError(format!(
-            "Invalid index: {}",
-            index
+            "Invalid index: {index}"
         ))),
     }
 }

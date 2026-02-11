@@ -66,19 +66,18 @@ pub fn reconstruct_key_interactive() -> Result<String> {
     // Read 3 shares from stdin
     let mut shares = Vec::new();
     for i in 1..=3 {
-        print!("  Share {}/3: ", i);
+        print!("  Share {i}/3: ");
         io::stdout().flush()?;
 
         let mut input = String::new();
         io::stdin()
             .read_line(&mut input)
-            .context(format!("Failed to read share {}", i))?;
+            .context(format!("Failed to read share {i}"))?;
         let input = input.trim();
 
         // Decode share from base64
         let share_bytes = BASE64.decode(input).context(format!(
-            "Failed to decode share {} as base64. Expected format: AQHvR2xhc3Ntb3JwaGlzbQ==",
-            i
+            "Failed to decode share {i} as base64. Expected format: AQHvR2xhc3Ntb3JwaGlzbQ=="
         ))?;
 
         if share_bytes.len() != 33 {

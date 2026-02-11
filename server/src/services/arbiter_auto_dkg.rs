@@ -137,9 +137,8 @@ impl ArbiterAutoDkg {
             .context("Failed to retrieve Arbiter R1 secret from Redis vault")?
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Arbiter R1 secret not found in vault for escrow {}. \
-                 This may indicate Redis connection issues or key expiration.",
-                    escrow_id
+                    "Arbiter R1 secret not found in vault for escrow {escrow_id}. \
+                 This may indicate Redis connection issues or key expiration."
                 )
             })?;
 
@@ -215,9 +214,8 @@ impl ArbiterAutoDkg {
             .context("Failed to retrieve Arbiter R2 secret from Redis vault")?
             .ok_or_else(|| {
                 anyhow::anyhow!(
-                    "Arbiter R2 secret not found in vault for escrow {}. \
-                 This may indicate Redis connection issues or key expiration.",
-                    escrow_id
+                    "Arbiter R2 secret not found in vault for escrow {escrow_id}. \
+                 This may indicate Redis connection issues or key expiration."
                 )
             })?;
 

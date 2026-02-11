@@ -66,7 +66,7 @@ pub async fn create_api_key(
 
     // Validate input
     if let Err(e) = req.0.validate() {
-        return Err(ApiError::BadRequest(format!("Validation error: {}", e)));
+        return Err(ApiError::BadRequest(format!("Validation error: {e}")));
     }
 
     // Validate expiration date format if provided

@@ -186,14 +186,11 @@ pub fn derive_escrow_wallet_seed(
 ) -> Result<Vec<u8>> {
     // Validate role
     if !matches!(role, "buyer" | "seller" | "arbiter") {
-        anyhow::bail!(
-            "Invalid role: {}. Must be 'buyer', 'seller', or 'arbiter'",
-            role
-        );
+        anyhow::bail!("Invalid role: {role}. Must be 'buyer', 'seller', or 'arbiter'");
     }
 
     // Domain-separated info string
-    let info = format!("nexus/escrow:{}/role:{}", escrow_id, role);
+    let info = format!("nexus/escrow:{escrow_id}/role:{role}");
 
     // HKDF-SHA256 expansion
     let hkdf = Hkdf::<Sha256>::new(None, master_seed);

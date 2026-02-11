@@ -78,8 +78,8 @@ fn compute_derivation_v052(
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -95,8 +95,8 @@ fn compute_derivation_v050(
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -183,7 +183,7 @@ fn main() {
         "P from v0.49.0: {}",
         hex::encode(p_v049.compress().to_bytes())
     );
-    println!("P expected:     {}", EXPECTED_ONE_TIME_PUBKEY);
+    println!("P expected:     {EXPECTED_ONE_TIME_PUBKEY}");
 
     let v052_ok = p_v052 == p_expected;
     let v050_ok = p_v050 == p_expected;
@@ -218,7 +218,7 @@ fn main() {
         "Key Image (v0.50.0): {}",
         hex::encode(ki_v050.compress().to_bytes())
     );
-    println!("Key Image expected:  {}", EXPECTED_KEY_IMAGE);
+    println!("Key Image expected:  {EXPECTED_KEY_IMAGE}");
 
     let ki_v052_ok = hex::encode(ki_v052.compress().to_bytes()) == EXPECTED_KEY_IMAGE;
     let ki_v050_ok = hex::encode(ki_v050.compress().to_bytes()) == EXPECTED_KEY_IMAGE;

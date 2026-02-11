@@ -112,9 +112,9 @@ impl IpfsClient {
         use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION};
 
         // Manually construct Basic Auth header (reqwest's basic_auth not available in this version)
-        let auth_value = format!("{}:{}", project_id, project_secret);
+        let auth_value = format!("{project_id}:{project_secret}");
         let encoded = base64::engine::general_purpose::STANDARD.encode(auth_value.as_bytes());
-        let header_value = format!("Basic {}", encoded);
+        let header_value = format!("Basic {encoded}");
 
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -224,7 +224,7 @@ impl IpfsClient {
                 .await
                 .unwrap_or_else(|_| "<failed to read body>".to_string());
 
-            anyhow::bail!("IPFS add failed with status {}: {}", status, body);
+            anyhow::bail!("IPFS add failed with status {status}: {body}");
         }
 
         let add_response: IpfsAddResponse = response
@@ -298,7 +298,7 @@ impl IpfsClient {
 
         if !response.status().is_success() {
             let status = response.status();
-            anyhow::bail!("IPFS cat failed with status {}", status);
+            anyhow::bail!("IPFS cat failed with status {status}");
         }
 
         let bytes = response

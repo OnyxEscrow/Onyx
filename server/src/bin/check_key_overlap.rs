@@ -34,7 +34,7 @@ async fn main() -> Result<()> {
     let mut spend_pubs = Vec::new();
 
     for (port, name) in ports.iter().zip(names.iter()) {
-        let url = format!("http://127.0.0.1:{}/json_rpc", port);
+        let url = format!("http://127.0.0.1:{port}/json_rpc");
 
         // Query spend public key
         let response = client
@@ -52,7 +52,7 @@ async fn main() -> Result<()> {
                     .and_then(|r| r.get("key"))
                     .and_then(|k| k.as_str())
                 {
-                    println!("{} ({}) spend key: {}", name, port, key);
+                    println!("{name} ({port}) spend key: {key}");
 
                     // Parse as point
                     let key_bytes = hex::decode(key)?;
@@ -64,11 +64,11 @@ async fn main() -> Result<()> {
                         }
                     }
                 } else if let Some(err) = json.get("error") {
-                    println!("{} ({}) error: {:?}", name, port, err);
+                    println!("{name} ({port}) error: {err:?}");
                 }
             }
             Err(e) => {
-                println!("{} ({}) not reachable: {}", name, port, e);
+                println!("{name} ({port}) not reachable: {e}");
             }
         }
     }
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
     // We need to parse it from the address
     let multisig_address = env::args().nth(1);
     if let Some(addr) = multisig_address {
-        println!("\nMultisig address: {}", addr);
+        println!("\nMultisig address: {addr}");
         // Would need to decode base58 address to extract B
         // For now, we'll compare the spend key sums
     }
@@ -103,7 +103,7 @@ async fn main() -> Result<()> {
         if let (Some(v), Some(b)) = (vendor_pub, buyer_pub) {
             let sum = v + b;
             let sum_hex = hex::encode(sum.compress().as_bytes());
-            println!("Vendor + Buyer spend public key sum: {}", sum_hex);
+            println!("Vendor + Buyer spend public key sum: {sum_hex}");
 
             // The multisig spend key B should be different from this sum
             // The difference is the overlapping key k2*G

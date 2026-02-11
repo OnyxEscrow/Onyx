@@ -84,8 +84,7 @@ pub fn load_wallet_encryption_config() -> WalletEncryptionConfig {
             );
             if is_mainnet {
                 panic!(
-                    "WALLET_ENCRYPTION_PASSWORD must be at least {} characters for mainnet",
-                    MIN_PASSWORD_LENGTH
+                    "WALLET_ENCRYPTION_PASSWORD must be at least {MIN_PASSWORD_LENGTH} characters for mainnet"
                 );
             }
         }

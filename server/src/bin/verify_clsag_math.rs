@@ -15,7 +15,6 @@ use monero_generators::hash_to_point;
 use serde::Deserialize;
 use sha3::{Digest, Keccak256};
 use std::fs;
-use tokio;
 
 const CLSAG_DOMAIN: &[u8] = b"CLSAG_round";
 const CLSAG_AGG_0: &[u8] = b"CLSAG_agg_0";
@@ -84,7 +83,7 @@ fn compute_mu(
     domain_agg_0[..CLSAG_AGG_0.len()].copy_from_slice(CLSAG_AGG_0);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain_agg_0);
+    hasher.update(domain_agg_0);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -101,7 +100,7 @@ fn compute_mu(
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain_agg_1);
+    hasher.update(domain_agg_1);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -130,7 +129,7 @@ fn compute_challenge(
     domain[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain);
+    hasher.update(domain);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -199,8 +198,8 @@ async fn main() {
     let mut tx_prefix_hash = [0u8; 32];
     tx_prefix_hash.copy_from_slice(&hasher.finalize());
 
-    println!("TX prefix hash: {}", hex::encode(&tx_prefix_hash));
-    println!("Ring indices: {:?}", ring_indices);
+    println!("TX prefix hash: {}", hex::encode(tx_prefix_hash));
+    println!("Ring indices: {ring_indices:?}");
 
     // Save rct_base start for CLSAG message computation
     let rct_base_start = pos;
@@ -224,7 +223,7 @@ async fn main() {
     }
     let bp_end = pos;
 
-    println!("\nCLSAG starts at pos {}", pos);
+    println!("\nCLSAG starts at pos {pos}");
 
     // Compute ss blob hash (BP+ data only, not CLSAGs)
     let ss_blob = &tx[prunable_start..bp_end];
@@ -271,14 +270,14 @@ async fn main() {
     let hash2 = Scalar::from_bytes_mod_order(pseudo_outs_hash).to_bytes(); // sc_reduce32(pseudo_hash)
 
     let mut final_hasher = Keccak256::new();
-    final_hasher.update(&hash0);
-    final_hasher.update(&hash1);
-    final_hasher.update(&hash2);
+    final_hasher.update(hash0);
+    final_hasher.update(hash1);
+    final_hasher.update(hash2);
     let clsag_message: [u8; 32] = final_hasher.finalize().into();
 
     println!(
         "\nFull CLSAG message (get_pre_mlsag_hash): {}",
-        hex::encode(&clsag_message)
+        hex::encode(clsag_message)
     );
 
     // Key image from prefix (parsed dynamically earlier)
@@ -411,18 +410,18 @@ async fn main() {
     println!("\nRing closure check:");
     println!(
         "  Expected c1: {}...",
-        &hex::encode(&expected_c1_bytes)[..16]
+        &hex::encode(expected_c1_bytes)[..16]
     );
     println!(
         "  Computed c1: {}...",
-        &hex::encode(&computed_c1_bytes)[..16]
+        &hex::encode(computed_c1_bytes)[..16]
     );
 
     if expected_c1_bytes == computed_c1_bytes {
         println!("✅ CLSAG RING CLOSED SUCCESSFULLY!");
     } else {
         println!("❌ RING CLOSURE FAILED!");
-        println!("  Full expected: {}", hex::encode(&expected_c1_bytes));
-        println!("  Full computed: {}", hex::encode(&computed_c1_bytes));
+        println!("  Full expected: {}", hex::encode(expected_c1_bytes));
+        println!("  Full computed: {}", hex::encode(computed_c1_bytes));
     }
 }

@@ -33,7 +33,7 @@ fn main() -> Result<()> {
 
     // Pad view key to 64 chars if needed
     let view_key_padded = if view_key_hex.len() == 63 {
-        format!("0{}", view_key_hex)
+        format!("0{view_key_hex}")
     } else {
         view_key_hex.to_string()
     };
@@ -70,7 +70,7 @@ fn main() -> Result<()> {
         "\nP_expected = d*G + B: {}",
         hex::encode(p_expected.compress().as_bytes())
     );
-    println!("P_actual (from DB):   {}", one_time_pubkey_hex);
+    println!("P_actual (from DB):   {one_time_pubkey_hex}");
     println!("P match: {}", p_expected == one_time_pubkey);
 
     // Verify x_total * G = P
@@ -102,7 +102,7 @@ fn main() -> Result<()> {
         "CLI computes (x_total * Hp(P)):  {}",
         hex::encode(ki_cli.compress().as_bytes())
     );
-    println!("Aggregated from browser (DB):    {}", aggregated_ki_hex);
+    println!("Aggregated from browser (DB):    {aggregated_ki_hex}");
 
     // What would happen with wrong Hp?
     let ki_wrong = x_total * hp_wrong;
@@ -122,7 +122,7 @@ fn main() -> Result<()> {
         "buyer_pki + vendor_pki:  {}",
         hex::encode(sum_pki.compress().as_bytes())
     );
-    println!("aggregated_ki (DB):      {}", aggregated_ki_hex);
+    println!("aggregated_ki (DB):      {aggregated_ki_hex}");
     println!("Sum matches aggregated: {}", sum_pki == aggregated_ki);
 
     // Check what browser computed for each PKI
@@ -134,10 +134,7 @@ fn main() -> Result<()> {
         "Expected buyer_pki  ((d + λ₁*b₁) * Hp(P)): {}",
         hex::encode(expected_buyer_pki.compress().as_bytes())
     );
-    println!(
-        "Actual buyer_pki (from DB):                {}",
-        buyer_pki_hex
-    );
+    println!("Actual buyer_pki (from DB):                {buyer_pki_hex}");
     println!("Match: {}", expected_buyer_pki == buyer_pki);
 
     // Vendor PKI should be: λ_vendor * b_vendor * Hp(P)
@@ -147,10 +144,7 @@ fn main() -> Result<()> {
         "\nExpected vendor_pki (λ₂*b₂ * Hp(P)):       {}",
         hex::encode(expected_vendor_pki.compress().as_bytes())
     );
-    println!(
-        "Actual vendor_pki (from DB):               {}",
-        vendor_pki_hex
-    );
+    println!("Actual vendor_pki (from DB):               {vendor_pki_hex}");
     println!("Match: {}", expected_vendor_pki == vendor_pki);
 
     // Check with wrong Hp (group pubkey)

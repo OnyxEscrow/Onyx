@@ -129,7 +129,7 @@ impl MultisigPhase {
             Self::Ready { address, .. } => {
                 format!("Multisig ready - Address: {}...", &address[..8])
             }
-            Self::Failed { reason, .. } => format!("Setup failed: {}", reason),
+            Self::Failed { reason, .. } => format!("Setup failed: {reason}"),
         }
     }
 }
@@ -204,10 +204,10 @@ impl MultisigSnapshot {
         let expected_roles = vec!["buyer", "vendor", "arbiter"];
         for role in &expected_roles {
             if !self.wallet_ids.contains_key(*role) {
-                anyhow::bail!("Missing wallet_id for role: {}", role);
+                anyhow::bail!("Missing wallet_id for role: {role}");
             }
             if !self.rpc_urls.contains_key(*role) {
-                anyhow::bail!("Missing rpc_url for role: {}", role);
+                anyhow::bail!("Missing rpc_url for role: {role}");
             }
         }
 
@@ -216,7 +216,7 @@ impl MultisigSnapshot {
             MultisigPhase::Preparing { completed } => {
                 for role in completed {
                     if !expected_roles.contains(&role.as_str()) {
-                        anyhow::bail!("Invalid role in Preparing phase: {}", role);
+                        anyhow::bail!("Invalid role in Preparing phase: {role}");
                     }
                 }
             }
@@ -226,7 +226,7 @@ impl MultisigSnapshot {
                 }
                 for role in infos.keys() {
                     if !expected_roles.contains(&role.as_str()) {
-                        anyhow::bail!("Invalid role in Exchanging phase: {}", role);
+                        anyhow::bail!("Invalid role in Exchanging phase: {role}");
                     }
                 }
             }

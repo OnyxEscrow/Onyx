@@ -57,13 +57,13 @@ fn main() -> Result<()> {
     let db_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set")?;
 
-    println!("Connecting to database: {}", db_url);
-    println!("Escrow ID: {}", escrow_id);
+    println!("Connecting to database: {db_url}");
+    println!("Escrow ID: {escrow_id}");
     println!();
     println!("Will update to:");
-    println!("  funding_output_index: {}", correct_output_index);
-    println!("  amount: {} (0.003 XMR)", correct_amount);
-    println!("  funding_commitment_mask: {}", correct_mask);
+    println!("  funding_output_index: {correct_output_index}");
+    println!("  amount: {correct_amount} (0.003 XMR)");
+    println!("  funding_commitment_mask: {correct_mask}");
 
     let manager = ConnectionManager::<SqliteConnection>::new(&db_url);
     let customizer = SqlCipherConnectionCustomizer { encryption_key };
@@ -85,7 +85,7 @@ fn main() -> Result<()> {
         .context("Failed to update escrow")?;
 
     if updated == 0 {
-        eprintln!("No rows updated - escrow ID not found: {}", escrow_id);
+        eprintln!("No rows updated - escrow ID not found: {escrow_id}");
         std::process::exit(1);
     }
 
@@ -104,9 +104,9 @@ fn main() -> Result<()> {
         println!();
         println!("✅ Successfully updated escrow!");
         println!("Verified values:");
-        println!("  id: {}", id);
-        println!("  funding_output_index: {:?}", idx);
-        println!("  funding_commitment_mask: {:?}", mask);
+        println!("  id: {id}");
+        println!("  funding_output_index: {idx:?}");
+        println!("  funding_commitment_mask: {mask:?}");
         println!("  amount: {} ({} XMR)", amt, amt as f64 / 1e12);
     }
 

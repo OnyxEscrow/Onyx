@@ -29,7 +29,7 @@ pub async fn serve_openapi_spec_json() -> impl Responder {
             .content_type("application/json")
             .json(spec),
         Err(e) => {
-            HttpResponse::InternalServerError().body(format!("Failed to parse OpenAPI spec: {}", e))
+            HttpResponse::InternalServerError().body(format!("Failed to parse OpenAPI spec: {e}"))
         }
     }
 }

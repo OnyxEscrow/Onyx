@@ -44,16 +44,16 @@ fn main() {
         let mut hasher = Keccak256::new();
         hasher.update(b"NEXUS_TX_SECRET_V1");
         hasher.update(escrow_id.as_bytes());
-        hasher.update(&amount.to_le_bytes());
+        hasher.update(amount.to_le_bytes());
         hasher.finalize().into()
     };
-    println!("tx_secret_key (r): {}", hex::encode(&tx_secret_key));
+    println!("tx_secret_key (r): {}", hex::encode(tx_secret_key));
 
     let r = Scalar::from_bytes_mod_order(tx_secret_key);
 
     // tx_pubkey = r * G
-    let tx_pubkey = (&*ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
-    println!("tx_pubkey (R = r*G): {}", hex::encode(&tx_pubkey));
+    let tx_pubkey = (ED25519_BASEPOINT_TABLE * &r).compress().to_bytes();
+    println!("tx_pubkey (R = r*G): {}", hex::encode(tx_pubkey));
 
     // Parse view_pub as point
     let view_pub_point = CompressedEdwardsY(view_pub_bytes)
@@ -65,20 +65,20 @@ fn main() {
     let sender_derivation_bytes = sender_derivation.compress().to_bytes();
     println!(
         "sender derivation (8*r*V): {}",
-        hex::encode(&sender_derivation_bytes)
+        hex::encode(sender_derivation_bytes)
     );
 
     // === RECIPIENT SIDE ===
     println!("\n--- RECIPIENT SIDE (wallet) ---");
 
     let v = Scalar::from_bytes_mod_order(view_secret_bytes);
-    println!("view_secret (v): {}", hex::encode(&view_secret_bytes));
+    println!("view_secret (v): {}", hex::encode(view_secret_bytes));
 
     // Verify: v * G should equal view_pub
-    let computed_view_pub = (&*ED25519_BASEPOINT_TABLE * &v).compress().to_bytes();
+    let computed_view_pub = (ED25519_BASEPOINT_TABLE * &v).compress().to_bytes();
     println!(
         "computed view_pub (v*G): {}",
-        hex::encode(&computed_view_pub)
+        hex::encode(computed_view_pub)
     );
     if computed_view_pub == view_pub_bytes {
         println!("✅ v*G matches view_pub");
@@ -96,7 +96,7 @@ fn main() {
     let recipient_derivation_bytes = recipient_derivation.compress().to_bytes();
     println!(
         "recipient derivation (8*v*R): {}",
-        hex::encode(&recipient_derivation_bytes)
+        hex::encode(recipient_derivation_bytes)
     );
 
     // === COMPARE ===
@@ -105,8 +105,8 @@ fn main() {
         println!("✅ DERIVATIONS MATCH!");
     } else {
         println!("❌ DERIVATIONS DO NOT MATCH!");
-        println!("   sender:    {}", hex::encode(&sender_derivation_bytes));
-        println!("   recipient: {}", hex::encode(&recipient_derivation_bytes));
+        println!("   sender:    {}", hex::encode(sender_derivation_bytes));
+        println!("   recipient: {}", hex::encode(recipient_derivation_bytes));
     }
 
     // === COMPUTE STEALTH ADDRESS ===
@@ -130,28 +130,25 @@ fn main() {
 
     // H_s(derivation || output_index)
     let mut hasher = Keccak256::new();
-    hasher.update(&sender_derivation_bytes);
+    hasher.update(sender_derivation_bytes);
     hasher.update(&output_index_varint);
     let hash: [u8; 32] = hasher.finalize().into();
     let h_s = Scalar::from_bytes_mod_order(hash);
-    println!("H_s(derivation || 1): {}", hex::encode(&hash));
+    println!("H_s(derivation || 1): {}", hex::encode(hash));
 
     // Stealth address = H_s * G + S
     let spend_pub_point = CompressedEdwardsY(spend_pub_bytes)
         .decompress()
         .expect("Failed to decompress spend_pub");
-    let h_s_g = &*ED25519_BASEPOINT_TABLE * &h_s;
+    let h_s_g = ED25519_BASEPOINT_TABLE * &h_s;
     let stealth_address = (h_s_g + spend_pub_point).compress().to_bytes();
-    println!(
-        "computed stealth_address: {}",
-        hex::encode(&stealth_address)
-    );
+    println!("computed stealth_address: {}", hex::encode(stealth_address));
 
     // Expected from blockchain
     let expected_stealth = "dec8d25c25767255031d74ff8c926e91797bd65667f7817478128513fb5a1543";
-    println!("expected (from blockchain): {}", expected_stealth);
+    println!("expected (from blockchain): {expected_stealth}");
 
-    if hex::encode(&stealth_address) == expected_stealth {
+    if hex::encode(stealth_address) == expected_stealth {
         println!("✅ STEALTH ADDRESS MATCHES BLOCKCHAIN!");
     } else {
         println!("❌ STEALTH ADDRESS DOES NOT MATCH!");
@@ -161,11 +158,11 @@ fn main() {
     println!("\n--- VIEW TAG ---");
     let mut vt_hasher = Keccak256::new();
     vt_hasher.update(b"view_tag");
-    vt_hasher.update(&sender_derivation_bytes);
+    vt_hasher.update(sender_derivation_bytes);
     vt_hasher.update(&output_index_varint);
     let vt_hash: [u8; 32] = vt_hasher.finalize().into();
     let view_tag = vt_hash[0];
-    println!("computed view_tag: 0x{:02x}", view_tag);
+    println!("computed view_tag: 0x{view_tag:02x}");
     println!("expected (from blockchain): 0x54");
 
     if view_tag == 0x54 {

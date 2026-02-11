@@ -99,7 +99,7 @@ fn main() -> Result<()> {
     for (i, share) in shares.iter().enumerate() {
         let share_b64 = BASE64.encode(share);
         println!("📦 Share {} - Store in: {}", i + 1, storage_locations[i]);
-        println!("   {}", share_b64);
+        println!("   {share_b64}");
         println!();
     }
 

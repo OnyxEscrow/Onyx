@@ -99,7 +99,7 @@ pub struct PartialKeyImageWithDerivationResult {
 pub fn compute_key_image(spend_key_priv_hex: &str) -> CryptoResult<KeyImageResult> {
     // Decode spend key
     let spend_bytes = hex::decode(spend_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {e}")))?;
 
     if spend_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -149,7 +149,7 @@ pub fn compute_key_image(spend_key_priv_hex: &str) -> CryptoResult<KeyImageResul
 /// * `spend_key_priv_hex` - Signer's private spend key share (hex, 32 bytes)
 /// * `one_time_pubkey_hex` - The one-time output public key P (hex, 32 bytes)
 ///   This is the actual output being spent: `ring[signer_idx][0]`
-/// * `lagrange_coefficient_hex` - FROST Lagrange coefficient λ_i (hex, 32 bytes)
+/// * `lagrange_coefficient_hex` - FROST Lagrange coefficient `λ_i` (hex, 32 bytes)
 ///
 /// # Security
 /// - The partial key image does NOT reveal the private spend key
@@ -162,7 +162,7 @@ pub fn compute_partial_key_image(
 ) -> CryptoResult<PartialKeyImageResult> {
     // Parse spend key
     let spend_bytes = hex::decode(spend_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {e}")))?;
 
     if spend_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -178,7 +178,7 @@ pub fn compute_partial_key_image(
 
     // Parse Lagrange coefficient
     let lambda_bytes = hex::decode(lagrange_coefficient_hex).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e))
+        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {e}"))
     })?;
 
     if lambda_bytes.len() != 32 {
@@ -198,7 +198,7 @@ pub fn compute_partial_key_image(
 
     // Parse one-time output public key
     let pubkey_bytes = hex::decode(one_time_pubkey_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid one_time_pubkey hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid one_time_pubkey hex: {e}")))?;
 
     if pubkey_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -248,7 +248,7 @@ pub fn compute_partial_key_image(
 /// * `view_key_shared_hex` - Shared multisig view key a (hex, 32 bytes)
 /// * `output_index` - Output index in the funding transaction (typically 0)
 /// * `one_time_pubkey_hex` - The one-time output public key P (hex, 32 bytes)
-/// * `lagrange_coefficient_hex` - FROST Lagrange coefficient λ_i (hex, 32 bytes)
+/// * `lagrange_coefficient_hex` - FROST Lagrange coefficient `λ_i` (hex, 32 bytes)
 ///
 /// # Note
 /// Only the FIRST signer includes derivation to avoid double-counting.
@@ -263,7 +263,7 @@ pub fn compute_partial_key_image_with_derivation(
 ) -> CryptoResult<PartialKeyImageWithDerivationResult> {
     // 1. Parse spend key
     let spend_bytes = hex::decode(spend_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid spend key hex: {e}")))?;
 
     if spend_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -279,7 +279,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 2. Parse Lagrange coefficient
     let lambda_bytes = hex::decode(lagrange_coefficient_hex).map_err(|e| {
-        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {}", e))
+        CryptoError::HexDecodeFailed(format!("Invalid lagrange coefficient hex: {e}"))
     })?;
 
     if lambda_bytes.len() != 32 {
@@ -296,7 +296,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 3. Parse tx_pub_key (R)
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid tx_pub_key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid tx_pub_key hex: {e}")))?;
 
     if tx_pub_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -314,7 +314,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 4. Parse shared view key
     let view_bytes = hex::decode(view_key_shared_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid view key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid view key hex: {e}")))?;
 
     if view_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -330,7 +330,7 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 5. Parse one_time_pubkey (P)
     let pubkey_bytes = hex::decode(one_time_pubkey_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid one_time_pubkey hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid one_time_pubkey hex: {e}")))?;
 
     if pubkey_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -349,8 +349,8 @@ pub fn compute_partial_key_image_with_derivation(
 
     // 7. Compute derivation scalar: Hs(D || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation_scalar = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -394,7 +394,7 @@ pub fn compute_partial_key_image_with_derivation(
 /// The aggregated key image (hex)
 pub fn aggregate_partial_key_images(pki1_hex: &str, pki2_hex: &str) -> CryptoResult<String> {
     let pki1_bytes = hex::decode(pki1_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid pki1 hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid pki1 hex: {e}")))?;
 
     if pki1_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -405,7 +405,7 @@ pub fn aggregate_partial_key_images(pki1_hex: &str, pki2_hex: &str) -> CryptoRes
     }
 
     let pki2_bytes = hex::decode(pki2_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid pki2 hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid pki2 hex: {e}")))?;
 
     if pki2_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {

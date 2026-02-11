@@ -86,8 +86,7 @@ pub fn network_string_to_byte(network: &str) -> Result<u8, String> {
         "stagenet" | "stage" => Ok(STAGENET_ADDRESS_BYTE),
         "testnet" | "test" => Ok(TESTNET_ADDRESS_BYTE),
         _ => Err(format!(
-            "Unknown network: {}. Use 'mainnet', 'stagenet', or 'testnet'",
-            network
+            "Unknown network: {network}. Use 'mainnet', 'stagenet', or 'testnet'"
         )),
     }
 }
@@ -116,11 +115,11 @@ pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
     // Uses getrandom with js feature -> crypto.getRandomValues()
     let mut entropy = [0u8; 16]; // 16 bytes = 128 bits = 12 words
     getrandom::getrandom(&mut entropy)
-        .map_err(|e| JsValue::from_str(&format!("Failed to generate entropy: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to generate entropy: {e}")))?;
 
     // Create mnemonic from entropy
     let mnemonic = Mnemonic::from_entropy(&entropy)
-        .map_err(|e| JsValue::from_str(&format!("Failed to generate mnemonic: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Failed to generate mnemonic: {e}")))?;
 
     let seed_phrase = mnemonic.words().collect::<Vec<&str>>().join(" ");
 
@@ -163,7 +162,7 @@ pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
     // Generate Monero address with specified network
     let address_string =
         generate_monero_address_with_network(&spend_pub_bytes, &view_pub_bytes, network_byte)
-            .map_err(|e| JsValue::from_str(&format!("Address generation failed: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Address generation failed: {e}")))?;
 
     // Compute address hash (SHA256 for server verification)
     let mut address_hasher = Sha256::new();
@@ -187,7 +186,7 @@ pub fn generate_wallet(network: Option<String>) -> Result<JsValue, JsValue> {
 
     // Serialize to JsValue
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Generate Monero address from public spend and view keys with explicit network byte
@@ -212,7 +211,7 @@ pub fn generate_monero_address_with_network(
     // Encode to Base58 with automatic Keccak256 checksum
     // encode_check() appends 4-byte checksum before encoding
     let address = base58_monero::encode_check(&address_data)
-        .map_err(|e| format!("Base58 encoding failed: {}", e))?;
+        .map_err(|e| format!("Base58 encoding failed: {e}"))?;
 
     Ok(address)
 }

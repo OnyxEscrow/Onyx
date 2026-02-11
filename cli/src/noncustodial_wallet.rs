@@ -439,9 +439,7 @@ impl NonCustodialClient {
             attempts += 1;
             if attempts > max_attempts {
                 return Err(anyhow::anyhow!(
-                    "Timeout waiting for sync round {} participants after {} attempts",
-                    round,
-                    max_attempts
+                    "Timeout waiting for sync round {round} participants after {max_attempts} attempts"
                 ));
             }
 
@@ -548,7 +546,7 @@ impl NonCustodialClient {
         escrow_id: &str,
         balance: u64,
     ) -> Result<()> {
-        let url = format!("{}/api/v2/escrow/funds-received", server_url);
+        let url = format!("{server_url}/api/v2/escrow/funds-received");
 
         #[derive(serde::Serialize)]
         struct FundsReceivedRequest {
@@ -580,10 +578,7 @@ impl NonCustodialClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            Err(anyhow::anyhow!(
-                "Server notification failed: {}",
-                error_text
-            ))
+            Err(anyhow::anyhow!("Server notification failed: {error_text}"))
         }
     }
 
@@ -670,7 +665,7 @@ impl NonCustodialClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(anyhow::anyhow!("Registration failed: {}", error_text));
+            return Err(anyhow::anyhow!("Registration failed: {error_text}"));
         }
 
         let reg_response: RegisterClientWalletResponse = response
@@ -711,8 +706,7 @@ impl NonCustodialClient {
             attempts += 1;
             if attempts > max_attempts {
                 return Err(anyhow::anyhow!(
-                    "Timeout waiting for participants after {} attempts",
-                    max_attempts
+                    "Timeout waiting for participants after {max_attempts} attempts"
                 ));
             }
 
@@ -807,8 +801,7 @@ impl NonCustodialClient {
         }
 
         Err(anyhow::anyhow!(
-            "Timeout waiting for multisig coordination after {} attempts",
-            max_attempts
+            "Timeout waiting for multisig coordination after {max_attempts} attempts"
         ))
     }
 
@@ -838,7 +831,7 @@ impl NonCustodialClient {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(anyhow::anyhow!("Coordination failed: {}", error_text));
+            return Err(anyhow::anyhow!("Coordination failed: {error_text}"));
         }
 
         let coord_response: CoordinateExchangeResponse = response

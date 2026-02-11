@@ -132,7 +132,7 @@ impl DaemonEndpoint {
         let client = Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
             .build()
-            .map_err(|e| MoneroError::NetworkError(format!("Failed to build client: {}", e)))?;
+            .map_err(|e| MoneroError::NetworkError(format!("Failed to build client: {e}")))?;
 
         let fee_estimator = FeeEstimator::new(url)?;
 
@@ -321,8 +321,7 @@ impl DaemonPool {
         for url in &config.urls {
             if !url.contains("127.0.0.1") && !url.contains("localhost") {
                 return Err(MoneroError::ValidationError(format!(
-                    "Daemon URL must be localhost for security: {}",
-                    url
+                    "Daemon URL must be localhost for security: {url}"
                 )));
             }
         }
@@ -410,9 +409,7 @@ impl DaemonPool {
 
     /// Get daemon info from a healthy daemon
     pub async fn get_info(&self) -> Result<DaemonInfo, MoneroError> {
-        let endpoint = self
-            .get_next_healthy()
-            .ok_or_else(|| MoneroError::RpcUnreachable)?;
+        let endpoint = self.get_next_healthy().ok_or(MoneroError::RpcUnreachable)?;
 
         let request = serde_json::json!({
             "jsonrpc": "2.0",
@@ -437,7 +434,7 @@ impl DaemonPool {
         let json: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {e}")))?;
 
         let result = json
             .get("result")
@@ -483,27 +480,21 @@ impl DaemonPool {
         &self,
         priority: FeePriority,
     ) -> Result<FeeEstimate, MoneroError> {
-        let endpoint = self
-            .get_next_healthy()
-            .ok_or_else(|| MoneroError::RpcUnreachable)?;
+        let endpoint = self.get_next_healthy().ok_or(MoneroError::RpcUnreachable)?;
 
         endpoint.fee_estimator.get_fee_estimate(priority).await
     }
 
     /// Get all fee estimates (all priority levels)
     pub async fn get_all_fee_estimates(&self) -> Result<Vec<FeeEstimate>, MoneroError> {
-        let endpoint = self
-            .get_next_healthy()
-            .ok_or_else(|| MoneroError::RpcUnreachable)?;
+        let endpoint = self.get_next_healthy().ok_or(MoneroError::RpcUnreachable)?;
 
         endpoint.fee_estimator.get_all_fee_estimates().await
     }
 
     /// Broadcast a raw transaction
     pub async fn submit_transaction(&self, tx_hex: &str) -> Result<String, MoneroError> {
-        let endpoint = self
-            .get_next_healthy()
-            .ok_or_else(|| MoneroError::RpcUnreachable)?;
+        let endpoint = self.get_next_healthy().ok_or(MoneroError::RpcUnreachable)?;
 
         let request = serde_json::json!({
             "tx_as_hex": tx_hex,
@@ -527,7 +518,7 @@ impl DaemonPool {
         let json: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {}", e)))?;
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {e}")))?;
 
         let status = json
             .get("status")
@@ -540,8 +531,7 @@ impl DaemonPool {
                 .and_then(|r| r.as_str())
                 .unwrap_or("Unknown error");
             return Err(MoneroError::RpcError(format!(
-                "Transaction rejected: {}",
-                reason
+                "Transaction rejected: {reason}"
             )));
         }
 
@@ -557,9 +547,7 @@ impl DaemonPool {
 
     /// Get transaction pool information
     pub async fn get_transaction_pool(&self) -> Result<serde_json::Value, MoneroError> {
-        let endpoint = self
-            .get_next_healthy()
-            .ok_or_else(|| MoneroError::RpcUnreachable)?;
+        let endpoint = self.get_next_healthy().ok_or(MoneroError::RpcUnreachable)?;
 
         let response = endpoint
             .client
@@ -577,7 +565,7 @@ impl DaemonPool {
         response
             .json()
             .await
-            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {}", e)))
+            .map_err(|e| MoneroError::InvalidResponse(format!("JSON parse error: {e}")))
     }
 }
 

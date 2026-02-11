@@ -79,7 +79,7 @@ impl SigningPair {
     /// Create a new signing pair
     ///
     /// # Panics
-    /// Panics if first_signer == second_signer
+    /// Panics if `first_signer` == `second_signer`
     #[must_use]
     pub fn new(first_signer: EscrowRole, second_signer: EscrowRole) -> Self {
         assert_ne!(

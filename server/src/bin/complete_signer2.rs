@@ -42,7 +42,7 @@ struct CompletedClsag {
 }
 
 fn parse_hex_32(hex_str: &str, field: &str) -> Result<[u8; 32]> {
-    let bytes = hex::decode(hex_str).with_context(|| format!("Invalid hex for {}", field))?;
+    let bytes = hex::decode(hex_str).with_context(|| format!("Invalid hex for {field}"))?;
     if bytes.len() != 32 {
         anyhow::bail!("{} must be 32 bytes, got {}", field, bytes.len());
     }
@@ -122,8 +122,8 @@ fn complete_signature(
     let shared_secret = {
         let mut hasher = Sha256::new();
         hasher.update(b"NEXUS_ROUND_ROBIN_SHARED_SECRET_V1");
-        hasher.update(&tx_prefix_hash_arr);
-        hasher.update(&key_image_arr);
+        hasher.update(tx_prefix_hash_arr);
+        hasher.update(key_image_arr);
         let result = hasher.finalize();
         let mut key = [0u8; 32];
         key.copy_from_slice(&result);
@@ -151,12 +151,9 @@ fn complete_signature(
 
     // Signer 2's contribution: -c_p * x2 - c_c * mask_delta
     let s2_contribution = -(c_p * x2) - (c_c * mask_delta);
-    s_values[signer_idx] = s_values[signer_idx] + s2_contribution;
+    s_values[signer_idx] += s2_contribution;
 
-    println!(
-        "[Signer2] Signature completed. s[{}] finalized.",
-        signer_idx
-    );
+    println!("[Signer2] Signature completed. s[{signer_idx}] finalized.");
 
     // Build completed signature
     Ok(CompletedClsag {
@@ -214,7 +211,7 @@ fn main() -> Result<()> {
     }
 
     println!("=== Signer 2 Completion Tool ===");
-    println!("Escrow ID: {}", escrow_id);
+    println!("Escrow ID: {escrow_id}");
 
     // Read partial_tx from database
     let db_key = std::env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY not set")?;
@@ -223,8 +220,7 @@ fn main() -> Result<()> {
     let output = std::process::Command::new("sqlcipher")
         .arg("marketplace.db")
         .arg(format!(
-            "PRAGMA key='{}'; SELECT partial_tx FROM escrows WHERE id='{}';",
-            db_key, escrow_id
+            "PRAGMA key='{db_key}'; SELECT partial_tx FROM escrows WHERE id='{escrow_id}';"
         ))
         .output()
         .context("Failed to run sqlcipher")?;
@@ -233,7 +229,7 @@ fn main() -> Result<()> {
     let lines: Vec<&str> = stdout.lines().collect();
 
     if lines.len() < 2 || lines[1].is_empty() {
-        anyhow::bail!("No partial_tx found for escrow {}", escrow_id);
+        anyhow::bail!("No partial_tx found for escrow {escrow_id}");
     }
 
     let partial_tx_json = lines[1];
@@ -257,8 +253,7 @@ fn main() -> Result<()> {
     // Update database with completed signature
     let escaped_json = completed_json.replace("'", "''");
     let update_sql = format!(
-        "PRAGMA key='{}'; UPDATE escrows SET completed_clsag='{}', signing_phase='completed', status='ready_to_broadcast', updated_at=datetime('now') WHERE id='{}';",
-        db_key, escaped_json, escrow_id
+        "PRAGMA key='{db_key}'; UPDATE escrows SET completed_clsag='{escaped_json}', signing_phase='completed', status='ready_to_broadcast', updated_at=datetime('now') WHERE id='{escrow_id}';"
     );
 
     let update_output = std::process::Command::new("sqlcipher")
@@ -281,7 +276,7 @@ fn main() -> Result<()> {
     // Verify the update
     let verify_output = std::process::Command::new("sqlcipher")
         .arg("marketplace.db")
-        .arg(format!("PRAGMA key='{}'; SELECT status, signing_phase, length(completed_clsag) FROM escrows WHERE id='{}';", db_key, escrow_id))
+        .arg(format!("PRAGMA key='{db_key}'; SELECT status, signing_phase, length(completed_clsag) FROM escrows WHERE id='{escrow_id}';"))
         .output()?;
 
     println!(

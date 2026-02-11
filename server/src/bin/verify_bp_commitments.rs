@@ -32,7 +32,7 @@ fn main() -> Result<()> {
     ];
     let amount: u64 = 1_000_000_000_000; // 1 XMR
 
-    println!("Test mask: {}", hex::encode(&mask));
+    println!("Test mask: {}", hex::encode(mask));
     println!(
         "Test amount: {} piconero ({:.12} XMR)\n",
         amount,
@@ -50,18 +50,18 @@ fn main() -> Result<()> {
     let amount_h = amount_scalar * h_point;
     let commitment_ours = mask_g + amount_h;
     let commitment_ours_bytes = commitment_ours.compress().to_bytes();
-    println!("Commitment (ours): {}", hex::encode(&commitment_ours_bytes));
+    println!("Commitment (ours): {}", hex::encode(commitment_ours_bytes));
 
     // Method 2: monero-generators H
     println!("\n=== Method 2: monero-generators H ===");
-    let h_from_lib: &EdwardsPoint = &*H; // Dereference LazyLock
+    let h_from_lib: &EdwardsPoint = &H; // Dereference LazyLock
     let mask_scalar = Scalar::from_bytes_mod_order(mask);
     let mask_g = &mask_scalar * ED25519_BASEPOINT_TABLE;
     let amount_scalar = Scalar::from(amount);
     let amount_h = amount_scalar * h_from_lib;
     let commitment_lib = mask_g + amount_h;
     let commitment_lib_bytes = commitment_lib.compress().to_bytes();
-    println!("Commitment (lib H): {}", hex::encode(&commitment_lib_bytes));
+    println!("Commitment (lib H): {}", hex::encode(commitment_lib_bytes));
 
     // Method 3: monero-primitives-mirror Commitment struct
     println!("\n=== Method 3: monero-primitives-mirror Commitment ===");
@@ -73,15 +73,15 @@ fn main() -> Result<()> {
     let commitment_struct_bytes = commitment_from_struct.compress().to_bytes();
     println!(
         "Commitment (struct): {}",
-        hex::encode(&commitment_struct_bytes)
+        hex::encode(commitment_struct_bytes)
     );
 
     // Compare H points first
     println!("\n=== H Generator Comparison ===");
     let h_ours_bytes = H_BYTES;
     let h_lib_bytes = h_from_lib.compress().to_bytes();
-    println!("H (ours):          {}", hex::encode(&h_ours_bytes));
-    println!("H (generators lib): {}", hex::encode(&h_lib_bytes));
+    println!("H (ours):          {}", hex::encode(h_ours_bytes));
+    println!("H (generators lib): {}", hex::encode(h_lib_bytes));
 
     if h_ours_bytes == h_lib_bytes {
         println!("✅ H generators MATCH");
@@ -97,9 +97,9 @@ fn main() -> Result<()> {
         println!("✅ All commitments MATCH");
     } else {
         println!("❌ Commitments DON'T MATCH!");
-        println!("  Ours:   {}", hex::encode(&commitment_ours_bytes));
-        println!("  Lib:    {}", hex::encode(&commitment_lib_bytes));
-        println!("  Struct: {}", hex::encode(&commitment_struct_bytes));
+        println!("  Ours:   {}", hex::encode(commitment_ours_bytes));
+        println!("  Lib:    {}", hex::encode(commitment_lib_bytes));
+        println!("  Struct: {}", hex::encode(commitment_struct_bytes));
     }
 
     // Now let's check what BP+ actually generates for its proof
@@ -127,7 +127,7 @@ fn main() -> Result<()> {
             }
         }
         Err(e) => {
-            println!("❌ Bulletproof+ generation failed: {:?}", e);
+            println!("❌ Bulletproof+ generation failed: {e:?}");
         }
     }
 
@@ -187,10 +187,8 @@ fn main() -> Result<()> {
             println!("✅ Two-output Bulletproof+ generated");
 
             // Verify using EdwardsPoint commitments
-            let verify_points: Vec<EdwardsPoint> = commitments_2out
-                .iter()
-                .map(|c| commitment_to_point(c))
-                .collect();
+            let verify_points: Vec<EdwardsPoint> =
+                commitments_2out.iter().map(commitment_to_point).collect();
 
             if bp.verify(&mut rng, &verify_points) {
                 println!("✅ Two-output Bulletproof+ verification PASSED");
@@ -199,7 +197,7 @@ fn main() -> Result<()> {
             }
         }
         Err(e) => {
-            println!("❌ Two-output Bulletproof+ generation failed: {:?}", e);
+            println!("❌ Two-output Bulletproof+ generation failed: {e:?}");
         }
     }
 

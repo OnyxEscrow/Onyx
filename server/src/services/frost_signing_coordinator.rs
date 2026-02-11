@@ -233,7 +233,7 @@ async fn fetch_ring_members(
     };
 
     let response = client
-        .post(&format!("{}/get_outs", get_daemon_url()))
+        .post(format!("{}/get_outs", get_daemon_url()))
         .json(&params)
         .send()
         .await
@@ -289,7 +289,7 @@ async fn check_daemon_connectivity(
     }
 
     let response = client
-        .post(&format!("{}/json_rpc", daemon_url))
+        .post(format!("{daemon_url}/json_rpc"))
         .json(&serde_json::json!({
             "jsonrpc": "2.0",
             "id": "0",
@@ -378,17 +378,17 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
     let max_retries = 3;
     for attempt in 0..max_retries {
         let response = client
-            .post(&format!("{}/sendrawtransaction", node_url))
+            .post(format!("{node_url}/sendrawtransaction"))
             .json(&params)
             .timeout(std::time::Duration::from_secs(30))
             .send()
             .await
-            .context(format!("Failed to reach {}", node_url))?;
+            .context(format!("Failed to reach {node_url}"))?;
 
         let result: SubmitTxResult = response
             .json()
             .await
-            .context(format!("Failed to parse response from {}", node_url))?;
+            .context(format!("Failed to parse response from {node_url}"))?;
 
         // Log full response for debugging
         info!(
@@ -413,8 +413,7 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
                     node_url
                 );
                 return Err(anyhow::anyhow!(
-                    "TX accepted but not_relayed=true on {}",
-                    node_url
+                    "TX accepted but not_relayed=true on {node_url}"
                 ));
             }
             info!(
@@ -479,7 +478,7 @@ async fn submit_to_node(client: &reqwest::Client, node_url: &str, tx_hex: &str) 
         );
     }
 
-    anyhow::bail!("Node {} BUSY after {} retries", node_url, max_retries)
+    anyhow::bail!("Node {node_url} BUSY after {max_retries} retries")
 }
 
 /// Broadcast raw transaction to daemon with multi-node fallback.
@@ -589,7 +588,7 @@ fn compute_mixing_coefficients(
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
 
     let mut hasher_p = Keccak256::new();
-    hasher_p.update(&domain_agg_0);
+    hasher_p.update(domain_agg_0);
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
     }
@@ -602,7 +601,7 @@ fn compute_mixing_coefficients(
     let mu_p = Scalar::from_bytes_mod_order(hasher_p.finalize().into());
 
     let mut hasher_c = Keccak256::new();
-    hasher_c.update(&domain_agg_1);
+    hasher_c.update(domain_agg_1);
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
     }
@@ -633,7 +632,7 @@ fn compute_round_hash(
     domain[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain);
+    hasher.update(domain);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -658,8 +657,8 @@ fn compute_key_derivation(
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint_bytes(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint_bytes(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -720,7 +719,7 @@ fn sign_clsag(
 
     let ring_size = ring_keys.len();
     if ring_size != RING_SIZE {
-        anyhow::bail!("Ring size must be {}, got {}", RING_SIZE, ring_size);
+        anyhow::bail!("Ring size must be {RING_SIZE}, got {ring_size}");
     }
 
     let p = &ring_keys[real_index];
@@ -1164,7 +1163,7 @@ impl FrostSigningCoordinator {
             let mut hasher = Keccak256::new();
             hasher.update(b"NEXUS_TX_SECRET_V1");
             hasher.update(escrow_id.as_bytes());
-            hasher.update(&input_amount.to_le_bytes());
+            hasher.update(input_amount.to_le_bytes());
             hasher.finalize().into()
         };
 
@@ -1269,7 +1268,7 @@ impl FrostSigningCoordinator {
         let pseudo_out = &pseudo_mask * curve25519_dalek::constants::ED25519_BASEPOINT_TABLE
             + curve25519_dalek::scalar::Scalar::from(input_amount) * h_point;
         let pseudo_out_bytes = pseudo_out.compress().to_bytes();
-        let pseudo_out_hex = hex::encode(&pseudo_out_bytes);
+        let pseudo_out_hex = hex::encode(pseudo_out_bytes);
 
         // ====================================================================
         // 7. Build TX and compute CLSAG message
@@ -1311,8 +1310,8 @@ impl FrostSigningCoordinator {
             .compute_clsag_message(&[pseudo_out_bytes])
             .context("Failed to compute CLSAG message")?;
 
-        let tx_prefix_hash = hex::encode(&clsag_message); // This IS the signing message
-        let clsag_message_hash = hex::encode(&clsag_message);
+        let tx_prefix_hash = hex::encode(clsag_message); // This IS the signing message
+        let clsag_message_hash = hex::encode(clsag_message);
 
         info!(
             escrow_id = %escrow_id,
@@ -1327,19 +1326,19 @@ impl FrostSigningCoordinator {
         let stored_params = StoredTxParams {
             key_image: key_image_hex.clone(),
             ring_indices: ring_indices.clone(),
-            stealth_address_0: hex::encode(&stealth_address_0),
-            commitment_0: hex::encode(&commitment_0),
-            encrypted_amount_0: hex::encode(&encrypted_amount_0),
-            mask_0: hex::encode(&mask_0),
+            stealth_address_0: hex::encode(stealth_address_0),
+            commitment_0: hex::encode(commitment_0),
+            encrypted_amount_0: hex::encode(encrypted_amount_0),
+            mask_0: hex::encode(mask_0),
             recipient_amount,
             view_tag_0,
-            stealth_address_1: hex::encode(&stealth_address_1),
-            commitment_1: hex::encode(&commitment_1),
-            encrypted_amount_1: hex::encode(&encrypted_amount_1),
-            mask_1: hex::encode(&mask_1),
+            stealth_address_1: hex::encode(stealth_address_1),
+            commitment_1: hex::encode(commitment_1),
+            encrypted_amount_1: hex::encode(encrypted_amount_1),
+            mask_1: hex::encode(mask_1),
             platform_fee,
             view_tag_1,
-            tx_pubkey: hex::encode(&tx_pubkey),
+            tx_pubkey: hex::encode(tx_pubkey),
             tx_fee,
             pseudo_out: pseudo_out_hex.clone(),
         };
@@ -1362,7 +1361,7 @@ impl FrostSigningCoordinator {
                 frost_signing_state::status.eq("initialized"),
                 frost_signing_state::bulletproof_bytes.eq(&bp_bytes_b64),
                 frost_signing_state::pseudo_out_hex.eq(&pseudo_out_hex),
-                frost_signing_state::tx_secret_key.eq(hex::encode(&tx_secret_key)),
+                frost_signing_state::tx_secret_key.eq(hex::encode(tx_secret_key)),
                 frost_signing_state::ring_indices_json.eq(&ring_indices_json),
             ))
             .execute(conn)
@@ -1434,7 +1433,7 @@ impl FrostSigningCoordinator {
                 ))
                 .execute(conn)?;
             }
-            _ => anyhow::bail!("Invalid role for nonce commitment: {}", role),
+            _ => anyhow::bail!("Invalid role for nonce commitment: {role}"),
         }
 
         // Check if both submitted
@@ -1550,7 +1549,7 @@ impl FrostSigningCoordinator {
                 ))
                 .execute(conn)?;
             }
-            _ => anyhow::bail!("Invalid role for partial signature: {}", role),
+            _ => anyhow::bail!("Invalid role for partial signature: {role}"),
         }
 
         // Check if buyer + vendor both submitted (arbiter may come later)
@@ -1758,7 +1757,7 @@ impl FrostSigningCoordinator {
         let hp_p = hash_to_point(p.compress().to_bytes());
         let key_image_point = x_total * hp_p;
         let key_image_bytes = key_image_point.compress().to_bytes();
-        let key_image_hex = hex::encode(&key_image_bytes);
+        let key_image_hex = hex::encode(key_image_bytes);
 
         info!(
             escrow_id = %escrow_id,
@@ -1848,7 +1847,7 @@ impl FrostSigningCoordinator {
 
         info!(
             escrow_id = %escrow_id,
-            clsag_msg = %hex::encode(&clsag_message),
+            clsag_msg = %hex::encode(clsag_message),
             "TX rebuilt with correct key image, CLSAG message recomputed"
         );
 
@@ -1932,9 +1931,9 @@ impl FrostSigningCoordinator {
         // 8. Attach CLSAG to TX and build
         // ====================================================================
         let clsag_json = ClsagSignatureJson {
-            d: hex::encode(&clsag_sig.d),
-            s: clsag_sig.s.iter().map(|s| hex::encode(s)).collect(),
-            c1: hex::encode(&clsag_sig.c1),
+            d: hex::encode(clsag_sig.d),
+            s: clsag_sig.s.iter().map(hex::encode).collect(),
+            c1: hex::encode(clsag_sig.c1),
         };
 
         let client_sig = ClientSignature {
@@ -1953,7 +1952,7 @@ impl FrostSigningCoordinator {
             .context("Failed to build final transaction")?;
 
         let tx_hex = &build_result.tx_hex;
-        let tx_hash = hex::encode(&build_result.tx_hash);
+        let tx_hash = hex::encode(build_result.tx_hash);
 
         info!(
             escrow_id = %escrow_id,

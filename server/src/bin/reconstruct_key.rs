@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     // Read 3 shares from user
     let mut shares = Vec::new();
     for i in 1..=3 {
-        print!("Share {}: ", i);
+        print!("Share {i}: ");
         io::stdout().flush()?;
 
         let mut input = String::new();
@@ -78,7 +78,7 @@ fn main() -> Result<()> {
         // Decode share from base64
         let share_bytes = BASE64
             .decode(input)
-            .context(format!("Failed to decode share {} as base64", i))?;
+            .context(format!("Failed to decode share {i} as base64"))?;
 
         if share_bytes.len() != 33 {
             anyhow::bail!(
@@ -110,16 +110,16 @@ fn main() -> Result<()> {
     println!("✅ Successfully reconstructed 256-bit key\n");
     println!("═══════════════════════════════════════════════════════════\n");
     println!("📦 Reconstructed Key (base64):");
-    println!("   {}\n", key_b64);
+    println!("   {key_b64}\n");
     println!("📦 Reconstructed Key (hex):");
-    println!("   {}\n", key_hex);
+    println!("   {key_hex}\n");
     println!("═══════════════════════════════════════════════════════════");
 
     println!("\n⚠️  CRITICAL SECURITY INSTRUCTIONS:\n");
     println!("1. This key is displayed ON SCREEN - clear terminal after use:");
     println!("   $ clear  # or Ctrl+L\n");
     println!("2. Copy to secure environment variable (DO NOT save to .env):");
-    println!("   $ export DB_ENCRYPTION_KEY=\"{}\"\n", key_b64);
+    println!("   $ export DB_ENCRYPTION_KEY=\"{key_b64}\"\n");
     println!("3. For production deployment, use secure secret management:");
     println!("   - Kubernetes Secrets");
     println!("   - HashiCorp Vault");

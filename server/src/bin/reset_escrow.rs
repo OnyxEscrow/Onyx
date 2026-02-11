@@ -93,8 +93,8 @@ fn main() -> Result<()> {
         std::env::var("DATABASE_URL").unwrap_or_else(|_| "marketplace.db".to_string());
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY").unwrap_or_default();
 
-    println!("Connecting to database: {}", database_url);
-    println!("Resetting escrow: {}", escrow_id);
+    println!("Connecting to database: {database_url}");
+    println!("Resetting escrow: {escrow_id}");
 
     let manager = ConnectionManager::<SqliteConnection>::new(&database_url);
 
@@ -187,13 +187,10 @@ fn main() -> Result<()> {
         if fss_deleted > 0 {
             println!("✅ frost_signing_state row deleted (will be recreated on prepare_sign)");
         } else {
-            println!(
-                "⚠️ No frost_signing_state row found for escrow_id: {}",
-                escrow_id
-            );
+            println!("⚠️ No frost_signing_state row found for escrow_id: {escrow_id}");
         }
     } else {
-        println!("⚠️ No escrow found with ID: {}", escrow_id);
+        println!("⚠️ No escrow found with ID: {escrow_id}");
     }
 
     Ok(())

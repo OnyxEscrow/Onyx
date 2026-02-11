@@ -162,8 +162,7 @@ pub async fn init_frost_dkg(
                 Err(e) => {
                     error!("Failed to get DKG status: {}", e);
                     HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                        "Failed to get DKG status: {}",
-                        e
+                        "Failed to get DKG status: {e}"
                     )))
                 }
             }
@@ -171,8 +170,7 @@ pub async fn init_frost_dkg(
         Err(e) => {
             error!("Failed to init FROST DKG: {}", e);
             HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to init DKG: {}",
-                e
+                "Failed to init DKG: {e}"
             )))
         }
     }
@@ -282,7 +280,7 @@ pub async fn submit_round1(
                     for (party_id, party_role) in get_party_list(&escrow) {
                         // Send WebSocket notification
                         websocket.do_send(NotifyUser {
-                            user_id: party_id.clone(),
+                            user_id: party_id,
                             event: WsEvent::FrostDkgRound1Required {
                                 escrow_id: parse_uuid_safe(&escrow_id),
                                 party_role: party_role.clone(),
@@ -302,7 +300,7 @@ pub async fn submit_round1(
                                     &escrow_id[..8],
                                     parties_pending.join(", ")
                                 ),
-                                Some(format!("/escrow/{}", escrow_id)),
+                                Some(format!("/escrow/{escrow_id}")),
                                 Some(
                                     serde_json::json!({
                                         "escrow_id": escrow_id,
@@ -330,10 +328,8 @@ pub async fn submit_round1(
         }
         Err(e) => {
             error!("Failed to submit Round 1: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to submit: {}",
-                e
-            )))
+            HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error(&format!("Failed to submit: {e}")))
         }
     }
 }
@@ -368,7 +364,7 @@ pub async fn get_round1_packages(
                 serde_json::from_str(&packages_json).unwrap_or(serde_json::json!({}));
             HttpResponse::Ok().json(ApiResponse::success(packages))
         }
-        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{e}"))),
     }
 }
 
@@ -472,7 +468,7 @@ pub async fn submit_round2(
                     for (party_id, party_role) in get_party_list(&escrow) {
                         // Send WebSocket notification
                         websocket.do_send(NotifyUser {
-                            user_id: party_id.clone(),
+                            user_id: party_id,
                             event: WsEvent::FrostDkgRound2Required {
                                 escrow_id: parse_uuid_safe(&escrow_id),
                                 party_role: party_role.clone(),
@@ -499,7 +495,7 @@ pub async fn submit_round2(
                                     &escrow_id[..8],
                                     packages_submitted
                                 ),
-                                Some(format!("/escrow/{}", escrow_id)),
+                                Some(format!("/escrow/{escrow_id}")),
                                 Some(
                                     serde_json::json!({
                                         "escrow_id": escrow_id,
@@ -527,10 +523,8 @@ pub async fn submit_round2(
         }
         Err(e) => {
             error!("Failed to submit Round 2: {}", e);
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to submit: {}",
-                e
-            )))
+            HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error(&format!("Failed to submit: {e}")))
         }
     }
 }
@@ -576,7 +570,7 @@ pub async fn get_round2_packages(
                 serde_json::from_str(&packages_json).unwrap_or(serde_json::json!({}));
             HttpResponse::Ok().json(ApiResponse::success(packages))
         }
-        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{e}"))),
     }
 }
 
@@ -683,8 +677,7 @@ pub async fn complete_dkg(
         Err(e) => {
             error!("Failed to complete DKG: {}", e);
             HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to complete: {}",
-                e
+                "Failed to complete: {e}"
             )))
         }
     }
@@ -717,8 +710,7 @@ pub async fn get_dkg_status(
     match FrostCoordinator::get_status(&mut conn, &escrow_id) {
         Ok(status) => HttpResponse::Ok().json(ApiResponse::success(status)),
         Err(e) => HttpResponse::NotFound().json(ApiResponse::<()>::error(&format!(
-            "DKG state not found: {}",
-            e
+            "DKG state not found: {e}"
         ))),
     }
 }
@@ -735,7 +727,7 @@ pub async fn get_lagrange_coefficients(query: web::Query<LagrangeRequest>) -> Ht
             };
             HttpResponse::Ok().json(ApiResponse::success(response))
         }
-        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{}", e))),
+        Err(e) => HttpResponse::BadRequest().json(ApiResponse::<()>::error(&format!("{e}"))),
     }
 }
 
@@ -838,8 +830,7 @@ pub async fn register_shield(
         Err(e) => {
             error!("Failed to create shield backup: {}", e);
             HttpResponse::InternalServerError().json(ApiResponse::<()>::error(&format!(
-                "Failed to register shield: {}",
-                e
+                "Failed to register shield: {e}"
             )))
         }
     }
@@ -1053,10 +1044,9 @@ pub async fn confirm_shipped(
         NotificationType::EscrowUpdate,
         "Order Shipped - Confirm When Received".to_string(),
         format!(
-            "Vendor shipped your order. Confirm receipt within {} days or funds auto-release.",
-            delivery_days
+            "Vendor shipped your order. Confirm receipt within {delivery_days} days or funds auto-release."
         ),
-        Some(format!("/escrow/{}", escrow_id)),
+        Some(format!("/escrow/{escrow_id}")),
         Some(
             serde_json::json!({
                 "escrow_id": escrow_id,
@@ -1200,7 +1190,7 @@ pub async fn confirm_receipt(
         NotificationType::EscrowUpdate,
         "Buyer Confirmed Receipt - Releasing Funds".to_string(),
         "Buyer confirmed receipt. Arbiter is signing release transaction.".to_string(),
-        Some(format!("/escrow/{}", escrow_id)),
+        Some(format!("/escrow/{escrow_id}")),
         Some(
             serde_json::json!({
                 "escrow_id": escrow_id,

@@ -1,6 +1,6 @@
 //! Utility functions for CMD protocol
 //!
-//! Contains varint encoding, tx_pub_key extraction, and address parsing.
+//! Contains varint encoding, `tx_pub_key` extraction, and address parsing.
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -23,6 +23,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 /// assert_eq!(encode_varint(127), vec![127]);
 /// assert_eq!(encode_varint(128), vec![0x80, 0x01]);
 /// ```
+#[must_use]
 pub fn encode_varint(mut n: u64) -> Vec<u8> {
     let mut result = Vec::new();
     loop {
@@ -31,16 +32,15 @@ pub fn encode_varint(mut n: u64) -> Vec<u8> {
         if n == 0 {
             result.push(byte);
             break;
-        } else {
-            result.push(byte | 0x80);
         }
+        result.push(byte | 0x80);
     }
     result
 }
 
-/// Extract tx_pub_key from transaction extra field
+/// Extract `tx_pub_key` from transaction extra field
 ///
-/// The tx extra field contains various tagged data. The tx_pub_key
+/// The tx extra field contains various tagged data. The `tx_pub_key`
 /// is identified by tag 0x01 followed by 32 bytes.
 ///
 /// # Arguments
@@ -49,7 +49,7 @@ pub fn encode_varint(mut n: u64) -> Vec<u8> {
 ///
 /// # Returns
 ///
-/// The tx_pub_key as a 64-character hex string, or None if not found
+/// The `tx_pub_key` as a 64-character hex string, or None if not found
 ///
 /// # Example
 ///
@@ -64,6 +64,7 @@ pub fn encode_varint(mut n: u64) -> Vec<u8> {
 /// let result = extract_tx_pub_key_from_extra(&extra);
 /// assert!(result.is_some());
 /// ```
+#[must_use]
 pub fn extract_tx_pub_key_from_extra(extra: &[u8]) -> Option<String> {
     // Tag 0x01 = tx_pub_key, followed by 32 bytes
     for i in 0..extra.len() {
@@ -102,6 +103,7 @@ fn base58_decode_block(block: &[u8]) -> Vec<u8> {
 }
 
 /// Decode a Monero base58 address to raw bytes
+#[must_use]
 pub fn monero_base58_decode(s: &str) -> Vec<u8> {
     let bytes = s.as_bytes();
     let mut result = Vec::new();

@@ -71,7 +71,7 @@ fn validate_webhook_url(url: &str) -> Result<(), String> {
         return Err("URL too long (max 2048 characters)".to_string());
     }
 
-    let parsed = Url::parse(url).map_err(|e| format!("Invalid URL: {}", e))?;
+    let parsed = Url::parse(url).map_err(|e| format!("Invalid URL: {e}"))?;
     let host = parsed.host_str().ok_or("URL must have a host")?;
 
     // Block localhost variants
@@ -82,9 +82,9 @@ fn validate_webhook_url(url: &str) -> Result<(), String> {
 
     // Resolve and check IP ranges
     let port = parsed.port().unwrap_or(443);
-    let socket_addrs = format!("{}:{}", host, port)
+    let socket_addrs = format!("{host}:{port}")
         .to_socket_addrs()
-        .map_err(|e| format!("DNS resolution failed: {}", e))?;
+        .map_err(|e| format!("DNS resolution failed: {e}"))?;
 
     for addr in socket_addrs {
         if is_private_or_reserved_ip(&addr.ip()) {
@@ -191,7 +191,7 @@ pub async fn create_webhook(
             })
         }
         Err(e) => {
-            let err_str = format!("{:?}", e);
+            let err_str = format!("{e:?}");
             if err_str.contains("UNIQUE constraint failed") {
                 tracing::warn!("Duplicate webhook: {}", err_str);
                 HttpResponse::Conflict().json(serde_json::json!({

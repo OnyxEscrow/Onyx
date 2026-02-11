@@ -131,7 +131,7 @@ impl From<Base58Error> for AddressValidationError {
     fn from(err: Base58Error) -> Self {
         // Use string representation for error matching since base58_monero
         // error variants may differ between versions
-        let err_str = format!("{:?}", err);
+        let err_str = format!("{err:?}");
         if err_str.contains("Checksum") || err_str.contains("checksum") {
             AddressValidationError::ChecksumMismatch
         } else {

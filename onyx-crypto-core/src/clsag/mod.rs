@@ -24,7 +24,7 @@
 //!
 //! ## Security Notes
 //!
-//! - Uses Monero's `hash_to_point` (ge_fromfe_frombytes_vartime)
+//! - Uses Monero's `hash_to_point` (`ge_fromfe_frombytes_vartime`)
 //! - Domain separators are 32-byte padded
 //! - All scalars are reduced mod l (ed25519 group order)
 

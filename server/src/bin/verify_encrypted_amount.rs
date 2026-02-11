@@ -30,8 +30,8 @@ fn main() {
         .try_into()
         .expect("Invalid length");
 
-    println!("Platform fee expected: {} atomic", platform_fee);
-    println!("Encrypted amount from blockchain: {}", encrypted_amount_hex);
+    println!("Platform fee expected: {platform_fee} atomic");
+    println!("Encrypted amount from blockchain: {encrypted_amount_hex}");
     println!();
 
     // ================================================================
@@ -44,10 +44,10 @@ fn main() {
         let mut hasher = Keccak256::new();
         hasher.update(b"NEXUS_TX_SECRET_V1");
         hasher.update(escrow_id.as_bytes());
-        hasher.update(&amount.to_le_bytes());
+        hasher.update(amount.to_le_bytes());
         hasher.finalize().into()
     };
-    println!("tx_secret_key (r): {}", hex::encode(&tx_secret_key));
+    println!("tx_secret_key (r): {}", hex::encode(tx_secret_key));
 
     // Step 2: Compute derivation = 8 * r * V
     let r = Scalar::from_bytes_mod_order(tx_secret_key);
@@ -57,7 +57,7 @@ fn main() {
 
     let derivation = (r * view_pub_point).mul_by_cofactor();
     let derivation_bytes = derivation.compress().to_bytes();
-    println!("derivation (8*r*V): {}", hex::encode(&derivation_bytes));
+    println!("derivation (8*r*V): {}", hex::encode(derivation_bytes));
 
     // Output index for platform fee
     let output_index: u64 = 1;
@@ -76,16 +76,16 @@ fn main() {
     let shared_sec_bytes = shared_sec.to_bytes();
     println!(
         "shared_sec (Hs(derivation || varint(1))): {}",
-        hex::encode(&shared_sec_bytes)
+        hex::encode(shared_sec_bytes)
     );
 
     // Step 4: encoding_factor = Keccak256("amount" || sharedSec)
     let mut amount_hasher = Keccak256::new();
     amount_hasher.update(b"amount"); // 6-byte domain separator
-    amount_hasher.update(&shared_sec_bytes);
+    amount_hasher.update(shared_sec_bytes);
     let encoding_factor: [u8; 32] = amount_hasher.finalize().into();
     let mask: [u8; 8] = encoding_factor[0..8].try_into().unwrap();
-    println!("encoding_factor[0:8]: {}", hex::encode(&mask));
+    println!("encoding_factor[0:8]: {}", hex::encode(mask));
 
     // Step 5: encrypted_amount = amount XOR encoding_factor[0:8]
     let platform_fee_bytes = platform_fee.to_le_bytes();
@@ -95,11 +95,11 @@ fn main() {
     }
     println!(
         "\nComputed encrypted_amount: {}",
-        hex::encode(&computed_encrypted)
+        hex::encode(computed_encrypted)
     );
-    println!("Blockchain encrypted_amount: {}", encrypted_amount_hex);
+    println!("Blockchain encrypted_amount: {encrypted_amount_hex}");
 
-    if hex::encode(&computed_encrypted) == encrypted_amount_hex {
+    if hex::encode(computed_encrypted) == encrypted_amount_hex {
         println!("✅ MATCH! transaction_builder.rs produces correct encrypted_amount");
     } else {
         println!("❌ NO MATCH - transaction_builder.rs algorithm doesn't match blockchain");
@@ -132,15 +132,15 @@ fn main() {
     let recipient_derivation_bytes = recipient_derivation.compress().to_bytes();
     println!(
         "recipient derivation (8*v*R): {}",
-        hex::encode(&recipient_derivation_bytes)
+        hex::encode(recipient_derivation_bytes)
     );
 
     if derivation_bytes == recipient_derivation_bytes {
         println!("✅ Derivations match (sender = recipient)");
     } else {
         println!("❌ Derivations DON'T match!");
-        println!("   sender:    {}", hex::encode(&derivation_bytes));
-        println!("   recipient: {}", hex::encode(&recipient_derivation_bytes));
+        println!("   sender:    {}", hex::encode(derivation_bytes));
+        println!("   recipient: {}", hex::encode(recipient_derivation_bytes));
     }
 
     // Recipient shared_sec = Hs(derivation || varint(1))
@@ -157,18 +157,18 @@ fn main() {
     let recipient_shared_sec_bytes = recipient_shared_sec.to_bytes();
     println!(
         "recipient shared_sec: {}",
-        hex::encode(&recipient_shared_sec_bytes)
+        hex::encode(recipient_shared_sec_bytes)
     );
 
     // Recipient encoding_factor = H("amount" || shared_sec)
     let mut recipient_amount_hasher = Keccak256::new();
     recipient_amount_hasher.update(b"amount");
-    recipient_amount_hasher.update(&recipient_shared_sec_bytes);
+    recipient_amount_hasher.update(recipient_shared_sec_bytes);
     let recipient_encoding_factor: [u8; 32] = recipient_amount_hasher.finalize().into();
     let recipient_mask: [u8; 8] = recipient_encoding_factor[0..8].try_into().unwrap();
     println!(
         "recipient encoding_factor[0:8]: {}",
-        hex::encode(&recipient_mask)
+        hex::encode(recipient_mask)
     );
 
     // Decrypt blockchain's encrypted_amount using recipient's mask
@@ -177,17 +177,11 @@ fn main() {
         decrypted[i] = encrypted_amount_bytes[i] ^ recipient_mask[i];
     }
     let decrypted_amount = u64::from_le_bytes(decrypted);
-    println!(
-        "\nDecrypted amount from blockchain: {} atomic",
-        decrypted_amount
-    );
-    println!("Expected platform fee: {} atomic", platform_fee);
+    println!("\nDecrypted amount from blockchain: {decrypted_amount} atomic");
+    println!("Expected platform fee: {platform_fee} atomic");
 
     if decrypted_amount == platform_fee {
-        println!(
-            "✅ AMOUNT MATCHES! Wallet should see {} atomic",
-            platform_fee
-        );
+        println!("✅ AMOUNT MATCHES! Wallet should see {platform_fee} atomic");
     } else {
         println!("❌ AMOUNT DOESN'T MATCH!");
         println!("   The wallet decrypts garbage instead of the real amount.");
@@ -219,11 +213,11 @@ fn main() {
     ];
     println!(
         "\nReverse-engineered mask (encrypted XOR amount): {}",
-        hex::encode(&reverse_mask)
+        hex::encode(reverse_mask)
     );
     println!(
         "Expected mask (transaction_builder algorithm):   {}",
-        hex::encode(&mask)
+        hex::encode(mask)
     );
 
     if reverse_mask == mask {

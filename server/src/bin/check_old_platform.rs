@@ -76,19 +76,19 @@ fn compute_stealth_address(
 
     // H_s(derivation || output_index)
     let mut hasher = Keccak256::new();
-    hasher.update(&derivation_bytes);
+    hasher.update(derivation_bytes);
     hasher.update(&output_index_varint);
     let hash: [u8; 32] = hasher.finalize().into();
     let h_s = Scalar::from_bytes_mod_order(hash);
 
     // stealth_address = H_s * G + S
-    let h_s_g = &*ED25519_BASEPOINT_TABLE * &h_s;
+    let h_s_g = ED25519_BASEPOINT_TABLE * &h_s;
     let stealth_address = (h_s_g + spend_pub_point).compress().to_bytes();
 
     // view_tag = H("view_tag" || derivation || output_index)[0]
     let mut vt_hasher = Keccak256::new();
     vt_hasher.update(b"view_tag");
-    vt_hasher.update(&derivation_bytes);
+    vt_hasher.update(derivation_bytes);
     vt_hasher.update(&output_index_varint);
     let vt_hash: [u8; 32] = vt_hasher.finalize().into();
     let view_tag = vt_hash[0];
@@ -107,29 +107,26 @@ fn main() {
         let mut hasher = Keccak256::new();
         hasher.update(b"NEXUS_TX_SECRET_V1");
         hasher.update(escrow_id.as_bytes());
-        hasher.update(&amount.to_le_bytes());
+        hasher.update(amount.to_le_bytes());
         hasher.finalize().into()
     };
 
-    println!("tx_secret_key: {}", hex::encode(&tx_secret_key));
-    println!("Blockchain output[1] key: {}", BLOCKCHAIN_OUTPUT_1_KEY);
-    println!(
-        "Blockchain output[1] view_tag: 0x{:02x}\n",
-        BLOCKCHAIN_OUTPUT_1_VIEWTAG
-    );
+    println!("tx_secret_key: {}", hex::encode(tx_secret_key));
+    println!("Blockchain output[1] key: {BLOCKCHAIN_OUTPUT_1_KEY}");
+    println!("Blockchain output[1] view_tag: 0x{BLOCKCHAIN_OUTPUT_1_VIEWTAG:02x}\n");
 
     // Parse OLD address
     println!("--- OLD Platform Address (subaddress 75wC...) ---");
     let (old_spend_pub, old_view_pub) = parse_address(OLD_PLATFORM_ADDRESS);
-    println!("spend_pub: {}", hex::encode(&old_spend_pub));
-    println!("view_pub:  {}", hex::encode(&old_view_pub));
+    println!("spend_pub: {}", hex::encode(old_spend_pub));
+    println!("view_pub:  {}", hex::encode(old_view_pub));
 
     let (old_stealth, old_vt) =
         compute_stealth_address(&tx_secret_key, &old_spend_pub, &old_view_pub, 1);
-    println!("Computed stealth_address: {}", hex::encode(&old_stealth));
-    println!("Computed view_tag: 0x{:02x}", old_vt);
+    println!("Computed stealth_address: {}", hex::encode(old_stealth));
+    println!("Computed view_tag: 0x{old_vt:02x}");
 
-    if hex::encode(&old_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
+    if hex::encode(old_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
         println!("🔴 MATCH! Output[1] was generated with OLD address!");
     } else {
         println!("No match with OLD address");
@@ -138,26 +135,26 @@ fn main() {
     // Parse NEW address
     println!("\n--- NEW Platform Address (primary 58WZH...) ---");
     let (new_spend_pub, new_view_pub) = parse_address(NEW_PLATFORM_ADDRESS);
-    println!("spend_pub: {}", hex::encode(&new_spend_pub));
-    println!("view_pub:  {}", hex::encode(&new_view_pub));
+    println!("spend_pub: {}", hex::encode(new_spend_pub));
+    println!("view_pub:  {}", hex::encode(new_view_pub));
 
     let (new_stealth, new_vt) =
         compute_stealth_address(&tx_secret_key, &new_spend_pub, &new_view_pub, 1);
-    println!("Computed stealth_address: {}", hex::encode(&new_stealth));
-    println!("Computed view_tag: 0x{:02x}", new_vt);
+    println!("Computed stealth_address: {}", hex::encode(new_stealth));
+    println!("Computed view_tag: 0x{new_vt:02x}");
 
-    if hex::encode(&new_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
+    if hex::encode(new_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
         println!("🟢 MATCH! Output[1] was generated with NEW address!");
     } else {
         println!("No match with NEW address");
     }
 
     println!("\n=== CONCLUSION ===");
-    if hex::encode(&old_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
+    if hex::encode(old_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
         println!("❌ BUG CONFIRMED: The transaction used the OLD platform address (75wC...)");
         println!("   The 5% fee went to the SUBADDRESS, not the primary address!");
         println!("   Check if the OLD wallet (with subaddress 75wC...) received the funds.");
-    } else if hex::encode(&new_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
+    } else if hex::encode(new_stealth) == BLOCKCHAIN_OUTPUT_1_KEY {
         println!("✅ Transaction used the NEW platform address correctly.");
         println!("   The issue is elsewhere...");
     } else {

@@ -38,7 +38,7 @@ fn hex_to_point(hex: &str) -> EdwardsPoint {
     arr.copy_from_slice(&bytes);
     CompressedEdwardsY(arr)
         .decompress()
-        .unwrap_or_else(|| panic!("Invalid point: {}", hex))
+        .unwrap_or_else(|| panic!("Invalid point: {hex}"))
 }
 
 fn main() {
@@ -52,7 +52,7 @@ fn main() {
         arr
     };
 
-    println!("Signer pubkey (P): {}", SIGNER_PUBKEY);
+    println!("Signer pubkey (P): {SIGNER_PUBKEY}");
 
     // Compute Hp(P) using monero's hash_to_point
     let hp_signer = hash_to_point(signer_pubkey_bytes);
@@ -60,7 +60,7 @@ fn main() {
 
     // Parse D_inv8 from TX
     let d_inv8_tx = hex_to_point(D_INV8_IN_TX);
-    println!("\nD_inv8 in TX: {}", D_INV8_IN_TX);
+    println!("\nD_inv8 in TX: {D_INV8_IN_TX}");
 
     // Compute D from D_inv8: D = D_inv8 * 8
     let eight = Scalar::from(8u64);
@@ -125,7 +125,7 @@ fn main() {
     println!("\n=== CHECKING D COMPUTATION MATH ===");
     println!("D = mask_delta * Hp(P)");
     println!("D_inv8 = D / 8 = mask_delta * Hp(P) / 8");
-    println!("");
+    println!();
     println!("If mask_delta is WRONG, then D is WRONG, and:");
     println!("  - mu_p and mu_c computed by verifier use WRONG D_inv8");
     println!("  - OR the signature's s_π was computed with DIFFERENT mask_delta");
@@ -192,17 +192,17 @@ fn main() {
     // But we can check if D/Hp(P) works as expected
 
     println!("\n=== SUMMARY ===");
-    println!("The D_inv8 in TX is: {}", D_INV8_IN_TX);
+    println!("The D_inv8 in TX is: {D_INV8_IN_TX}");
     println!(
         "This corresponds to D = {}",
         hex::encode(d_computed.compress().as_bytes())
     );
-    println!("");
+    println!();
     println!("For CLSAG verification to pass:");
     println!("1. D_inv8 must be correctly computed: D_inv8 = mask_delta * Hp(P) / 8");
     println!("2. mask_delta must be: z - pseudo_out_mask");
     println!("3. pseudo_out must be: pseudo_out_mask * G + amount * H");
-    println!("");
+    println!();
     println!("To verify D is correct, we need the full 32-byte mask values.");
     println!("Run: cargo run --bin read_escrow to extract them from the database.");
 }

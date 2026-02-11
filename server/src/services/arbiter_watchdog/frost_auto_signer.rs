@@ -317,7 +317,7 @@ impl FrostAutoSigner {
 
         // Build commitments map
         let mut commitments_map = std::collections::BTreeMap::new();
-        commitments_map.insert(arbiter_id, our_commitments.clone());
+        commitments_map.insert(arbiter_id, *our_commitments);
         commitments_map.insert(other_id, other_commitments);
 
         // Create signing package
@@ -337,10 +337,7 @@ impl FrostAutoSigner {
             .retrieve_key_package(escrow_id)
             .await?
             .ok_or_else(|| {
-                anyhow::anyhow!(
-                    "Arbiter key_package not found in vault for escrow {}",
-                    escrow_id
-                )
+                anyhow::anyhow!("Arbiter key_package not found in vault for escrow {escrow_id}")
             })?;
 
         let key_package_bytes =

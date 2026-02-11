@@ -209,7 +209,7 @@ pub fn create_partial_tx_wasm_with_derivation(
 
     // Parse inputs
     let input_data: SignInputData = serde_json::from_str(&input_data_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid input_data: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid input_data: {e}")))?;
 
     let mut spend_key_arr = parse_hex_32(&spend_key_priv_hex, "spend_key")?;
     let spend_scalar = Scalar::from_bytes_mod_order(spend_key_arr);
@@ -248,8 +248,8 @@ pub fn create_partial_tx_wasm_with_derivation(
 
         // Compute derivation: H_s(shared_secret || output_index)
         let mut hasher = Keccak256::new();
-        hasher.update(&shared_secret_bytes);
-        hasher.update(&output_index.to_le_bytes());
+        hasher.update(shared_secret_bytes);
+        hasher.update(output_index.to_le_bytes());
         let derivation_hash: [u8; 32] = hasher.finalize().into();
         let d = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -342,21 +342,21 @@ pub fn create_partial_tx_wasm_with_derivation(
         web_sys::console::log_1(
             &format!(
                 "[Round-Robin][v0.35.2] funding_mask (z): {}",
-                hex::encode(&funding_arr)
+                hex::encode(funding_arr)
             )
             .into(),
         );
         web_sys::console::log_1(
             &format!(
                 "[Round-Robin][v0.35.2] commitment_mask (pseudo_out_mask = SUM): {}",
-                hex::encode(&pseudo_out_mask.to_bytes())
+                hex::encode(pseudo_out_mask.to_bytes())
             )
             .into(),
         );
         web_sys::console::log_1(
             &format!(
                 "[Round-Robin][v0.35.2] mask_delta (z - pseudo_out_mask): {}",
-                hex::encode(&delta.to_bytes())
+                hex::encode(delta.to_bytes())
             )
             .into(),
         );
@@ -377,7 +377,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     // DEBUG: Log H to verify it matches server's H_BYTES
     let h_bytes = h_point.compress().to_bytes();
     web_sys::console::log_1(
-        &format!("[Round-Robin] H point bytes: {}", hex::encode(&h_bytes)).into(),
+        &format!("[Round-Robin] H point bytes: {}", hex::encode(h_bytes)).into(),
     );
 
     let amount_scalar = Scalar::from(input_data.commitment_amount);
@@ -413,21 +413,20 @@ pub fn create_partial_tx_wasm_with_derivation(
     // Previously this just logged a warning, but that's dangerous - we must ABORT.
     if signer_ring_key_bytes != multisig_pub_arr {
         web_sys::console::log_1(&format!(
-            "[Round-Robin] CRITICAL ERROR: ring_keys[{}] != multisig_pub_key! Aborting to prevent Hp() mismatch.",
-            signer_idx
+            "[Round-Robin] CRITICAL ERROR: ring_keys[{signer_idx}] != multisig_pub_key! Aborting to prevent Hp() mismatch."
         ).into());
         web_sys::console::log_1(
             &format!(
                 "[Round-Robin]   ring_keys[{}]: {}",
                 signer_idx,
-                hex::encode(&signer_ring_key_bytes)
+                hex::encode(signer_ring_key_bytes)
             )
             .into(),
         );
         web_sys::console::log_1(
             &format!(
                 "[Round-Robin]   multisig_pub_key: {}",
-                hex::encode(&multisig_pub_arr)
+                hex::encode(multisig_pub_arr)
             )
             .into(),
         );
@@ -445,7 +444,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     web_sys::console::log_1(
         &format!(
             "[Round-Robin] Signer 1 partial key image: {}",
-            hex::encode(&partial_key_image_1_bytes)
+            hex::encode(partial_key_image_1_bytes)
         )
         .into(),
     );
@@ -480,7 +479,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     web_sys::console::log_1(
         &format!(
             "[Round-Robin][v0.14-DEBUG] D_original point (full): {}",
-            hex::encode(&d_original_bytes)
+            hex::encode(d_original_bytes)
         )
         .into(),
     );
@@ -501,7 +500,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     web_sys::console::log_1(
         &format!(
             "[Round-Robin][v0.14-DEBUG] D_inv8 point (stored): {}",
-            hex::encode(&d_bytes)
+            hex::encode(d_bytes)
         )
         .into(),
     );
@@ -512,7 +511,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     let alpha = if let Some(alpha_hex) = input_data.alpha_secret.as_ref() {
         web_sys::console::log_1(&"[MuSig2 v0.9.0] Using alpha from nonce commitment".into());
         let alpha_bytes = hex::decode(alpha_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid alpha_secret hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid alpha_secret hex: {e}")))?;
         if alpha_bytes.len() != 32 {
             return Err(JsValue::from_str("alpha_secret must be 32 bytes"));
         }
@@ -523,7 +522,7 @@ pub fn create_partial_tx_wasm_with_derivation(
         web_sys::console::log_1(&"[Round-Robin] Generating random alpha (legacy mode)".into());
         let mut alpha_seed = [0u8; 32];
         getrandom::getrandom(&mut alpha_seed)
-            .map_err(|e| JsValue::from_str(&format!("RNG error for alpha: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("RNG error for alpha: {e}")))?;
         Scalar::from_bytes_mod_order(alpha_seed)
     };
 
@@ -545,11 +544,11 @@ pub fn create_partial_tx_wasm_with_derivation(
         }
 
         let peer: PeerNonce = serde_json::from_str(peer_nonce_json)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer_nonce_public JSON: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer_nonce_public JSON: {e}")))?;
 
         // Parse peer's R and R'
         let peer_r_bytes = hex::decode(&peer.r_public)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_public hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_public hex: {e}")))?;
         if peer_r_bytes.len() != 32 {
             return Err(JsValue::from_str("peer r_public must be 32 bytes"));
         }
@@ -560,7 +559,7 @@ pub fn create_partial_tx_wasm_with_derivation(
             .ok_or_else(|| JsValue::from_str("Invalid peer r_public point"))?;
 
         let peer_r_prime_bytes = hex::decode(&peer.r_prime_public)
-            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_prime_public hex: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid peer r_prime_public hex: {e}")))?;
         if peer_r_prime_bytes.len() != 32 {
             return Err(JsValue::from_str("peer r_prime_public must be 32 bytes"));
         }
@@ -600,7 +599,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     for _ in 0..ring_size {
         let mut s_seed = [0u8; 32];
         getrandom::getrandom(&mut s_seed)
-            .map_err(|e| JsValue::from_str(&format!("RNG error for s: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("RNG error for s: {e}")))?;
         s_values.push(Scalar::from_bytes_mod_order(s_seed));
     }
 
@@ -679,7 +678,7 @@ pub fn create_partial_tx_wasm_with_derivation(
         .into(),
     );
     web_sys::console::log_1(
-        &format!("[v0.41.0 DIAG] FIRST SIGNER signer_idx: {}", signer_idx).into(),
+        &format!("[v0.41.0 DIAG] FIRST SIGNER signer_idx: {signer_idx}").into(),
     );
 
     // =========================================================================
@@ -781,8 +780,8 @@ pub fn create_partial_tx_wasm_with_derivation(
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(b"NEXUS_ROUND_ROBIN_SHARED_SECRET_V1");
-        hasher.update(&tx_hash_arr);
-        hasher.update(&key_image_for_encryption); // Use computed key image, same as partial_tx.key_image
+        hasher.update(tx_hash_arr);
+        hasher.update(key_image_for_encryption); // Use computed key image, same as partial_tx.key_image
         let result = hasher.finalize();
         let mut key = [0u8; 32];
         key.copy_from_slice(&result);
@@ -856,7 +855,7 @@ pub fn create_partial_tx_wasm_with_derivation(
     );
 
     serde_wasm_bindgen::to_value(&partial_tx)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Complete a partial transaction (Signer 2)
@@ -875,7 +874,7 @@ pub fn complete_partial_tx_wasm(
 
     // Parse partial TX
     let partial_tx: PartialTx = serde_json::from_str(&partial_tx_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid partial_tx: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid partial_tx: {e}")))?;
 
     // Parse Signer 2's keys
     let mut spend_key_arr = parse_hex_32(&spend_key_priv_hex, "spend_key")?;
@@ -902,7 +901,7 @@ pub fn complete_partial_tx_wasm(
     web_sys::console::log_1(
         &format!(
             "[Round-Robin] Using aggregated key image from partial_tx: {}",
-            hex::encode(&aggregated_key_image_bytes)
+            hex::encode(aggregated_key_image_bytes)
         )
         .into(),
     );
@@ -938,11 +937,11 @@ pub fn complete_partial_tx_wasm(
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();
         hasher.update(b"NEXUS_ROUND_ROBIN_SHARED_SECRET_V1");
-        hasher.update(&tx_prefix_hash_arr);
+        hasher.update(tx_prefix_hash_arr);
         // Note: Signer 1 used the original key_image (zeros or partial_ki_1)
         // We need to use the same value for decryption
         let key_image_arr = parse_hex_32(&partial_tx.key_image, "key_image")?;
-        hasher.update(&key_image_arr);
+        hasher.update(key_image_arr);
         let result = hasher.finalize();
         let mut key = [0u8; 32];
         key.copy_from_slice(&result);
@@ -950,7 +949,7 @@ pub fn complete_partial_tx_wasm(
     };
 
     let alpha_encrypted = hex::decode(&partial_tx.alpha_encrypted)
-        .map_err(|e| JsValue::from_str(&format!("Invalid alpha_encrypted hex: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid alpha_encrypted hex: {e}")))?;
     let _alpha = decrypt_scalar(&alpha_encrypted, &shared_secret)?;
 
     web_sys::console::log_1(&"[Round-Robin] Alpha decrypted successfully".into());
@@ -1062,7 +1061,7 @@ pub fn complete_partial_tx_wasm(
         .into(),
     );
 
-    s_values[signer_idx] = s_values[signer_idx] + s2_contribution;
+    s_values[signer_idx] += s2_contribution;
 
     // v0.50.0 DIAGNOSTIC: Log s[signer_idx] AFTER aggregation
     web_sys::console::log_1(
@@ -1075,11 +1074,7 @@ pub fn complete_partial_tx_wasm(
     );
 
     web_sys::console::log_1(
-        &format!(
-            "[Round-Robin] Signature completed. s[{}] finalized.",
-            signer_idx
-        )
-        .into(),
+        &format!("[Round-Robin] Signature completed. s[{signer_idx}] finalized.").into(),
     );
 
     // Zeroize sensitive data
@@ -1104,14 +1099,14 @@ pub fn complete_partial_tx_wasm(
     );
 
     serde_wasm_bindgen::to_value(&completed)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 // === Helper Functions ===
 
 fn parse_hex_32(hex_str: &str, name: &str) -> Result<[u8; 32], JsValue> {
-    let bytes = hex::decode(hex_str)
-        .map_err(|e| JsValue::from_str(&format!("Invalid {} hex: {}", name, e)))?;
+    let bytes =
+        hex::decode(hex_str).map_err(|e| JsValue::from_str(&format!("Invalid {name} hex: {e}")))?;
     if bytes.len() != 32 {
         return Err(JsValue::from_str(&format!(
             "{} must be 32 bytes, got {}",
@@ -1189,12 +1184,9 @@ fn keccak256_to_scalar(data: &[u8]) -> Scalar {
 /// - {2,3}: λ2=3, λ3=-2
 fn compute_lagrange_coefficient(my_index: u8, other_index: u8) -> Scalar {
     // Both indices must be 1, 2, or 3
+    debug_assert!((1..=3).contains(&my_index), "my_index must be 1, 2, or 3");
     debug_assert!(
-        my_index >= 1 && my_index <= 3,
-        "my_index must be 1, 2, or 3"
-    );
-    debug_assert!(
-        other_index >= 1 && other_index <= 3,
+        (1..=3).contains(&other_index),
         "other_index must be 1, 2, or 3"
     );
     debug_assert!(my_index != other_index, "indices must be different");
@@ -1449,13 +1441,12 @@ fn encrypt_scalar(scalar: &Scalar, key: &[u8; 32]) -> Result<Vec<u8>, JsValue> {
 
     // Generate nonce
     let mut nonce = [0u8; 12];
-    getrandom::getrandom(&mut nonce)
-        .map_err(|e| JsValue::from_str(&format!("RNG error: {}", e)))?;
+    getrandom::getrandom(&mut nonce).map_err(|e| JsValue::from_str(&format!("RNG error: {e}")))?;
 
     // Derive encryption key from shared secret + nonce
     let mut hasher = Sha3_256::new();
     hasher.update(key);
-    hasher.update(&nonce);
+    hasher.update(nonce);
     let derived_key: [u8; 32] = hasher.finalize().into();
 
     // XOR encrypt
@@ -1466,8 +1457,8 @@ fn encrypt_scalar(scalar: &Scalar, key: &[u8; 32]) -> Result<Vec<u8>, JsValue> {
 
     // Simple MAC (in production, use proper AEAD)
     let mut mac_hasher = Sha3_256::new();
-    mac_hasher.update(&ciphertext);
-    mac_hasher.update(&nonce);
+    mac_hasher.update(ciphertext);
+    mac_hasher.update(nonce);
     mac_hasher.update(key);
     let mac: [u8; 32] = mac_hasher.finalize().into();
 
@@ -1548,35 +1539,35 @@ pub fn verify_clsag_wasm(
 
     // Parse signature
     let sig: CompletedClsag = serde_json::from_str(&signature_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid signature JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid signature JSON: {e}")))?;
 
     // Parse ring (same format as SignInputData.ring)
     let ring: Vec<[String; 2]> = serde_json::from_str(&ring_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid ring JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid ring JSON: {e}")))?;
 
     let tx_hash_arr = parse_hex_32(&tx_prefix_hash_hex, "tx_prefix_hash")?;
     ctx.log_bytes("tx_prefix_hash", &tx_hash_arr);
 
     let ring_size = ring.len();
-    ctx.log(&format!("Ring size: {}", ring_size));
+    ctx.log(&format!("Ring size: {ring_size}"));
 
     // Parse ring members
     let mut ring_keys: Vec<EdwardsPoint> = Vec::with_capacity(ring_size);
     let mut ring_commitments: Vec<EdwardsPoint> = Vec::with_capacity(ring_size);
 
     for (i, pair) in ring.iter().enumerate() {
-        let key_arr = parse_hex_32(&pair[0], &format!("ring_key[{}]", i))?;
-        let commit_arr = parse_hex_32(&pair[1], &format!("ring_commitment[{}]", i))?;
+        let key_arr = parse_hex_32(&pair[0], &format!("ring_key[{i}]"))?;
+        let commit_arr = parse_hex_32(&pair[1], &format!("ring_commitment[{i}]"))?;
 
         let key_point = CompressedEdwardsY(key_arr)
             .decompress()
-            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring key point at {}", i)))?;
+            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring key point at {i}")))?;
         let commit_point = CompressedEdwardsY(commit_arr)
             .decompress()
-            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring commitment at {}", i)))?;
+            .ok_or_else(|| JsValue::from_str(&format!("Invalid ring commitment at {i}")))?;
 
-        ctx.log_point(&format!("P[{}]", i), &key_point);
-        ctx.log_point(&format!("C[{}]", i), &commit_point);
+        ctx.log_point(&format!("P[{i}]"), &key_point);
+        ctx.log_point(&format!("C[{i}]"), &commit_point);
 
         ring_keys.push(key_point);
         ring_commitments.push(commit_point);
@@ -1613,9 +1604,9 @@ pub fn verify_clsag_wasm(
     // Parse s values
     let mut s_values: Vec<Scalar> = Vec::with_capacity(ring_size);
     for (i, s_hex) in sig.s_values.iter().enumerate() {
-        let s_arr = parse_hex_32(s_hex, &format!("s[{}]", i))?;
+        let s_arr = parse_hex_32(s_hex, &format!("s[{i}]"))?;
         let s = Scalar::from_bytes_mod_order(s_arr);
-        ctx.log_scalar(&format!("s[{}]", i), &s);
+        ctx.log_scalar(&format!("s[{i}]"), &s);
         s_values.push(s);
     }
 
@@ -1660,11 +1651,11 @@ pub fn verify_clsag_wasm(
     let mut c = c1;
 
     for i in 0..ring_size {
-        ctx.log(&format!("--- Iteration i={} ---", i));
+        ctx.log(&format!("--- Iteration i={i} ---"));
 
         let c_p = mu_p * c;
         let c_c = mu_c * c;
-        ctx.log_scalar(&format!("c[{}]", i), &c);
+        ctx.log_scalar(&format!("c[{i}]"), &c);
         ctx.log_scalar("c_p = mu_P * c", &c_p);
         ctx.log_scalar("c_c = mu_C * c", &c_c);
 
@@ -1673,11 +1664,11 @@ pub fn verify_clsag_wasm(
             [s_values[i], c_p, c_c],
             [ED25519_BASEPOINT_POINT, ring_keys[i], c_adjusted[i]],
         );
-        ctx.log_point(&format!("L[{}]", i), &l_point);
+        ctx.log_point(&format!("L[{i}]"), &l_point);
 
         // Hp(P[i])
         let hp_i = hash_to_point(ring_keys[i].compress().to_bytes());
-        ctx.log_point(&format!("Hp(P[{}])", i), &hp_i);
+        ctx.log_point(&format!("Hp(P[{i}])"), &hp_i);
 
         // R = s[i] * Hp(P[i]) + c_p * I + c_c * D_original
         // NOTE: Uses ORIGINAL D (= D_inv8 * 8), not D*inv8!
@@ -1685,12 +1676,12 @@ pub fn verify_clsag_wasm(
             [s_values[i], c_p, c_c],
             [hp_i, key_image, d_original],
         );
-        ctx.log_point(&format!("R[{}]", i), &r_point);
+        ctx.log_point(&format!("R[{i}]"), &r_point);
 
         // Compute next challenge using buffer (truncate and extend)
         add_lr_to_round_buffer(&mut to_hash, ring_size, &l_point, &r_point);
         c = keccak256_to_scalar(&to_hash);
-        ctx.log_scalar(&format!("c[{}+1]", i), &c);
+        ctx.log_scalar(&format!("c[{i}+1]"), &c);
     }
 
     // After full loop, c should equal c1
@@ -1700,7 +1691,7 @@ pub fn verify_clsag_wasm(
     ctx.log("=== VERIFICATION RESULT ===");
     ctx.log_scalar("c1 (computed)", &c1_computed);
     ctx.log_scalar("c1 (expected)", &c1);
-    ctx.log(&format!("VALID: {}", valid));
+    ctx.log(&format!("VALID: {valid}"));
 
     if !valid {
         ctx.log("!!! SIGNATURE INVALID - c1 mismatch !!!");
@@ -1724,7 +1715,7 @@ pub fn verify_clsag_wasm(
     };
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsValue::from_str(&format!("Serialization error: {}", e)))
+        .map_err(|e| JsValue::from_str(&format!("Serialization error: {e}")))
 }
 
 /// Debug function to dump all CLSAG parameters for comparison with reference implementations
@@ -1741,18 +1732,18 @@ pub fn dump_clsag_params_wasm(
 
     // Parse signature
     let sig: CompletedClsag = serde_json::from_str(&signature_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid signature JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid signature JSON: {e}")))?;
 
     // Parse ring
     let ring: Vec<[String; 2]> = serde_json::from_str(&ring_json)
-        .map_err(|e| JsValue::from_str(&format!("Invalid ring JSON: {}", e)))?;
+        .map_err(|e| JsValue::from_str(&format!("Invalid ring JSON: {e}")))?;
 
     let tx_hash_arr = parse_hex_32(&tx_prefix_hash_hex, "tx_prefix_hash")?;
     let ring_size = ring.len();
 
     // Print in a format that can be copied to Python/Rust reference implementation
-    ctx.log(&format!("ring_size = {}", ring_size));
-    ctx.log(&format!("msg = bytes.fromhex('{}')", tx_prefix_hash_hex));
+    ctx.log(&format!("ring_size = {ring_size}"));
+    ctx.log(&format!("msg = bytes.fromhex('{tx_prefix_hash_hex}')"));
     ctx.log(&format!("c1 = bytes.fromhex('{}')", sig.c1));
     ctx.log(&format!("D = bytes.fromhex('{}')", sig.d));
     ctx.log(&format!("pseudo_out = bytes.fromhex('{}')", sig.pseudo_out));
@@ -1778,7 +1769,7 @@ pub fn dump_clsag_params_wasm(
     ctx.log("# s values");
     ctx.log("s = [");
     for (i, s_hex) in sig.s_values.iter().enumerate() {
-        ctx.log(&format!("    bytes.fromhex('{}'),  # s[{}]", s_hex, i));
+        ctx.log(&format!("    bytes.fromhex('{s_hex}'),  # s[{i}]"));
     }
     ctx.log("]");
     ctx.log("");

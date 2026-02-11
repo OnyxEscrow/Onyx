@@ -166,8 +166,8 @@ fn convert_monero_error(e: MoneroError) -> Error {
         MoneroError::WalletLocked => Error::Wallet("Wallet locked".to_string()),
         MoneroError::WalletBusy => Error::Wallet("Wallet busy".to_string()),
         MoneroError::ValidationError(msg) => Error::InvalidInput(msg),
-        MoneroError::InvalidResponse(msg) => Error::MoneroRpc(format!("Invalid response: {}", msg)),
-        MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {}", msg)),
+        MoneroError::InvalidResponse(msg) => Error::MoneroRpc(format!("Invalid response: {msg}")),
+        MoneroError::NetworkError(msg) => Error::Internal(format!("Network error: {msg}")),
         MoneroError::RpcError(msg) => Error::MoneroRpc(msg),
     }
 }

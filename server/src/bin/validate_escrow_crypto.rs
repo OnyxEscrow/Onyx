@@ -82,8 +82,8 @@ fn hash_to_point(data: [u8; 32]) -> EdwardsPoint {
     let mut counter = 0u8;
     loop {
         let mut hasher = Keccak256::new();
-        hasher.update(&data);
-        hasher.update(&[counter]);
+        hasher.update(data);
+        hasher.update([counter]);
         let hash: [u8; 32] = hasher.finalize().into();
 
         // Try to decompress as Edwards point
@@ -126,7 +126,7 @@ fn main() {
         "  computed_pubkey = {}",
         hex::encode(computed_pubkey.compress().as_bytes())
     );
-    println!("  expected_pubkey = {}", GROUP_PUBKEY);
+    println!("  expected_pubkey = {GROUP_PUBKEY}");
 
     if computed_pubkey.compress().as_bytes() == &hex_to_bytes(GROUP_PUBKEY)[..] {
         println!("  ✅ Lagrange reconstruction CORRECT\n");
@@ -147,8 +147,8 @@ fn main() {
     let tx_secret_key = hex_to_scalar(TX_SECRET_KEY);
     let tx_pub_key = &tx_secret_key * ED25519_BASEPOINT_TABLE;
     let tx_pub_key_hex = hex::encode(tx_pub_key.compress().as_bytes());
-    println!("  tx_secret_key (r) = {}", TX_SECRET_KEY);
-    println!("  tx_pub_key (R = r*G) = {}", tx_pub_key_hex);
+    println!("  tx_secret_key (r) = {TX_SECRET_KEY}");
+    println!("  tx_pub_key (R = r*G) = {tx_pub_key_hex}");
 
     // Compute shared secret: 8 * a * R (with cofactor)
     let shared_secret = (view_key * tx_pub_key).mul_by_cofactor();
@@ -157,13 +157,13 @@ fn main() {
     println!("  view_key = {}...", &VIEW_KEY_PRIV[..16]);
     println!(
         "  shared_secret (8*a*R) = {}",
-        hex::encode(&shared_secret_bytes)
+        hex::encode(shared_secret_bytes)
     );
 
     // Hash to derivation scalar
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(OUTPUT_INDEX));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(OUTPUT_INDEX));
     let derivation_hash: [u8; 32] = hasher.finalize().into();
     let derivation = Scalar::from_bytes_mod_order(derivation_hash);
 
@@ -186,8 +186,8 @@ fn main() {
     let one_time_pubkey_hex = hex::encode(one_time_pubkey.compress().as_bytes());
 
     println!("  d*G = {}", hex::encode(d_point.compress().as_bytes()));
-    println!("  B (group_pubkey) = {}", GROUP_PUBKEY);
-    println!("  P = d*G + B = {}", one_time_pubkey_hex);
+    println!("  B (group_pubkey) = {GROUP_PUBKEY}");
+    println!("  P = d*G + B = {one_time_pubkey_hex}");
     println!("  (This is the one_time_pubkey that should be used for signing)");
 
     // ========================================================================
@@ -231,7 +231,7 @@ fn main() {
 
     let key_image = output_secret * hp;
     let key_image_hex = hex::encode(key_image.compress().as_bytes());
-    println!("  KI = x * Hp(P) = {}", key_image_hex);
+    println!("  KI = x * Hp(P) = {key_image_hex}");
 
     // ========================================================================
     // STEP 7: Compute PKIs with Lagrange (as WASM should compute them)
@@ -292,8 +292,8 @@ fn main() {
     let aggregated_ki = pki_first + pki_second;
     let aggregated_hex = hex::encode(aggregated_ki.compress().as_bytes());
 
-    println!("  KI_agg = PKI_first + PKI_second = {}", aggregated_hex);
-    println!("  Expected KI = {}", key_image_hex);
+    println!("  KI_agg = PKI_first + PKI_second = {aggregated_hex}");
+    println!("  Expected KI = {key_image_hex}");
 
     if aggregated_ki == key_image {
         println!("\n  ✅ AGGREGATION CORRECT: KI_agg = KI");
@@ -308,9 +308,9 @@ fn main() {
     println!("\n========================================");
     println!("SUMMARY - VALUES TO USE FOR SIGNING");
     println!("========================================");
-    println!("escrow_id:       {}", ESCROW_ID);
-    println!("one_time_pubkey: {}", one_time_pubkey_hex);
-    println!("key_image:       {}", key_image_hex);
+    println!("escrow_id:       {ESCROW_ID}");
+    println!("one_time_pubkey: {one_time_pubkey_hex}");
+    println!("key_image:       {key_image_hex}");
     println!("derivation:      {}", hex::encode(derivation.as_bytes()));
     println!("group_secret:    {}", hex::encode(group_secret.as_bytes()));
     println!("output_secret:   {}", hex::encode(output_secret.as_bytes()));
@@ -339,8 +339,8 @@ fn main() {
     const DB_TX_PUBKEY: &str = "75ee30c8278cd0da2e081f0dbd22bd8c884d83da2f061c013175fb5612009da9";
 
     println!("\n  TX Public Key (R):");
-    println!("    Expected:  {}", tx_pub_key_hex);
-    println!("    DB:        {}", DB_TX_PUBKEY);
+    println!("    Expected:  {tx_pub_key_hex}");
+    println!("    DB:        {DB_TX_PUBKEY}");
     if tx_pub_key_hex == DB_TX_PUBKEY {
         println!("    ✅ MATCH");
     } else {
@@ -349,8 +349,8 @@ fn main() {
 
     println!("\n  Buyer PKI:");
     let expected_buyer_pki = hex::encode(pki_second.compress().as_bytes());
-    println!("    Expected:  {}", expected_buyer_pki);
-    println!("    DB:        {}", DB_BUYER_PKI);
+    println!("    Expected:  {expected_buyer_pki}");
+    println!("    DB:        {DB_BUYER_PKI}");
     if expected_buyer_pki == DB_BUYER_PKI {
         println!("    ✅ MATCH");
     } else {
@@ -359,8 +359,8 @@ fn main() {
 
     println!("\n  Vendor PKI:");
     let expected_vendor_pki = hex::encode(pki_first.compress().as_bytes());
-    println!("    Expected:  {}", expected_vendor_pki);
-    println!("    DB:        {}", DB_VENDOR_PKI);
+    println!("    Expected:  {expected_vendor_pki}");
+    println!("    DB:        {DB_VENDOR_PKI}");
     if expected_vendor_pki == DB_VENDOR_PKI {
         println!("    ✅ MATCH");
     } else {
@@ -368,8 +368,8 @@ fn main() {
     }
 
     println!("\n  Aggregated Key Image:");
-    println!("    Expected:  {}", aggregated_hex);
-    println!("    DB:        {}", DB_AGGREGATED_KI);
+    println!("    Expected:  {aggregated_hex}");
+    println!("    DB:        {DB_AGGREGATED_KI}");
     if aggregated_hex == DB_AGGREGATED_KI {
         println!("    ✅ MATCH");
     } else {

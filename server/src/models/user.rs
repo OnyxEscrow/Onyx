@@ -75,7 +75,7 @@ impl User {
         users::table
             .filter(users::id.eq(user_id.clone()))
             .first(conn)
-            .context(format!("User with ID {} not found", user_id))
+            .context(format!("User with ID {user_id} not found"))
     }
 
     /// Find user by username
@@ -83,7 +83,7 @@ impl User {
         users::table
             .filter(users::username.eq(username_str))
             .first(conn)
-            .context(format!("User with username '{}' not found", username_str))
+            .context(format!("User with username '{username_str}' not found"))
     }
 
     /// Check if username already exists
@@ -109,7 +109,7 @@ impl User {
     pub fn delete(conn: &mut SqliteConnection, user_id: String) -> Result<()> {
         diesel::delete(users::table.filter(users::id.eq(user_id.clone())))
             .execute(conn)
-            .context(format!("Failed to delete user {}", user_id))?;
+            .context(format!("Failed to delete user {user_id}"))?;
         Ok(())
     }
 
@@ -118,6 +118,6 @@ impl User {
         users::table
             .filter(users::role.eq(role_str))
             .load(conn)
-            .context(format!("Failed to load users with role '{}'", role_str))
+            .context(format!("Failed to load users with role '{role_str}'"))
     }
 }

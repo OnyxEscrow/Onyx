@@ -128,7 +128,7 @@ impl MultisigStateRepository {
                 .context("Failed to update escrow multisig state")?;
 
             if rows_updated == 0 {
-                anyhow::bail!("Escrow not found: {}", escrow_id);
+                anyhow::bail!("Escrow not found: {escrow_id}");
             }
 
             debug!(

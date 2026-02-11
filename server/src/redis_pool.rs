@@ -44,7 +44,7 @@ pub async fn store_challenge(
     nonce: &[u8; 32],
 ) -> Result<(), anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let key = format!("{}{}:{}", CHALLENGE_PREFIX, user_id, escrow_id);
+    let key = format!("{CHALLENGE_PREFIX}{user_id}:{escrow_id}");
 
     // Store nonce as hex with TTL
     let nonce_hex = hex::encode(nonce);
@@ -62,7 +62,7 @@ pub async fn get_and_delete_challenge(
     escrow_id: &str,
 ) -> Result<Option<[u8; 32]>, anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let key = format!("{}{}:{}", CHALLENGE_PREFIX, user_id, escrow_id);
+    let key = format!("{CHALLENGE_PREFIX}{user_id}:{escrow_id}");
 
     // Atomic get + delete
     let nonce_hex: Option<String> = redis::cmd("GETDEL")
@@ -102,7 +102,7 @@ pub async fn submit_wasm_multisig_info(
     view_key_component: Option<&str>,
 ) -> Result<usize, anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let hash_key = format!("{}{}", WASM_INFO_PREFIX, escrow_id);
+    let hash_key = format!("{WASM_INFO_PREFIX}{escrow_id}");
 
     // Store as JSON in a hash field
     let value = serde_json::json!({
@@ -130,7 +130,7 @@ pub async fn get_wasm_peer_infos(
     my_role: &str,
 ) -> Result<Vec<(String, String, Option<String>)>, anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let hash_key = format!("{}{}", WASM_INFO_PREFIX, escrow_id);
+    let hash_key = format!("{WASM_INFO_PREFIX}{escrow_id}");
 
     let all: std::collections::HashMap<String, String> = conn.hgetall(&hash_key).await?;
 
@@ -157,7 +157,7 @@ pub async fn get_all_wasm_infos(
     escrow_id: &str,
 ) -> Result<Vec<(String, String, Option<String>)>, anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let hash_key = format!("{}{}", WASM_INFO_PREFIX, escrow_id);
+    let hash_key = format!("{WASM_INFO_PREFIX}{escrow_id}");
 
     let all: std::collections::HashMap<String, String> = conn.hgetall(&hash_key).await?;
 
@@ -177,7 +177,7 @@ pub async fn get_all_wasm_infos(
 /// Delete all infos for an escrow (cleanup after finalization)
 pub async fn delete_wasm_infos(pool: &RedisPool, escrow_id: &str) -> Result<(), anyhow::Error> {
     let mut conn = get_conn(pool).await?;
-    let hash_key = format!("{}{}", WASM_INFO_PREFIX, escrow_id);
+    let hash_key = format!("{WASM_INFO_PREFIX}{escrow_id}");
 
     conn.del::<_, ()>(&hash_key).await?;
     Ok(())

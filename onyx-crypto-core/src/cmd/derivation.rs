@@ -12,7 +12,7 @@ use sha3::{Digest, Keccak256};
 use super::utils::encode_varint;
 use crate::types::errors::{CryptoError, CryptoResult};
 
-/// Derive the commitment mask from view key and tx_pub_key
+/// Derive the commitment mask from view key and `tx_pub_key`
 ///
 /// This is the core function that enables zero-friction escrow funding.
 /// The server can derive the mask silently without any user interaction.
@@ -53,7 +53,7 @@ pub fn derive_commitment_mask(
 ) -> CryptoResult<String> {
     // 1. Parse view key (scalar) - 32 bytes from hex
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {e}")))?;
 
     if view_key_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -71,7 +71,7 @@ pub fn derive_commitment_mask(
 
     // 2. Parse tx_pub_key (compressed Edwards point) - 32 bytes from hex
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {e}")))?;
 
     if tx_pub_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -135,7 +135,7 @@ pub fn derive_commitment_mask(
 pub fn compute_derivation(view_key_priv_hex: &str, tx_pub_key_hex: &str) -> CryptoResult<[u8; 32]> {
     // Parse view key
     let view_key_bytes = hex::decode(view_key_priv_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("view_key: {e}")))?;
 
     if view_key_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {
@@ -153,7 +153,7 @@ pub fn compute_derivation(view_key_priv_hex: &str, tx_pub_key_hex: &str) -> Cryp
 
     // Parse tx_pub_key
     let tx_pub_bytes = hex::decode(tx_pub_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(alloc::format!("tx_pub_key: {e}")))?;
 
     if tx_pub_bytes.len() != 32 {
         return Err(CryptoError::InvalidLength {

@@ -164,8 +164,7 @@ fn load_escrow_data(conn: &mut SqliteConnection, escrow_id: &str) -> Result<Escr
          funding_tx_hash, funding_output_index, funding_global_index, \
          funding_commitment_mask, funding_tx_pubkey, \
          amount, frost_group_pubkey, aggregated_key_image, dispute_signing_pair \
-         FROM escrows WHERE id = '{}'",
-        escrow_id
+         FROM escrows WHERE id = '{escrow_id}'"
     );
 
     let rows: Vec<EscrowRow> = sql_query(&query)
@@ -175,7 +174,7 @@ fn load_escrow_data(conn: &mut SqliteConnection, escrow_id: &str) -> Result<Escr
     let row = rows
         .into_iter()
         .next()
-        .ok_or_else(|| anyhow::anyhow!("Escrow not found: {}", escrow_id))?;
+        .ok_or_else(|| anyhow::anyhow!("Escrow not found: {escrow_id}"))?;
 
     Ok(EscrowData {
         id: row.id,
@@ -254,8 +253,8 @@ fn compute_derivation(view_key: &Scalar, tx_pubkey: &EdwardsPoint, output_index:
     let shared_secret_bytes = shared_secret.compress().to_bytes();
 
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash: [u8; 32] = hasher.finalize().into();
     Scalar::from_bytes_mod_order(hash)
 }
@@ -355,8 +354,8 @@ async fn fetch_ring_members(
         .position(|&x| x == real_index)
         .ok_or_else(|| anyhow::anyhow!("Real index not in ring"))?;
 
-    println!("Ring indices: {:?}", indices);
-    println!("Real output at position: {}", real_position);
+    println!("Ring indices: {indices:?}");
+    println!("Real output at position: {real_position}");
 
     // Fetch outputs from daemon
     let params = GetOutsParams {
@@ -371,7 +370,7 @@ async fn fetch_ring_members(
     };
 
     let response = client
-        .post(&format!("{}/get_outs", get_daemon_url()))
+        .post(format!("{}/get_outs", get_daemon_url()))
         .json(&params)
         .send()
         .await
@@ -431,7 +430,7 @@ fn compute_mixing_coefficients(
 
     // mu_P = H(CLSAG_agg_0 || ring_keys || ring_commitments || I || D/8 || pseudo_out)
     let mut hasher_p = Keccak256::new();
-    hasher_p.update(&domain_agg_0);
+    hasher_p.update(domain_agg_0);
     for key in ring_keys {
         hasher_p.update(key.compress().as_bytes());
     }
@@ -445,7 +444,7 @@ fn compute_mixing_coefficients(
 
     // mu_C = H(CLSAG_agg_1 || ring_keys || ring_commitments || I || D/8 || pseudo_out)
     let mut hasher_c = Keccak256::new();
-    hasher_c.update(&domain_agg_1);
+    hasher_c.update(domain_agg_1);
     for key in ring_keys {
         hasher_c.update(key.compress().as_bytes());
     }
@@ -478,7 +477,7 @@ fn compute_round_hash(
     domain[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain);
+    hasher.update(domain);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -510,7 +509,7 @@ fn sign_clsag(
 
     let ring_size = ring_keys.len();
     if ring_size != RING_SIZE {
-        bail!("Ring size must be {}, got {}", RING_SIZE, ring_size);
+        bail!("Ring size must be {RING_SIZE}, got {ring_size}");
     }
 
     let p = &ring_keys[real_index];
@@ -736,7 +735,7 @@ async fn check_daemon_connectivity(client: &reqwest::Client) -> Result<(u32, u32
     }
 
     let response = client
-        .post(&format!("{}/json_rpc", get_daemon_url()))
+        .post(format!("{}/json_rpc", get_daemon_url()))
         .json(&serde_json::json!({
             "jsonrpc": "2.0",
             "id": "0",
@@ -785,7 +784,7 @@ async fn broadcast_transaction(client: &reqwest::Client, tx_hex: &str) -> Result
     };
 
     let response = client
-        .post(&format!("{}/sendrawtransaction", get_daemon_url()))
+        .post(format!("{}/sendrawtransaction", get_daemon_url()))
         .json(&params)
         .send()
         .await
@@ -845,7 +844,7 @@ async fn main() -> Result<()> {
     println!("=== STEP 1: Load Escrow Data from Database ===\n");
 
     let mut conn = establish_connection()?;
-    let escrow = load_escrow_data(&mut *conn, escrow_id)?;
+    let escrow = load_escrow_data(&mut conn, escrow_id)?;
 
     println!("✅ Escrow loaded: {}", escrow.id);
     println!(
@@ -974,10 +973,10 @@ async fn main() -> Result<()> {
     let p_expected_hex = hex::encode(p_expected.compress().as_bytes());
     if real_key != &p_expected_hex {
         println!("WARNING: Ring member key doesn't match derived one-time pubkey!");
-        println!("  Expected (derived): {}", p_expected_hex);
-        println!("  From daemon:        {}", real_key);
+        println!("  Expected (derived): {p_expected_hex}");
+        println!("  From daemon:        {real_key}");
     } else {
-        println!("✅ Real output verified at position {}", real_position);
+        println!("✅ Real output verified at position {real_position}");
     }
 
     // Parse ring data
@@ -1054,14 +1053,14 @@ async fn main() -> Result<()> {
         let mut tx_secret_hasher = Keccak256::new();
         tx_secret_hasher.update(b"NEXUS_TX_SECRET_V1");
         tx_secret_hasher.update(escrow.id.as_bytes());
-        tx_secret_hasher.update(&(escrow.amount as u64).to_le_bytes());
+        tx_secret_hasher.update((escrow.amount as u64).to_le_bytes());
         tx_secret_hasher.finalize().into()
     };
     println!("[v0.71.0] Using DETERMINISTIC tx_secret_key (matches prepare_sign)");
 
     // TX public key R = r * G
     let tx_pubkey = generate_tx_pubkey(&tx_secret_key);
-    println!("TX pubkey (R): {}", hex::encode(&tx_pubkey));
+    println!("TX pubkey (R): {}", hex::encode(tx_pubkey));
 
     // =========================================================================
     // v0.70.0: Platform Fee Calculation (2 REAL outputs)
@@ -1143,7 +1142,7 @@ async fn main() -> Result<()> {
         "Output 0 (recipient): stealth_address = {}...",
         hex::encode(&stealth_address_0[..8])
     );
-    println!("Output 0 (recipient): view_tag = 0x{:02x}", view_tag_0);
+    println!("Output 0 (recipient): view_tag = 0x{view_tag_0:02x}");
 
     // Derive mask for output 0
     let mask_0 = derive_output_mask(&tx_secret_key, &recipient_view_pub, output_index_0)
@@ -1166,7 +1165,7 @@ async fn main() -> Result<()> {
         "Output 0 (recipient): commitment = {}...",
         hex::encode(&commitment_0[..8])
     );
-    println!("Output 0 (recipient): amount = {} atomic", recipient_amount);
+    println!("Output 0 (recipient): amount = {recipient_amount} atomic");
 
     // Output 1: Platform fee (REAL output, NOT dummy!)
     let output_index_1: u64 = 1;
@@ -1199,12 +1198,12 @@ async fn main() -> Result<()> {
         "Output 1 (platform): stealth_address = {}...",
         hex::encode(&stealth_address_1[..8])
     );
-    println!("Output 1 (platform): view_tag = 0x{:02x}", view_tag_1);
+    println!("Output 1 (platform): view_tag = 0x{view_tag_1:02x}");
     println!(
         "Output 1 (platform): commitment = {}...",
         hex::encode(&commitment_1[..8])
     );
-    println!("Output 1 (platform): amount = {} atomic", platform_fee);
+    println!("Output 1 (platform): amount = {platform_fee} atomic");
 
     // =========================================================================
     // Commitment Balance with 2 REAL outputs
@@ -1269,7 +1268,7 @@ async fn main() -> Result<()> {
     let pseudo_out_bytes = pseudo_out.compress().to_bytes();
     println!(
         "pseudo_out (adjusted mask): {}",
-        hex::encode(&pseudo_out_bytes)
+        hex::encode(pseudo_out_bytes)
     );
 
     // Verify commitment balance
@@ -1329,8 +1328,7 @@ async fn main() -> Result<()> {
     tx_builder.set_tx_pubkey(&tx_pubkey);
 
     println!(
-        "[v0.70.0] Added 2 REAL outputs: recipient ({} atomic) + platform ({} atomic)",
-        recipient_amount, platform_fee
+        "[v0.70.0] Added 2 REAL outputs: recipient ({recipient_amount} atomic) + platform ({platform_fee} atomic)"
     );
 
     // Step 7: Prepare for signing and compute full CLSAG message
@@ -1351,7 +1349,7 @@ async fn main() -> Result<()> {
 
     println!(
         "CLSAG message (get_pre_mlsag_hash): {}",
-        hex::encode(&clsag_message)
+        hex::encode(clsag_message)
     );
     println!("NOTE: This is NOT just tx_prefix_hash, but includes BP+ and pseudo_outs hashes");
 
@@ -1392,16 +1390,16 @@ async fn main() -> Result<()> {
 
     // Convert CLSAG signature to ClientSignature format
     let clsag_json = ClsagSignatureJson {
-        d: hex::encode(&signature.d),
-        s: signature.s.iter().map(|s| hex::encode(s)).collect(),
-        c1: hex::encode(&signature.c1),
+        d: hex::encode(signature.d),
+        s: signature.s.iter().map(hex::encode).collect(),
+        c1: hex::encode(signature.c1),
     };
 
     let client_sig = ClientSignature {
         signature: clsag_json,
         key_image: hex::encode(key_image.compress().as_bytes()),
         partial_key_image: None,
-        pseudo_out: hex::encode(&pseudo_out_bytes),
+        pseudo_out: hex::encode(pseudo_out_bytes),
     };
 
     // Attach CLSAG to builder
@@ -1422,7 +1420,7 @@ async fn main() -> Result<()> {
         "   TX hex (first 64 chars): {}...",
         &tx_hex[..64.min(tx_hex.len())]
     );
-    println!("   TX hash (correct): {}", hex::encode(&tx_hash));
+    println!("   TX hash (correct): {}", hex::encode(tx_hash));
     println!(
         "   Hash components: prefix={}, base={}, prunable={}",
         hex::encode(&build_result.prefix_hash[..8]),
@@ -1432,8 +1430,8 @@ async fn main() -> Result<()> {
 
     // Save TX to file for debugging
     let tx_file = format!("/tmp/frost_tx_{}.hex", &escrow_id[..8]);
-    std::fs::write(&tx_file, &tx_hex).context("Failed to write TX file")?;
-    println!("   TX saved to: {}", tx_file);
+    std::fs::write(&tx_file, tx_hex).context("Failed to write TX file")?;
+    println!("   TX saved to: {tx_file}");
 
     // Step 9: Broadcast (if flag provided)
     let should_broadcast = args.get(5).map(|s| s == "--broadcast").unwrap_or(false);
@@ -1443,7 +1441,7 @@ async fn main() -> Result<()> {
     println!("╚══════════════════════════════════════════════════════════════════════════╝\n");
 
     println!("Transaction details (v0.70.0 - Platform Fee):");
-    println!("  Escrow ID:      {}", escrow_id);
+    println!("  Escrow ID:      {escrow_id}");
     println!(
         "  Type:           {}",
         if is_refund {
@@ -1476,8 +1474,8 @@ async fn main() -> Result<()> {
         "  Key image:      {}...",
         hex::encode(&key_image.compress().as_bytes()[..8])
     );
-    println!("  TX hash:        {}", hex::encode(&tx_hash));
-    println!("  TX file:        {}", tx_file);
+    println!("  TX hash:        {}", hex::encode(tx_hash));
+    println!("  TX file:        {tx_file}");
     println!(
         "  Platform wallet: {}...{}",
         &platform_wallet[..8],
@@ -1488,16 +1486,16 @@ async fn main() -> Result<()> {
     if should_broadcast {
         println!("=== STEP 10: Broadcasting to {} ===\n", get_daemon_url());
 
-        match broadcast_transaction(&client, &tx_hex).await {
+        match broadcast_transaction(&client, tx_hex).await {
             Ok(msg) => {
-                println!("✅ {}", msg);
+                println!("✅ {msg}");
                 println!("\n🎉 TRANSACTION BROADCAST SUCCESSFUL!");
-                println!("   TX hash: {}", hex::encode(&tx_hash));
+                println!("   TX hash: {}", hex::encode(tx_hash));
                 println!("   Check on block explorer after confirmation.");
             }
             Err(e) => {
-                println!("❌ Broadcast failed: {}", e);
-                println!("\n   TX saved to {} for manual inspection.", tx_file);
+                println!("❌ Broadcast failed: {e}");
+                println!("\n   TX saved to {tx_file} for manual inspection.");
                 println!("   You can try broadcasting manually with:");
                 println!("   curl -X POST {}/sendrawtransaction -d '{{\"tx_as_hex\": \"{}\"}}' -H 'Content-Type: application/json'",
                     get_daemon_url(), &tx_hex[..64.min(tx_hex.len())]);
@@ -1507,8 +1505,7 @@ async fn main() -> Result<()> {
         println!("⚠️  DRY RUN - Transaction NOT broadcast");
         println!("   Add --broadcast flag to actually broadcast:");
         println!(
-            "   cargo run --release --bin full_offline_broadcast {} {} {} {} --broadcast",
-            escrow_id, buyer_share_hex, vendor_share_hex, payout_address
+            "   cargo run --release --bin full_offline_broadcast {escrow_id} {buyer_share_hex} {vendor_share_hex} {payout_address} --broadcast"
         );
     }
 

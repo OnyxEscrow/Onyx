@@ -43,15 +43,15 @@ impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
         // Set SQLCipher pragmas
         diesel::sql_query(format!("PRAGMA key = '{}'", self.key))
             .execute(conn)
-            .map_err(|e| diesel::r2d2::Error::QueryError(e))?;
+            .map_err(diesel::r2d2::Error::QueryError)?;
 
         diesel::sql_query("PRAGMA cipher_compatibility = 4")
             .execute(conn)
-            .map_err(|e| diesel::r2d2::Error::QueryError(e))?;
+            .map_err(diesel::r2d2::Error::QueryError)?;
 
         diesel::sql_query("PRAGMA foreign_keys = ON")
             .execute(conn)
-            .map_err(|e| diesel::r2d2::Error::QueryError(e))?;
+            .map_err(diesel::r2d2::Error::QueryError)?;
 
         Ok(())
     }
@@ -69,7 +69,7 @@ fn main() -> Result<()> {
     let encryption_key =
         env::var("DB_ENCRYPTION_KEY").context("DB_ENCRYPTION_KEY must be set in .env file")?;
 
-    println!("📁 Database: {}", database_url);
+    println!("📁 Database: {database_url}");
     println!("🔑 Using encryption key from .env\n");
 
     // Create connection pool with SQLCipher
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     // List pending migrations
     let pending = conn
         .pending_migrations(MIGRATIONS)
-        .map_err(|e| anyhow::anyhow!("Failed to list pending migrations: {}", e))?;
+        .map_err(|e| anyhow::anyhow!("Failed to list pending migrations: {e}"))?;
 
     if pending.is_empty() {
         println!("✅ All migrations are already applied!");
@@ -98,7 +98,7 @@ fn main() -> Result<()> {
         println!();
 
         conn.run_pending_migrations(MIGRATIONS)
-            .map_err(|e| anyhow::anyhow!("Migration error: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Migration error: {e}"))?;
 
         println!("\n✅ All migrations applied successfully!");
     }

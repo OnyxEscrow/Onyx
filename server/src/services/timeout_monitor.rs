@@ -313,7 +313,7 @@ impl TimeoutMonitor {
         let db_pool = self.db.clone();
         let vendor_id_str = escrow.vendor_id.clone();
         let escrow_id_str = escrow_id.to_string();
-        let escrow_link = format!("/escrow/{}", escrow_id);
+        let escrow_link = format!("/escrow/{escrow_id}");
 
         let _ = tokio::task::spawn_blocking(move || {
             let mut conn = match db_pool.get() {
@@ -421,10 +421,9 @@ impl TimeoutMonitor {
                     NotificationType::EscrowUpdate,
                     "Grace Period Started".to_string(),
                     format!(
-                        "Funding timeout reached. You have 48 hours to send the remaining {:.6} XMR or request a refund of {:.6} XMR.",
-                        shortfall_xmr, received_xmr
+                        "Funding timeout reached. You have 48 hours to send the remaining {shortfall_xmr:.6} XMR or request a refund of {received_xmr:.6} XMR."
                     ),
-                    Some(format!("/escrow/{}", escrow_id_for_notif)),
+                    Some(format!("/escrow/{escrow_id_for_notif}")),
                     Some(serde_json::json!({
                         "escrow_id": escrow_id_for_notif,
                         "event": "grace_period_started",
@@ -484,10 +483,9 @@ impl TimeoutMonitor {
                     NotificationType::EscrowUpdate,
                     "Refund Available".to_string(),
                     format!(
-                        "Your escrow has been cancelled. Click to request refund of {:.6} XMR.",
-                        received_xmr
+                        "Your escrow has been cancelled. Click to request refund of {received_xmr:.6} XMR."
                     ),
-                    Some(format!("/escrow/{}", escrow_id_for_notif)),
+                    Some(format!("/escrow/{escrow_id_for_notif}")),
                     Some(
                         serde_json::json!({
                             "escrow_id": escrow_id_for_notif,
@@ -647,7 +645,7 @@ impl TimeoutMonitor {
             // Notify buyer about auto-release
             let mut conn2 = self.db.get().context("Failed to get DB connection")?;
             let escrow_id_for_notif = escrow_id.to_string();
-            let escrow_link = format!("/escrow/{}", escrow_id);
+            let escrow_link = format!("/escrow/{escrow_id}");
             let buyer_id_str = escrow.buyer_id.clone();
 
             tokio::task::spawn_blocking(move || {

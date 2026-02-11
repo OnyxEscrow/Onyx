@@ -80,7 +80,7 @@ fn main() -> Result<()> {
             if e.to_string().contains("already exists") {
                 println!("\n  = frost_dkg_state (already exists)");
             } else {
-                println!("\n  ! frost_dkg_state: {}", e);
+                println!("\n  ! frost_dkg_state: {e}");
             }
         }
     }
@@ -127,16 +127,16 @@ fn main() -> Result<()> {
 
         match diesel::sql_query(*stmt).execute(&mut conn) {
             Ok(_) => {
-                println!("  + {}", col_name);
+                println!("  + {col_name}");
                 added += 1;
             }
             Err(e) => {
                 let err_str = e.to_string();
                 if err_str.contains("duplicate column") {
-                    println!("  = {} (already exists)", col_name);
+                    println!("  = {col_name} (already exists)");
                     skipped += 1;
                 } else {
-                    println!("  ! {} ERROR: {}", col_name, err_str);
+                    println!("  ! {col_name} ERROR: {err_str}");
                 }
             }
         }
@@ -149,7 +149,7 @@ fn main() -> Result<()> {
             if e.to_string().contains("already exists") {
                 println!("\n  = frost_signing_state (already exists)");
             } else {
-                println!("\n  + frost_signing_state: {}", e);
+                println!("\n  + frost_signing_state: {e}");
             }
         }
     }
@@ -171,22 +171,22 @@ fn main() -> Result<()> {
 
         match diesel::sql_query(*stmt).execute(&mut conn) {
             Ok(_) => {
-                println!("  + frost_signing_state.{}", col_name);
+                println!("  + frost_signing_state.{col_name}");
                 added += 1;
             }
             Err(e) => {
                 let err_str = e.to_string();
                 if err_str.contains("duplicate column") {
-                    println!("  = frost_signing_state.{} (already exists)", col_name);
+                    println!("  = frost_signing_state.{col_name} (already exists)");
                     skipped += 1;
                 } else {
-                    println!("  ! frost_signing_state.{} ERROR: {}", col_name, err_str);
+                    println!("  ! frost_signing_state.{col_name} ERROR: {err_str}");
                 }
             }
         }
     }
 
-    println!("\nResult: {} added, {} already existed", added, skipped);
+    println!("\nResult: {added} added, {skipped} already existed");
     println!("Done.\n");
 
     Ok(())

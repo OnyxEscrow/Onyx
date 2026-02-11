@@ -55,9 +55,9 @@ fn main() -> Result<()> {
     let encryption_key = std::env::var("DB_ENCRYPTION_KEY")
         .context("DB_ENCRYPTION_KEY environment variable not set")?;
 
-    println!("Connecting to database: {}", db_url);
-    println!("Escrow ID: {}", escrow_id);
-    println!("New mask: {}", new_mask);
+    println!("Connecting to database: {db_url}");
+    println!("Escrow ID: {escrow_id}");
+    println!("New mask: {new_mask}");
 
     // Create pool with encryption
     let manager = ConnectionManager::<SqliteConnection>::new(&db_url);
@@ -78,7 +78,7 @@ fn main() -> Result<()> {
         .context("Failed to update funding_commitment_mask")?;
 
     if updated == 0 {
-        eprintln!("No rows updated - escrow ID not found: {}", escrow_id);
+        eprintln!("No rows updated - escrow ID not found: {escrow_id}");
         std::process::exit(1);
     }
 
@@ -90,7 +90,7 @@ fn main() -> Result<()> {
         .unwrap_or_default();
 
     println!("✅ Successfully updated funding_commitment_mask!");
-    println!("Verified mask in DB: {}", mask);
+    println!("Verified mask in DB: {mask}");
 
     Ok(())
 }

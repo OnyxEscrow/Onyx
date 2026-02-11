@@ -71,7 +71,7 @@ impl std::str::FromStr for SwapProvider {
             "fixedfloat" => Ok(SwapProvider::FixedFloat),
             "trocador" => Ok(SwapProvider::Trocador),
             "atomic" => Ok(SwapProvider::Atomic),
-            _ => Err(format!("Unknown swap provider: {}", s)),
+            _ => Err(format!("Unknown swap provider: {s}")),
         }
     }
 }
@@ -169,7 +169,7 @@ impl std::str::FromStr for SwapStatus {
             "expired" => Ok(SwapStatus::Expired),
             "failed" => Ok(SwapStatus::Failed),
             "refunded" => Ok(SwapStatus::Refunded),
-            _ => Err(format!("Unknown swap status: {}", s)),
+            _ => Err(format!("Unknown swap status: {s}")),
         }
     }
 }

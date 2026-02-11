@@ -47,10 +47,10 @@ pub fn frost_dkg_part1(
     use onyx_crypto_core::frost::dkg_part1;
 
     let result = dkg_part1(participant_id, threshold, total_signers)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        .map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// FROST DKG Round 2 - Process round 1 packages
@@ -70,17 +70,17 @@ pub fn frost_dkg_part2(
     use serde::Serialize;
 
     let packages: BTreeMap<String, String> = serde_json::from_str(round1_packages_json)
-        .map_err(|e| JsError::new(&format!("Invalid JSON: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Invalid JSON: {e}")))?;
 
     let result =
-        dkg_part2(secret_package_hex, &packages).map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        dkg_part2(secret_package_hex, &packages).map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // CRITICAL: Use serialize_maps_as_objects(true) to convert BTreeMap to JS plain object
     // instead of JS Map. Object.keys() returns [] for Map objects!
     let serializer = serde_wasm_bindgen::Serializer::new().serialize_maps_as_objects(true);
     result
         .serialize(&serializer)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// FROST DKG Round 3 (Final) - Generate final key share
@@ -101,16 +101,16 @@ pub fn frost_dkg_part3(
     use onyx_crypto_core::frost::dkg_part3;
 
     let round1_packages: BTreeMap<String, String> = serde_json::from_str(round1_packages_json)
-        .map_err(|e| JsError::new(&format!("Invalid round1 JSON: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Invalid round1 JSON: {e}")))?;
 
     let round2_packages: BTreeMap<String, String> = serde_json::from_str(round2_packages_json)
-        .map_err(|e| JsError::new(&format!("Invalid round2 JSON: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Invalid round2 JSON: {e}")))?;
 
     let result = dkg_part3(round2_secret_hex, &round1_packages, &round2_packages)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        .map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     serde_wasm_bindgen::to_value(&result)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 // ============================================================================
@@ -135,7 +135,7 @@ pub fn derive_commitment_mask(
     use onyx_crypto_core::cmd::derive_commitment_mask as derive_mask;
 
     derive_mask(view_key_priv_hex, tx_pub_key_hex, output_index)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+        .map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 /// Find our output in a transaction and derive commitment mask
@@ -158,7 +158,7 @@ pub fn find_our_output(
     use onyx_crypto_core::cmd::find_our_output_and_derive_mask;
 
     let output_keys: Vec<String> = serde_json::from_str(output_keys_json)
-        .map_err(|e| JsError::new(&format!("Invalid output_keys: {}", e)))?;
+        .map_err(|e| JsError::new(&format!("Invalid output_keys: {e}")))?;
 
     let result = find_our_output_and_derive_mask(
         view_key_priv_hex,
@@ -167,7 +167,7 @@ pub fn find_our_output(
         &output_keys,
         None, // No encrypted amounts
     )
-    .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    .map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // Manually serialize since the type may not have Serialize
     #[derive(Serialize)]
@@ -184,7 +184,7 @@ pub fn find_our_output(
     };
 
     serde_wasm_bindgen::to_value(&output)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 // ============================================================================
@@ -209,7 +209,7 @@ pub fn compute_partial_key_image(
     use onyx_crypto_core::keys::compute_partial_key_image as compute_pki;
 
     let result = compute_pki(spend_key_priv_hex, one_time_pubkey_hex, lagrange_coeff_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        .map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // Manually serialize
     #[derive(Serialize)]
@@ -226,7 +226,7 @@ pub fn compute_partial_key_image(
     };
 
     serde_wasm_bindgen::to_value(&output)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// Aggregate two partial key images into final key image
@@ -241,7 +241,7 @@ pub fn compute_partial_key_image(
 pub fn aggregate_key_images(pki1_hex: &str, pki2_hex: &str) -> Result<String, JsError> {
     use onyx_crypto_core::keys::aggregate_partial_key_images;
 
-    aggregate_partial_key_images(pki1_hex, pki2_hex).map_err(|e| JsError::new(&format!("{:?}", e)))
+    aggregate_partial_key_images(pki1_hex, pki2_hex).map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 // ============================================================================
@@ -260,7 +260,7 @@ pub fn aggregate_key_images(pki1_hex: &str, pki2_hex: &str) -> Result<String, Js
 pub fn generate_nonce_commitment(multisig_pub_key_hex: &str) -> Result<JsValue, JsError> {
     use onyx_crypto_core::nonce::generate_nonce_commitment as gen_nonce;
 
-    let result = gen_nonce(multisig_pub_key_hex).map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let result = gen_nonce(multisig_pub_key_hex).map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // Manually serialize
     #[derive(Serialize)]
@@ -279,7 +279,7 @@ pub fn generate_nonce_commitment(multisig_pub_key_hex: &str) -> Result<JsValue, 
     };
 
     serde_wasm_bindgen::to_value(&output)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// Verify a nonce commitment
@@ -300,7 +300,7 @@ pub fn verify_nonce_commitment(
     use onyx_crypto_core::nonce::verify_nonce_commitment as verify;
 
     verify(commitment_hash_hex, r_public_hex, r_prime_public_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+        .map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 /// Aggregate two nonces (for 2-of-3 signing)
@@ -315,7 +315,7 @@ pub fn verify_nonce_commitment(
 pub fn aggregate_nonces(r1_hex: &str, r2_hex: &str) -> Result<String, JsError> {
     use onyx_crypto_core::nonce::aggregate_nonces as agg;
 
-    agg(r1_hex, r2_hex).map_err(|e| JsError::new(&format!("{:?}", e)))
+    agg(r1_hex, r2_hex).map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 // ============================================================================
@@ -330,7 +330,7 @@ pub fn aggregate_nonces(r1_hex: &str, r2_hex: &str) -> Result<String, JsError> {
 pub fn generate_keypair() -> Result<JsValue, JsError> {
     use onyx_crypto_core::encryption::generate_ephemeral_keypair;
 
-    let result = generate_ephemeral_keypair().map_err(|e| JsError::new(&format!("{:?}", e)))?;
+    let result = generate_ephemeral_keypair().map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // Wrap in Serialize struct
     #[derive(Serialize)]
@@ -345,7 +345,7 @@ pub fn generate_keypair() -> Result<JsValue, JsError> {
     };
 
     serde_wasm_bindgen::to_value(&output)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// Encrypt data using X25519 ECDH + ChaCha20Poly1305
@@ -366,7 +366,7 @@ pub fn encrypt_data(
     use onyx_crypto_core::encryption::encrypt_data as encrypt;
 
     let result = encrypt(plaintext, my_private_key_hex, peer_public_key_hex)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        .map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     // Wrap in Serialize struct
     #[derive(Serialize)]
@@ -383,7 +383,7 @@ pub fn encrypt_data(
     };
 
     serde_wasm_bindgen::to_value(&output)
-        .map_err(|e| JsError::new(&format!("Serialization failed: {}", e)))
+        .map_err(|e| JsError::new(&format!("Serialization failed: {e}")))
 }
 
 /// Decrypt data using X25519 ECDH + ChaCha20Poly1305
@@ -411,7 +411,7 @@ pub fn decrypt_data(
         peer_public_key_hex,
         my_private_key_hex,
     )
-    .map_err(|e| JsError::new(&format!("{:?}", e)))
+    .map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 // ============================================================================
@@ -440,10 +440,10 @@ pub fn encrypt_key_for_backup(key_package_hex: &str, password: &str) -> Result<S
     use onyx_crypto_core::encryption::backup::encrypt_key_for_backup as encrypt_backup;
 
     let key_package =
-        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))?;
 
     let encrypted =
-        encrypt_backup(&key_package, password).map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        encrypt_backup(&key_package, password).map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     Ok(hex::encode(encrypted))
 }
@@ -467,10 +467,10 @@ pub fn decrypt_key_from_backup(encrypted_hex: &str, password: &str) -> Result<St
     use onyx_crypto_core::encryption::backup::decrypt_key_from_backup as decrypt_backup;
 
     let encrypted =
-        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))?;
 
     let decrypted =
-        decrypt_backup(&encrypted, password).map_err(|e| JsError::new(&format!("{:?}", e)))?;
+        decrypt_backup(&encrypted, password).map_err(|e| JsError::new(&format!("{e:?}")))?;
 
     Ok(hex::encode(decrypted))
 }
@@ -495,7 +495,7 @@ pub fn derive_backup_id(key_package_hex: &str) -> Result<String, JsError> {
     use onyx_crypto_core::encryption::backup::derive_backup_id as derive_id;
 
     let key_package =
-        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+        hex::decode(key_package_hex).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))?;
 
     Ok(derive_id(&key_package))
 }
@@ -515,7 +515,7 @@ pub fn verify_backup_password(encrypted_hex: &str, password: &str) -> Result<boo
     use onyx_crypto_core::encryption::backup::verify_backup_password as verify;
 
     let encrypted =
-        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+        hex::decode(encrypted_hex).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))?;
 
     Ok(verify(&encrypted, password))
 }
@@ -553,7 +553,7 @@ pub fn get_version() -> String {
 pub fn sha3_256(data_hex: &str) -> Result<String, JsError> {
     use sha3::{Digest, Sha3_256};
 
-    let data = hex::decode(data_hex).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))?;
+    let data = hex::decode(data_hex).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))?;
 
     let mut hasher = Sha3_256::new();
     hasher.update(&data);
@@ -565,7 +565,7 @@ pub fn sha3_256(data_hex: &str) -> Result<String, JsError> {
 /// Validate hex string format
 #[wasm_bindgen]
 pub fn is_valid_hex(s: &str) -> bool {
-    !s.is_empty() && s.len() % 2 == 0 && hex::decode(s).is_ok()
+    !s.is_empty() && s.len().is_multiple_of(2) && hex::decode(s).is_ok()
 }
 
 /// Convert bytes to hex string
@@ -577,7 +577,7 @@ pub fn bytes_to_hex(bytes: &[u8]) -> String {
 /// Convert hex string to bytes
 #[wasm_bindgen]
 pub fn hex_to_bytes(hex_str: &str) -> Result<Vec<u8>, JsError> {
-    hex::decode(hex_str).map_err(|e| JsError::new(&format!("Invalid hex: {}", e)))
+    hex::decode(hex_str).map_err(|e| JsError::new(&format!("Invalid hex: {e}")))
 }
 
 /// Compute Lagrange coefficient for participant in 2-of-3 signing
@@ -598,7 +598,7 @@ pub fn compute_lagrange_coefficient(
     use onyx_crypto_core::frost::compute_lagrange_coefficient as compute_lc;
 
     compute_lc(signer_index, signer1_index, signer2_index)
-        .map_err(|e| JsError::new(&format!("{:?}", e)))
+        .map_err(|e| JsError::new(&format!("{e:?}")))
 }
 
 // ============================================================================

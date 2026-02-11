@@ -442,8 +442,7 @@ impl EscrowOrchestrator {
             Err(e) => {
                 error!("❌ Buyer prepare_multisig() FAILED: {:?}", e);
                 return Err(anyhow::anyhow!(
-                    "Failed to prepare multisig for buyer: {:?}",
-                    e
+                    "Failed to prepare multisig for buyer: {e:?}"
                 ));
             }
         };
@@ -576,9 +575,7 @@ impl EscrowOrchestrator {
             "arbiter"
         } else {
             return Err(anyhow::anyhow!(
-                "User {} is not part of escrow {}",
-                user_id,
-                escrow_id
+                "User {user_id} is not part of escrow {escrow_id}"
             ));
         };
 
@@ -768,7 +765,7 @@ impl EscrowOrchestrator {
         // SECURITY: Full cryptographic address validation with checksum verification
         // This prevents funds being sent to invalid or corrupted addresses
         let expected_network = get_configured_network()
-            .map_err(|e| anyhow::anyhow!("Failed to get network config: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to get network config: {e:?}"))?;
 
         validate_address_for_network(&vendor_address, expected_network)
             .map_err(|e| match e {
@@ -776,14 +773,12 @@ impl EscrowOrchestrator {
                     "Invalid Monero address: checksum verification failed. The address may be corrupted."
                 ),
                 AddressValidationError::NetworkMismatch { address_network, expected_network } => anyhow::anyhow!(
-                    "Address network mismatch: address is for {} but server is on {}. This would result in lost funds.",
-                    address_network, expected_network
+                    "Address network mismatch: address is for {address_network} but server is on {expected_network}. This would result in lost funds."
                 ),
                 AddressValidationError::InvalidLength { actual } => anyhow::anyhow!(
-                    "Invalid Monero address length: {} (expected 95 for standard or 106 for integrated)",
-                    actual
+                    "Invalid Monero address length: {actual} (expected 95 for standard or 106 for integrated)"
                 ),
-                _ => anyhow::anyhow!("Invalid Monero address: {}", e),
+                _ => anyhow::anyhow!("Invalid Monero address: {e}"),
             })?;
 
         info!(
@@ -914,7 +909,7 @@ impl EscrowOrchestrator {
         // SECURITY: Full cryptographic address validation with checksum verification
         // This prevents funds being sent to invalid or corrupted addresses
         let expected_network = get_configured_network()
-            .map_err(|e| anyhow::anyhow!("Failed to get network config: {:?}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to get network config: {e:?}"))?;
 
         validate_address_for_network(&buyer_address, expected_network)
             .map_err(|e| match e {
@@ -922,14 +917,12 @@ impl EscrowOrchestrator {
                     "Invalid Monero address: checksum verification failed. The address may be corrupted."
                 ),
                 AddressValidationError::NetworkMismatch { address_network, expected_network } => anyhow::anyhow!(
-                    "Address network mismatch: address is for {} but server is on {}. This would result in lost funds.",
-                    address_network, expected_network
+                    "Address network mismatch: address is for {address_network} but server is on {expected_network}. This would result in lost funds."
                 ),
                 AddressValidationError::InvalidLength { actual } => anyhow::anyhow!(
-                    "Invalid Monero address length: {} (expected 95 for standard or 106 for integrated)",
-                    actual
+                    "Invalid Monero address length: {actual} (expected 95 for standard or 106 for integrated)"
                 ),
-                _ => anyhow::anyhow!("Invalid Monero address: {}", e),
+                _ => anyhow::anyhow!("Invalid Monero address: {e}"),
             })?;
 
         info!(
@@ -1081,7 +1074,7 @@ impl EscrowOrchestrator {
         let new_status = match resolution {
             "buyer" => "resolved_buyer",
             "vendor" => "resolved_vendor",
-            _ => anyhow::bail!("Invalid resolution after validation: {}", resolution),
+            _ => anyhow::bail!("Invalid resolution after validation: {resolution}"),
         };
         db_update_escrow_status(&self.db, escrow_id, new_status)
             .await
@@ -1119,7 +1112,7 @@ impl EscrowOrchestrator {
                 self.release_funds(escrow_id, arbiter_id, recipient_address)
                     .await?
             }
-            _ => anyhow::bail!("Invalid resolution after validation: {}", resolution),
+            _ => anyhow::bail!("Invalid resolution after validation: {resolution}"),
         };
         info!(
             "Dispute resolution complete for escrow {}: {} via tx {}",

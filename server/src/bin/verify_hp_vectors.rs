@@ -40,9 +40,9 @@ fn main() {
 
         if !pass {
             all_pass = false;
-            println!("{} Input:    {}", status, input);
-            println!("   Expected: {}", expected);
-            println!("   Got:      {}", result_hex);
+            println!("{status} Input:    {input}");
+            println!("   Expected: {expected}");
+            println!("   Got:      {result_hex}");
             println!();
         } else {
             println!(

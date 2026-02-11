@@ -168,17 +168,17 @@ pub fn aggregate_partial_key_images_with_lagrange(
         "buyer" => 1,
         "vendor" => 2,
         "arbiter" => 3,
-        _ => anyhow::bail!("Invalid signer1_role: {}", signer1_role),
+        _ => anyhow::bail!("Invalid signer1_role: {signer1_role}"),
     };
     let idx2: u16 = match signer2_role {
         "buyer" => 1,
         "vendor" => 2,
         "arbiter" => 3,
-        _ => anyhow::bail!("Invalid signer2_role: {}", signer2_role),
+        _ => anyhow::bail!("Invalid signer2_role: {signer2_role}"),
     };
 
     if idx1 == idx2 {
-        anyhow::bail!("Signer roles must be different: both are {}", signer1_role);
+        anyhow::bail!("Signer roles must be different: both are {signer1_role}");
     }
 
     // Compute Lagrange coefficients
@@ -564,8 +564,8 @@ pub fn add_derivation_to_key_image(
 
     // Compute derivation scalar: d = Hs(shared_secret || varint(output_index))
     let mut hasher = Keccak256::new();
-    hasher.update(&shared_secret_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(shared_secret_bytes);
+    hasher.update(encode_varint(output_index));
     let hash_result: [u8; 32] = hasher.finalize().into();
     let derivation_scalar = Scalar::from_bytes_mod_order(hash_result);
 
@@ -584,7 +584,7 @@ pub fn add_derivation_to_key_image(
 
     info!(
         aggregated_ki_prefix = %&aggregated_ki_hex[..16.min(aggregated_ki_hex.len())],
-        derivation_prefix = %hex::encode(&hash_result)[..16],
+        derivation_prefix = %hex::encode(hash_result)[..16],
         result_prefix = %&result_hex[..16],
         output_index = output_index,
         "[v0.53.0] Added derivation to key image: KI = KI_partial + d*Hp(P)"

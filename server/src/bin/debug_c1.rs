@@ -82,7 +82,7 @@ fn compute_mu(
     domain_agg_0[..CLSAG_AGG_0.len()].copy_from_slice(CLSAG_AGG_0);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain_agg_0);
+    hasher.update(domain_agg_0);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -98,7 +98,7 @@ fn compute_mu(
     domain_agg_1[..CLSAG_AGG_1.len()].copy_from_slice(CLSAG_AGG_1);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain_agg_1);
+    hasher.update(domain_agg_1);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -125,7 +125,7 @@ fn compute_challenge(
     domain[..CLSAG_DOMAIN.len()].copy_from_slice(CLSAG_DOMAIN);
 
     let mut hasher = Keccak256::new();
-    hasher.update(&domain);
+    hasher.update(domain);
     for key in ring_keys {
         hasher.update(key.compress().as_bytes());
     }
@@ -190,7 +190,7 @@ async fn main() {
     hasher.update(&tx[..prefix_end]);
     let mut tx_prefix_hash = [0u8; 32];
     tx_prefix_hash.copy_from_slice(&hasher.finalize());
-    println!("tx_prefix_hash: {}", hex::encode(&tx_prefix_hash));
+    println!("tx_prefix_hash: {}", hex::encode(tx_prefix_hash));
 
     // Skip RCT base
     let _rct_type = tx[pos];
@@ -311,10 +311,10 @@ async fn main() {
             println!(
                 "i={:2}: c_in={:.16}... L={:.16}... R={:.16}... c_out={:.16}...",
                 i,
-                hex::encode(&c_current.to_bytes())[..16].to_string(),
+                hex::encode(c_current.to_bytes())[..16].to_string(),
                 hex::encode(l_point.compress().as_bytes())[..16].to_string(),
                 hex::encode(r_point.compress().as_bytes())[..16].to_string(),
-                hex::encode(&c_next.to_bytes())[..16].to_string()
+                hex::encode(c_next.to_bytes())[..16].to_string()
             );
         }
 
@@ -322,8 +322,8 @@ async fn main() {
     }
 
     println!("\nAfter full loop:");
-    println!("  Expected c1: {}", hex::encode(&c1.to_bytes()));
-    println!("  Computed:    {}", hex::encode(&c_current.to_bytes()));
+    println!("  Expected c1: {}", hex::encode(c1.to_bytes()));
+    println!("  Computed:    {}", hex::encode(c_current.to_bytes()));
 
     if c1.to_bytes() == c_current.to_bytes() {
         println!("✅ Ring closed!");

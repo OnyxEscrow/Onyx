@@ -1,13 +1,13 @@
-//! FROST key backup encryption using Argon2id + ChaCha20Poly1305.
+//! FROST key backup encryption using Argon2id + `ChaCha20Poly1305`.
 //!
-//! This module provides password-based encryption for FROST key_packages,
+//! This module provides password-based encryption for FROST `key_packages`,
 //! enabling secure backup and restoration of threshold signing keys.
 //!
 //! ## Protocol
 //!
 //! 1. **Key Derivation**: Argon2id (memory-hard, side-channel resistant)
 //!    - Parameters: m=65536 (64MB), t=3, p=4 (OWASP recommendations)
-//! 2. **Encryption**: ChaCha20Poly1305 (AEAD)
+//! 2. **Encryption**: `ChaCha20Poly1305` (AEAD)
 //! 3. **Format**: salt (16 bytes) || nonce (12 bytes) || ciphertext
 //!
 //! ## Security Properties
@@ -56,7 +56,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 /// Salt size for Argon2id (16 bytes = 128 bits)
 pub const SALT_SIZE: usize = 16;
 
-/// Nonce size for ChaCha20Poly1305 (12 bytes = 96 bits)
+/// Nonce size for `ChaCha20Poly1305` (12 bytes = 96 bits)
 pub const NONCE_SIZE: usize = 12;
 
 /// Derived key size (32 bytes = 256 bits)
@@ -82,19 +82,19 @@ const ARGON2_PARALLELISM: u32 = 4;
 // Public API
 // ============================================================================
 
-/// Encrypt a FROST key_package for secure backup.
+/// Encrypt a FROST `key_package` for secure backup.
 ///
-/// Uses Argon2id for password-based key derivation and ChaCha20Poly1305 for
+/// Uses Argon2id for password-based key derivation and `ChaCha20Poly1305` for
 /// authenticated encryption.
 ///
 /// # Arguments
 ///
-/// * `key_package` - The FROST key_package bytes to encrypt (~200 bytes typical)
+/// * `key_package` - The FROST `key_package` bytes to encrypt (~200 bytes typical)
 /// * `password` - User-provided password (should be strong!)
 ///
 /// # Returns
 ///
-/// Encrypted blob: salt (16) || nonce (12) || ciphertext (~key_len + 16)
+/// Encrypted blob: salt (16) || nonce (12) || ciphertext (~`key_len` + 16)
 ///
 /// # Security
 ///
@@ -127,28 +127,25 @@ pub fn encrypt_key_for_backup(key_package: &[u8], password: &str) -> CryptoResul
 
     // Generate random salt
     let mut salt = [0u8; SALT_SIZE];
-    getrandom::getrandom(&mut salt).map_err(|e| {
-        CryptoError::NonceGenerationFailed(format!("Salt generation failed: {}", e))
-    })?;
+    getrandom::getrandom(&mut salt)
+        .map_err(|e| CryptoError::NonceGenerationFailed(format!("Salt generation failed: {e}")))?;
 
     // Generate random nonce
     let mut nonce_bytes = [0u8; NONCE_SIZE];
-    getrandom::getrandom(&mut nonce_bytes).map_err(|e| {
-        CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {}", e))
-    })?;
+    getrandom::getrandom(&mut nonce_bytes)
+        .map_err(|e| CryptoError::NonceGenerationFailed(format!("Nonce generation failed: {e}")))?;
 
     // Derive encryption key using Argon2id
     let mut derived_key = derive_key_from_password(password, &salt)?;
 
     // Create cipher and encrypt
-    let cipher = ChaCha20Poly1305::new_from_slice(&derived_key).map_err(|e| {
-        CryptoError::EncryptionFailed(format!("Cipher initialization failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&derived_key)
+        .map_err(|e| CryptoError::EncryptionFailed(format!("Cipher initialization failed: {e}")))?;
 
     let nonce = Nonce::from_slice(&nonce_bytes);
     let ciphertext = cipher
         .encrypt(nonce, key_package)
-        .map_err(|e| CryptoError::EncryptionFailed(format!("Encryption failed: {}", e)))?;
+        .map_err(|e| CryptoError::EncryptionFailed(format!("Encryption failed: {e}")))?;
 
     // Zeroize sensitive data
     derived_key.zeroize();
@@ -162,7 +159,7 @@ pub fn encrypt_key_for_backup(key_package: &[u8], password: &str) -> CryptoResul
     Ok(output)
 }
 
-/// Decrypt a FROST key_package from backup.
+/// Decrypt a FROST `key_package` from backup.
 ///
 /// # Arguments
 ///
@@ -171,7 +168,7 @@ pub fn encrypt_key_for_backup(key_package: &[u8], password: &str) -> CryptoResul
 ///
 /// # Returns
 ///
-/// Decrypted key_package bytes.
+/// Decrypted `key_package` bytes.
 ///
 /// # Errors
 ///
@@ -217,9 +214,8 @@ pub fn decrypt_key_from_backup(encrypted: &[u8], password: &str) -> CryptoResult
     let mut derived_key = derive_key_from_password(password, &salt)?;
 
     // Create cipher and decrypt
-    let cipher = ChaCha20Poly1305::new_from_slice(&derived_key).map_err(|e| {
-        CryptoError::DecryptionFailed(format!("Cipher initialization failed: {}", e))
-    })?;
+    let cipher = ChaCha20Poly1305::new_from_slice(&derived_key)
+        .map_err(|e| CryptoError::DecryptionFailed(format!("Cipher initialization failed: {e}")))?;
 
     let nonce = Nonce::from_slice(&nonce_bytes);
 
@@ -237,15 +233,15 @@ pub fn decrypt_key_from_backup(encrypted: &[u8], password: &str) -> CryptoResult
     Ok(plaintext)
 }
 
-/// Derive a backup identifier from key_package (without exposing the key).
+/// Derive a backup identifier from `key_package` (without exposing the key).
 ///
 /// This allows matching backups to escrows without decrypting.
-/// Uses SHA3-256 of the key_package to create a deterministic but
+/// Uses SHA3-256 of the `key_package` to create a deterministic but
 /// non-reversible identifier.
 ///
 /// # Arguments
 ///
-/// * `key_package` - The FROST key_package bytes
+/// * `key_package` - The FROST `key_package` bytes
 ///
 /// # Returns
 ///
@@ -263,6 +259,7 @@ pub fn decrypt_key_from_backup(encrypted: &[u8], password: &str) -> CryptoResult
 /// let backup_id = derive_backup_id(&key_package);
 /// // backup_id = "a1b2c3d4..." (64 hex chars)
 /// ```
+#[must_use]
 pub fn derive_backup_id(key_package: &[u8]) -> String {
     let mut hasher = Sha3_256::new();
     hasher.update(b"NEXUS_BACKUP_ID_V1:"); // Domain separator
@@ -283,6 +280,7 @@ pub fn derive_backup_id(key_package: &[u8]) -> String {
 /// # Returns
 ///
 /// `true` if password is correct, `false` otherwise.
+#[must_use]
 pub fn verify_backup_password(encrypted: &[u8], password: &str) -> bool {
     decrypt_key_from_backup(encrypted, password).is_ok()
 }
@@ -293,11 +291,12 @@ pub fn verify_backup_password(encrypted: &[u8], password: &str) -> bool {
 ///
 /// # Arguments
 ///
-/// * `plaintext_len` - Size of the key_package in bytes
+/// * `plaintext_len` - Size of the `key_package` in bytes
 ///
 /// # Returns
 ///
 /// Total size of encrypted backup: salt + nonce + ciphertext + tag
+#[must_use]
 pub const fn encrypted_size(plaintext_len: usize) -> usize {
     HEADER_SIZE + plaintext_len + TAG_SIZE
 }
@@ -323,7 +322,7 @@ fn derive_key_from_password(
         ARGON2_PARALLELISM,
         Some(KEY_SIZE),
     )
-    .map_err(|e| CryptoError::InternalError(format!("Argon2 params invalid: {}", e)))?;
+    .map_err(|e| CryptoError::InternalError(format!("Argon2 params invalid: {e}")))?;
 
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
 
@@ -331,7 +330,7 @@ fn derive_key_from_password(
     let mut output_key = [0u8; KEY_SIZE];
     argon2
         .hash_password_into(password.as_bytes(), salt, &mut output_key)
-        .map_err(|e| CryptoError::InternalError(format!("Argon2 key derivation failed: {}", e)))?;
+        .map_err(|e| CryptoError::InternalError(format!("Argon2 key derivation failed: {e}")))?;
 
     Ok(output_key)
 }

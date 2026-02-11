@@ -31,9 +31,9 @@ fn main() {
     let buyer_share =
         Scalar::from_canonical_bytes(buyer_bytes.try_into().unwrap()).expect("buyer scalar");
 
-    println!("Vendor share: {}", vendor_share_hex);
-    println!("Buyer share:  {}", buyer_share_hex);
-    println!("Group pubkey: {}", group_pubkey_hex);
+    println!("Vendor share: {vendor_share_hex}");
+    println!("Buyer share:  {buyer_share_hex}");
+    println!("Group pubkey: {group_pubkey_hex}");
 
     // Lagrange coefficients for buyer(1) + vendor(2):
     // λ_buyer = 2/(2-1) = 2
@@ -71,8 +71,8 @@ fn main() {
     let computed_pubkey_hex = hex::encode(computed_pubkey_compressed.as_bytes());
 
     println!("\nVerification:");
-    println!("  group_secret * G = {}", computed_pubkey_hex);
-    println!("  Expected pubkey  = {}", group_pubkey_hex);
+    println!("  group_secret * G = {computed_pubkey_hex}");
+    println!("  Expected pubkey  = {group_pubkey_hex}");
 
     if computed_pubkey_hex == group_pubkey_hex {
         println!("\n✅ VERIFICATION PASSED: Lagrange reconstruction is correct!");

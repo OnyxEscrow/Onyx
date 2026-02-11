@@ -1,4 +1,4 @@
-//! Amount decoding for RingCT v2 transactions
+//! Amount decoding for `RingCT` v2 transactions
 //!
 //! In RCT v2, amounts are encrypted using the shared secret derived from
 //! the transaction key and recipient's view key. This module provides
@@ -12,7 +12,7 @@ use crate::types::errors::{CryptoError, CryptoResult};
 
 /// Decode encrypted amount from ecdhInfo
 ///
-/// In RingCT v2, amounts are 8 bytes encrypted with a key derived from
+/// In `RingCT` v2, amounts are 8 bytes encrypted with a key derived from
 /// the shared secret. This function decrypts the amount for outputs we own.
 ///
 /// # Arguments
@@ -38,7 +38,7 @@ pub fn decode_encrypted_amount(
     encrypted_amount_hex: &str,
 ) -> CryptoResult<u64> {
     let encrypted = hex::decode(encrypted_amount_hex)
-        .map_err(|e| CryptoError::AmountDecodeFailed(alloc::format!("hex decode: {}", e)))?;
+        .map_err(|e| CryptoError::AmountDecodeFailed(alloc::format!("hex decode: {e}")))?;
 
     if encrypted.len() < 8 {
         return Err(CryptoError::AmountDecodeFailed(
@@ -66,7 +66,7 @@ pub fn decode_encrypted_amount_bytes(
     // Compute shared_secret = Hs(derivation || varint(output_index))
     let mut hasher = Keccak256::new();
     hasher.update(derivation_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(encode_varint(output_index));
     let shared_secret: [u8; 32] = hasher.finalize().into();
     let shared_secret_scalar = Scalar::from_bytes_mod_order(shared_secret);
 
@@ -87,7 +87,7 @@ pub fn decode_encrypted_amount_bytes(
 
 /// Compute the view tag for an output
 ///
-/// The view tag is the first byte of the derivation_to_scalar output.
+/// The view tag is the first byte of the `derivation_to_scalar` output.
 /// It's used for efficient scanning of the blockchain without full derivation.
 ///
 /// # Arguments
@@ -98,10 +98,11 @@ pub fn decode_encrypted_amount_bytes(
 /// # Returns
 ///
 /// The single-byte view tag
+#[must_use]
 pub fn compute_view_tag(derivation_bytes: &[u8; 32], output_index: u64) -> u8 {
     let mut hasher = Keccak256::new();
     hasher.update(derivation_bytes);
-    hasher.update(&encode_varint(output_index));
+    hasher.update(encode_varint(output_index));
     let shared_secret: [u8; 32] = hasher.finalize().into();
     shared_secret[0]
 }

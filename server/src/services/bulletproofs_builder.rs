@@ -189,7 +189,7 @@ pub fn generate_bulletproof_plus(amounts: &[u64], masks: &[[u8; 32]]) -> Result<
         }
     }
 
-    proof_result.map_err(|e| anyhow::anyhow!("Bulletproof+ generation failed: {:?}", e))
+    proof_result.map_err(|e| anyhow::anyhow!("Bulletproof+ generation failed: {e:?}"))
 }
 
 /// Estimate the serialized size of a Bulletproof
@@ -256,7 +256,7 @@ pub fn verify_bulletproof_plus(
 
     for (i, commitment) in commitments.iter().enumerate() {
         // C = mask * G + amount * H
-        let mask_g = &*ED25519_BASEPOINT_TABLE * &commitment.mask;
+        let mask_g = ED25519_BASEPOINT_TABLE * &commitment.mask;
         let amount_scalar = Scalar::from(commitment.amount);
         let amount_h = amount_scalar * h_point;
         let c_point = mask_g + amount_h;

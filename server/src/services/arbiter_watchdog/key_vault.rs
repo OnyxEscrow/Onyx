@@ -102,7 +102,7 @@ impl ArbiterKeyVault {
 
         // Store in Redis with TTL
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", KEY_PREFIX, escrow_id);
+        let key = format!("{KEY_PREFIX}{escrow_id}");
 
         // Store as base64-encoded ciphertext
         let encoded =
@@ -131,7 +131,7 @@ impl ArbiterKeyVault {
     /// * `Err(_)` - Decryption or Redis error
     pub async fn retrieve_key_package(&self, escrow_id: &str) -> Result<Option<String>> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", KEY_PREFIX, escrow_id);
+        let key = format!("{KEY_PREFIX}{escrow_id}");
 
         let encoded: Option<String> = conn
             .get(&key)
@@ -163,7 +163,7 @@ impl ArbiterKeyVault {
     /// Check if a key_package exists for an escrow
     pub async fn has_key_package(&self, escrow_id: &str) -> Result<bool> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", KEY_PREFIX, escrow_id);
+        let key = format!("{KEY_PREFIX}{escrow_id}");
 
         let exists: bool = conn
             .exists(&key)
@@ -176,7 +176,7 @@ impl ArbiterKeyVault {
     /// Delete a key_package for an escrow (cleanup after completion)
     pub async fn delete_key_package(&self, escrow_id: &str) -> Result<()> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", KEY_PREFIX, escrow_id);
+        let key = format!("{KEY_PREFIX}{escrow_id}");
 
         conn.del::<_, ()>(&key)
             .await
@@ -193,7 +193,7 @@ impl ArbiterKeyVault {
         // Generate random nonce
         let mut nonce_bytes = [0u8; 12];
         getrandom::getrandom(&mut nonce_bytes)
-            .map_err(|e| anyhow::anyhow!("Failed to generate nonce: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Failed to generate nonce: {e}"))?;
         let nonce = Nonce::from_slice(&nonce_bytes);
 
         // Create cipher
@@ -203,7 +203,7 @@ impl ArbiterKeyVault {
         // Encrypt
         let ciphertext = cipher
             .encrypt(nonce, plaintext)
-            .map_err(|e| anyhow::anyhow!("Encryption failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Encryption failed: {e}"))?;
 
         // Prepend nonce to ciphertext
         let mut result = Vec::with_capacity(12 + ciphertext.len());
@@ -232,7 +232,7 @@ impl ArbiterKeyVault {
         // Decrypt
         let plaintext = cipher
             .decrypt(nonce, ciphertext)
-            .map_err(|e| anyhow::anyhow!("Decryption failed: {}", e))?;
+            .map_err(|e| anyhow::anyhow!("Decryption failed: {e}"))?;
 
         Ok(plaintext)
     }
@@ -247,7 +247,7 @@ impl ArbiterKeyVault {
     pub async fn store_dkg_round1_secret(&self, escrow_id: &str, secret_hex: &str) -> Result<()> {
         let encrypted = self.encrypt(secret_hex.as_bytes())?;
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", DKG_R1_PREFIX, escrow_id);
+        let key = format!("{DKG_R1_PREFIX}{escrow_id}");
 
         let encoded =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
@@ -262,7 +262,7 @@ impl ArbiterKeyVault {
     /// Retrieve arbiter's Round 1 secret
     pub async fn get_dkg_round1_secret(&self, escrow_id: &str) -> Result<Option<String>> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", DKG_R1_PREFIX, escrow_id);
+        let key = format!("{DKG_R1_PREFIX}{escrow_id}");
 
         let encoded: Option<String> = conn.get(&key).await.context("Failed to get R1 secret")?;
 
@@ -284,7 +284,7 @@ impl ArbiterKeyVault {
     pub async fn store_dkg_round2_secret(&self, escrow_id: &str, secret_hex: &str) -> Result<()> {
         let encrypted = self.encrypt(secret_hex.as_bytes())?;
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", DKG_R2_PREFIX, escrow_id);
+        let key = format!("{DKG_R2_PREFIX}{escrow_id}");
 
         let encoded =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &encrypted);
@@ -299,7 +299,7 @@ impl ArbiterKeyVault {
     /// Retrieve arbiter's Round 2 secret
     pub async fn get_dkg_round2_secret(&self, escrow_id: &str) -> Result<Option<String>> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let key = format!("{}{}", DKG_R2_PREFIX, escrow_id);
+        let key = format!("{DKG_R2_PREFIX}{escrow_id}");
 
         let encoded: Option<String> = conn.get(&key).await.context("Failed to get R2 secret")?;
 
@@ -320,8 +320,8 @@ impl ArbiterKeyVault {
     /// Cleanup temporary DKG secrets after finalization
     pub async fn cleanup_dkg_secrets(&self, escrow_id: &str) -> Result<()> {
         let mut conn = get_conn(&self.redis_pool).await?;
-        let r1_key = format!("{}{}", DKG_R1_PREFIX, escrow_id);
-        let r2_key = format!("{}{}", DKG_R2_PREFIX, escrow_id);
+        let r1_key = format!("{DKG_R1_PREFIX}{escrow_id}");
+        let r2_key = format!("{DKG_R2_PREFIX}{escrow_id}");
 
         conn.del::<_, ()>(&r1_key).await.ok();
         conn.del::<_, ()>(&r2_key).await.ok();

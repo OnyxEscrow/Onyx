@@ -35,7 +35,7 @@ fn main() {
             let _amount = read_varint(&tx, &mut pos);
             let key_offset_count = read_varint(&tx, &mut pos);
 
-            println!("Input {}: {} key offsets", input_idx, key_offset_count);
+            println!("Input {input_idx}: {key_offset_count} key offsets");
 
             let mut absolute_idx = 0u64;
             let mut offsets = Vec::new();
@@ -46,7 +46,7 @@ fn main() {
                 offsets.push(offset);
                 absolute_idx += offset;
                 absolutes.push(absolute_idx);
-                println!("  [{}] offset={:8} -> absolute={}", i, offset, absolute_idx);
+                println!("  [{i}] offset={offset:8} -> absolute={absolute_idx}");
             }
 
             pos += 32; // skip key image
@@ -62,10 +62,7 @@ fn main() {
             for (i, (actual, expected)) in absolutes.iter().zip(expected.iter()).enumerate() {
                 let status = if actual == expected { "✓" } else { "✗" };
                 if actual != expected {
-                    println!(
-                        "  [{}] {} actual={} expected={}",
-                        i, status, actual, expected
-                    );
+                    println!("  [{i}] {status} actual={actual} expected={expected}");
                     all_match = false;
                 }
             }

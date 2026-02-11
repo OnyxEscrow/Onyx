@@ -159,7 +159,7 @@ pub struct OutputInfo {
     pub public_key: [u8; 32],
     /// Pedersen commitment
     pub commitment: [u8; 32],
-    /// Amount (may be encrypted in RingCT)
+    /// Amount (may be encrypted in `RingCT`)
     pub amount: u64,
     /// Transaction public key for derivation
     pub tx_public_key: [u8; 32],
@@ -187,9 +187,9 @@ pub struct PartialSignatureData {
     pub pseudo_out: [u8; 32],
     /// Key image
     pub key_image: [u8; 32],
-    /// mu_P aggregate scalar
+    /// `mu_P` aggregate scalar
     pub mu_p: [u8; 32],
-    /// mu_C aggregate scalar
+    /// `mu_C` aggregate scalar
     pub mu_c: [u8; 32],
     /// First signer's partial s[l] value
     pub s_l_partial: [u8; 32],

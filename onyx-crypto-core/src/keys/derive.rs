@@ -61,7 +61,7 @@ pub fn validate_view_key_matches_address(view_key_hex: &str, address: &str) -> C
     }
 
     let view_bytes = hex::decode(view_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid view key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid view key hex: {e}")))?;
 
     // 2. Convert to scalar (32 bytes)
     let mut view_arr = [0u8; 32];
@@ -156,7 +156,7 @@ pub fn derive_public_key_from_hex(private_key_hex: &str) -> CryptoResult<[u8; 32
     }
 
     let bytes = hex::decode(private_key_hex)
-        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {}", e)))?;
+        .map_err(|e| CryptoError::HexDecodeFailed(format!("Invalid private key hex: {e}")))?;
 
     let mut arr = [0u8; 32];
     arr.copy_from_slice(&bytes);

@@ -23,17 +23,17 @@ impl ClsagDebugContext {
 
     pub fn log(&mut self, msg: &str) {
         self.logs.push(msg.to_string());
-        web_sys::console::log_1(&format!("[CLSAG-DEBUG] {}", msg).into());
+        web_sys::console::log_1(&format!("[CLSAG-DEBUG] {msg}").into());
     }
 
     pub fn log_scalar(&mut self, name: &str, scalar: &Scalar) {
         let hex = hex::encode(scalar.to_bytes());
-        self.log(&format!("{}: {}", name, hex));
+        self.log(&format!("{name}: {hex}"));
     }
 
     pub fn log_point(&mut self, name: &str, point: &EdwardsPoint) {
         let hex = hex::encode(point.compress().to_bytes());
-        self.log(&format!("{}: {}", name, hex));
+        self.log(&format!("{name}: {hex}"));
     }
 
     pub fn log_bytes(&mut self, name: &str, bytes: &[u8]) {
@@ -73,7 +73,7 @@ pub fn compute_mu_with_debug(
         let bytes = key.compress().to_bytes();
         hash_input.extend_from_slice(&bytes);
         if i < 3 || i == ring_keys.len() - 1 {
-            ctx.log(&format!("P[{}]: {}", i, hex::encode(&bytes)));
+            ctx.log(&format!("P[{}]: {}", i, hex::encode(bytes)));
         }
     }
 
@@ -82,7 +82,7 @@ pub fn compute_mu_with_debug(
         let bytes = commit.compress().to_bytes();
         hash_input.extend_from_slice(&bytes);
         if i < 3 || i == ring_commitments.len() - 1 {
-            ctx.log(&format!("C[{}]: {}", i, hex::encode(&bytes)));
+            ctx.log(&format!("C[{}]: {}", i, hex::encode(bytes)));
         }
     }
 
@@ -137,34 +137,34 @@ pub fn ring_loop_iteration_debug(
     mu_p: &Scalar,
     mu_c: &Scalar,
 ) -> (EdwardsPoint, EdwardsPoint, Scalar) {
-    ctx.log(&format!("=== Ring loop iteration i={} ===", i));
+    ctx.log(&format!("=== Ring loop iteration i={i} ==="));
 
     let c_p = c * mu_p;
     let c_c = c * mu_c;
-    ctx.log_scalar(&format!("c[{}]", i), c);
+    ctx.log_scalar(&format!("c[{i}]"), c);
     ctx.log_scalar("c_p = c * mu_P", &c_p);
     ctx.log_scalar("c_c = c * mu_C", &c_c);
 
     // C_adjusted = C[i] - pseudo_out
     let c_adjusted = ring_commitments[i] - pseudo_out;
-    ctx.log_point(&format!("C_adjusted[{}]", i), &c_adjusted);
+    ctx.log_point(&format!("C_adjusted[{i}]"), &c_adjusted);
 
     // L = s[i] * G + c_p * P[i] + c_c * C_adjusted[i]
     let l_point = EdwardsPoint::vartime_multiscalar_mul(
         [*s_i, c_p, c_c],
         [ED25519_BASEPOINT_POINT, ring_keys[i], c_adjusted],
     );
-    ctx.log_point(&format!("L[{}]", i), &l_point);
+    ctx.log_point(&format!("L[{i}]"), &l_point);
 
     // Hp(P[i])
     let hp_i = hash_to_point(ring_keys[i].compress().to_bytes());
-    ctx.log_point(&format!("Hp(P[{}])", i), &hp_i);
+    ctx.log_point(&format!("Hp(P[{i}])"), &hp_i);
 
     // R = s[i] * Hp(P[i]) + c_p * I + c_c * D
     // NOTE: Uses ORIGINAL D, not D * inv8!
     let r_point =
         EdwardsPoint::vartime_multiscalar_mul([*s_i, c_p, c_c], [hp_i, *key_image, *d_original]);
-    ctx.log_point(&format!("R[{}]", i), &r_point);
+    ctx.log_point(&format!("R[{i}]"), &r_point);
 
     // Compute next challenge
     let c_next = compute_round_hash_debug(
@@ -224,7 +224,7 @@ pub fn compute_round_hash_debug(
 
     let c_hash: [u8; 32] = Keccak256::digest(&hash_input).into();
     let c_next = Scalar::from_bytes_mod_order(c_hash);
-    ctx.log_scalar(&format!("c[{}+1]", i), &c_next);
+    ctx.log_scalar(&format!("c[{i}+1]"), &c_next);
 
     c_next
 }
@@ -239,7 +239,7 @@ pub fn verify_commitment_balance_debug(
     ctx.log("=== Verifying commitment balance ===");
     ctx.log_point("pseudo_out", pseudo_out);
     ctx.log_point("output_commitment", output_commitment);
-    ctx.log(&format!("fee: {}", fee));
+    ctx.log(&format!("fee: {fee}"));
 
     let h_point = *H;
     ctx.log_point("H", &h_point);
@@ -277,6 +277,6 @@ pub fn log_signature_components(
     ctx.log(&format!("s_values count: {}", s_values.len()));
 
     for (i, s) in s_values.iter().enumerate() {
-        ctx.log_scalar(&format!("s[{}]", i), s);
+        ctx.log_scalar(&format!("s[{i}]"), s);
     }
 }

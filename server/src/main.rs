@@ -15,7 +15,6 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use anyhow::{Context, Result};
-use hex;
 use monero_marketplace_common::types::MoneroConfig;
 use server::coordination::{DbMultisigCoordinator, EscrowCoordinator};
 use server::db::{create_pool, DatabaseConfig, DatabaseManager};
@@ -513,7 +512,7 @@ async fn main() -> Result<()> {
         // NOTE: URL should NOT include /json_rpc suffix - it's added by the RPC client
         let rpc_configs = vec![
             MoneroConfig {
-                rpc_url: format!("http://127.0.0.1:{}", base_port), // Buyer
+                rpc_url: format!("http://127.0.0.1:{base_port}"), // Buyer
                 rpc_user: None,
                 rpc_password: None,
                 timeout_seconds: 120,
@@ -702,7 +701,7 @@ async fn main() -> Result<()> {
     let sync_proxy = Arc::new(
         SyncProxyService::new(
             format!("http://127.0.0.1:{}/json_rpc", base_port + 1), // vendor wallet-rpc
-            format!("http://127.0.0.1:{}/json_rpc", daemon_port),   // daemon
+            format!("http://127.0.0.1:{daemon_port}/json_rpc"),     // daemon
         )
         .context("Failed to initialize SyncProxyService")?,
     );
@@ -778,10 +777,7 @@ async fn main() -> Result<()> {
             // Get arbiter vault master password (optional for auto-DKG)
             match std::env::var("ARBITER_VAULT_MASTER_PASSWORD") {
                 Ok(password) => {
-                    match ArbiterKeyVault::new(
-                        redis_pool.clone(),
-                        SecretString::new(password.into()),
-                    ) {
+                    match ArbiterKeyVault::new(redis_pool.clone(), SecretString::new(password)) {
                         Ok(key_vault) => {
                             let auto_dkg = Arc::new(ArbiterAutoDkg::new(pool.clone(), key_vault));
                             info!("✅ ArbiterAutoDkg initialized - arbiter will auto-generate DKG packages");
@@ -985,7 +981,7 @@ async fn main() -> Result<()> {
                 web::JsonConfig::default()
                     .limit(1024 * 1024) // 1MB limit
                     .error_handler(|err, req| {
-                        let err_msg = format!("{}", err);
+                        let err_msg = format!("{err}");
                         let path = req.path().to_string();
                         tracing::error!("[JSON-PARSE] Error: {} - Path: {}", err_msg, path);
                         actix_web::error::InternalError::from_response(
