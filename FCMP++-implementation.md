@@ -44,8 +44,8 @@ The practical effect: no more rings, no more decoy selection, no more timing ana
 | TX version | 2 | 3 (assumed) |
 | RCT type | 6 (BulletproofPlus) | 7 (assumed) |
 | Ring members | 16 per input | 0 — no rings |
-| Per-input proof | CLSAG (32 + 16×32 + 32 = 577B) | SA+L (384B) + re-randomized tuple (96B) |
-| Global proof | None | FCMP membership proof (variable, ~2-8KB depending on tree depth) |
+| Per-input proof | CLSAG (32 + 16×32 + 32 = 576B) | SA+L (384B) + re-randomized tuple (96B) |
+| Global proof | None | FCMP membership proof (variable, ~2-10KB depending on tree depth) |
 | Pseudo-outs | In prunable section | Same position, bound differently in signable hash |
 
 ### What stays the same
@@ -97,11 +97,13 @@ In the SA+L proof, 12 values are produced:
 
 | Value | Type | How computed |
 |-------|------|-------------|
-| P, A, B, R_O, R_P, R_L | Points (6 × 32B) | Deterministically from transcript seed + public inputs |
-| s_alpha, s_beta, s_delta, s_z, s_r_p | Scalars (5 × 32B) | Deterministically from transcript seed + `x` + `r_i` |
+| P, A, B, R_L | Points (4 × 32B) | Deterministically from transcript seed + `x` + `r_i` |
+| R_O, R_P | Points (2 × 32B) | Deterministic nonces + FROST nonce commitment sum (`R_y`) |
+| s_alpha, s_beta, s_delta, s_z | Scalars (4 × 32B) | Deterministically from transcript seed + `x` + `r_i` |
 | **s_y** | **Scalar (32B)** | **FROST-aggregated from threshold shares** |
+| s_r_p | Scalar (32B) | Derived post-aggregation: `s_r_p_pre - s_y` |
 
-Only `s_y` requires the threshold protocol. Everything else is computed identically by each signer from a deterministic transcript seed. The FROST protocol aggregates `s_y = Σ(share_i)` and then `s_r_p` is derived from `s_y`.
+Only `s_y` requires the threshold protocol. 10 of 12 values are fully deterministic, computed identically by each signer from a deterministic transcript seed. `R_O` and `R_P` additionally incorporate the FROST nonce commitment sum. The FROST protocol aggregates `s_y = Σ(share_i)` and then `s_r_p` is derived as `s_r_p_pre - s_y`.
 
 This means:
 - The 2-round FROST protocol only aggregates a single scalar.
@@ -382,8 +384,8 @@ For readers familiar with our CLSAG implementation (see `PROTOCOL.md`):
 | What's threshold-shared | `b_i` (spend key share) | `y_i` (T-component share) |
 | Signing rounds | 2 (sequential round-robin) | 2 (parallel FROST) + 1 (aggregation) |
 | Ring selection | 16 decoys from `get_outs` | None — full-chain proof |
-| Proof size per input | 577 bytes | 480 bytes (96B tuple + 384B SA+L) |
-| Global proof | None | FCMP (variable, ~2-8KB) |
+| Proof size per input | 576 bytes | 480 bytes (96B tuple + 384B SA+L) |
+| Global proof | None | FCMP (variable, ~2-10KB) |
 | Aggregation location | Server (reconstructs `x_total`) | Client WASM (`SignatureMachine::complete()`) |
 | Ciphersuite | Ed25519 (generator G) | Ed25519T (generator T) |
 | Nonce reuse risk | Mitigated by round-robin ordering | Mitigated by FROST protocol (nonces bound to participant set) |
@@ -404,9 +406,9 @@ We added explicit `expected_proof_len` validation at two points in the pipeline.
 
 ### Only `s_y` is FROST-aggregated — everything else is deterministic
 
-We initially assumed the entire SA+L proof would need threshold aggregation across signers. Wrong. Reading `SalAlgorithm::sign()` and `verify()` carefully reveals that 11 of 12 proof values (6 points + 5 scalars) are computed deterministically from the transcript seed and public inputs. Only `s_y` — the scalar tied to the `T`-component private key share — goes through the FROST protocol.
+We initially assumed the entire SA+L proof would need threshold aggregation across signers. Wrong. Reading `SalAlgorithm::sign()` and `verify()` carefully reveals that 10 of 12 final proof values are fully deterministic from the transcript seed, public inputs, and the spend key `x`. Only `s_y` — the scalar tied to the `T`-component private key share — goes through the FROST protocol. The 12th value, `s_r_p`, is deterministically derived *after* aggregation as `s_r_p_pre - s_y`. Two points (`R_O`, `R_P`) additionally incorporate the FROST nonce commitment sum, but these are computed identically by all signers from public data.
 
-This matters architecturally: the FROST overhead is minimal (one scalar aggregation), and the rest of the proof is identical regardless of which 2-of-3 signers participate.
+This matters architecturally: the FROST overhead is minimal (one scalar aggregation, one post-aggregation derivation), and the rest of the proof is identical regardless of which 2-of-3 signers participate.
 
 ### Aggregation must happen client-side (and that's a feature)
 
@@ -435,9 +437,9 @@ Vendoring was the right call. We pinned a known-good commit and wrapped it with 
 
 ### Pseudo-outs binding changed and it matters for the signable hash
 
-In CLSAG transactions, pseudo-outs are part of the prunable hash (component 3 of the signable transaction hash). In FCMP++, the vendor's `FcmpPlusPlus::verify()` binds them in the base hash (component 2). We discovered this by reading `verify()`, not from any documentation.
+In CLSAG transactions, pseudo-outs are part of the prunable hash (component 3 of the signable transaction hash). In FCMP++, the vendor's `FcmpPlusPlus::verify()` docstring states that `signable_tx_hash` must be "binding to the transaction prefix, the RingCT base, and the pseudo-outs." The crate takes the hash as an opaque `[u8; 32]` — it doesn't compute it or enforce a specific component structure. We chose to bind pseudo-outs in the base hash (component 2) to satisfy this requirement.
 
-If you compute the signable hash the CLSAG way for an FCMP++ transaction, the proof verifies locally but the network rejects the TX because the hash doesn't match what verifiers expect. This is the kind of divergence that's invisible until you test against a real node.
+If you compute the signable hash the CLSAG way for an FCMP++ transaction — with pseudo-outs in component 3 instead of bound with the base — the SA+L proof signs a different message than verifiers expect. This is the kind of divergence that's invisible until you test against a real node. The exact component placement may change when the hard fork spec is finalized.
 
 ### Feature-gating is non-negotiable for dual-path code
 
