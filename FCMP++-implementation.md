@@ -392,6 +392,73 @@ The biggest architectural change is that **aggregation moved client-side**. In o
 
 ---
 
+## 12. Here's What We Learned
+
+Building a real integration against pre-release cryptographic primitives taught us things that no paper or API doc covers. These are the practical takeaways for anyone attempting FCMP++ integration.
+
+### The membership proof format will bite you silently
+
+`Fcmp::read()` is **not self-delimiting**. It expects the caller to compute `proof_size(inputs, layers) - 64` to know where the proof bytes end and the 64-byte `root_blind_pok` begins. If you get this wrong — wrong input count, wrong layer depth, wrong curve parameters — the deserialization silently splits the blob at the wrong offset. Both halves look like valid byte arrays. Both are garbage. There's no magic number, no length prefix, no checksum. You find out at verification time, or worse, you don't.
+
+We added explicit `expected_proof_len` validation at two points in the pipeline. Redundant? Maybe. But silent corruption in a financial transaction is the kind of bug you find on mainnet at 3 AM.
+
+### Only `s_y` is FROST-aggregated — everything else is deterministic
+
+We initially assumed the entire SA+L proof would need threshold aggregation across signers. Wrong. Reading `SalAlgorithm::sign()` and `verify()` carefully reveals that 11 of 12 proof values (6 points + 5 scalars) are computed deterministically from the transcript seed and public inputs. Only `s_y` — the scalar tied to the `T`-component private key share — goes through the FROST protocol.
+
+This matters architecturally: the FROST overhead is minimal (one scalar aggregation), and the rest of the proof is identical regardless of which 2-of-3 signers participate.
+
+### Aggregation must happen client-side (and that's a feature)
+
+We originally planned for the server to aggregate FROST shares into the final SA+L proof, like our CLSAG flow where the server reconstructs `x_total`. That's impossible with SA+L. `SignatureMachine::complete()` requires the `partial` state from `sign()` — specifically the intermediate SA+L values (P, A, B, R_O, R_P, R_L and the pre-scalars) that live in WASM memory.
+
+The server never has this state. It can't reconstruct it without keys. So aggregation lives in the client's browser.
+
+At first this felt like a limitation. Then we realized it's strictly better for the non-custodial property. In our CLSAG flow, the server transiently holds `x_total` during signing. In SA+L, the server literally cannot produce a valid proof. The math enforces what policy promises.
+
+### Ed25519T is not Ed25519 with a different name
+
+The SA+L ciphersuite uses generator `T` instead of `G`. This isn't cosmetic — it means the FROST DKG produces `ThresholdKeys<Ed25519T>`, not `ThresholdKeys<Ed25519>`. If you try to reuse your existing Ed25519 DKG infrastructure, the type system stops you (in Rust). In a language without strong typing on curve parameters, you'd get a valid-looking but wrong key package that produces invalid proofs.
+
+We had to build a separate DKG flow (`sal_dkg_part1/2/3`) alongside the existing FROST DKG for CLSAG. Code duplication? Yes. Type safety on cryptographic parameters? Worth it.
+
+### The vendor crate is research-grade, not integration-grade
+
+kayabaNerve's `monero-fcmp-plus-plus` is excellent cryptography, built for the Serai DEX. It is not built for external integrators. Expect:
+
+- Internal types that don't implement `Serialize`/`Deserialize` — you'll write conversion layers.
+- `prove()` and `verify()` that take 10+ parameters each, some of which are intermediate values from other functions with no obvious documentation on how to obtain them.
+- Test vectors that test the cryptographic primitives, not the integration surface.
+- Breaking API changes between commits (it's pre-release, this is expected).
+
+Vendoring was the right call. We pinned a known-good commit and wrapped it with our own typed API (`OnyxSalSigner`, `verify_sal_proof()`). When the crate stabilizes post-fork, we'll update the vendor and fix whatever breaks.
+
+### Pseudo-outs binding changed and it matters for the signable hash
+
+In CLSAG transactions, pseudo-outs are part of the prunable hash (component 3 of the signable transaction hash). In FCMP++, the vendor's `FcmpPlusPlus::verify()` binds them in the base hash (component 2). We discovered this by reading `verify()`, not from any documentation.
+
+If you compute the signable hash the CLSAG way for an FCMP++ transaction, the proof verifies locally but the network rejects the TX because the hash doesn't match what verifiers expect. This is the kind of divergence that's invisible until you test against a real node.
+
+### Feature-gating is non-negotiable for dual-path code
+
+We serve both CLSAG (current mainnet) and FCMP++ (post-fork) from the same codebase. Every FCMP++ code path is behind `#[cfg(feature = "fcmp")]`. Without this:
+
+- The TX builder would always include FCMP++ types, bloating the binary for mainnet users.
+- A bug in the FCMP++ path could break the working CLSAG path.
+- Dependency conflicts between the FCMP++ vendor crate and existing Monero crates would block compilation.
+
+The `fcmp` feature flag propagates through the entire stack: `onyx-crypto-core/fcmp` → `server/fcmp` → `wallet-wasm/fcmp`. Default build produces the current mainnet binary. `--features fcmp` adds the post-fork path. Both compile independently.
+
+### What we'd do differently
+
+1. **Start with the wire format, not the signing protocol.** We built signing first and serialization second. Should have been the reverse — the wire format is the contract with the network, and it constrains everything upstream.
+
+2. **Read `verify()` before `prove()`.** The verify function tells you exactly what the network checks. The prove function tells you how to produce a proof. The former is a spec; the latter is an implementation. When they diverge (and they will in pre-release code), trust verify.
+
+3. **Build a mock `Fcmp::read()` round-trip test on day one.** We caught the non-self-delimiting issue late. A simple serialize→deserialize round-trip with a wrong `layers` parameter would have surfaced it immediately.
+
+---
+
 ## References
 
 1. kayabaNerve, "Full-Chain Membership Proofs" — https://github.com/serai-dex/serai/tree/develop/networks/monero
