@@ -42,6 +42,10 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error, info, warn};
 
+use crate::services::transaction_builder::{
+    FcmpInputProof, FcmpMembershipProofData, FcmpPrunableData,
+};
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -182,6 +186,12 @@ pub struct SalSigningSession {
     /// Client-computed `Fcmp::proof_size(inputs, layers) - 64`.
     /// Stored at submission time, used by `attach_fcmp_proof()` for size validation.
     pub expected_proof_len: Option<usize>,
+    /// Client-aggregated SpendAuthAndLinkability proof (hex, 384 bytes = 768 hex chars).
+    /// Submitted by the aggregating signer after calling `sal_complete()` in WASM.
+    pub sal_proof_hex: Option<String>,
+    /// Per-input re-randomized tuples: hex-encoded `[O~(32) || I~(32) || R(32)]` (96 bytes each).
+    /// Needed to construct `FcmpInputProof` alongside the SA+L proof.
+    pub rerandomized_tuples_hex: Vec<String>,
     /// Creation timestamp (ISO 8601).
     pub created_at: String,
     /// Last update timestamp (ISO 8601).
@@ -248,6 +258,8 @@ impl SalSigningCoordinator {
             membership_proof_hex: None,
             root_blind_pok_hex: None,
             expected_proof_len: None,
+            sal_proof_hex: None,
+            rerandomized_tuples_hex: Vec::new(),
             created_at: now.clone(),
             updated_at: now,
         };
@@ -640,81 +652,190 @@ impl SalSigningCoordinator {
         Ok(())
     }
 
-    /// Aggregate SA+L partial signatures and build the final FCMP++ transaction.
+    /// Submit the client-aggregated SA+L proof.
     ///
-    /// This is the FCMP++ equivalent of `FrostSigningCoordinator::aggregate_and_broadcast()`.
+    /// FROST aggregation happens **client-side** in WASM (`sal_complete()`), because
+    /// the `SignatureMachine::complete()` method requires the partial SA+L data
+    /// (P, A, B, R_O, R_P, R_L, s_alpha...) which is computed inside `sign()` and
+    /// stored only in the WASM `SIG_MACHINES` state. The server is a blind relay —
+    /// it never holds keys or the FROST machine state.
     ///
-    /// # Prerequisites
-    /// - Both signers have submitted Round 1 (preprocess) and Round 2 (shares)
-    /// - Membership proof has been submitted via `submit_membership_proof()`
-    ///
-    /// # Returns
-    /// The assembled `FcmpPrunableData` ready to attach to the transaction builder.
-    ///
-    /// # Note
-    /// The actual FROST aggregation (deserializing preprocess/share bytes and calling
-    /// `modular_frost::SignatureMachine::complete()`) requires the WASM client to produce
-    /// compatible serialized bytes. The aggregation call site is structured but will need
-    /// adaptation when the client-side WASM is wired up.
-    pub fn aggregate_sal_proof(
-        session: &SalSigningSession,
+    /// # Arguments
+    /// * `sal_proof_hex` - Hex-encoded `SpendAuthAndLinkability::write()` output (768 hex = 384 bytes)
+    pub fn submit_sal_proof(
+        session: &mut SalSigningSession,
+        sal_proof_hex: &str,
     ) -> Result<()> {
-        // Validate state
         if session.state != SalSigningState::Round2Complete {
             anyhow::bail!(
-                "Cannot aggregate in state '{}' (need round2_complete)",
+                "Cannot submit SA+L proof in state '{}' (need round2_complete)",
                 session.state
             );
         }
 
-        if session.membership_proof_hex.is_none() {
-            anyhow::bail!("Membership proof not yet submitted");
+        let proof_bytes = hex::decode(sal_proof_hex)
+            .context("SA+L proof is not valid hex")?;
+
+        // SpendAuthAndLinkability = 6 points + 6 scalars = 12 × 32 = 384 bytes
+        if proof_bytes.len() != 384 {
+            anyhow::bail!(
+                "SA+L proof must be 384 bytes (12 × 32), got {}",
+                proof_bytes.len()
+            );
         }
 
-        // =====================================================================
-        // FIXME(fcmp-hardfork): Wire up FROST aggregation when client WASM
-        // produces compatible preprocess/share serialization.
-        // This is the critical integration point — without it, no FCMP++ TX
-        // can be broadcast. Blocked on client-side WASM completion.
-        // =====================================================================
-        //
-        // The full aggregation flow:
-        //
-        // 1. Deserialize Round 1 preprocess bytes → HashMap<Participant, Preprocess>
-        //    let preprocesses: HashMap<Participant, Vec<u8>> = session.round1
-        //        .iter()
-        //        .map(|r| (Participant::new(r.signer_index).unwrap(), hex::decode(&r.preprocess_hex).unwrap()))
-        //        .collect();
-        //
-        // 2. Deserialize Round 2 signature shares → HashMap<Participant, SignatureShare>
-        //    let shares: HashMap<Participant, Vec<u8>> = session.round2
-        //        .iter()
-        //        .map(|r| (Participant::new(r.signer_index).unwrap(), hex::decode(&r.share_hex).unwrap()))
-        //        .collect();
-        //
-        // 3. Complete signing → SpendAuthAndLinkability proof
-        //    let (key_image, sal_proof) = SignatureMachine::complete(shares)?;
-        //
-        // 4. Serialize SAL proof → FcmpInputProof
-        //    let mut sal_bytes = Vec::new();
-        //    sal_proof.write(&mut sal_bytes)?;
-        //    // Parse 12 × 32-byte chunks: 6 points + 6 scalars
-        //
-        // 5. Combine with membership proof → FcmpPrunableData
-        //
-        // This will be wired up when the client WASM produces compatible
-        // preprocess/share serialization.
-        // =====================================================================
+        session.sal_proof_hex = Some(sal_proof_hex.to_string());
+        session.updated_at = chrono::Utc::now().to_rfc3339();
 
         info!(
             escrow_id = %session.escrow_id,
-            round1_count = session.round1.len(),
-            round2_count = session.round2.len(),
-            has_membership = session.membership_proof_hex.is_some(),
-            "SA+L aggregation — data ready, pending FROST machine integration"
+            "SA+L proof submitted (384 bytes, client-aggregated)"
         );
 
         Ok(())
+    }
+
+    /// Submit per-input re-randomized tuples (O~, I~, R).
+    ///
+    /// These 96-byte tuples are needed alongside the SA+L proof to construct
+    /// `FcmpInputProof` for the TX builder. Each tuple is hex-encoded.
+    ///
+    /// # Arguments
+    /// * `tuples_hex` - Vec of hex-encoded tuples, each 192 hex chars (96 bytes: O~||I~||R)
+    pub fn submit_rerandomized_tuples(
+        session: &mut SalSigningSession,
+        tuples_hex: Vec<String>,
+    ) -> Result<()> {
+        if session.state != SalSigningState::Round2Complete {
+            anyhow::bail!(
+                "Cannot submit tuples in state '{}' (need round2_complete)",
+                session.state
+            );
+        }
+
+        for (i, hex_val) in tuples_hex.iter().enumerate() {
+            let bytes = hex::decode(hex_val)
+                .with_context(|| format!("Tuple {} is not valid hex", i))?;
+            if bytes.len() != 96 {
+                anyhow::bail!(
+                    "Tuple {} must be 96 bytes (O~||I~||R), got {}",
+                    i, bytes.len()
+                );
+            }
+        }
+
+        session.rerandomized_tuples_hex = tuples_hex;
+        session.updated_at = chrono::Utc::now().to_rfc3339();
+
+        info!(
+            escrow_id = %session.escrow_id,
+            tuple_count = session.rerandomized_tuples_hex.len(),
+            "Re-randomized tuples submitted"
+        );
+
+        Ok(())
+    }
+
+    /// Assemble `FcmpPrunableData` from the session's collected components.
+    ///
+    /// # Prerequisites (all checked)
+    /// - SA+L proof submitted via `submit_sal_proof()`
+    /// - Membership proof submitted via `submit_membership_proof()`
+    /// - Re-randomized tuples submitted via `submit_rerandomized_tuples()`
+    ///
+    /// # Returns
+    /// `FcmpPrunableData` ready to pass to `MoneroTransactionBuilder::attach_fcmp_proof()`.
+    pub fn assemble_fcmp_prunable(
+        session: &SalSigningSession,
+    ) -> Result<FcmpPrunableData> {
+        // Validate all components present
+        if session.state != SalSigningState::Round2Complete {
+            anyhow::bail!(
+                "Cannot assemble in state '{}' (need round2_complete)",
+                session.state
+            );
+        }
+
+        let sal_proof_hex = session.sal_proof_hex.as_ref()
+            .context("SA+L proof not yet submitted (call submit_sal_proof first)")?;
+        let membership_hex = session.membership_proof_hex.as_ref()
+            .context("Membership proof not yet submitted")?;
+        let root_pok_hex = session.root_blind_pok_hex.as_ref()
+            .context("root_blind_pok not yet submitted")?;
+        let expected_len = session.expected_proof_len
+            .context("expected_proof_len not set")?;
+
+        if session.rerandomized_tuples_hex.is_empty() {
+            anyhow::bail!("Re-randomized tuples not yet submitted");
+        }
+
+        // Parse SA+L proof (384 bytes → 12 × 32-byte chunks)
+        let sal_bytes = hex::decode(sal_proof_hex)
+            .context("SA+L proof hex decode failed")?;
+
+        // Parse into 6 points (P, A, B, R_O, R_P, R_L) + 6 scalars (s_alpha..s_r_p)
+        let mut sal_points = [[0u8; 32]; 6];
+        let mut sal_scalars = [[0u8; 32]; 6];
+        for i in 0..6 {
+            sal_points[i].copy_from_slice(&sal_bytes[i * 32..(i + 1) * 32]);
+        }
+        for i in 0..6 {
+            sal_scalars[i].copy_from_slice(&sal_bytes[(6 + i) * 32..(7 + i) * 32]);
+        }
+
+        // Parse per-input re-randomized tuples + build FcmpInputProofs
+        let input_count = session.rerandomized_tuples_hex.len();
+        let mut input_proofs = Vec::with_capacity(input_count);
+
+        for (i, tuple_hex) in session.rerandomized_tuples_hex.iter().enumerate() {
+            let tuple_bytes = hex::decode(tuple_hex)
+                .with_context(|| format!("Tuple {} hex decode failed", i))?;
+
+            let mut o_tilde = [0u8; 32];
+            let mut i_tilde = [0u8; 32];
+            let mut r = [0u8; 32];
+            o_tilde.copy_from_slice(&tuple_bytes[0..32]);
+            i_tilde.copy_from_slice(&tuple_bytes[32..64]);
+            r.copy_from_slice(&tuple_bytes[64..96]);
+
+            // Each input gets the SAME SA+L proof for a single-input TX.
+            // For multi-input TXs, each input would have its own SA+L signing session.
+            // The current escrow model is 1 input → 1 SA+L proof.
+            input_proofs.push(FcmpInputProof {
+                o_tilde,
+                i_tilde,
+                r,
+                sal_points,
+                sal_scalars,
+            });
+        }
+
+        // Parse membership proof
+        let proof_bytes = hex::decode(membership_hex)
+            .context("Membership proof hex decode failed")?;
+        let mut root_blind_pok = [0u8; 64];
+        let pok_bytes = hex::decode(root_pok_hex)
+            .context("root_blind_pok hex decode failed")?;
+        root_blind_pok.copy_from_slice(&pok_bytes);
+
+        let prunable = FcmpPrunableData {
+            input_proofs,
+            membership: FcmpMembershipProofData {
+                proof_bytes,
+                root_blind_pok,
+                expected_proof_len: expected_len,
+            },
+        };
+
+        info!(
+            escrow_id = %session.escrow_id,
+            input_count,
+            sal_proof_len = 384,
+            membership_len = prunable.membership.proof_bytes.len() + 64,
+            "FcmpPrunableData assembled — ready for TX builder"
+        );
+
+        Ok(prunable)
     }
 }
 

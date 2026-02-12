@@ -13,6 +13,10 @@ pub mod frost_dkg;
 pub mod multisig_coordinator;
 pub mod round_robin; // Round-robin CLSAG signing for 2-of-3 multisig (v0.8.0) // FROST DKG (RFC 9591) for 2-of-3 threshold CLSAG (v0.12.0)
 
+/// SA+L FROST signing for FCMP++ (post-fork)
+#[cfg(feature = "fcmp")]
+pub mod sal_signing;
+
 #[cfg(test)]
 mod test_vectors; // CLSAG test vector validation (audit module)
 
