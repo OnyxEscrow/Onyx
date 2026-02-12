@@ -216,7 +216,7 @@ where:
   bp_hash     = Keccak256(serialized_bulletproofs)
 ```
 
-In CLSAG, pseudo-outs appear in the prunable hash (component 3). In FCMP++, the vendor crate's `verify()` binds them in the base hash. We match that behavior.
+In CLSAG, pseudo-outs appear in the prunable hash (component 3). The vendor's `FcmpPlusPlus::verify()` (`lib.rs:312-313`) documents that `signable_tx_hash` "must be binding to the transaction prefix, the RingCT base, and the pseudo-outs." The crate takes the hash as an opaque `[u8; 32]` at `lib.rs:328` and passes it through to `SpendAuthAndLinkability::verify()` at `lib.rs:337` — it does not compute or enforce a specific hash structure. We chose to bind pseudo-outs in component 2 (the base hash) to satisfy this requirement. The exact component placement may change when the hard fork spec is finalized.
 
 ### 5.5 Membership Proof Size Validation
 
@@ -292,13 +292,13 @@ This is fundamentally a **node-side operation**. Either monerod provides an RPC 
 
 ### 7.2 Consensus Constants (Blocked — hard fork spec not frozen)
 
-| Constant | Our guess | Final value | Impact if wrong |
-|----------|-----------|-------------|-----------------|
-| TX version | 3 | TBD | 1-line change in `serialize_prefix()` |
-| RCT type | 7 | TBD | 1-line change in `serialize_rct_base()` |
-| Input type byte | 0x02 | TBD | 1-line change in `serialize_prefix()` |
-| Tree depth (`layers`) | Unknown | Consensus param | Affects `proof_size()` validation |
-| Key image location | TX prefix | May move to proof body | ~20-line refactor |
+| Constant | Our guess | Source of guess | Final value | Impact if wrong |
+|----------|-----------|----------------|-------------|-----------------|
+| TX version | 3 | Monero v2→v3 convention; no constant in vendor crate (it doesn't build TXs) | TBD | 1-line change in `serialize_prefix()` |
+| RCT type | 7 | Next after RCTTypeBulletproofPlus (6); vendor `FcmpPlusPlus::verify()` at `lib.rs:320` takes `signable_tx_hash` opaquely — no RCT type parsing | TBD | 1-line change in `serialize_rct_base()` |
+| Input type byte | 0x02 | Existing `txin_to_key` type byte; vendor doesn't serialize TX inputs — only consumes `Input` structs via `read()` at `lib.rs:288` | TBD | 1-line change in `serialize_prefix()` |
+| Tree depth (`layers`) | Unknown | `FcmpPlusPlus::verify()` takes `layers: usize` at `lib.rs:327` — consensus must define this | Consensus param | Affects `proof_size()` validation |
+| Key image location | TX prefix | Current Monero convention; vendor `verify()` takes `key_images: Vec<G>` at `lib.rs:329` separately from the proof struct | May move to proof body | ~20-line refactor |
 
 ### 7.3 Frontend Integration (Blocked — needs working aggregation E2E)
 
@@ -361,17 +361,17 @@ Wire the JS to call `sal_dkg_part1/2/3`, `sal_preprocess`, `sal_sign`, `sal_comp
 
 ## 10. Dependencies
 
-| Component | Crate | Source | Pinned |
-|-----------|-------|--------|--------|
-| SA+L Algorithm | `monero-fcmp-plus-plus` | kayabaNerve (Serai-DEX) | Vendored at commit `a1b2c3d` |
-| FROST Protocol | `modular-frost` | kayabaNerve | Via fcmp++ crate |
-| Ciphersuite | `ciphersuite` (Ed25519T) | kayabaNerve | Via fcmp++ crate |
-| Transcript | `flexible-transcript` | kayabaNerve | Via fcmp++ crate |
-| Curve arithmetic | `dalek-ff-group` | kayabaNerve | Via fcmp++ crate |
-| Bulletproofs | `generalized-bulletproofs` | kayabaNerve | Via fcmp++ crate |
-| WASM bindings | `wasm-bindgen` | Official | 0.2.x |
+| Component | Crate | Version | Source | Pinned |
+|-----------|-------|---------|--------|--------|
+| SA+L Algorithm | `monero-fcmp-plus-plus` | 0.1.0 | [kayabaNerve/fcmp-plus-plus](https://github.com/kayabaNerve/fcmp-plus-plus) `develop` branch | Vendored 2026-02-11, 208 files, 27,788 LOC |
+| FROST Protocol | `modular-frost` | 0.8.1 | [serai-dex/serai](https://github.com/serai-dex/serai) | Via fcmp++ vendor tree |
+| Ciphersuite | `ciphersuite` (Ed25519T) | — | kayabaNerve | Via fcmp++ vendor tree |
+| Transcript | `flexible-transcript` | 0.3.2 | kayabaNerve | Via fcmp++ vendor tree |
+| Curve arithmetic | `dalek-ff-group` | — | kayabaNerve | Via fcmp++ vendor tree |
+| Bulletproofs | `generalized-bulletproofs` | — | kayabaNerve | Via fcmp++ vendor tree |
+| WASM bindings | `wasm-bindgen` | 0.2.x | Official | crates.io |
 
-The entire `fcmp-plus-plus` dependency tree is vendored to avoid upstream breakage. When the final release ships, we'll update the vendor and run the test suite.
+The entire `fcmp-plus-plus` dependency tree (208 files) is vendored at `onyx-crypto-core/vendor/fcmp-plus-plus/` to avoid upstream breakage. No upstream commit hash was recorded at vendoring time — the upstream repo (`kayabaNerve/fcmp-plus-plus`) does not tag releases, and the `develop` branch moves frequently. The crate versions above (`monero-fcmp-plus-plus` 0.1.0, `modular-frost` 0.8.1) serve as the pinning reference. When the final release ships post-hard-fork, we'll update the vendor tree and run the full test suite.
 
 ---
 
