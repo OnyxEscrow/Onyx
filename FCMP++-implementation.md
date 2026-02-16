@@ -4,7 +4,7 @@ Onyx-Escrow's Pre-Hard-Fork Integration with Full-Chain Membership Proofs
 
 **Version:** 0.1.0-draft
 **Status:** Speculative — blocked on Monero hard fork
-**Last Updated:** 2026-02-12
+**Last Updated:** 2026-02-16
 
 ---
 
@@ -21,7 +21,27 @@ We built this now because the cryptographic primitives are stable enough to arch
 
 ---
 
-## 1. What FCMP++ Replaces
+## 1. Integration Findings
+
+We integrated `monero-fcmp-plus-plus` (vendored from kayabaNerve's `develop` branch, 208 files, ~28K LOC) into a 2-of-3 threshold escrow system with WASM client-side signing. SA+L DKG, rerandomization, signing, and batch verification all pass. TX v3 serialization produces structurally correct blobs. ~740 tests across the workspace. What follows are the non-obvious things we discovered — the kind of integration feedback that doesn't appear in API docs.
+
+**1. `Fcmp::read()` is not self-delimiting.** The proof format requires the caller to precompute `proof_size(inputs, layers) - 64` to know where proof bytes end and the 64-byte `root_blind_pok` begins. A wrong `layers` value silently splits the blob at the wrong offset. Both halves look like valid byte arrays. Both are garbage. No magic number, no length prefix, no checksum. We added explicit `expected_proof_len` validation at two pipeline stages (`submit_membership_proof()` and `attach_fcmp_proof()`). See Section 6.5.
+
+**2. Only `s_y` is FROST-aggregated.** We initially assumed the entire SA+L proof required threshold aggregation. Wrong. Reading `SalAlgorithm::sign()` reveals that 10 of 12 proof values are fully deterministic from the transcript seed, public inputs, and spend key `x`. Only `s_y` — the scalar tied to the `T`-component share — goes through FROST. The 12th value `s_r_p` is derived post-aggregation as `s_r_p_pre - s_y`. FROST overhead is one scalar aggregation. See Section 4.1.
+
+**3. Aggregation must happen client-side.** `SignatureMachine::complete()` needs the `partial` state from `sign()` — the intermediate SA+L values (P, A, B, R_O, R_P, R_L and pre-scalars) that live in WASM memory. The server never has this state and cannot reconstruct it. This is strictly better for non-custodial properties than our CLSAG flow, where the server transiently holds `x_total`. With SA+L, the server literally cannot produce a valid proof. See Section 4.2.
+
+**4. Ed25519T is not Ed25519 with a different name.** The SA+L ciphersuite uses generator `T` instead of `G`. FROST DKG produces `ThresholdKeys<Ed25519T>`, not `ThresholdKeys<Ed25519>`. Reusing an existing Ed25519 DKG gives valid-looking but wrong key packages. We built a separate DKG flow (`sal_dkg_part1/2/3`). Type safety > code reuse for cryptographic parameters.
+
+**5. Pseudo-outs binding moved.** In CLSAG, pseudo-outs are in the prunable hash (component 3). The vendor's `FcmpPlusPlus::verify()` states that `signable_tx_hash` must bind to "the transaction prefix, the RingCT base, and the pseudo-outs." The crate takes the hash as an opaque `[u8; 32]` — it doesn't enforce a component structure. We bind pseudo-outs in component 2 (base hash). Computing the hash the CLSAG way for an FCMP++ TX makes the SA+L proof sign a different message than verifiers expect. See Section 6.4.
+
+**6. The crate is research-grade, not integration-grade.** Internal types lack `Serialize`/`Deserialize`. `prove()` and `verify()` take 10+ parameters, some of which are intermediate values from other functions with no documentation on how to obtain them. Test vectors validate primitives, not the integration surface. We vendored a known-good commit and wrapped it with our own typed API (`OnyxSalSigner`, `verify_sal_proof()`).
+
+**What we'd do differently:** start with the wire format (not the signing protocol) — it's the network contract and constrains everything upstream. Read `verify()` before `prove()` — the former is a spec, the latter is an implementation. Build a mock `Fcmp::read()` round-trip test on day one to catch the non-self-delimiting issue early.
+
+---
+
+## 2. What FCMP++ Replaces
 
 Currently (Monero v0.18.x), spending an output requires proving you own it by producing a **CLSAG ring signature** over a ring of 16 outputs (1 real + 15 decoys). The anonymity set is 16.
 
@@ -35,7 +55,7 @@ The practical effect: no more rings, no more decoy selection, no more timing ana
 
 ---
 
-## 2. Architecture Overview
+## 3. Architecture Overview
 
 ### What changes in the transaction format
 
@@ -87,11 +107,11 @@ The practical effect: no more rings, no more decoy selection, no more timing ana
 
 ---
 
-## 3. The SA+L Signing Protocol
+## 4. The SA+L Signing Protocol
 
 SA+L uses `modular-frost` (from the `monero-fcmp-plus-plus` crate) instantiated over `Ed25519T` — a custom ciphersuite where the generator is `T` (the re-randomization base) instead of `G`. This is because only the `y` component of the output key `O = xG + yT` is threshold-shared. The `x` (spend key) is provided directly.
 
-### 3.1 Key Insight: What Gets Threshold-Signed
+### 4.1 Key Insight: What Gets Threshold-Signed
 
 In the SA+L proof, 12 values are produced:
 
@@ -110,7 +130,7 @@ This means:
 - The partial SA+L data (P, A, B, etc.) lives in the `SalAlgorithm` state inside each signer's WASM.
 - The server never sees or needs any of it.
 
-### 3.2 Three-Round Flow
+### 4.2 Three-Round Flow
 
 ```
 Round 1 — Preprocess (both signers, parallel):
@@ -132,13 +152,13 @@ Round 3 — Complete (ONE signer, the "aggregator"):
 
 The aggregation MUST happen client-side because `SignatureMachine::complete()` needs the `SalAlgorithm`'s internal `partial` state (set during `sign()`). The server doesn't have this state and can't reconstruct it without keys.
 
-### 3.3 Identifiable Abort
+### 4.3 Identifiable Abort
 
 If a signer submits an invalid share, `complete()` returns `FrostError::InvalidShare(participant)`. The server can identify and blame the misbehaving signer. No protocol restart is needed — the honest parties can re-run with the third (arbiter) signer instead.
 
 ---
 
-## 4. Re-randomization
+## 5. Re-randomization
 
 Before SA+L proving, each output must be re-randomized to break the link between the on-chain output and the proof. This produces:
 
@@ -155,11 +175,11 @@ The re-randomized tuple `(O~, I~, R)` is 96 bytes and appears in the TX body. `C
 
 ---
 
-## 5. Transaction Serialization (v3)
+## 6. Transaction Serialization (v3)
 
 Our TX builder supports dual-path serialization. When `FcmpPrunableData` is attached, it emits a v3 transaction:
 
-### 5.1 Prefix
+### 6.1 Prefix
 
 ```
 version: 3 (varint)
@@ -179,7 +199,7 @@ extra: [tx_pubkey, ...]
 
 The critical difference from v2: `num_key_offsets = 0` for each input. There are no ring members — membership is proved globally by the FCMP.
 
-### 5.2 RCT Base
+### 6.2 RCT Base
 
 ```
 rct_type: 7 (single byte)
@@ -188,7 +208,7 @@ ecdhInfo: 8 bytes per output
 outPk: 32 bytes per output
 ```
 
-### 5.3 RCT Prunable (FCMP++)
+### 6.3 RCT Prunable (FCMP++)
 
 ```
 bulletproofPlus: [range_proof]    ← unchanged from v2
@@ -205,7 +225,7 @@ root_blind_pok: 64 bytes
 pseudo_outs: 32 bytes per input
 ```
 
-### 5.4 Signable Transaction Hash
+### 6.4 Signable Transaction Hash
 
 ```
 signable_hash = Keccak256(prefix_hash || component2 || bp_hash)
@@ -218,7 +238,7 @@ where:
 
 In CLSAG, pseudo-outs appear in the prunable hash (component 3). The vendor's `FcmpPlusPlus::verify()` (`lib.rs:312-313`) documents that `signable_tx_hash` "must be binding to the transaction prefix, the RingCT base, and the pseudo-outs." The crate takes the hash as an opaque `[u8; 32]` at `lib.rs:328` and passes it through to `SpendAuthAndLinkability::verify()` at `lib.rs:337` — it does not compute or enforce a specific hash structure. We chose to bind pseudo-outs in component 2 (the base hash) to satisfy this requirement. The exact component placement may change when the hard fork spec is finalized.
 
-### 5.5 Membership Proof Size Validation
+### 6.5 Membership Proof Size Validation
 
 The FCMP proof format is **not self-delimiting**. `Fcmp::read(inputs, layers)` computes the exact proof size from:
 
@@ -237,7 +257,7 @@ The `expected_proof_len` is provided by the client (which has access to the curv
 
 ---
 
-## 6. What's Implemented (with file references)
+## 7. What's Implemented (with file references)
 
 ### Crypto Layer (onyx-crypto-core)
 
@@ -277,9 +297,9 @@ The `expected_proof_len` is provided by the client (which has access to the curv
 
 ---
 
-## 7. What's NOT Implemented (Blockers)
+## 8. What's NOT Implemented (Blockers)
 
-### 7.1 Membership Proof Generation (Blocked — requires chain state)
+### 8.1 Membership Proof Generation (Blocked — requires chain state)
 
 The FCMP membership proof (`Fcmp::prove()`) requires:
 - The full Curve Trees accumulator (built from the entire UTXO set)
@@ -290,7 +310,7 @@ This is fundamentally a **node-side operation**. Either monerod provides an RPC 
 
 **Our code accepts the proof as an opaque blob from the client.** When the infrastructure exists, the client generates it and submits it via `submit_membership_proof()`.
 
-### 7.2 Consensus Constants (Blocked — hard fork spec not frozen)
+### 8.2 Consensus Constants (Blocked — hard fork spec not frozen)
 
 | Constant | Our guess | Source of guess | Final value | Impact if wrong |
 |----------|-----------|----------------|-------------|-----------------|
@@ -300,11 +320,11 @@ This is fundamentally a **node-side operation**. Either monerod provides an RPC 
 | Tree depth (`layers`) | Unknown | `FcmpPlusPlus::verify()` takes `layers: usize` at `lib.rs:327` — consensus must define this | Consensus param | Affects `proof_size()` validation |
 | Key image location | TX prefix | Current Monero convention; vendor `verify()` takes `key_images: Vec<G>` at `lib.rs:329` separately from the proof struct | May move to proof body | ~20-line refactor |
 
-### 7.3 Frontend Integration (Blocked — needs working aggregation E2E)
+### 8.3 Frontend Integration (Blocked — needs working aggregation E2E)
 
 No JavaScript calls the WASM `sal_*` functions yet. The frontend work follows naturally once we can test the full flow on a testnet with FCMP++ activated.
 
-### 7.4 monerod RPC Changes (Blocked — hard fork)
+### 8.4 monerod RPC Changes (Blocked — hard fork)
 
 - `get_outs` is irrelevant (no ring selection needed)
 - Curve Trees RPC (for membership proof generation) doesn't exist yet
@@ -312,7 +332,7 @@ No JavaScript calls the WASM `sal_*` functions yet. The frontend work follows na
 
 ---
 
-## 8. What Works Today (Without the Hard Fork)
+## 9. What Works Today (Without the Hard Fork)
 
 Despite the blockers above, the following is fully functional and tested:
 
@@ -326,7 +346,7 @@ What we **cannot** test today: submitting a v3 TX to monerod and having it accep
 
 ---
 
-## 9. Migration Path (When the Fork Happens)
+## 10. Migration Path (When the Fork Happens)
 
 ### Phase 1: Constants update (day 1)
 
@@ -359,7 +379,7 @@ Wire the JS to call `sal_dkg_part1/2/3`, `sal_preprocess`, `sal_sign`, `sal_comp
 
 ---
 
-## 10. Dependencies
+## 11. Dependencies
 
 | Component | Crate | Version | Source | Pinned |
 |-----------|-------|---------|--------|--------|
@@ -375,7 +395,7 @@ The entire `fcmp-plus-plus` dependency tree (208 files) is vendored at `onyx-cry
 
 ---
 
-## 11. Differences from CLSAG Threshold Signing
+## 12. Differences from CLSAG Threshold Signing
 
 For readers familiar with our CLSAG implementation (see `PROTOCOL.md`):
 
@@ -391,73 +411,6 @@ For readers familiar with our CLSAG implementation (see `PROTOCOL.md`):
 | Nonce reuse risk | Mitigated by round-robin ordering | Mitigated by FROST protocol (nonces bound to participant set) |
 
 The biggest architectural change is that **aggregation moved client-side**. In our CLSAG flow, the server reconstructs `x_total` from FROST shares and Lagrange interpolation, then builds the full CLSAG. In SA+L, the server can't do this because `complete()` needs the partial proof state from `sign()`. This is actually better for the non-custodial property — the server never touches anything resembling a private key, even transiently.
-
----
-
-## 12. Here's What We Learned
-
-Building a real integration against pre-release cryptographic primitives taught us things that no paper or API doc covers. These are the practical takeaways for anyone attempting FCMP++ integration.
-
-### The membership proof format will bite you silently
-
-`Fcmp::read()` is **not self-delimiting**. It expects the caller to compute `proof_size(inputs, layers) - 64` to know where the proof bytes end and the 64-byte `root_blind_pok` begins. If you get this wrong — wrong input count, wrong layer depth, wrong curve parameters — the deserialization silently splits the blob at the wrong offset. Both halves look like valid byte arrays. Both are garbage. There's no magic number, no length prefix, no checksum. You find out at verification time, or worse, you don't.
-
-We added explicit `expected_proof_len` validation at two points in the pipeline. Redundant? Maybe. But silent corruption in a financial transaction is the kind of bug you find on mainnet at 3 AM.
-
-### Only `s_y` is FROST-aggregated — everything else is deterministic
-
-We initially assumed the entire SA+L proof would need threshold aggregation across signers. Wrong. Reading `SalAlgorithm::sign()` and `verify()` carefully reveals that 10 of 12 final proof values are fully deterministic from the transcript seed, public inputs, and the spend key `x`. Only `s_y` — the scalar tied to the `T`-component private key share — goes through the FROST protocol. The 12th value, `s_r_p`, is deterministically derived *after* aggregation as `s_r_p_pre - s_y`. Two points (`R_O`, `R_P`) additionally incorporate the FROST nonce commitment sum, but these are computed identically by all signers from public data.
-
-This matters architecturally: the FROST overhead is minimal (one scalar aggregation, one post-aggregation derivation), and the rest of the proof is identical regardless of which 2-of-3 signers participate.
-
-### Aggregation must happen client-side (and that's a feature)
-
-We originally planned for the server to aggregate FROST shares into the final SA+L proof, like our CLSAG flow where the server reconstructs `x_total`. That's impossible with SA+L. `SignatureMachine::complete()` requires the `partial` state from `sign()` — specifically the intermediate SA+L values (P, A, B, R_O, R_P, R_L and the pre-scalars) that live in WASM memory.
-
-The server never has this state. It can't reconstruct it without keys. So aggregation lives in the client's browser.
-
-At first this felt like a limitation. Then we realized it's strictly better for the non-custodial property. In our CLSAG flow, the server transiently holds `x_total` during signing. In SA+L, the server literally cannot produce a valid proof. The math enforces what policy promises.
-
-### Ed25519T is not Ed25519 with a different name
-
-The SA+L ciphersuite uses generator `T` instead of `G`. This isn't cosmetic — it means the FROST DKG produces `ThresholdKeys<Ed25519T>`, not `ThresholdKeys<Ed25519>`. If you try to reuse your existing Ed25519 DKG infrastructure, the type system stops you (in Rust). In a language without strong typing on curve parameters, you'd get a valid-looking but wrong key package that produces invalid proofs.
-
-We had to build a separate DKG flow (`sal_dkg_part1/2/3`) alongside the existing FROST DKG for CLSAG. Code duplication? Yes. Type safety on cryptographic parameters? Worth it.
-
-### The vendor crate is research-grade, not integration-grade
-
-kayabaNerve's `monero-fcmp-plus-plus` is excellent cryptography, built for the Serai DEX. It is not built for external integrators. Expect:
-
-- Internal types that don't implement `Serialize`/`Deserialize` — you'll write conversion layers.
-- `prove()` and `verify()` that take 10+ parameters each, some of which are intermediate values from other functions with no obvious documentation on how to obtain them.
-- Test vectors that test the cryptographic primitives, not the integration surface.
-- Breaking API changes between commits (it's pre-release, this is expected).
-
-Vendoring was the right call. We pinned a known-good commit and wrapped it with our own typed API (`OnyxSalSigner`, `verify_sal_proof()`). When the crate stabilizes post-fork, we'll update the vendor and fix whatever breaks.
-
-### Pseudo-outs binding changed and it matters for the signable hash
-
-In CLSAG transactions, pseudo-outs are part of the prunable hash (component 3 of the signable transaction hash). In FCMP++, the vendor's `FcmpPlusPlus::verify()` docstring states that `signable_tx_hash` must be "binding to the transaction prefix, the RingCT base, and the pseudo-outs." The crate takes the hash as an opaque `[u8; 32]` — it doesn't compute it or enforce a specific component structure. We chose to bind pseudo-outs in the base hash (component 2) to satisfy this requirement.
-
-If you compute the signable hash the CLSAG way for an FCMP++ transaction — with pseudo-outs in component 3 instead of bound with the base — the SA+L proof signs a different message than verifiers expect. This is the kind of divergence that's invisible until you test against a real node. The exact component placement may change when the hard fork spec is finalized.
-
-### Feature-gating is non-negotiable for dual-path code
-
-We serve both CLSAG (current mainnet) and FCMP++ (post-fork) from the same codebase. Every FCMP++ code path is behind `#[cfg(feature = "fcmp")]`. Without this:
-
-- The TX builder would always include FCMP++ types, bloating the binary for mainnet users.
-- A bug in the FCMP++ path could break the working CLSAG path.
-- Dependency conflicts between the FCMP++ vendor crate and existing Monero crates would block compilation.
-
-The `fcmp` feature flag propagates through the entire stack: `onyx-crypto-core/fcmp` → `server/fcmp` → `wallet-wasm/fcmp`. Default build produces the current mainnet binary. `--features fcmp` adds the post-fork path. Both compile independently.
-
-### What we'd do differently
-
-1. **Start with the wire format, not the signing protocol.** We built signing first and serialization second. Should have been the reverse — the wire format is the contract with the network, and it constrains everything upstream.
-
-2. **Read `verify()` before `prove()`.** The verify function tells you exactly what the network checks. The prove function tells you how to produce a proof. The former is a spec; the latter is an implementation. When they diverge (and they will in pre-release code), trust verify.
-
-3. **Build a mock `Fcmp::read()` round-trip test on day one.** We caught the non-self-delimiting issue late. A simple serialize→deserialize round-trip with a wrong `layers` parameter would have surfaced it immediately.
 
 ---
 
