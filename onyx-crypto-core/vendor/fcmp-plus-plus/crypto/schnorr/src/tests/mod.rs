@@ -37,7 +37,7 @@ pub(crate) fn batch_verify<C: Ciphersuite>() {
   let mut keys = vec![];
   let mut challenges = vec![];
   let mut sigs = vec![];
-  for i in 0 .. 5 {
+  for i in 0..5 {
     keys.push(Zeroizing::new(C::random_nonzero_F(&mut OsRng)));
     challenges.push(C::random_nonzero_F(&mut OsRng));
     sigs.push(SchnorrSignature::<C>::sign(
@@ -84,7 +84,7 @@ pub(crate) fn aggregate<C: Ciphersuite>() {
   let mut keys = vec![];
   let mut challenges = vec![];
   let mut aggregator = SchnorrAggregator::<C>::new(DST);
-  for i in 0 .. 5 {
+  for i in 0..5 {
     keys.push(Zeroizing::new(C::random_nonzero_F(&mut OsRng)));
     // In practice, this MUST be a secure challenge binding to the nonce, key, and any message
     challenges.push(C::random_nonzero_F(&mut OsRng));

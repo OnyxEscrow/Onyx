@@ -114,7 +114,7 @@ fn vectors_to_multisig_keys<C: Curve>(vectors: &Vectors) -> HashMap<Participant,
   let verification_shares = shares.iter().map(|secret| C::generator() * secret).collect::<Vec<_>>();
 
   let mut keys = HashMap::new();
-  for i in 1 ..= u16::try_from(shares.len()).unwrap() {
+  for i in 1..=u16::try_from(shares.len()).unwrap() {
     // Manually re-implement the serialization for ThresholdCore to import this data
     let mut serialized = vec![];
     serialized.extend(u32::try_from(C::ID.len()).unwrap().to_le_bytes());
@@ -344,14 +344,14 @@ pub fn test_with_vectors<R: RngCore + CryptoRng, C: Curve, H: Hram<C>>(
       let (_, preprocess) = machine.preprocess(&mut frosts.clone());
 
       // Calculate the expected nonces
-      let mut expected = (C::generator() *
-        C::random_nonce(keys[i].secret_share(), &mut TransparentRng(vec![randomness.0])).deref())
+      let mut expected = (C::generator()
+        * C::random_nonce(keys[i].secret_share(), &mut TransparentRng(vec![randomness.0])).deref())
       .to_bytes()
       .as_ref()
       .to_vec();
       expected.extend(
-        (C::generator() *
-          C::random_nonce(keys[i].secret_share(), &mut TransparentRng(vec![randomness.1]))
+        (C::generator()
+          * C::random_nonce(keys[i].secret_share(), &mut TransparentRng(vec![randomness.1]))
             .deref())
         .to_bytes()
         .as_ref(),

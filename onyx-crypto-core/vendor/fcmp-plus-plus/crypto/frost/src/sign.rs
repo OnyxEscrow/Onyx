@@ -296,7 +296,7 @@ impl<C: Curve, A: Algorithm<C>> SignMachine<A::Signature> for AlgorithmSignMachi
       Err(FrostError::InvalidParticipant(multisig_params.n(), included[included.len() - 1]))?;
     }
     // Same signer included multiple times
-    for i in 0 .. (included.len() - 1) {
+    for i in 0..(included.len() - 1) {
       if included[i] == included[i + 1] {
         Err(FrostError::DuplicatedParticipant(included[i]))?;
       }
@@ -355,8 +355,8 @@ impl<C: Curve, A: Algorithm<C>> SignMachine<A::Signature> for AlgorithmSignMachi
       let mut rho_transcript = A::Transcript::new(b"FROST_rho");
       rho_transcript.append_message(
         b"group_key",
-        (self.params.keys.group_key() +
-          (C::generator() * self.params.keys.current_offset().unwrap_or(C::F::ZERO)))
+        (self.params.keys.group_key()
+          + (C::generator() * self.params.keys.current_offset().unwrap_or(C::F::ZERO)))
         .to_bytes(),
       );
       rho_transcript.append_message(b"message", C::hash_msg(msg));

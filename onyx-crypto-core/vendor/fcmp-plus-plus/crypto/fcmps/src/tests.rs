@@ -191,7 +191,7 @@ fn random_paths(
   assert!(paths <= LAYER_ONE_LEN.min(LAYER_TWO_LEN));
 
   let mut res = vec![];
-  for _ in 0 .. paths {
+  for _ in 0..paths {
     let (path, _root) = random_path(params, layers);
     res.push(path);
   }
@@ -466,7 +466,7 @@ fn blind_branches(
 ) -> BranchesWithBlinds<MoneroCurves> {
   let branch_blinds_start = std::time::Instant::now();
   let mut branches_1_blinds = vec![];
-  for _ in 0 .. branches.necessary_c1_blinds() {
+  for _ in 0..branches.necessary_c1_blinds() {
     branches_1_blinds.push(BranchBlind::<<Selene as Ciphersuite>::G>::new(
       params.curve_1_generators.h(),
       ScalarDecomposition::new(<Selene as Ciphersuite>::F::random(&mut OsRng)).unwrap(),
@@ -474,7 +474,7 @@ fn blind_branches(
   }
 
   let mut branches_2_blinds = vec![];
-  for _ in 0 .. branches.necessary_c2_blinds() {
+  for _ in 0..branches.necessary_c2_blinds() {
     branches_2_blinds.push(BranchBlind::<<Helios as Ciphersuite>::G>::new(
       params.curve_2_generators.h(),
       ScalarDecomposition::new(<Helios as Ciphersuite>::F::random(&mut OsRng)).unwrap(),
@@ -501,13 +501,13 @@ fn verify_fn(
   inputs: &[Input<<Selene as Ciphersuite>::F>],
 ) {
   let mut times = vec![];
-  for _ in 0 .. iters {
+  for _ in 0..iters {
     let instant = std::time::Instant::now();
 
     let mut verifier_1 = generalized_bulletproofs::Generators::batch_verifier();
     let mut verifier_2 = generalized_bulletproofs::Generators::batch_verifier();
 
-    for _ in 0 .. batch {
+    for _ in 0..batch {
       proof
         .verify(&mut OsRng, &mut verifier_1, &mut verifier_2, params, root, layers, inputs)
         .unwrap();
@@ -528,7 +528,7 @@ fn test_single_input() {
 
   let output_blinds = random_output_blinds(G, T, U, V);
 
-  for layers in 1 ..= (TARGET_LAYERS + 1) {
+  for layers in 1..=(TARGET_LAYERS + 1) {
     println!("Testing a proof with 1 input and {layers} layers");
 
     let (path, root) = random_path(&params, layers);
@@ -555,15 +555,15 @@ fn test_multiple_inputs() {
 
   let mut all_proofs = vec![];
 
-  for paths in 2 ..= 4 {
+  for paths in 2..=4 {
     // This is less than target layers yet still tests a C1 root and a C2 root
-    for layers in 1 ..= 4 {
+    for layers in 1..=4 {
       println!("Testing a proof with {paths} inputs and {layers} layers");
 
       let (paths, root) = random_paths(&params, layers, paths);
 
       let mut output_blinds = vec![];
-      for _ in 0 .. paths.len() {
+      for _ in 0..paths.len() {
         output_blinds.push(random_output_blinds(G, T, U, V));
       }
 
@@ -604,7 +604,7 @@ fn test_malleated_proofs() {
       let (paths, root) = random_paths(&params, layers, paths);
 
       let mut output_blinds = vec![];
-      for _ in 0 .. paths.len() {
+      for _ in 0..paths.len() {
         output_blinds.push(random_output_blinds(G, T, U, V));
       }
 
@@ -623,7 +623,7 @@ fn test_malleated_proofs() {
         proof.write(&mut buf).unwrap();
       }
 
-      for i in 0 .. buf.len() {
+      for i in 0..buf.len() {
         let mut buf = buf.clone();
         let existing_byte = buf[i];
         while buf[i] == existing_byte {
@@ -637,8 +637,8 @@ fn test_malleated_proofs() {
             .verify(&mut OsRng, &mut verifier_1, &mut verifier_2, &params, root, layers, &inputs)
             .is_ok()
           {
-            let valid = params.curve_1_generators.verify(verifier_1) &&
-              params.curve_2_generators.verify(verifier_2);
+            let valid = params.curve_1_generators.verify(verifier_1)
+              && params.curve_2_generators.verify(verifier_2);
             assert!(!valid, "malleated proof yet still verified");
           }
         }
@@ -653,11 +653,11 @@ fn prove_benchmark() {
 
   let (G, T, U, V, params) = random_params(8);
 
-  for paths in 1 ..= 4 {
+  for paths in 1..=4 {
     let (paths, _root) = random_paths(&params, TARGET_LAYERS, paths);
 
     let mut set_size = 1u64;
-    for i in 0 .. TARGET_LAYERS {
+    for i in 0..TARGET_LAYERS {
       if i % 2 == 0 {
         set_size *= u64::try_from(LAYER_ONE_LEN).unwrap();
       } else {
@@ -668,9 +668,9 @@ fn prove_benchmark() {
     let branches = Branches::new(paths.clone()).unwrap();
 
     let prove_start = std::time::Instant::now();
-    for _ in 0 .. 10 {
+    for _ in 0..10 {
       let mut output_blinds = vec![];
-      for _ in 0 .. paths.len() {
+      for _ in 0..paths.len() {
         output_blinds.push(random_output_blinds(G, T, U, V));
       }
 
@@ -716,7 +716,7 @@ fn verify_benchmark() {
 
 #[test]
 fn proof_sizes() {
-  for inputs in 0 ..= 256 {
+  for inputs in 0..=256 {
     println!(
       "Proof size for {inputs} inputs: {}",
       Fcmp::<MoneroCurves>::proof_size(inputs, TARGET_LAYERS)

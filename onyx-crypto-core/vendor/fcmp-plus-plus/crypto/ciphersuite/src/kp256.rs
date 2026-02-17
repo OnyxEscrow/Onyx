@@ -33,13 +33,13 @@ macro_rules! kp_curve {
 
       fn reduce_512(scalar: [u8; 64]) -> Self::F {
         let mut modulus = [0; 64];
-        modulus[32 ..].copy_from_slice(&(Self::F::ZERO - Self::F::ONE).to_bytes());
+        modulus[32..].copy_from_slice(&(Self::F::ZERO - Self::F::ONE).to_bytes());
         let modulus = U512::from_be_slice(&modulus).checked_add(&U512::ONE).unwrap();
 
         let mut wide =
           U512::from_be_bytes(scalar).rem(&NonZero::new(modulus).unwrap()).to_be_bytes();
 
-        let mut array = *GenericArray::from_slice(&wide[32 ..]);
+        let mut array = *GenericArray::from_slice(&wide[32..]);
         let res = $lib::Scalar::from_repr(array).unwrap();
 
         wide.zeroize();
@@ -77,7 +77,7 @@ macro_rules! kp_curve {
         let mut modulus = [0; L];
         // The byte repr of scalars will be 32 big-endian bytes
         // Set the lower 32 bytes of our 48-byte array accordingly
-        modulus[16 ..].copy_from_slice(&(Self::F::ZERO - Self::F::ONE).to_bytes());
+        modulus[16..].copy_from_slice(&(Self::F::ZERO - Self::F::ONE).to_bytes());
         // Use a checked_add + unwrap since this addition cannot fail (being a 32-byte value with
         // 48-bytes of space)
         // While a non-panicking saturating_add/wrapping_add could be used, they'd likely be less
@@ -96,7 +96,7 @@ macro_rules! kp_curve {
         .to_be_bytes();
 
         // Now that this has been reduced back to a 32-byte value, grab the lower 32-bytes
-        let mut array = *GenericArray::from_slice(&wide[16 ..]);
+        let mut array = *GenericArray::from_slice(&wide[16..]);
         let res = $lib::Scalar::from_repr(array).unwrap();
 
         // Zeroize the temp values we can due to the possibility hash_to_F is being used for nonces

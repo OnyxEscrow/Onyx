@@ -53,9 +53,9 @@ where
     let R = generator * nonce.deref();
     SchnorrPoK {
       R,
-      s: (SchnorrPoK::hra(transcript, generator, R, generator * private_key.deref()) *
-        private_key.deref()) +
-        nonce.deref(),
+      s: (SchnorrPoK::hra(transcript, generator, R, generator * private_key.deref())
+        * private_key.deref())
+        + nonce.deref(),
     }
   }
 

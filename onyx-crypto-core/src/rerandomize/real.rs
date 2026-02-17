@@ -7,9 +7,9 @@ use rand_core::{CryptoRng, RngCore};
 
 use ciphersuite::{group::GroupEncoding, Ciphersuite, Ed25519};
 use dalek_ff_group::EdwardsPoint;
+use fcmp_monero_generators::{FCMP_U, FCMP_V, T};
 use monero_fcmp_plus_plus::sal::RerandomizedOutput as VendorRerandomizedOutput;
 use monero_fcmp_plus_plus::Output as FcmpOutput;
-use fcmp_monero_generators::{FCMP_U, FCMP_V, T};
 
 use crate::types::errors::{CryptoError, CryptoResult};
 

@@ -23,7 +23,7 @@ impl<C: Ciphersuite> Circuit<C> {
 
     // Create challenges which we use to aggregate tuples into LinCombs
     let mut challenges = vec![];
-    for _ in 0 .. member.len() {
+    for _ in 0..member.len() {
       challenges.push(transcript.challenge::<C>());
     }
 

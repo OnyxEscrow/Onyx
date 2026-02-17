@@ -153,8 +153,8 @@ where
 
     for mut path in paths {
       // Check the path length is consistent
-      if (path.curve_1_layers.len() != expected_1_layers) ||
-        (path.curve_2_layers.len() != expected_2_layers)
+      if (path.curve_1_layers.len() != expected_1_layers)
+        || (path.curve_2_layers.len() != expected_2_layers)
       {
         None?;
       }
@@ -193,9 +193,9 @@ where
 
   /// The amount of branch blinds needed on the first curve.
   pub fn necessary_c1_blinds(&self) -> usize {
-    self.per_input.len() *
-      (usize::from(u8::from(self.per_input[0].1.leaves.is_some())) +
-        self.per_input[0].1.curve_1_layers.len())
+    self.per_input.len()
+      * (usize::from(u8::from(self.per_input[0].1.leaves.is_some()))
+        + self.per_input[0].1.curve_1_layers.len())
   }
 
   /// The amount of branch blinds needed on the second curve.
@@ -210,9 +210,9 @@ where
     branches_1_blinds: Vec<BranchBlind<<C::C1 as Ciphersuite>::G>>,
     branches_2_blinds: Vec<BranchBlind<<C::C2 as Ciphersuite>::G>>,
   ) -> Result<BranchesWithBlinds<C>, FcmpError> {
-    if (output_blinds.len() != self.per_input.len()) ||
-      (branches_1_blinds.len() != self.necessary_c1_blinds()) ||
-      (branches_2_blinds.len() != self.necessary_c2_blinds())
+    if (output_blinds.len() != self.per_input.len())
+      || (branches_1_blinds.len() != self.necessary_c1_blinds())
+      || (branches_2_blinds.len() != self.necessary_c2_blinds())
     {
       Err(FcmpError::IncorrectBlindQuantity)?;
     }

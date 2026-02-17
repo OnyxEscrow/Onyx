@@ -13,7 +13,7 @@ macro_rules! run_bench {
     let start = unsafe { core::arch::x86::_rdtsc() };
     #[cfg(target_arch = "x86_64")]
     let start = unsafe { core::arch::x86_64::_rdtsc() };
-    for _ in 0 .. $n_iters {
+    for _ in 0..$n_iters {
       let _ = core::hint::black_box($op);
     }
     #[cfg(target_arch = "x86")]

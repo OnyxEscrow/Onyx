@@ -176,18 +176,18 @@ pub use types::fcmp_types::{
 /// Re-export of vendor types for direct use by consumers.
 #[cfg(feature = "fcmp")]
 pub mod vendor {
-    /// SA+L proof type from kayabaNerve's crate.
-    pub use monero_fcmp_plus_plus::sal::SpendAuthAndLinkability;
-    /// Re-randomized output from kayabaNerve's crate.
-    pub use monero_fcmp_plus_plus::sal::RerandomizedOutput as VendorRerandomizedOutput;
     /// Opened input tuple for spending.
     pub use monero_fcmp_plus_plus::sal::OpenedInputTuple;
+    /// Re-randomized output from kayabaNerve's crate.
+    pub use monero_fcmp_plus_plus::sal::RerandomizedOutput as VendorRerandomizedOutput;
+    /// SA+L proof type from kayabaNerve's crate.
+    pub use monero_fcmp_plus_plus::sal::SpendAuthAndLinkability;
+    /// Full FCMP++ proof.
+    pub use monero_fcmp_plus_plus::FcmpPlusPlus;
     /// Input tuple (O~, I~, R, C~).
     pub use monero_fcmp_plus_plus::Input;
     /// FCMP++ output type.
     pub use monero_fcmp_plus_plus::Output;
-    /// Full FCMP++ proof.
-    pub use monero_fcmp_plus_plus::FcmpPlusPlus;
     /// FCMP++ parameters.
     pub use monero_fcmp_plus_plus::FCMP_PARAMS;
 
@@ -196,67 +196,63 @@ pub mod vendor {
     /// SA+L multisig algorithm.
     pub use monero_fcmp_plus_plus::sal::multisig::SalAlgorithm;
 
-    /// Scalar type from dalek-ff-group.
-    pub use dalek_ff_group::Scalar;
     /// EdwardsPoint type from dalek-ff-group.
     pub use dalek_ff_group::EdwardsPoint;
+    /// Scalar type from dalek-ff-group.
+    pub use dalek_ff_group::Scalar;
 
-    /// FROST types from modular-frost.
-    pub use modular_frost::{
-        Participant, ThresholdKeys, ThresholdView, ThresholdParams, ThresholdCore,
-    };
     /// FROST algorithm trait.
     pub use modular_frost::algorithm::Algorithm;
     /// FROST signing machines (stateful, between rounds).
     pub use modular_frost::sign::{
-        AlgorithmMachine, AlgorithmSignMachine, AlgorithmSignatureMachine,
-        Preprocess, SignatureShare, CachedPreprocess,
-        PreprocessMachine, SignMachine, SignatureMachine,
-        Writable,
+        AlgorithmMachine, AlgorithmSignMachine, AlgorithmSignatureMachine, CachedPreprocess,
+        Preprocess, PreprocessMachine, SignMachine, SignatureMachine, SignatureShare, Writable,
+    };
+    /// FROST types from modular-frost.
+    pub use modular_frost::{
+        Participant, ThresholdCore, ThresholdKeys, ThresholdParams, ThresholdView,
     };
 
+    /// DKG encryption types (for serializing Round 1/2 messages).
+    pub use modular_frost::dkg::encryption::{EncryptedMessage, EncryptionKeyMessage};
     /// FROST DKG machines (Ed25519T key generation).
     pub use modular_frost::dkg::frost::{
-        KeyGenMachine, SecretShareMachine, KeyMachine, BlameMachine,
-        Commitments as DkgCommitments, SecretShare as DkgSecretShare,
+        BlameMachine, Commitments as DkgCommitments, KeyGenMachine, KeyMachine,
+        SecretShare as DkgSecretShare, SecretShareMachine,
     };
-    /// DKG encryption types (for serializing Round 1/2 messages).
-    pub use modular_frost::dkg::encryption::{
-        EncryptionKeyMessage, EncryptedMessage,
-    };
-    /// DKG error types.
-    pub use modular_frost::dkg::DkgError;
     /// Lagrange interpolation.
     pub use modular_frost::dkg::lagrange;
+    /// DKG error types.
+    pub use modular_frost::dkg::DkgError;
 
     /// Generators T, U, V.
-    pub use fcmp_monero_generators::{T, FCMP_U, FCMP_V};
+    pub use fcmp_monero_generators::{FCMP_U, FCMP_V, T};
 
     // === Curve Tree types ===
 
-    /// Curve cycle configuration (Ed25519 → Selene → Helios).
-    pub use monero_fcmp_plus_plus::Curves;
     /// Helios/Selene ciphersuites.
     pub use ciphersuite::{Helios, Selene};
-    /// FCMP tree root type.
-    pub use monero_fcmp_plus_plus::fcmps::TreeRoot;
+    /// Batch verifier for proof verification.
+    pub use generalized_bulletproofs::BatchVerifier;
     /// FCMP proof type (serializable).
     pub use monero_fcmp_plus_plus::fcmps::Fcmp;
     /// FCMP prover path type.
     pub use monero_fcmp_plus_plus::fcmps::Path;
+    /// FCMP tree root type.
+    pub use monero_fcmp_plus_plus::fcmps::TreeRoot;
+    /// Curve cycle configuration (Ed25519 → Selene → Helios).
+    pub use monero_fcmp_plus_plus::Curves;
     /// Selene/Helios generators.
-    pub use monero_fcmp_plus_plus::{SELENE_GENERATORS, HELIOS_GENERATORS};
-    /// Batch verifier for proof verification.
-    pub use generalized_bulletproofs::BatchVerifier;
+    pub use monero_fcmp_plus_plus::{HELIOS_GENERATORS, SELENE_GENERATORS};
 
-    /// Ciphersuite traits.
-    pub use ciphersuite::{Ciphersuite, Ed25519};
     /// Group encoding (for point → bytes conversion).
     pub use ciphersuite::group::GroupEncoding;
+    /// Ciphersuite traits.
+    pub use ciphersuite::{Ciphersuite, Ed25519};
 
     /// Transcript trait and concrete type.
-    pub use flexible_transcript::{Transcript, RecommendedTranscript};
+    pub use flexible_transcript::{RecommendedTranscript, Transcript};
 
     /// RNG trait re-exports for FROST operations.
-    pub use rand_core::{RngCore, CryptoRng};
+    pub use rand_core::{CryptoRng, RngCore};
 }

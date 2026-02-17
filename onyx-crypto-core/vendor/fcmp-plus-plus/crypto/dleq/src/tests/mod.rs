@@ -46,22 +46,18 @@ fn test_dleq() {
   let generators = generators();
   let transcript = || RecommendedTranscript::new(b"DLEq Proof Test");
 
-  for i in 0 .. 5 {
+  for i in 0..5 {
     let key = Zeroizing::new(Scalar::random(&mut OsRng));
-    let proof = DLEqProof::prove(&mut OsRng, &mut transcript(), &generators[.. i], &key);
+    let proof = DLEqProof::prove(&mut OsRng, &mut transcript(), &generators[..i], &key);
 
     let mut keys = [ProjectivePoint::GENERATOR; 5];
-    for k in 0 .. 5 {
+    for k in 0..5 {
       keys[k] = generators[k] * key.deref();
     }
-    proof.verify(&mut transcript(), &generators[.. i], &keys[.. i]).unwrap();
+    proof.verify(&mut transcript(), &generators[..i], &keys[..i]).unwrap();
     // Different challenge
     assert!(proof
-      .verify(
-        &mut RecommendedTranscript::new(b"different challenge"),
-        &generators[.. i],
-        &keys[.. i]
-      )
+      .verify(&mut RecommendedTranscript::new(b"different challenge"), &generators[..i], &keys[..i])
       .is_err());
 
     // All of these following tests should effectively be a different challenge and accordingly
@@ -77,16 +73,16 @@ fn test_dleq() {
       assert!(proof
         .verify(
           &mut transcript(),
-          generators[.. i].iter().copied().rev().collect::<Vec<_>>().as_ref(),
-          &keys[.. i]
+          generators[..i].iter().copied().rev().collect::<Vec<_>>().as_ref(),
+          &keys[..i]
         )
         .is_err());
       // Different keys
       assert!(proof
         .verify(
           &mut transcript(),
-          &generators[.. i],
-          keys[.. i].iter().copied().rev().collect::<Vec<_>>().as_ref()
+          &generators[..i],
+          keys[..i].iter().copied().rev().collect::<Vec<_>>().as_ref()
         )
         .is_err());
     }
@@ -107,17 +103,17 @@ fn test_multi_dleq() {
   let transcript = || RecommendedTranscript::new(b"MultiDLEq Proof Test");
 
   // Test up to 3 keys
-  for k in 0 ..= 3 {
+  for k in 0..=3 {
     let mut keys = vec![];
     let mut these_generators = vec![];
     let mut pub_keys = vec![];
-    for i in 0 .. k {
+    for i in 0..k {
       let key = Zeroizing::new(Scalar::random(&mut OsRng));
       // For each key, test a variable set of generators
       // 0: 0
       // 1: 1, 2
       // 2: 2, 3, 4
-      let key_generators = generators[i ..= (i + i)].to_vec();
+      let key_generators = generators[i..=(i + i)].to_vec();
       let mut these_pub_keys = vec![];
       for generator in &key_generators {
         these_pub_keys.push(generator * key.deref());
@@ -137,7 +133,7 @@ fn test_multi_dleq() {
 
     // Test verifying for a different amount of keys fail
     if k > 0 {
-      assert!(proof.verify(&mut transcript(), &these_generators, &pub_keys[.. k - 1]).is_err());
+      assert!(proof.verify(&mut transcript(), &these_generators, &pub_keys[..k - 1]).is_err());
     }
 
     #[cfg(feature = "serialize")]

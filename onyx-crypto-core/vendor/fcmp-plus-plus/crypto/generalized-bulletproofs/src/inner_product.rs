@@ -64,7 +64,7 @@ impl<C: Ciphersuite> IpWitness<C> {
     let missing = padded_pow_of_2(a.len()) - a.len();
     a.0.reserve(missing);
     b.0.reserve(missing);
-    for _ in 0 .. missing {
+    for _ in 0..missing {
       a.0.push(C::F::ZERO);
       b.0.push(C::F::ZERO);
     }
@@ -303,7 +303,7 @@ impl<'a, C: Ciphersuite> IpStatement<'a, C> {
     let mut L = Vec::with_capacity(lr_len);
     let mut R = Vec::with_capacity(lr_len);
     let mut xs: Vec<C::F> = Vec::with_capacity(lr_len);
-    for _ in 0 .. lr_len {
+    for _ in 0..lr_len {
       L.push(transcript.read_point::<C>().map_err(|_| IpError::IncompleteProof)?);
       R.push(transcript.read_point::<C>().map_err(|_| IpError::IncompleteProof)?);
       xs.push(transcript.challenge::<C>());
@@ -354,11 +354,11 @@ impl<'a, C: Ciphersuite> IpStatement<'a, C> {
 
     // The g_bold * a term case from line 16
     #[allow(clippy::needless_range_loop)]
-    for i in 0 .. generators.g_bold_slice().len() {
+    for i in 0..generators.g_bold_slice().len() {
       verifier.g_bold[i] -= weight * product_cache[i] * a;
     }
     // The h_bold * b term case from line 16
-    for i in 0 .. generators.h_bold_slice().len() {
+    for i in 0..generators.h_bold_slice().len() {
       verifier.h_bold[i] -=
         weight * product_cache[product_cache.len() - 1 - i] * b * h_bold_weights[i];
     }

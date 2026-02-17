@@ -107,7 +107,7 @@ pub fn test_mul<G: Group>() {
 
   let s = rand_core::OsRng.next_u64() >> 56;
   let mut res = G::identity();
-  for _ in 0 .. s {
+  for _ in 0..s {
     res += G::generator();
   }
   assert_eq!(
@@ -135,7 +135,7 @@ pub fn test_random<R: RngCore, G: Group>(rng: &mut R) {
   // Groups of order <= 2 will always fail this test due to lack of distinct elements to sample
   // from
   let mut pass = false;
-  for _ in 0 .. 128 {
+  for _ in 0..128 {
     let b = G::random(&mut *rng);
     assert!(!bool::from(b.is_identity()), "random returned identity");
 

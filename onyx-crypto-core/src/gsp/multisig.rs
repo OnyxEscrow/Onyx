@@ -34,11 +34,10 @@ use ciphersuite::{
 };
 use dalek_ff_group::{EdwardsPoint, Scalar};
 use flexible_transcript::Transcript;
-use monero_fcmp_plus_plus::sal::{
-    multisig::SalAlgorithm,
-    RerandomizedOutput, SpendAuthAndLinkability,
-};
 use modular_frost::Participant;
+use monero_fcmp_plus_plus::sal::{
+    multisig::SalAlgorithm, RerandomizedOutput, SpendAuthAndLinkability,
+};
 
 use crate::types::errors::{CryptoError, CryptoResult};
 
@@ -78,9 +77,8 @@ impl<R: Send + Sync + Clone + RngCore + CryptoRng> OnyxSalSigner<R> {
         rerandomized_output: RerandomizedOutput,
         x_secret: Scalar,
     ) -> Self {
-        let transcript = flexible_transcript::RecommendedTranscript::new(
-            b"Onyx FCMP++ SA+L Signing v1",
-        );
+        let transcript =
+            flexible_transcript::RecommendedTranscript::new(b"Onyx FCMP++ SA+L Signing v1");
 
         let algorithm = SalAlgorithm::new(
             rng,
@@ -104,17 +102,15 @@ impl<R: Send + Sync + Clone + RngCore + CryptoRng> OnyxSalSigner<R> {
 /// Convert a raw 32-byte scalar to the vendor's `Scalar` type.
 pub fn bytes_to_scalar(bytes: &[u8; 32]) -> CryptoResult<Scalar> {
     let repr = <Scalar as PrimeField>::Repr::from(*bytes);
-    Option::from(Scalar::from_repr(repr)).ok_or_else(|| {
-        CryptoError::InvalidSecretKey("Invalid scalar encoding".into())
-    })
+    Option::from(Scalar::from_repr(repr))
+        .ok_or_else(|| CryptoError::InvalidSecretKey("Invalid scalar encoding".into()))
 }
 
 /// Convert a raw 32-byte point to the vendor's `EdwardsPoint`.
 pub fn bytes_to_point(bytes: &[u8; 32]) -> CryptoResult<EdwardsPoint> {
     let repr = <EdwardsPoint as GroupEncoding>::Repr::from(*bytes);
-    Option::from(EdwardsPoint::from_bytes(&repr)).ok_or_else(|| {
-        CryptoError::InvalidPublicKey("Invalid point encoding".into())
-    })
+    Option::from(EdwardsPoint::from_bytes(&repr))
+        .ok_or_else(|| CryptoError::InvalidPublicKey("Invalid point encoding".into()))
 }
 
 /// Verify a `SpendAuthAndLinkability` proof.

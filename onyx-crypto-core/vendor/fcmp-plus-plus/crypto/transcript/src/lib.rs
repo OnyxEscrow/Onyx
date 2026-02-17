@@ -137,7 +137,7 @@ impl<D: Send + Clone + SecureDigest> Transcript for DigestTranscript<D> {
 
   fn rng_seed(&mut self, label: &'static [u8]) -> [u8; 32] {
     let mut seed = [0; 32];
-    seed.copy_from_slice(&self.challenge(label)[.. 32]);
+    seed.copy_from_slice(&self.challenge(label)[..32]);
     seed
   }
 }
@@ -156,7 +156,7 @@ where
     // block_size returns the block_size in bytes
     // Use a ceil div in case the block size isn't evenly divisible by our word size
     let words = (D::block_size() + (WORD_SIZE - 1)) / WORD_SIZE;
-    for _ in 0 .. (2 * words) {
+    for _ in 0..(2 * words) {
       self.0.update([255; WORD_SIZE]);
     }
 

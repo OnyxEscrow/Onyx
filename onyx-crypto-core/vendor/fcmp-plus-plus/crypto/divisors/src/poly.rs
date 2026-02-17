@@ -26,8 +26,8 @@ impl ConstantTimeEq for CoefficientIndex {
 }
 impl ConstantTimeGreater for CoefficientIndex {
   fn ct_gt(&self, other: &Self) -> Choice {
-    self.y_pow.ct_gt(&other.y_pow) |
-      (self.y_pow.ct_eq(&other.y_pow) & self.x_pow.ct_gt(&other.x_pow))
+    self.y_pow.ct_gt(&other.y_pow)
+      | (self.y_pow.ct_eq(&other.y_pow) & self.x_pow.ct_gt(&other.x_pow))
   }
 }
 
@@ -49,16 +49,15 @@ impl<F: From<u64> + Zeroize + PrimeField> PartialEq for Poly<F> {
   fn eq(&self, b: &Poly<F>) -> bool {
     {
       let mutual_y_coefficients = self.y_coefficients.len().min(b.y_coefficients.len());
-      if self.y_coefficients[.. mutual_y_coefficients] != b.y_coefficients[.. mutual_y_coefficients]
-      {
+      if self.y_coefficients[..mutual_y_coefficients] != b.y_coefficients[..mutual_y_coefficients] {
         return false;
       }
-      for coeff in &self.y_coefficients[mutual_y_coefficients ..] {
+      for coeff in &self.y_coefficients[mutual_y_coefficients..] {
         if *coeff != F::ZERO {
           return false;
         }
       }
-      for coeff in &b.y_coefficients[mutual_y_coefficients ..] {
+      for coeff in &b.y_coefficients[mutual_y_coefficients..] {
         if *coeff != F::ZERO {
           return false;
         }
@@ -85,16 +84,15 @@ impl<F: From<u64> + Zeroize + PrimeField> PartialEq for Poly<F> {
 
     {
       let mutual_x_coefficients = self.x_coefficients.len().min(b.x_coefficients.len());
-      if self.x_coefficients[.. mutual_x_coefficients] != b.x_coefficients[.. mutual_x_coefficients]
-      {
+      if self.x_coefficients[..mutual_x_coefficients] != b.x_coefficients[..mutual_x_coefficients] {
         return false;
       }
-      for coeff in &self.x_coefficients[mutual_x_coefficients ..] {
+      for coeff in &self.x_coefficients[mutual_x_coefficients..] {
         if *coeff != F::ZERO {
           return false;
         }
       }
-      for coeff in &b.x_coefficients[mutual_x_coefficients ..] {
+      for coeff in &b.x_coefficients[mutual_x_coefficients..] {
         if *coeff != F::ZERO {
           return false;
         }
@@ -128,7 +126,7 @@ impl<F: From<u64> + Zeroize + PrimeField> Add<&Self> for Poly<F> {
     while self.yx_coefficients.len() < other.yx_coefficients.len() {
       self.yx_coefficients.push(vec![]);
     }
-    for i in 0 .. other.yx_coefficients.len() {
+    for i in 0..other.yx_coefficients.len() {
       while self.yx_coefficients[i].len() < other.yx_coefficients[i].len() {
         self.yx_coefficients[i].push(F::ZERO);
       }
@@ -212,7 +210,7 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
     }
 
     // Shift up every x coefficient
-    for _ in 0 .. power_of_x {
+    for _ in 0..power_of_x {
       self.x_coefficients.insert(0, F::ZERO);
       for yx_coeffs in &mut self.yx_coefficients {
         yx_coeffs.insert(0, F::ZERO);
@@ -248,7 +246,7 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
     }
 
     // Shift up every y coefficient
-    for _ in 0 .. power_of_y {
+    for _ in 0..power_of_y {
       self.y_coefficients.insert(0, F::ZERO);
       self.yx_coefficients.insert(0, vec![]);
     }
@@ -320,9 +318,9 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
       leading_coefficient = <_>::conditional_select(
         &leading_coefficient,
         &potential,
-        coeff_is_non_zero &
-          potential.ct_gt(&leading_coefficient) &
-          (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
+        coeff_is_non_zero
+          & potential.ct_gt(&leading_coefficient)
+          & (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
       );
     }
     for (y_pow_sub_one, yx_coefficients) in self.yx_coefficients.iter().enumerate() {
@@ -334,9 +332,9 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
         leading_coefficient = <_>::conditional_select(
           &leading_coefficient,
           &potential,
-          coeff_is_non_zero &
-            potential.ct_gt(&leading_coefficient) &
-            (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
+          coeff_is_non_zero
+            & potential.ct_gt(&leading_coefficient)
+            & (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
         );
       }
     }
@@ -347,9 +345,9 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
       leading_coefficient = <_>::conditional_select(
         &leading_coefficient,
         &potential,
-        coeff_is_non_zero &
-          potential.ct_gt(&leading_coefficient) &
-          (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
+        coeff_is_non_zero
+          & potential.ct_gt(&leading_coefficient)
+          & (potential.ct_gt(greater_than_or_equal) | potential.ct_eq(greater_than_or_equal)),
       );
     }
     leading_coefficient
@@ -512,9 +510,9 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
     }
 
     // Calculate the amount of iterations we need to perform
-    let iterations = self.y_coefficients.len() +
-      self.yx_coefficients.iter().map(|yx_coefficients| yx_coefficients.len()).sum::<usize>() +
-      self.x_coefficients.len();
+    let iterations = self.y_coefficients.len()
+      + self.yx_coefficients.iter().map(|yx_coefficients| yx_coefficients.len()).sum::<usize>()
+      + self.x_coefficients.len();
 
     // Find the highest non-zero coefficient in the denominator
     // This is the coefficient which we actually perform division with
@@ -525,15 +523,15 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
 
     let mut quotient = quotient_structure.clone();
     let mut remainder = self.clone();
-    for _ in 0 .. iterations {
+    for _ in 0..iterations {
       // Find the numerator coefficient we're clearing
       // This will be (0, 0) if we aren't clearing a coefficient
       let numerator_coefficient =
         remainder.greater_than_or_equal_coefficient(&denominator_dividing_coefficient);
 
       // We only apply the effects of this iteration if the numerator's coefficient is actually >=
-      let meaningful_iteration = numerator_coefficient.ct_gt(&denominator_dividing_coefficient) |
-        numerator_coefficient.ct_eq(&denominator_dividing_coefficient);
+      let meaningful_iteration = numerator_coefficient.ct_gt(&denominator_dividing_coefficient)
+        | numerator_coefficient.ct_eq(&denominator_dividing_coefficient);
 
       // 1) Find the scalar `q` such that the leading coefficient of `q * denominator` is equal to
       //    the leading coefficient of self.
@@ -586,8 +584,8 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
         let index =
           CoefficientIndex { y_pow: remainder.y_coefficients.len().try_into().unwrap(), x_pow: 0 };
         bool::from(
-          index.ct_gt(&denominator_leading_coefficient) |
-            index.ct_eq(&denominator_leading_coefficient),
+          index.ct_gt(&denominator_leading_coefficient)
+            | index.ct_eq(&denominator_leading_coefficient),
         )
       } {
         let popped = remainder.y_coefficients.pop();
@@ -605,8 +603,8 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
             .unwrap(),
         };
         bool::from(
-          index.ct_gt(&denominator_leading_coefficient) |
-            index.ct_eq(&denominator_leading_coefficient),
+          index.ct_gt(&denominator_leading_coefficient)
+            | index.ct_eq(&denominator_leading_coefficient),
         )
       } {
         let popped = remainder.yx_coefficients.last_mut().unwrap().pop();
@@ -623,8 +621,8 @@ impl<F: From<u64> + Zeroize + PrimeField> Poly<F> {
         let index =
           CoefficientIndex { y_pow: 0, x_pow: remainder.x_coefficients.len().try_into().unwrap() };
         bool::from(
-          index.ct_gt(&denominator_leading_coefficient) |
-            index.ct_eq(&denominator_leading_coefficient),
+          index.ct_gt(&denominator_leading_coefficient)
+            | index.ct_eq(&denominator_leading_coefficient),
         )
       } {
         let popped = remainder.x_coefficients.pop();

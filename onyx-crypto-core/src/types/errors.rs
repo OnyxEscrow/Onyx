@@ -450,8 +450,14 @@ impl fmt::Display for CryptoError {
             CryptoError::GspNonceError(msg) => {
                 write!(f, "GSP nonce error: {msg}")
             }
-            CryptoError::GspPartialVerificationFailed { faulty_signer, reason } => {
-                write!(f, "GSP partial verification failed for signer {faulty_signer}: {reason}")
+            CryptoError::GspPartialVerificationFailed {
+                faulty_signer,
+                reason,
+            } => {
+                write!(
+                    f,
+                    "GSP partial verification failed for signer {faulty_signer}: {reason}"
+                )
             }
             CryptoError::GspProofVerificationFailed(msg) => {
                 write!(f, "GSP proof verification failed: {msg}")

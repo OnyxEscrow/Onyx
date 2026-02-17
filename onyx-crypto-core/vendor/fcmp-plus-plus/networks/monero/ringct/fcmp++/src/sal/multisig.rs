@@ -176,10 +176,10 @@ impl<
 
     let alpha_G = G * *alpha;
 
-    let A = alpha_G +
-      (V * *beta) +
-      (U * ((*alpha * self.rerandomized_output.r_i) + (*beta * self.x))) +
-      (T * *delta);
+    let A = alpha_G
+      + (V * *beta)
+      + (U * ((*alpha * self.rerandomized_output.r_i) + (*beta * self.x)))
+      + (T * *delta);
     let B = (U * (*alpha * *beta)) + (T * *mu);
 
     let R_L = (self.rerandomized_output.input().I_tilde * *alpha) - (U * *r_z);

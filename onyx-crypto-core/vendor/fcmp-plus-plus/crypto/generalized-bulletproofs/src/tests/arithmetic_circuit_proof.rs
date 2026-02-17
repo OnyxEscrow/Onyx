@@ -106,7 +106,7 @@ fn test_vector_commitment_arithmetic_circuit() {
 fn fuzz_test_arithmetic_circuit() {
   let generators = generators(32);
 
-  for i in 0 .. 100 {
+  for i in 0..100 {
     dbg!(i);
 
     // Create aL, aR, aO
@@ -144,25 +144,25 @@ fn fuzz_test_arithmetic_circuit() {
 
     // Generate random constraints
     let mut constraints = vec![];
-    for _ in 0 .. (OsRng.next_u64() % 8).try_into().unwrap() {
+    for _ in 0..(OsRng.next_u64() % 8).try_into().unwrap() {
       let mut eval = <Ristretto as Ciphersuite>::F::ZERO;
       let mut constraint = LinComb::empty();
 
-      for _ in 0 .. (OsRng.next_u64() % 4) {
+      for _ in 0..(OsRng.next_u64() % 4) {
         let index = usize::try_from(OsRng.next_u64()).unwrap() % aL.len();
         let weight = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
         constraint = constraint.term(weight, Variable::aL(index));
         eval += weight * aL[index];
       }
 
-      for _ in 0 .. (OsRng.next_u64() % 4) {
+      for _ in 0..(OsRng.next_u64() % 4) {
         let index = usize::try_from(OsRng.next_u64()).unwrap() % aR.len();
         let weight = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
         constraint = constraint.term(weight, Variable::aR(index));
         eval += weight * aR[index];
       }
 
-      for _ in 0 .. (OsRng.next_u64() % 4) {
+      for _ in 0..(OsRng.next_u64() % 4) {
         let index = usize::try_from(OsRng.next_u64()).unwrap() % aO.len();
         let weight = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
         constraint = constraint.term(weight, Variable::aO(index));
@@ -170,7 +170,7 @@ fn fuzz_test_arithmetic_circuit() {
       }
 
       for (commitment, C) in C.iter().enumerate() {
-        for _ in 0 .. (OsRng.next_u64() % 4) {
+        for _ in 0..(OsRng.next_u64() % 4) {
           let index = usize::try_from(OsRng.next_u64()).unwrap() % C.g_values.len();
           let weight = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
           constraint = constraint.term(weight, Variable::CG { commitment, index });
@@ -179,7 +179,7 @@ fn fuzz_test_arithmetic_circuit() {
       }
 
       if !V.is_empty() {
-        for _ in 0 .. (OsRng.next_u64() % 4) {
+        for _ in 0..(OsRng.next_u64() % 4) {
           let index = usize::try_from(OsRng.next_u64()).unwrap() % V.len();
           let weight = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
           constraint = constraint.term(weight, Variable::V(index));

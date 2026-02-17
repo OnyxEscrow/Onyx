@@ -15,48 +15,40 @@
 use crate::types::errors::{CryptoError, CryptoResult};
 
 // Re-export curve types from vendor
-pub use ciphersuite::{Ciphersuite, Ed25519, Helios, Selene};
 pub use ciphersuite::group::{
     ff::{Field, PrimeField, PrimeFieldBits},
     Group, GroupEncoding,
 };
+pub use ciphersuite::{Ciphersuite, Ed25519, Helios, Selene};
 pub use dalek_ff_group::{EdwardsPoint, Scalar};
 
 // Re-export FCMP curve configuration
 pub use monero_fcmp_plus_plus::{
-    Curves, Ed25519Params, SeleneParams, HeliosParams,
-    FCMP_PARAMS, HELIOS_GENERATORS, SELENE_GENERATORS,
-    HELIOS_HASH_INIT, SELENE_HASH_INIT,
+    Curves, Ed25519Params, HeliosParams, SeleneParams, FCMP_PARAMS, HELIOS_GENERATORS,
+    HELIOS_HASH_INIT, SELENE_GENERATORS, SELENE_HASH_INIT,
 };
 
 // Re-export tree-building types from fcmps
 pub use monero_fcmp_plus_plus::fcmps::{
-    FcmpCurves, FcmpParams, TreeRoot,
-    Output as FcmpOutput,
-    Input as FcmpInput,
-    Fcmp, FcmpError,
-    LAYER_ONE_LEN, LAYER_TWO_LEN,
     tree::{hash_grow, hash_trim},
+    Fcmp, FcmpCurves, FcmpError, FcmpParams, Input as FcmpInput, Output as FcmpOutput, TreeRoot,
+    LAYER_ONE_LEN, LAYER_TWO_LEN,
 };
 
 // Re-export prover types
 pub use monero_fcmp_plus_plus::fcmps::{
-    Path, Branches, BranchesWithBlinds,
-    OutputBlinds, OBlind, IBlind, IBlindBlind, CBlind, BranchBlind,
+    BranchBlind, Branches, BranchesWithBlinds, CBlind, IBlind, IBlindBlind, OBlind, OutputBlinds,
+    Path,
 };
 
 // Re-export divisor types for blind construction
 pub use ec_divisors::{DivisorCurve, ScalarDecomposition};
 
 // Re-export batch verifier types for membership proof verification
-pub use generalized_bulletproofs::{
-    BatchVerifier,
-    Generators as GbpGenerators,
-};
-
+pub use generalized_bulletproofs::{BatchVerifier, Generators as GbpGenerators};
 
 // Generators
-pub use fcmp_monero_generators::{T, FCMP_U, FCMP_V};
+pub use fcmp_monero_generators::{FCMP_U, FCMP_V, T};
 
 /// Selene scalar field element type (= Ed25519 base field).
 pub type SeleneScalar = <Selene as Ciphersuite>::F;
@@ -176,8 +168,9 @@ pub fn hash_leaves(leaves: &[FcmpOutput<EdwardsPoint>]) -> CryptoResult<SelenePo
 
         let base = pairs.len();
         for (i, scalar) in [ox, oy, ix, iy, cx, cy].into_iter().enumerate() {
-            let gen = g_bold.get(base + i)
-                .ok_or_else(|| CryptoError::CurveTreeError("Not enough Selene generators".into()))?;
+            let gen = g_bold.get(base + i).ok_or_else(|| {
+                CryptoError::CurveTreeError("Not enough Selene generators".into())
+            })?;
             pairs.push((scalar, *gen));
         }
     }
@@ -195,7 +188,8 @@ pub fn hash_selene_branch(children: &[SeleneScalar]) -> CryptoResult<SelenePoint
 
     let mut pairs = Vec::with_capacity(children.len());
     for (i, scalar) in children.iter().enumerate() {
-        let gen = g_bold.get(i)
+        let gen = g_bold
+            .get(i)
             .ok_or_else(|| CryptoError::CurveTreeError("Not enough Selene generators".into()))?;
         pairs.push((*scalar, *gen));
     }
@@ -213,7 +207,8 @@ pub fn hash_helios_branch(children: &[HeliosScalar]) -> CryptoResult<HeliosPoint
 
     let mut pairs = Vec::with_capacity(children.len());
     for (i, scalar) in children.iter().enumerate() {
-        let gen = g_bold.get(i)
+        let gen = g_bold
+            .get(i)
             .ok_or_else(|| CryptoError::CurveTreeError("Not enough Helios generators".into()))?;
         pairs.push((*scalar, *gen));
     }

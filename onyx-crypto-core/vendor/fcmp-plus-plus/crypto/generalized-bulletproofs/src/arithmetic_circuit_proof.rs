@@ -172,7 +172,7 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
     let q = self.q();
     let mut z = ScalarVector(Vec::with_capacity(q));
     z.0.push(z_1);
-    for _ in 1 .. q {
+    for _ in 1..q {
       z.0.push(*z.0.last().unwrap() * z_1);
     }
     z.0.truncate(q);
@@ -275,7 +275,7 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
 
     let mut sL = ScalarVector(Vec::with_capacity(n));
     let mut sR = ScalarVector(Vec::with_capacity(n));
-    for _ in 0 .. n {
+    for _ in 0..n {
       sL.0.push(C::F::random(&mut *rng));
       sR.0.push(C::F::random(&mut *rng));
     }
@@ -325,7 +325,7 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
     // Declare the l and r polynomials, assigning the traditional coefficients to their positions
     let mut l = vec![];
     let mut r = vec![];
-    for _ in 0 .. (is + 1) {
+    for _ in 0..(is + 1) {
       l.push(ScalarVector::new(0));
       r.push(ScalarVector::new(0));
     }
@@ -365,7 +365,7 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
     // r decreasing from n' (skipping jlr)
 
     let mut cg_weights = Vec::with_capacity(witness.c.len());
-    for i in 0 .. witness.c.len() {
+    for i in 0..witness.c.len() {
       let mut cg = ScalarVector::new(n);
       for (constraint, z) in self.constraints.iter().zip(&z.0) {
         if let Some(WCG) = constraint.WCG.get(i) {
@@ -399,20 +399,20 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
     // Per Generalized Bulletproofs, calculate masks tau for each t where i != n'
     // With Bulletproofs, t[0] is zero, hence its omission, yet Generalized Bulletproofs uses it
     let mut tau_before_ni = vec![];
-    for _ in 0 .. ni {
+    for _ in 0..ni {
       tau_before_ni.push(C::F::random(&mut *rng));
     }
     let mut tau_after_ni = vec![];
-    for _ in 0 .. t.0[(ni + 1) ..].len() {
+    for _ in 0..t.0[(ni + 1)..].len() {
       tau_after_ni.push(C::F::random(&mut *rng));
     }
     // Calculate commitments to the coefficients of t, blinded by tau
-    debug_assert_eq!(t.0[0 .. ni].len(), tau_before_ni.len());
-    for (t, tau) in t.0[0 .. ni].iter().zip(tau_before_ni.iter()) {
+    debug_assert_eq!(t.0[0..ni].len(), tau_before_ni.len());
+    for (t, tau) in t.0[0..ni].iter().zip(tau_before_ni.iter()) {
       transcript.push_point(multiexp(&[(*t, self.generators.g()), (*tau, self.generators.h())]));
     }
-    debug_assert_eq!(t.0[(ni + 1) ..].len(), tau_after_ni.len());
-    for (t, tau) in t.0[(ni + 1) ..].iter().zip(tau_after_ni.iter()) {
+    debug_assert_eq!(t.0[(ni + 1)..].len(), tau_after_ni.len());
+    for (t, tau) in t.0[(ni + 1)..].iter().zip(tau_after_ni.iter()) {
       transcript.push_point(multiexp(&[(*t, self.generators.g()), (*tau, self.generators.h())]));
     }
 
@@ -546,10 +546,10 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
 
     let mut T_before_ni = Vec::with_capacity(ni);
     let mut T_after_ni = Vec::with_capacity(t_poly_len - ni - 1);
-    for _ in 0 .. ni {
+    for _ in 0..ni {
       T_before_ni.push(transcript.read_point::<C>().map_err(|_| AcError::IncompleteProof)?);
     }
-    for _ in 0 .. (t_poly_len - ni - 1) {
+    for _ in 0..(t_poly_len - ni - 1) {
       T_after_ni.push(transcript.read_point::<C>().map_err(|_| AcError::IncompleteProof)?);
     }
     let x: ScalarVector<C::F> = ScalarVector::powers(transcript.challenge::<C>(), t_poly_len);
@@ -576,9 +576,9 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
       // rhs of the equation, negated to cause a sum to zero
       // `delta - z...`, instead of `delta + z...`, is done for the same reason as in the above WV
       // matrix transform
-      verifier.g -= verifier_weight *
-        x[ni] *
-        (delta - z.inner_product(self.constraints.iter().map(|constraint| &constraint.c)));
+      verifier.g -= verifier_weight
+        * x[ni]
+        * (delta - z.inner_product(self.constraints.iter().map(|constraint| &constraint.c)));
       for pair in V_weights.0.into_iter().zip(self.V.0) {
         verifier.additional.push((-verifier_weight * pair.0, pair.1));
       }
@@ -617,7 +617,7 @@ impl<'a, C: Ciphersuite> ArithmeticCircuitStatement<'a, C> {
       h_bold_scalars = h_bold_scalars + &(o_weights * verifier_weight);
 
       let mut cg_weights = Vec::with_capacity(self.C.len());
-      for i in 0 .. self.C.len() {
+      for i in 0..self.C.len() {
         let mut cg = ScalarVector::new(n);
         for (constraint, z) in self.constraints.iter().zip(&z.0) {
           if let Some(WCG) = constraint.WCG.get(i) {

@@ -114,7 +114,7 @@ fn cipher<C: Ciphersuite>(context: &str, ecdh: &Zeroizing<C::G>) -> ChaCha20 {
 
   let mut key = Cc20Key::default();
   let mut challenge = transcript.challenge(b"key");
-  key.copy_from_slice(&challenge[.. 32]);
+  key.copy_from_slice(&challenge[..32]);
   zeroize(challenge.as_mut());
 
   // Since the key is single-use, it doesn't matter what we use for the IV

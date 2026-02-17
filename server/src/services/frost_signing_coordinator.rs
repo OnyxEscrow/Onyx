@@ -996,10 +996,7 @@ impl FrostSigningCoordinator {
     /// retrying. Reusing nonces across different signing rounds with
     /// different challenges leaks the private key:
     ///   s₁ = r + c₁·x, s₂ = r + c₂·x  →  x = (s₁ - s₂)/(c₁ - c₂)
-    pub fn reset_signing_session(
-        conn: &mut SqliteConnection,
-        escrow_id: &str,
-    ) -> Result<String> {
+    pub fn reset_signing_session(conn: &mut SqliteConnection, escrow_id: &str) -> Result<String> {
         use diesel::Connection;
 
         conn.transaction(|conn| {
@@ -1602,7 +1599,8 @@ impl FrostSigningCoordinator {
                     anyhow::bail!(
                         "Round ID mismatch: session has '{}', client sent '{}'. \
                          Session was reset — call init to get new round_id.",
-                        stored_rid, client_rid
+                        stored_rid,
+                        client_rid
                     );
                 }
                 None => {
@@ -1747,7 +1745,8 @@ impl FrostSigningCoordinator {
                     anyhow::bail!(
                         "Round ID mismatch: session has '{}', client sent '{}'. \
                          Session was reset — call init to get new round_id.",
-                        stored_rid, client_rid
+                        stored_rid,
+                        client_rid
                     );
                 }
                 None => {

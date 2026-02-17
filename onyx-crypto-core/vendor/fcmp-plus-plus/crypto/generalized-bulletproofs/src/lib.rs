@@ -253,8 +253,8 @@ impl<C: Ciphersuite> Generators<C> {
       g: &self.g,
       h: &self.h,
 
-      g_bold: &self.g_bold[.. generators],
-      h_bold: &self.h_bold[.. generators],
+      g_bold: &self.g_bold[..generators],
+      h_bold: &self.h_bold[..generators],
     })
   }
 }

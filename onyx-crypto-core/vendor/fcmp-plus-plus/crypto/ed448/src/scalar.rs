@@ -55,10 +55,10 @@ impl Scalar {
   /// Perform a wide reduction to obtain a non-biased Scalar.
   pub fn wide_reduce(bytes: [u8; 114]) -> Scalar {
     let mut bytes_128 = [0; 128];
-    bytes_128[.. 114].copy_from_slice(&bytes);
+    bytes_128[..114].copy_from_slice(&bytes);
     let wide = U1024::from_le_slice(&bytes_128);
     Scalar(Residue::new(&U448::from_le_slice(
-      &wide.rem(&WIDE_REDUCTION_MODULUS).to_le_bytes()[.. 56],
+      &wide.rem(&WIDE_REDUCTION_MODULUS).to_le_bytes()[..56],
     )))
   }
 }

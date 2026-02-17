@@ -32,12 +32,12 @@ fn check_divisor<C: DivisorCurve>(points: Vec<C>) {
 }
 
 fn test_divisor<C: DivisorCurve>() {
-  for i in 1 ..= 255 {
+  for i in 1..=255 {
     println!("Test iteration {i}");
 
     // Select points
     let mut points = vec![];
-    for _ in 0 .. i {
+    for _ in 0..i {
       points.push(C::random(&mut OsRng));
     }
     points.push(-points.iter().sum::<C>());
@@ -55,10 +55,10 @@ fn test_divisor<C: DivisorCurve>() {
     assert!((divisor.yx_coefficients.first().unwrap_or(&vec![]).len()) <= 126);
     assert!((divisor.x_coefficients.len() - 1) <= 127);
     assert!(
-      (1 + divisor.yx_coefficients.first().unwrap_or(&vec![]).len() +
-        (divisor.x_coefficients.len() - 1) +
-        1) <=
-        255
+      (1 + divisor.yx_coefficients.first().unwrap_or(&vec![]).len()
+        + (divisor.x_coefficients.len() - 1)
+        + 1)
+        <= 255
     );
 
     // Decide challgenges
@@ -226,7 +226,7 @@ fn test_divisor_ed25519() {
       assert_eq!(EdwardsPoint::to_xy(p1 + p2).unwrap(), (x3, y3));
     };
 
-    for _ in 0 .. 256 {
+    for _ in 0..256 {
       incomplete_add(EdwardsPoint::random(&mut OsRng), EdwardsPoint::random(&mut OsRng));
     }
   }

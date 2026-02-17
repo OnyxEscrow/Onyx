@@ -43,7 +43,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
       commitment.extend(variables);
     };
     let i = self.commitments.len() - 1;
-    let j_range = self.current_j_offset .. (self.current_j_offset + COMMITMENT_WORD_LEN);
+    let j_range = self.current_j_offset..(self.current_j_offset + COMMITMENT_WORD_LEN);
     let res = j_range.map(|j| Variable::CG { commitment: i, index: j }).collect();
 
     self.current_j_offset += COMMITMENT_WORD_LEN;
@@ -83,16 +83,16 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
 
     // Append each chunk of the branch
     let mut branch_variables = Vec::with_capacity(branch_len);
-    for b in 0 .. words_in_branch {
+    for b in 0..words_in_branch {
       branch_variables.extend(&self.append(branch.as_ref().map(|branch| {
-        branch[(b * COMMITMENT_WORD_LEN) .. ((b + 1) * COMMITMENT_WORD_LEN)].to_vec()
+        branch[(b * COMMITMENT_WORD_LEN)..((b + 1) * COMMITMENT_WORD_LEN)].to_vec()
       })));
     }
     // Truncate any padding we created a variable for
     branch_variables.truncate(branch_len);
 
     // Append padding to this vector commitment so nothing else is added to this
-    for _ in words_in_branch .. (self.commitment_len / COMMITMENT_WORD_LEN) {
+    for _ in words_in_branch..(self.commitment_len / COMMITMENT_WORD_LEN) {
       self.append(empty.clone());
     }
 
@@ -123,7 +123,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
 
       let padding = padding.unwrap();
       assert!(padding.len() <= (255 - dlog_bits));
-      for i in 0 .. (255 - dlog_bits) {
+      for i in 0..(255 - dlog_bits) {
         witness.push(*padding.get(i).unwrap_or(&F::ZERO));
       }
       assert_eq!(witness.len(), 255);
@@ -144,7 +144,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
     variables.append(&mut self.append(witness_b));
 
     let extra = variables.pop().unwrap();
-    let padding = variables.drain(dlog_bits .. 255).collect::<Vec<_>>();
+    let padding = variables.drain(dlog_bits..255).collect::<Vec<_>>();
     let dlog = GenericArray::from_slice(&variables).clone();
     (dlog, padding, extra)
   }
@@ -164,7 +164,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
       let empty_vec = vec![];
       let yx = divisor.yx_coefficients.first().unwrap_or(&empty_vec);
       assert!(yx.len() <= Parameters::YxCoefficients::USIZE);
-      for i in 0 .. Parameters::YxCoefficients::USIZE {
+      for i in 0..Parameters::YxCoefficients::USIZE {
         divisor_witness.push(*yx.get(i).unwrap_or(&F::ZERO));
       }
 
@@ -173,7 +173,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
       assert_eq!(divisor.x_coefficients[0], F::ONE);
       // Transcript from 1 given we expect a normalization of the first coefficient
       // We allocate 127 slots for this
-      for i in 1 .. Parameters::XCoefficients::USIZE {
+      for i in 1..Parameters::XCoefficients::USIZE {
         divisor_witness.push(*divisor.x_coefficients.get(i).unwrap_or(&F::ZERO));
       }
 
@@ -206,11 +206,10 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
 
     let mut cursor_start = 1;
     let mut cursor_end = cursor_start + Parameters::YxCoefficients::USIZE;
-    let yx = GenericArray::from_slice(&variables[cursor_start .. cursor_end]).clone();
+    let yx = GenericArray::from_slice(&variables[cursor_start..cursor_end]).clone();
     cursor_start = cursor_end;
     cursor_end += Parameters::XCoefficientsMinusOne::USIZE;
-    let x_from_power_of_2 =
-      GenericArray::from_slice(&variables[cursor_start .. cursor_end]).clone();
+    let x_from_power_of_2 = GenericArray::from_slice(&variables[cursor_start..cursor_end]).clone();
     let divisor = Divisor { y: variables[0], yx, x_from_power_of_2, zero: variables[cursor_end] };
 
     (divisor, extra)
@@ -241,7 +240,7 @@ impl<F: Zeroize + PrimeFieldBits> VectorCommitmentTape<F> {
 
     let mut res = vec![];
     for (i, (values, blind)) in self.commitments.iter().zip(blinds).enumerate() {
-      let g_generators = generators.g_bold_slice()[.. values.len()].iter().cloned();
+      let g_generators = generators.g_bold_slice()[..values.len()].iter().cloned();
       let commitment = g_generators.enumerate().map(|(i, g)| (values[i], g));
       let mut commitment = if let Some(branch_length) = self.branch_lengths.get(i) {
         commitment.take(*branch_length).collect::<Vec<_>>()

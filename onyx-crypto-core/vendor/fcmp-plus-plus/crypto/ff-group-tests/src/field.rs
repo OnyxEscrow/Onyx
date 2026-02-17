@@ -190,7 +190,7 @@ pub fn test_random<R: RngCore, F: Field>(rng: &mut R) {
   // Field of order 1 will always fail this test due to lack of distinct elements to sample
   // from
   let mut pass = false;
-  for _ in 0 .. 128 {
+  for _ in 0..128 {
     let b = F::random(&mut *rng);
     // This test passes if a distinct element is returned at least once
     if b != a {

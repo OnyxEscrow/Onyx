@@ -33,7 +33,7 @@ use anyhow::{Context, Result};
 use monero_bulletproofs_mirror::Bulletproof;
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Keccak256};
-use tracing::{info, warn, error, debug};
+use tracing::{debug, error, info, warn};
 
 use crate::services::bulletproofs_builder::generate_bulletproof_plus;
 
@@ -228,9 +228,7 @@ pub fn aggregate_partial_key_images(
 ) -> Result<String, TransactionBuildError> {
     use curve25519_dalek::edwards::CompressedEdwardsY;
 
-    info!(
-        "[TX-BUILD][PKI-AGG] Aggregating partial key images"
-    );
+    info!("[TX-BUILD][PKI-AGG] Aggregating partial key images");
     debug!(
         "[TX-BUILD][PKI-AGG] pKI_1: {}...",
         &partial_ki_1_hex[..16.min(partial_ki_1_hex.len())]
@@ -248,9 +246,10 @@ pub fn aggregate_partial_key_images(
             "[TX-BUILD][PKI-AGG] pKI_1 invalid length: {} bytes (expected 32)",
             pki1_bytes.len()
         );
-        return Err(TransactionBuildError::InvalidPoint(
-            format!("partial_ki_1 must be 32 bytes, got {}", pki1_bytes.len())
-        ));
+        return Err(TransactionBuildError::InvalidPoint(format!(
+            "partial_ki_1 must be 32 bytes, got {}",
+            pki1_bytes.len()
+        )));
     }
     let mut pki1_arr = [0u8; 32];
     pki1_arr.copy_from_slice(&pki1_bytes);
@@ -263,27 +262,24 @@ pub fn aggregate_partial_key_images(
             "[TX-BUILD][PKI-AGG] pKI_2 invalid length: {} bytes (expected 32)",
             pki2_bytes.len()
         );
-        return Err(TransactionBuildError::InvalidPoint(
-            format!("partial_ki_2 must be 32 bytes, got {}", pki2_bytes.len())
-        ));
+        return Err(TransactionBuildError::InvalidPoint(format!(
+            "partial_ki_2 must be 32 bytes, got {}",
+            pki2_bytes.len()
+        )));
     }
     let mut pki2_arr = [0u8; 32];
     pki2_arr.copy_from_slice(&pki2_bytes);
 
     // Decompress both partial key images as Edwards points
-    let pki1_point = CompressedEdwardsY(pki1_arr)
-        .decompress()
-        .ok_or_else(|| {
-            error!("[TX-BUILD][PKI-AGG] pKI_1 decompression failed - not a valid curve point");
-            TransactionBuildError::InvalidPoint("partial_ki_1 is not a valid point".into())
-        })?;
+    let pki1_point = CompressedEdwardsY(pki1_arr).decompress().ok_or_else(|| {
+        error!("[TX-BUILD][PKI-AGG] pKI_1 decompression failed - not a valid curve point");
+        TransactionBuildError::InvalidPoint("partial_ki_1 is not a valid point".into())
+    })?;
 
-    let pki2_point = CompressedEdwardsY(pki2_arr)
-        .decompress()
-        .ok_or_else(|| {
-            error!("[TX-BUILD][PKI-AGG] pKI_2 decompression failed - not a valid curve point");
-            TransactionBuildError::InvalidPoint("partial_ki_2 is not a valid point".into())
-        })?;
+    let pki2_point = CompressedEdwardsY(pki2_arr).decompress().ok_or_else(|| {
+        error!("[TX-BUILD][PKI-AGG] pKI_2 decompression failed - not a valid curve point");
+        TransactionBuildError::InvalidPoint("partial_ki_2 is not a valid point".into())
+    })?;
 
     // Aggregate: KI = pKI_1 + pKI_2 (Edwards point addition)
     let combined = pki1_point + pki2_point;
@@ -471,7 +467,9 @@ impl MoneroTransactionBuilder {
         });
 
         self.output_commitments.push(commitment);
-        self.ecdh_info.push(EcdhInfo { amount: encrypted_amount });
+        self.ecdh_info.push(EcdhInfo {
+            amount: encrypted_amount,
+        });
 
         // Store for Bulletproof+ generation
         self.output_masks.push(mask);
@@ -517,7 +515,10 @@ impl MoneroTransactionBuilder {
             "[TX-BUILD][DUMMY-OUTPUT-v0.35.0] stealth_address: {}",
             hex::encode(&stealth_address)
         );
-        info!("[TX-BUILD][DUMMY-OUTPUT-v0.35.0] view_tag: 0x{:02x}", view_tag);
+        info!(
+            "[TX-BUILD][DUMMY-OUTPUT-v0.35.0] view_tag: 0x{:02x}",
+            view_tag
+        );
         info!(
             "[TX-BUILD][DUMMY-OUTPUT-v0.35.0] dummy_mask (pre-computed): {}",
             hex::encode(dummy_mask)
@@ -550,7 +551,9 @@ impl MoneroTransactionBuilder {
         });
 
         self.output_commitments.push(dummy_commitment);
-        self.ecdh_info.push(EcdhInfo { amount: encrypted_amount });
+        self.ecdh_info.push(EcdhInfo {
+            amount: encrypted_amount,
+        });
 
         // Store for Bulletproof+ generation
         self.output_masks.push(*dummy_mask);
@@ -635,7 +638,9 @@ impl MoneroTransactionBuilder {
         });
 
         self.output_commitments.push(dummy_commitment);
-        self.ecdh_info.push(EcdhInfo { amount: encrypted_amount });
+        self.ecdh_info.push(EcdhInfo {
+            amount: encrypted_amount,
+        });
 
         // Store for Bulletproof+ generation
         self.output_masks.push(dummy_mask);
@@ -660,9 +665,7 @@ impl MoneroTransactionBuilder {
         &mut self,
         signature_json: &ClientSignature,
     ) -> Result<&mut Self, TransactionBuildError> {
-        info!(
-            "[TX-BUILD][CLSAG-ATTACH] =========================================="
-        );
+        info!("[TX-BUILD][CLSAG-ATTACH] ==========================================");
         info!(
             "[TX-BUILD][CLSAG-ATTACH] Attaching CLSAG signature #{}",
             self.clsag_signatures.len()
@@ -673,17 +676,18 @@ impl MoneroTransactionBuilder {
             "[TX-BUILD][CLSAG-ATTACH] D point: {}...",
             &signature_json.signature.d[..16.min(signature_json.signature.d.len())]
         );
-        let d_bytes = hex::decode(&signature_json.signature.d)
-            .map_err(|e| {
-                error!("[TX-BUILD][CLSAG-ATTACH] D point decode failed: {}", e);
-                TransactionBuildError::InvalidHex(format!("D: {}", e))
-            })?;
+        let d_bytes = hex::decode(&signature_json.signature.d).map_err(|e| {
+            error!("[TX-BUILD][CLSAG-ATTACH] D point decode failed: {}", e);
+            TransactionBuildError::InvalidHex(format!("D: {}", e))
+        })?;
         if d_bytes.len() != 32 {
             error!(
                 "[TX-BUILD][CLSAG-ATTACH] D point invalid length: {} (expected 32)",
                 d_bytes.len()
             );
-            return Err(TransactionBuildError::InvalidPoint("D must be 32 bytes".into()));
+            return Err(TransactionBuildError::InvalidPoint(
+                "D must be 32 bytes".into(),
+            ));
         }
         let mut d = [0u8; 32];
         d.copy_from_slice(&d_bytes);
@@ -693,17 +697,18 @@ impl MoneroTransactionBuilder {
             "[TX-BUILD][CLSAG-ATTACH] c1 scalar: {}...",
             &signature_json.signature.c1[..16.min(signature_json.signature.c1.len())]
         );
-        let c1_bytes = hex::decode(&signature_json.signature.c1)
-            .map_err(|e| {
-                error!("[TX-BUILD][CLSAG-ATTACH] c1 decode failed: {}", e);
-                TransactionBuildError::InvalidHex(format!("c1: {}", e))
-            })?;
+        let c1_bytes = hex::decode(&signature_json.signature.c1).map_err(|e| {
+            error!("[TX-BUILD][CLSAG-ATTACH] c1 decode failed: {}", e);
+            TransactionBuildError::InvalidHex(format!("c1: {}", e))
+        })?;
         if c1_bytes.len() != 32 {
             error!(
                 "[TX-BUILD][CLSAG-ATTACH] c1 invalid length: {} (expected 32)",
                 c1_bytes.len()
             );
-            return Err(TransactionBuildError::InvalidScalar("c1 must be 32 bytes".into()));
+            return Err(TransactionBuildError::InvalidScalar(
+                "c1 must be 32 bytes".into(),
+            ));
         }
         let mut c1 = [0u8; 32];
         c1.copy_from_slice(&c1_bytes);
@@ -715,19 +720,20 @@ impl MoneroTransactionBuilder {
         );
         let mut s_values = Vec::new();
         for (i, s_hex) in signature_json.signature.s.iter().enumerate() {
-            let s_bytes = hex::decode(s_hex)
-                .map_err(|e| {
-                    error!("[TX-BUILD][CLSAG-ATTACH] s[{}] decode failed: {}", i, e);
-                    TransactionBuildError::InvalidHex(format!("s[{}]: {}", i, e))
-                })?;
+            let s_bytes = hex::decode(s_hex).map_err(|e| {
+                error!("[TX-BUILD][CLSAG-ATTACH] s[{}] decode failed: {}", i, e);
+                TransactionBuildError::InvalidHex(format!("s[{}]: {}", i, e))
+            })?;
             if s_bytes.len() != 32 {
                 error!(
                     "[TX-BUILD][CLSAG-ATTACH] s[{}] invalid length: {} (expected 32)",
-                    i, s_bytes.len()
+                    i,
+                    s_bytes.len()
                 );
-                return Err(TransactionBuildError::InvalidScalar(
-                    format!("s[{}] must be 32 bytes", i)
-                ));
+                return Err(TransactionBuildError::InvalidScalar(format!(
+                    "s[{}] must be 32 bytes",
+                    i
+                )));
             }
             let mut s = [0u8; 32];
             s.copy_from_slice(&s_bytes);
@@ -735,10 +741,7 @@ impl MoneroTransactionBuilder {
 
             // Log first 3 s-values for debugging
             if i < 3 {
-                debug!(
-                    "[TX-BUILD][CLSAG-ATTACH] s[{}] = {}",
-                    i, s_hex
-                );
+                debug!("[TX-BUILD][CLSAG-ATTACH] s[{}] = {}", i, s_hex);
             }
         }
 
@@ -747,17 +750,18 @@ impl MoneroTransactionBuilder {
             "[TX-BUILD][CLSAG-ATTACH] pseudo_out: {}...",
             &signature_json.pseudo_out[..16.min(signature_json.pseudo_out.len())]
         );
-        let pseudo_out_bytes = hex::decode(&signature_json.pseudo_out)
-            .map_err(|e| {
-                error!("[TX-BUILD][CLSAG-ATTACH] pseudo_out decode failed: {}", e);
-                TransactionBuildError::InvalidHex(format!("pseudoOut: {}", e))
-            })?;
+        let pseudo_out_bytes = hex::decode(&signature_json.pseudo_out).map_err(|e| {
+            error!("[TX-BUILD][CLSAG-ATTACH] pseudo_out decode failed: {}", e);
+            TransactionBuildError::InvalidHex(format!("pseudoOut: {}", e))
+        })?;
         if pseudo_out_bytes.len() != 32 {
             error!(
                 "[TX-BUILD][CLSAG-ATTACH] pseudo_out invalid length: {} (expected 32)",
                 pseudo_out_bytes.len()
             );
-            return Err(TransactionBuildError::InvalidPoint("pseudoOut must be 32 bytes".into()));
+            return Err(TransactionBuildError::InvalidPoint(
+                "pseudoOut must be 32 bytes".into(),
+            ));
         }
         let mut pseudo_out = [0u8; 32];
         pseudo_out.copy_from_slice(&pseudo_out_bytes);
@@ -832,7 +836,7 @@ impl MoneroTransactionBuilder {
 
         if data.membership.proof_bytes.is_empty() {
             return Err(TransactionBuildError::FcmpError(
-                "FCMP membership proof is empty".into()
+                "FCMP membership proof is empty".into(),
             ));
         }
 
@@ -865,12 +869,14 @@ impl MoneroTransactionBuilder {
         for (i, proof) in data.input_proofs.iter().enumerate() {
             if proof.o_tilde == [0u8; 32] {
                 return Err(TransactionBuildError::FcmpError(format!(
-                    "Input {}: O~ is zero (identity point)", i
+                    "Input {}: O~ is zero (identity point)",
+                    i
                 )));
             }
             if proof.i_tilde == [0u8; 32] {
                 return Err(TransactionBuildError::FcmpError(format!(
-                    "Input {}: I~ is zero (identity point)", i
+                    "Input {}: I~ is zero (identity point)",
+                    i
                 )));
             }
         }
@@ -946,12 +952,8 @@ impl MoneroTransactionBuilder {
     /// Returns a BuildResult containing the TX hex and correctly computed
     /// TX hash (txid = H(prefix_hash || base_hash || prunable_hash))
     pub fn build(&mut self) -> Result<BuildResult, TransactionBuildError> {
-        info!(
-            "[TX-BUILD][PHASE-0] =========================================="
-        );
-        info!(
-            "[TX-BUILD][PHASE-0] Starting transaction build"
-        );
+        info!("[TX-BUILD][PHASE-0] ==========================================");
+        info!("[TX-BUILD][PHASE-0] Starting transaction build");
         info!(
             "[TX-BUILD][PHASE-0] Inputs: {}, Outputs: {}, CLSAGs: {}",
             self.inputs.len(),
@@ -1045,8 +1047,7 @@ impl MoneroTransactionBuilder {
         let rct_base_len = tx_blob.len() - rct_base_start;
         info!(
             "[TX-BUILD][PHASE-3] RCT base serialized: {} bytes (type=6, fee={})",
-            rct_base_len,
-            self.fee
+            rct_base_len, self.fee
         );
 
         // Compute base hash (component 2 of 3 for txid)
@@ -1103,7 +1104,9 @@ impl MoneroTransactionBuilder {
             for (j, s) in clsag.s.iter().take(3).enumerate() {
                 debug!(
                     "[TX-BUILD][PHASE-4][CLSAG-{}][s-{}] {}",
-                    i, j, hex::encode(s)
+                    i,
+                    j,
+                    hex::encode(s)
                 );
             }
         }
@@ -1128,18 +1131,11 @@ impl MoneroTransactionBuilder {
         };
 
         let total_len = tx_blob.len();
-        info!(
-            "[TX-BUILD][PHASE-5] =========================================="
-        );
-        info!(
-            "[TX-BUILD][PHASE-5] Transaction build COMPLETE"
-        );
+        info!("[TX-BUILD][PHASE-5] ==========================================");
+        info!("[TX-BUILD][PHASE-5] Transaction build COMPLETE");
         info!(
             "[TX-BUILD][PHASE-5] Total size: {} bytes ({} prefix + {} rct_base + {} rct_prunable)",
-            total_len,
-            prefix_len,
-            rct_base_len,
-            rct_prunable_len
+            total_len, prefix_len, rct_base_len, rct_prunable_len
         );
         info!(
             "[TX-BUILD][PHASE-5] TX hash (txid): {}",
@@ -1172,7 +1168,7 @@ impl MoneroTransactionBuilder {
                 error!("[TX-BUILD][PHASE-6] ERROR: {}", err);
             }
             return Err(TransactionBuildError::ValidationError(
-                validation.errors.join("; ")
+                validation.errors.join("; "),
             ));
         }
 
@@ -1200,12 +1196,8 @@ impl MoneroTransactionBuilder {
 
     /// Generate Bulletproof+ range proof from stored output data
     fn generate_bulletproof(&mut self) -> Result<(), TransactionBuildError> {
-        info!(
-            "[TX-BUILD][BP+] =========================================="
-        );
-        info!(
-            "[TX-BUILD][BP+] Generating Bulletproof+ range proof"
-        );
+        info!("[TX-BUILD][BP+] ==========================================");
+        info!("[TX-BUILD][BP+] Generating Bulletproof+ range proof");
         info!(
             "[TX-BUILD][BP+] Outputs: {}, Masks: {}",
             self.output_amounts.len(),
@@ -1215,7 +1207,7 @@ impl MoneroTransactionBuilder {
         if self.output_amounts.is_empty() {
             error!("[TX-BUILD][BP+] ERROR: No outputs - cannot generate");
             return Err(TransactionBuildError::MissingField(
-                "No outputs added - cannot generate Bulletproof+".into()
+                "No outputs added - cannot generate Bulletproof+".into(),
             ));
         }
 
@@ -1225,25 +1217,27 @@ impl MoneroTransactionBuilder {
                 self.output_amounts.len(),
                 self.output_masks.len()
             );
-            return Err(TransactionBuildError::MissingField(
-                format!(
-                    "Mismatched output counts: {} amounts vs {} masks",
-                    self.output_amounts.len(),
-                    self.output_masks.len()
-                )
-            ));
+            return Err(TransactionBuildError::MissingField(format!(
+                "Mismatched output counts: {} amounts vs {} masks",
+                self.output_amounts.len(),
+                self.output_masks.len()
+            )));
         }
 
         // Log detailed output data
-        for (i, (amount, mask)) in self.output_amounts.iter().zip(self.output_masks.iter()).enumerate() {
+        for (i, (amount, mask)) in self
+            .output_amounts
+            .iter()
+            .zip(self.output_masks.iter())
+            .enumerate()
+        {
             info!(
                 "[TX-BUILD][BP+][OUTPUT-{}] amount={} piconero ({:.12} XMR)",
-                i, amount, *amount as f64 / 1_000_000_000_000.0
+                i,
+                amount,
+                *amount as f64 / 1_000_000_000_000.0
             );
-            info!(
-                "[TX-BUILD][BP+][OUTPUT-{}] mask={}",
-                i, hex::encode(mask)
-            );
+            info!("[TX-BUILD][BP+][OUTPUT-{}] mask={}", i, hex::encode(mask));
 
             // Check for zero mask (potential issue)
             if mask.iter().all(|&b| b == 0) {
@@ -1258,12 +1252,13 @@ impl MoneroTransactionBuilder {
         info!("[TX-BUILD][BP+] Calling generate_bulletproof_plus...");
         let start_time = std::time::Instant::now();
 
-        let bp = generate_bulletproof_plus(&self.output_amounts, &self.output_masks)
-            .map_err(|e| {
+        let bp =
+            generate_bulletproof_plus(&self.output_amounts, &self.output_masks).map_err(|e| {
                 error!("[TX-BUILD][BP+] FAILED: {:?}", e);
-                TransactionBuildError::SerializationError(
-                    format!("Bulletproof+ generation failed: {}", e)
-                )
+                TransactionBuildError::SerializationError(format!(
+                    "Bulletproof+ generation failed: {}",
+                    e
+                ))
             })?;
 
         let elapsed = start_time.elapsed();
@@ -1324,7 +1319,9 @@ impl MoneroTransactionBuilder {
     /// v0.61.0: Critical fix for web flow where signing and broadcast are separate requests.
     pub fn export_bulletproof_bytes(&self) -> Result<Vec<u8>, TransactionBuildError> {
         let bp = self.bulletproof_plus.as_ref().ok_or_else(|| {
-            TransactionBuildError::MissingField("bulletproof_plus not generated - call prepare_for_signing first".into())
+            TransactionBuildError::MissingField(
+                "bulletproof_plus not generated - call prepare_for_signing first".into(),
+            )
         })?;
 
         let mut bytes = Vec::new();
@@ -1332,10 +1329,7 @@ impl MoneroTransactionBuilder {
             TransactionBuildError::SerializationError(format!("BP+ export failed: {:?}", e))
         })?;
 
-        info!(
-            "[TX-BUILD][BP+] Exported BP+ bytes: {} bytes",
-            bytes.len()
-        );
+        info!("[TX-BUILD][BP+] Exported BP+ bytes: {} bytes", bytes.len());
 
         Ok(bytes)
     }
@@ -1358,10 +1352,7 @@ impl MoneroTransactionBuilder {
             TransactionBuildError::SerializationError(format!("BP+ import failed: {:?}", e))
         })?;
 
-        info!(
-            "[TX-BUILD][BP+] Imported BP+ bytes: {} bytes",
-            bytes.len()
-        );
+        info!("[TX-BUILD][BP+] Imported BP+ bytes: {} bytes", bytes.len());
 
         self.bulletproof_plus = Some(bp);
         Ok(())
@@ -1390,7 +1381,10 @@ impl MoneroTransactionBuilder {
     ///   - bp_kv_hash = cn_fast_hash(BP+ keys only: A,A1,B,r1,s1,d1,L[],R[])
     ///
     /// CRITICAL: NO sc_reduce32 on any of the hashes! Raw 32-byte hashes concatenated.
-    pub fn compute_clsag_message(&self, _pseudo_outs: &[[u8; 32]]) -> Result<[u8; 32], TransactionBuildError> {
+    pub fn compute_clsag_message(
+        &self,
+        _pseudo_outs: &[[u8; 32]],
+    ) -> Result<[u8; 32], TransactionBuildError> {
         // 1. Compute tx_prefix_hash (hashes[0])
         let tx_prefix_hash = self.compute_prefix_hash()?;
         info!(
@@ -1429,7 +1423,7 @@ impl MoneroTransactionBuilder {
         // Just the 32-byte keys, NO varint counts: A, A1, B, r1, s1, d1, L[], R[]
         let bp = self.bulletproof_plus.as_ref().ok_or_else(|| {
             TransactionBuildError::MissingField(
-                "Bulletproof+ not generated - call prepare_for_signing() first".into()
+                "Bulletproof+ not generated - call prepare_for_signing() first".into(),
             )
         })?;
 
@@ -1448,7 +1442,7 @@ impl MoneroTransactionBuilder {
         for _ in 0..6 {
             if pos + 32 > bp_full.len() {
                 return Err(TransactionBuildError::SerializationError(
-                    "BP+ serialization too short".into()
+                    "BP+ serialization too short".into(),
                 ));
             }
             bp_kv.extend_from_slice(&bp_full[pos..pos + 32]);
@@ -1482,9 +1476,9 @@ impl MoneroTransactionBuilder {
         // 4. Final CLSAG message = cn_fast_hash(hashes[0] || hashes[1] || hashes[2])
         // CRITICAL: NO sc_reduce32! Just concatenate the raw 32-byte hashes.
         let clsag_message: [u8; 32] = Keccak256::new()
-            .chain_update(&tx_prefix_hash)  // raw 32 bytes
-            .chain_update(&rct_base_hash)   // raw 32 bytes
-            .chain_update(&bp_kv_hash)      // raw 32 bytes
+            .chain_update(&tx_prefix_hash) // raw 32 bytes
+            .chain_update(&rct_base_hash) // raw 32 bytes
+            .chain_update(&bp_kv_hash) // raw 32 bytes
             .finalize()
             .into();
 
@@ -1503,7 +1497,11 @@ impl MoneroTransactionBuilder {
     /// Serialize the transaction prefix
     fn serialize_prefix(&self, out: &mut Vec<u8>) -> Result<(), TransactionBuildError> {
         // Version (varint): 2 for CLSAG, 3 for FCMP++
-        let version = if self.fcmp_data.is_some() { 3u64 } else { self.version as u64 };
+        let version = if self.fcmp_data.is_some() {
+            3u64
+        } else {
+            self.version as u64
+        };
         self.write_varint(out, version);
 
         // Unlock time (varint)
@@ -1599,7 +1597,10 @@ impl MoneroTransactionBuilder {
 
         info!(
             "[TX-BUILD][RCT-BASE] type={}, fee={}, ecdhInfo={}, outPk={} (pseudo_outs in prunable)",
-            rct_type, self.fee, self.ecdh_info.len(), self.output_commitments.len()
+            rct_type,
+            self.fee,
+            self.ecdh_info.len(),
+            self.output_commitments.len()
         );
 
         Ok(())
@@ -1630,7 +1631,7 @@ impl MoneroTransactionBuilder {
             self.serialize_bulletproof_plus(bp, out)?;
         } else {
             return Err(TransactionBuildError::MissingField(
-                "bulletproof_plus required for RCT v6".into()
+                "bulletproof_plus required for RCT v6".into(),
             ));
         }
 
@@ -1655,7 +1656,8 @@ impl MoneroTransactionBuilder {
         }
         info!(
             "[TX-BUILD][RCT-PRUNABLE] BP+, {} CLSAGs, {} pseudo_outs",
-            self.clsag_signatures.len(), self.pseudo_outputs.len()
+            self.clsag_signatures.len(),
+            self.pseudo_outputs.len()
         );
 
         Ok(())
@@ -1671,9 +1673,10 @@ impl MoneroTransactionBuilder {
     /// 4. Pseudo-outs C~ (32B each) — same position as CLSAG pseudo-outs
     /// ```
     fn serialize_rct_prunable_fcmp(&self, out: &mut Vec<u8>) -> Result<(), TransactionBuildError> {
-        let fcmp = self.fcmp_data.as_ref().ok_or_else(|| {
-            TransactionBuildError::FcmpError("FCMP data not attached".into())
-        })?;
+        let fcmp = self
+            .fcmp_data
+            .as_ref()
+            .ok_or_else(|| TransactionBuildError::FcmpError("FCMP data not attached".into()))?;
 
         // 1. BP+ range proof (amount privacy is independent of signature scheme)
         self.write_varint(out, 1u64);
@@ -1681,7 +1684,7 @@ impl MoneroTransactionBuilder {
             self.serialize_bulletproof_plus(bp, out)?;
         } else {
             return Err(TransactionBuildError::MissingField(
-                "bulletproof_plus required for FCMP++ TX".into()
+                "bulletproof_plus required for FCMP++ TX".into(),
             ));
         }
 
@@ -1854,7 +1857,10 @@ impl MoneroTransactionBuilder {
         result.parsed.version = version;
         if version != 2 && version != 3 {
             result.valid = false;
-            result.errors.push(format!("Invalid TX version {}, expected 2 (CLSAG) or 3 (FCMP++)", version));
+            result.errors.push(format!(
+                "Invalid TX version {}, expected 2 (CLSAG) or 3 (FCMP++)",
+                version
+            ));
         }
 
         // Unlock time
@@ -1906,7 +1912,9 @@ impl MoneroTransactionBuilder {
                 offset += 32; // key_image
             } else {
                 result.valid = false;
-                result.errors.push(format!("Unknown input type 0x{:02x}", input_type));
+                result
+                    .errors
+                    .push(format!("Unknown input type 0x{:02x}", input_type));
                 return result;
             }
         }
@@ -1951,14 +1959,13 @@ impl MoneroTransactionBuilder {
                 0x03 => {
                     // txout_to_tagged_key: WITH view_tag (correct for HF15+)
                     offset += 32; // pubkey
-                    offset += 1;  // view_tag
+                    offset += 1; // view_tag
                 }
                 _ => {
                     result.valid = false;
-                    result.errors.push(format!(
-                        "Output {}: unknown type 0x{:02x}",
-                        i, output_type
-                    ));
+                    result
+                        .errors
+                        .push(format!("Output {}: unknown type 0x{:02x}", i, output_type));
                     return result;
                 }
             }
@@ -2010,7 +2017,9 @@ impl MoneroTransactionBuilder {
                 // RCTTypeFcmpPlusPlus - post-hard-fork FCMP++ transactions
             }
             5 => {
-                result.warnings.push("RCT type 5 (CLSAG) - old type, current is 6 (BP+)".to_string());
+                result
+                    .warnings
+                    .push("RCT type 5 (CLSAG) - old type, current is 6 (BP+)".to_string());
             }
             0..=4 => {
                 result.warnings.push(format!(
@@ -2047,11 +2056,10 @@ pub fn parse_monero_address(address: &str) -> Result<([u8; 32], [u8; 32]), Trans
     );
 
     // Decode base58 with checksum
-    let decoded = base58_monero::decode_check(address)
-        .map_err(|e| {
-            error!("[TX-BUILD][ADDR-PARSE] Base58 decode failed: {}", e);
-            TransactionBuildError::AddressError(format!("Base58 decode: {}", e))
-        })?;
+    let decoded = base58_monero::decode_check(address).map_err(|e| {
+        error!("[TX-BUILD][ADDR-PARSE] Base58 decode failed: {}", e);
+        TransactionBuildError::AddressError(format!("Base58 decode: {}", e))
+    })?;
 
     // Address format: network_byte (1) + spend_pub (32) + view_pub (32) = 65 bytes
     if decoded.len() != 65 {
@@ -2059,9 +2067,10 @@ pub fn parse_monero_address(address: &str) -> Result<([u8; 32], [u8; 32]), Trans
             "[TX-BUILD][ADDR-PARSE] Invalid address length: {} (expected 65)",
             decoded.len()
         );
-        return Err(TransactionBuildError::AddressError(
-            format!("Invalid address length: {} (expected 65)", decoded.len())
-        ));
+        return Err(TransactionBuildError::AddressError(format!(
+            "Invalid address length: {} (expected 65)",
+            decoded.len()
+        )));
     }
 
     let network_byte = decoded[0];
@@ -2228,7 +2237,7 @@ pub fn generate_stealth_address_with_view_tag(
     // Reference: crypto/crypto.cpp derive_view_tag() uses hash_to_view_tag()
     // which is cn_fast_hash with truncated output - NOT hash_to_scalar!
     let mut view_tag_hasher = Keccak256::new();
-    view_tag_hasher.update(b"view_tag");  // 8-byte salt, no null
+    view_tag_hasher.update(b"view_tag"); // 8-byte salt, no null
     view_tag_hasher.update(&derivation_bytes);
     let mut vt_output_index_varint = Vec::new();
     encode_varint_to_vec(&mut vt_output_index_varint, output_index);
@@ -2285,10 +2294,8 @@ pub fn generate_tx_pubkey(tx_secret_key: &[u8; 32]) -> [u8; 32] {
 /// Monero H generator point (used for commitment amounts)
 /// H = 8 * hash_to_point("H") - pre-computed value from monero source
 const H_BYTES: [u8; 32] = [
-    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf,
-    0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
-    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9,
-    0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
+    0x8b, 0x65, 0x59, 0x70, 0x15, 0x37, 0x99, 0xaf, 0x2a, 0xea, 0xdc, 0x9f, 0xf1, 0xad, 0xd0, 0xea,
+    0x6c, 0x72, 0x51, 0xd5, 0x41, 0x54, 0xcf, 0xa9, 0x2c, 0x17, 0x3a, 0x0d, 0xd3, 0x9c, 0x1f, 0x94,
 ];
 
 /// Compute output commitment that balances with pseudo_out and fee
@@ -2311,9 +2318,7 @@ pub fn compute_balanced_output_commitment(
     use curve25519_dalek::edwards::CompressedEdwardsY;
     use curve25519_dalek::scalar::Scalar;
 
-    info!(
-        "[TX-BUILD][COMMITMENT] Computing balanced output commitment"
-    );
+    info!("[TX-BUILD][COMMITMENT] Computing balanced output commitment");
     info!(
         "[TX-BUILD][COMMITMENT] pseudo_out: {}",
         hex::encode(pseudo_out)
@@ -2328,17 +2333,17 @@ pub fn compute_balanced_output_commitment(
     let pseudo_out_point = CompressedEdwardsY(*pseudo_out)
         .decompress()
         .ok_or_else(|| {
-            error!("[TX-BUILD][COMMITMENT] pseudo_out decompression failed - not a valid curve point");
+            error!(
+                "[TX-BUILD][COMMITMENT] pseudo_out decompression failed - not a valid curve point"
+            );
             TransactionBuildError::InvalidPoint("Invalid pseudo_out point".into())
         })?;
 
     // Parse H generator point
-    let h_point = CompressedEdwardsY(H_BYTES)
-        .decompress()
-        .ok_or_else(|| {
-            error!("[TX-BUILD][COMMITMENT] H generator decompression failed");
-            TransactionBuildError::InvalidPoint("Invalid H generator".into())
-        })?;
+    let h_point = CompressedEdwardsY(H_BYTES).decompress().ok_or_else(|| {
+        error!("[TX-BUILD][COMMITMENT] H generator decompression failed");
+        TransactionBuildError::InvalidPoint("Invalid H generator".into())
+    })?;
 
     // Compute fee * H
     let fee_scalar = Scalar::from(fee_atomic);
@@ -2392,9 +2397,7 @@ pub fn compute_balanced_output_commitment_2outputs(
     use curve25519_dalek::edwards::CompressedEdwardsY;
     use curve25519_dalek::scalar::Scalar;
 
-    info!(
-        "[TX-BUILD][COMMITMENT-2OUT] Computing balanced output commitment for 2-output TX"
-    );
+    info!("[TX-BUILD][COMMITMENT-2OUT] Computing balanced output commitment for 2-output TX");
     info!(
         "[TX-BUILD][COMMITMENT-2OUT] pseudo_out: {}",
         hex::encode(pseudo_out)
@@ -2418,12 +2421,10 @@ pub fn compute_balanced_output_commitment_2outputs(
         })?;
 
     // Parse H generator point
-    let h_point = CompressedEdwardsY(H_BYTES)
-        .decompress()
-        .ok_or_else(|| {
-            error!("[TX-BUILD][COMMITMENT-2OUT] H generator decompression failed");
-            TransactionBuildError::InvalidPoint("Invalid H generator".into())
-        })?;
+    let h_point = CompressedEdwardsY(H_BYTES).decompress().ok_or_else(|| {
+        error!("[TX-BUILD][COMMITMENT-2OUT] H generator decompression failed");
+        TransactionBuildError::InvalidPoint("Invalid H generator".into())
+    })?;
 
     // Compute fee * H
     let fee_scalar = Scalar::from(fee_atomic);
@@ -2534,7 +2535,9 @@ pub fn verify_commitment_balance(
     for commitment in output_commitments {
         let point = CompressedEdwardsY(*commitment)
             .decompress()
-            .ok_or_else(|| TransactionBuildError::InvalidPoint("Invalid output commitment".into()))?;
+            .ok_or_else(|| {
+                TransactionBuildError::InvalidPoint("Invalid output commitment".into())
+            })?;
         sum_outputs = sum_outputs + point;
     }
 
@@ -2571,7 +2574,7 @@ pub fn verify_commitment_balance(
 pub fn encrypt_amount_ecdh(
     tx_secret_key: &[u8; 32],
     recipient_view_pub: &[u8; 32],
-    output_index: u64,  // Used in derivation_to_scalar step
+    output_index: u64, // Used in derivation_to_scalar step
     amount: u64,
 ) -> Result<[u8; 8], TransactionBuildError> {
     use curve25519_dalek::edwards::CompressedEdwardsY;
@@ -2613,15 +2616,15 @@ pub fn encrypt_amount_ecdh(
     derivation_input.push(idx as u8);
 
     let shared_sec_hash: [u8; 32] = Keccak256::digest(&derivation_input).into();
-    let shared_sec = Scalar::from_bytes_mod_order(shared_sec_hash);  // sc_reduce32
+    let shared_sec = Scalar::from_bytes_mod_order(shared_sec_hash); // sc_reduce32
     let shared_sec_bytes = shared_sec.to_bytes();
 
     // Step 2: genAmountEncodingFactor = Keccak256("amount" || sharedSec)
     // Domain separator: "amount" (6 bytes, NO null terminator)
     let mut amount_hasher = Keccak256::new();
-    amount_hasher.update(b"amount");  // 6-byte domain separator
+    amount_hasher.update(b"amount"); // 6-byte domain separator
     amount_hasher.update(&shared_sec_bytes);
-    let encoding_factor: [u8; 32] = amount_hasher.finalize().into();  // NO reduction!
+    let encoding_factor: [u8; 32] = amount_hasher.finalize().into(); // NO reduction!
 
     // Step 3: XOR amount with first 8 bytes of encoding_factor
     let amount_bytes = amount.to_le_bytes();
@@ -2689,7 +2692,7 @@ pub fn derive_output_mask(
     // Compute mask = Hs("commitment_mask" || derivation_scalar)
     // Reference: rctOps.cpp genCommitmentMask() uses memcpy(..., 15) = 15 bytes NO null
     let mut mask_hasher = Keccak256::new();
-    mask_hasher.update(b"commitment_mask");  // 15 bytes, NO null terminator
+    mask_hasher.update(b"commitment_mask"); // 15 bytes, NO null terminator
     mask_hasher.update(derivation_scalar.as_bytes());
     let mask_bytes: [u8; 32] = mask_hasher.finalize().into();
 
@@ -2741,12 +2744,14 @@ pub fn validate_frost_shares(
             arr.copy_from_slice(&b);
             arr
         }
-        _ => return FrostShareValidation {
-            valid: false,
-            message: "Invalid buyer share hex (must be 64 hex chars / 32 bytes)".to_string(),
-            expected_buyer: None,
-            actual_buyer: Some(buyer_share_hex.to_string()),
-        },
+        _ => {
+            return FrostShareValidation {
+                valid: false,
+                message: "Invalid buyer share hex (must be 64 hex chars / 32 bytes)".to_string(),
+                expected_buyer: None,
+                actual_buyer: Some(buyer_share_hex.to_string()),
+            }
+        }
     };
 
     let vendor_bytes = match hex::decode(vendor_share_hex) {
@@ -2755,12 +2760,14 @@ pub fn validate_frost_shares(
             arr.copy_from_slice(&b);
             arr
         }
-        _ => return FrostShareValidation {
-            valid: false,
-            message: "Invalid vendor share hex (must be 64 hex chars / 32 bytes)".to_string(),
-            expected_buyer: None,
-            actual_buyer: None,
-        },
+        _ => {
+            return FrostShareValidation {
+                valid: false,
+                message: "Invalid vendor share hex (must be 64 hex chars / 32 bytes)".to_string(),
+                expected_buyer: None,
+                actual_buyer: None,
+            }
+        }
     };
 
     let arbiter_bytes = match hex::decode(arbiter_share_hex) {
@@ -2769,12 +2776,14 @@ pub fn validate_frost_shares(
             arr.copy_from_slice(&b);
             arr
         }
-        _ => return FrostShareValidation {
-            valid: false,
-            message: "Invalid arbiter share hex (must be 64 hex chars / 32 bytes)".to_string(),
-            expected_buyer: None,
-            actual_buyer: None,
-        },
+        _ => {
+            return FrostShareValidation {
+                valid: false,
+                message: "Invalid arbiter share hex (must be 64 hex chars / 32 bytes)".to_string(),
+                expected_buyer: None,
+                actual_buyer: None,
+            }
+        }
     };
 
     // Convert to scalars
@@ -2792,7 +2801,8 @@ pub fn validate_frost_shares(
     if buyer == expected_buyer {
         FrostShareValidation {
             valid: true,
-            message: "FROST shares satisfy polynomial constraint: buyer = 2*vendor - arbiter".to_string(),
+            message: "FROST shares satisfy polynomial constraint: buyer = 2*vendor - arbiter"
+                .to_string(),
             expected_buyer: Some(expected_hex),
             actual_buyer: Some(actual_hex),
         }
@@ -2811,8 +2821,7 @@ pub fn validate_frost_shares(
                  3. localStorage returned wrong keys (personal wallet vs FROST share)\n\
                  \n\
                  Resolution: All 3 parties must re-run DKG together.",
-                expected_hex,
-                actual_hex
+                expected_hex, actual_hex
             ),
             expected_buyer: Some(expected_hex),
             actual_buyer: Some(actual_hex),
@@ -2831,9 +2840,9 @@ pub fn validate_frost_pair(
     index2: u16,
     group_pubkey_hex: &str,
 ) -> Result<bool, String> {
-    use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::constants::ED25519_BASEPOINT_TABLE;
     use curve25519_dalek::edwards::CompressedEdwardsY;
+    use curve25519_dalek::scalar::Scalar;
 
     // Parse shares
     let share1_bytes: [u8; 32] = hex::decode(share1_hex)
@@ -2955,6 +2964,10 @@ mod tests {
             }
         }
 
-        assert!(result.is_ok(), "Failed to parse stagenet address: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to parse stagenet address: {:?}",
+            result
+        );
     }
 }

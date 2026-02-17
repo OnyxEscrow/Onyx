@@ -102,7 +102,7 @@ impl<F: PrimeField> ScalarVector<F> {
     let mut res = Vec::with_capacity(len);
     res.push(F::ONE);
     res.push(x);
-    for i in 2 .. len {
+    for i in 2..len {
       res.push(res[i - 1] * x);
     }
     res.truncate(len);

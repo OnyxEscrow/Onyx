@@ -308,7 +308,11 @@ impl SalSigningCoordinator {
         }
 
         // Check for duplicate submission
-        if session.round1.iter().any(|s| s.signer_index == submission.signer_index) {
+        if session
+            .round1
+            .iter()
+            .any(|s| s.signer_index == submission.signer_index)
+        {
             anyhow::bail!(
                 "Signer {} already submitted round 1 nonces",
                 submission.signer_index
@@ -350,9 +354,7 @@ impl SalSigningCoordinator {
     ///
     /// Called by each signer after round 1 is complete. Returns all
     /// nonce commitments so the signer can proceed to round 2.
-    pub fn get_round1_commitments(
-        session: &SalSigningSession,
-    ) -> Result<Vec<SalRound1Submission>> {
+    pub fn get_round1_commitments(session: &SalSigningSession) -> Result<Vec<SalRound1Submission>> {
         match session.state {
             SalSigningState::Round1Complete
             | SalSigningState::Round2Active
@@ -401,7 +403,11 @@ impl SalSigningCoordinator {
         }
 
         // Check for duplicate submission
-        if session.round2.iter().any(|s| s.signer_index == submission.signer_index) {
+        if session
+            .round2
+            .iter()
+            .any(|s| s.signer_index == submission.signer_index)
+        {
             anyhow::bail!(
                 "Signer {} already submitted round 2 share",
                 submission.signer_index
@@ -412,8 +418,7 @@ impl SalSigningCoordinator {
         if submission.share_hex.is_empty() {
             anyhow::bail!("Round 2 share data cannot be empty");
         }
-        hex::decode(&submission.share_hex)
-            .context("Round 2 share data is not valid hex")?;
+        hex::decode(&submission.share_hex).context("Round 2 share data is not valid hex")?;
 
         session.round2.push(submission.clone());
         session.updated_at = chrono::Utc::now().to_rfc3339();
@@ -440,9 +445,7 @@ impl SalSigningCoordinator {
     }
 
     /// Retrieve all round 2 shares for aggregation.
-    pub fn get_round2_shares(
-        session: &SalSigningSession,
-    ) -> Result<Vec<SalRound2Submission>> {
+    pub fn get_round2_shares(session: &SalSigningSession) -> Result<Vec<SalRound2Submission>> {
         if session.state != SalSigningState::Round2Complete {
             anyhow::bail!(
                 "Round 2 shares not ready in state '{}' (need round2_complete)",
@@ -480,11 +483,7 @@ impl SalSigningCoordinator {
     /// Mark session as failed with an error.
     ///
     /// Optionally identifies the faulty signer (blame).
-    pub fn fail(
-        session: &mut SalSigningSession,
-        error: &str,
-        blame_signer: Option<u16>,
-    ) {
+    pub fn fail(session: &mut SalSigningSession, error: &str, blame_signer: Option<u16>) {
         session.state = SalSigningState::Failed;
         session.error = Some(error.to_string());
         session.blame_signer = blame_signer;
@@ -604,16 +603,12 @@ impl SalSigningCoordinator {
         if proof_hex.is_empty() {
             anyhow::bail!("Membership proof data cannot be empty");
         }
-        let proof_bytes = hex::decode(proof_hex)
-            .context("Membership proof is not valid hex")?;
+        let proof_bytes = hex::decode(proof_hex).context("Membership proof is not valid hex")?;
 
-        let pok_bytes = hex::decode(root_blind_pok_hex)
-            .context("root_blind_pok is not valid hex")?;
+        let pok_bytes =
+            hex::decode(root_blind_pok_hex).context("root_blind_pok is not valid hex")?;
         if pok_bytes.len() != 64 {
-            anyhow::bail!(
-                "root_blind_pok must be 64 bytes, got {}",
-                pok_bytes.len()
-            );
+            anyhow::bail!("root_blind_pok must be 64 bytes, got {}", pok_bytes.len());
         }
 
         // Validate proof length matches client-declared expected size.
@@ -662,10 +657,7 @@ impl SalSigningCoordinator {
     ///
     /// # Arguments
     /// * `sal_proof_hex` - Hex-encoded `SpendAuthAndLinkability::write()` output (768 hex = 384 bytes)
-    pub fn submit_sal_proof(
-        session: &mut SalSigningSession,
-        sal_proof_hex: &str,
-    ) -> Result<()> {
+    pub fn submit_sal_proof(session: &mut SalSigningSession, sal_proof_hex: &str) -> Result<()> {
         if session.state != SalSigningState::Round2Complete {
             anyhow::bail!(
                 "Cannot submit SA+L proof in state '{}' (need round2_complete)",
@@ -673,8 +665,7 @@ impl SalSigningCoordinator {
             );
         }
 
-        let proof_bytes = hex::decode(sal_proof_hex)
-            .context("SA+L proof is not valid hex")?;
+        let proof_bytes = hex::decode(sal_proof_hex).context("SA+L proof is not valid hex")?;
 
         // SpendAuthAndLinkability = 6 points + 6 scalars = 12 × 32 = 384 bytes
         if proof_bytes.len() != 384 {
@@ -714,12 +705,13 @@ impl SalSigningCoordinator {
         }
 
         for (i, hex_val) in tuples_hex.iter().enumerate() {
-            let bytes = hex::decode(hex_val)
-                .with_context(|| format!("Tuple {} is not valid hex", i))?;
+            let bytes =
+                hex::decode(hex_val).with_context(|| format!("Tuple {} is not valid hex", i))?;
             if bytes.len() != 96 {
                 anyhow::bail!(
                     "Tuple {} must be 96 bytes (O~||I~||R), got {}",
-                    i, bytes.len()
+                    i,
+                    bytes.len()
                 );
             }
         }
@@ -745,9 +737,7 @@ impl SalSigningCoordinator {
     ///
     /// # Returns
     /// `FcmpPrunableData` ready to pass to `MoneroTransactionBuilder::attach_fcmp_proof()`.
-    pub fn assemble_fcmp_prunable(
-        session: &SalSigningSession,
-    ) -> Result<FcmpPrunableData> {
+    pub fn assemble_fcmp_prunable(session: &SalSigningSession) -> Result<FcmpPrunableData> {
         // Validate all components present
         if session.state != SalSigningState::Round2Complete {
             anyhow::bail!(
@@ -756,13 +746,20 @@ impl SalSigningCoordinator {
             );
         }
 
-        let sal_proof_hex = session.sal_proof_hex.as_ref()
+        let sal_proof_hex = session
+            .sal_proof_hex
+            .as_ref()
             .context("SA+L proof not yet submitted (call submit_sal_proof first)")?;
-        let membership_hex = session.membership_proof_hex.as_ref()
+        let membership_hex = session
+            .membership_proof_hex
+            .as_ref()
             .context("Membership proof not yet submitted")?;
-        let root_pok_hex = session.root_blind_pok_hex.as_ref()
+        let root_pok_hex = session
+            .root_blind_pok_hex
+            .as_ref()
             .context("root_blind_pok not yet submitted")?;
-        let expected_len = session.expected_proof_len
+        let expected_len = session
+            .expected_proof_len
             .context("expected_proof_len not set")?;
 
         if session.rerandomized_tuples_hex.is_empty() {
@@ -770,8 +767,7 @@ impl SalSigningCoordinator {
         }
 
         // Parse SA+L proof (384 bytes → 12 × 32-byte chunks)
-        let sal_bytes = hex::decode(sal_proof_hex)
-            .context("SA+L proof hex decode failed")?;
+        let sal_bytes = hex::decode(sal_proof_hex).context("SA+L proof hex decode failed")?;
 
         // Parse into 6 points (P, A, B, R_O, R_P, R_L) + 6 scalars (s_alpha..s_r_p)
         let mut sal_points = [[0u8; 32]; 6];
@@ -788,8 +784,8 @@ impl SalSigningCoordinator {
         let mut input_proofs = Vec::with_capacity(input_count);
 
         for (i, tuple_hex) in session.rerandomized_tuples_hex.iter().enumerate() {
-            let tuple_bytes = hex::decode(tuple_hex)
-                .with_context(|| format!("Tuple {} hex decode failed", i))?;
+            let tuple_bytes =
+                hex::decode(tuple_hex).with_context(|| format!("Tuple {} hex decode failed", i))?;
 
             let mut o_tilde = [0u8; 32];
             let mut i_tilde = [0u8; 32];
@@ -811,11 +807,10 @@ impl SalSigningCoordinator {
         }
 
         // Parse membership proof
-        let proof_bytes = hex::decode(membership_hex)
-            .context("Membership proof hex decode failed")?;
+        let proof_bytes =
+            hex::decode(membership_hex).context("Membership proof hex decode failed")?;
         let mut root_blind_pok = [0u8; 64];
-        let pok_bytes = hex::decode(root_pok_hex)
-            .context("root_blind_pok hex decode failed")?;
+        let pok_bytes = hex::decode(root_pok_hex).context("root_blind_pok hex decode failed")?;
         root_blind_pok.copy_from_slice(&pok_bytes);
 
         let prunable = FcmpPrunableData {
@@ -860,11 +855,7 @@ mod tests {
 
     #[test]
     fn test_init_session() {
-        let session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        );
+        let session = SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data());
         assert!(session.is_ok());
         let s = session.unwrap();
         assert_eq!(s.state, SalSigningState::Created);
@@ -873,41 +864,26 @@ mod tests {
 
     #[test]
     fn test_init_session_rejects_single_signer() {
-        let result = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1],
-            test_signing_data(),
-        );
+        let result = SalSigningCoordinator::init_session("esc_001", &[1], test_signing_data());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_init_session_rejects_duplicate_signers() {
-        let result = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[2, 2],
-            test_signing_data(),
-        );
+        let result = SalSigningCoordinator::init_session("esc_001", &[2, 2], test_signing_data());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_init_session_rejects_invalid_index() {
-        let result = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 4],
-            test_signing_data(),
-        );
+        let result = SalSigningCoordinator::init_session("esc_001", &[1, 4], test_signing_data());
         assert!(result.is_err());
     }
 
     #[test]
     fn test_round1_flow() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         // First signer submits
         let done = SalSigningCoordinator::submit_round1(
@@ -916,7 +892,8 @@ mod tests {
                 signer_index: 1,
                 preprocess_hex: "aabb".to_string(),
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert!(!done);
         assert_eq!(session.state, SalSigningState::Round1Active);
 
@@ -927,18 +904,16 @@ mod tests {
                 signer_index: 2,
                 preprocess_hex: "ccdd".to_string(),
             },
-        ).unwrap();
+        )
+        .unwrap();
         assert!(done);
         assert_eq!(session.state, SalSigningState::Round1Complete);
     }
 
     #[test]
     fn test_round1_rejects_duplicate() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         SalSigningCoordinator::submit_round1(
             &mut session,
@@ -946,7 +921,8 @@ mod tests {
                 signer_index: 1,
                 preprocess_hex: "aabb".to_string(),
             },
-        ).unwrap();
+        )
+        .unwrap();
 
         let result = SalSigningCoordinator::submit_round1(
             &mut session,
@@ -960,11 +936,8 @@ mod tests {
 
     #[test]
     fn test_round1_rejects_non_participant() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         let result = SalSigningCoordinator::submit_round1(
             &mut session,
@@ -978,70 +951,104 @@ mod tests {
 
     #[test]
     fn test_round2_flow() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         // Complete round 1
         SalSigningCoordinator::submit_round1(
             &mut session,
-            SalRound1Submission { signer_index: 1, preprocess_hex: "aa".to_string() },
-        ).unwrap();
+            SalRound1Submission {
+                signer_index: 1,
+                preprocess_hex: "aa".to_string(),
+            },
+        )
+        .unwrap();
         SalSigningCoordinator::submit_round1(
             &mut session,
-            SalRound1Submission { signer_index: 2, preprocess_hex: "bb".to_string() },
-        ).unwrap();
+            SalRound1Submission {
+                signer_index: 2,
+                preprocess_hex: "bb".to_string(),
+            },
+        )
+        .unwrap();
 
         // Round 2
         let done = SalSigningCoordinator::submit_round2(
             &mut session,
-            SalRound2Submission { signer_index: 1, share_hex: "1122".to_string() },
-        ).unwrap();
+            SalRound2Submission {
+                signer_index: 1,
+                share_hex: "1122".to_string(),
+            },
+        )
+        .unwrap();
         assert!(!done);
         assert_eq!(session.state, SalSigningState::Round2Active);
 
         let done = SalSigningCoordinator::submit_round2(
             &mut session,
-            SalRound2Submission { signer_index: 2, share_hex: "3344".to_string() },
-        ).unwrap();
+            SalRound2Submission {
+                signer_index: 2,
+                share_hex: "3344".to_string(),
+            },
+        )
+        .unwrap();
         assert!(done);
         assert_eq!(session.state, SalSigningState::Round2Complete);
     }
 
     #[test]
     fn test_round2_rejects_before_round1_complete() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         let result = SalSigningCoordinator::submit_round2(
             &mut session,
-            SalRound2Submission { signer_index: 1, share_hex: "aa".to_string() },
+            SalRound2Submission {
+                signer_index: 1,
+                share_hex: "aa".to_string(),
+            },
         );
         assert!(result.is_err());
     }
 
     #[test]
     fn test_finalize() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         // Complete both rounds
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 1, preprocess_hex: "aa".to_string() }).unwrap();
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 2, preprocess_hex: "bb".to_string() }).unwrap();
-        SalSigningCoordinator::submit_round2(&mut session,
-            SalRound2Submission { signer_index: 1, share_hex: "11".to_string() }).unwrap();
-        SalSigningCoordinator::submit_round2(&mut session,
-            SalRound2Submission { signer_index: 2, share_hex: "22".to_string() }).unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 1,
+                preprocess_hex: "aa".to_string(),
+            },
+        )
+        .unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 2,
+                preprocess_hex: "bb".to_string(),
+            },
+        )
+        .unwrap();
+        SalSigningCoordinator::submit_round2(
+            &mut session,
+            SalRound2Submission {
+                signer_index: 1,
+                share_hex: "11".to_string(),
+            },
+        )
+        .unwrap();
+        SalSigningCoordinator::submit_round2(
+            &mut session,
+            SalRound2Submission {
+                signer_index: 2,
+                share_hex: "22".to_string(),
+            },
+        )
+        .unwrap();
 
         // Finalize
         SalSigningCoordinator::finalize(&mut session, "abcd1234").unwrap();
@@ -1051,11 +1058,8 @@ mod tests {
 
     #[test]
     fn test_fail_with_blame() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         SalSigningCoordinator::fail(&mut session, "Invalid share from signer 2", Some(2));
         assert_eq!(session.state, SalSigningState::Failed);
@@ -1064,14 +1068,17 @@ mod tests {
 
     #[test]
     fn test_rollback_round1() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 1, preprocess_hex: "aa".to_string() }).unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 1,
+                preprocess_hex: "aa".to_string(),
+            },
+        )
+        .unwrap();
 
         assert_eq!(session.state, SalSigningState::Round1Active);
 
@@ -1083,21 +1090,36 @@ mod tests {
 
     #[test]
     fn test_rollback_round2_clears_nonces() {
-        let mut session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let mut session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         // Complete round 1
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 1, preprocess_hex: "aa".to_string() }).unwrap();
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 2, preprocess_hex: "bb".to_string() }).unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 1,
+                preprocess_hex: "aa".to_string(),
+            },
+        )
+        .unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 2,
+                preprocess_hex: "bb".to_string(),
+            },
+        )
+        .unwrap();
 
         // Partial round 2
-        SalSigningCoordinator::submit_round2(&mut session,
-            SalRound2Submission { signer_index: 1, share_hex: "11".to_string() }).unwrap();
+        SalSigningCoordinator::submit_round2(
+            &mut session,
+            SalRound2Submission {
+                signer_index: 1,
+                share_hex: "11".to_string(),
+            },
+        )
+        .unwrap();
 
         assert_eq!(session.state, SalSigningState::Round2Active);
 
@@ -1114,10 +1136,17 @@ mod tests {
             "esc_001",
             &[1, 3], // buyer + arbiter (dispute scenario)
             test_signing_data(),
-        ).unwrap();
+        )
+        .unwrap();
 
-        SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 1, preprocess_hex: "aa".to_string() }).unwrap();
+        SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 1,
+                preprocess_hex: "aa".to_string(),
+            },
+        )
+        .unwrap();
 
         let status = SalSigningCoordinator::status(&session);
         assert_eq!(status.state, SalSigningState::Round1Active);
@@ -1128,11 +1157,8 @@ mod tests {
 
     #[test]
     fn test_get_round1_commitments_before_complete() {
-        let session = SalSigningCoordinator::init_session(
-            "esc_001",
-            &[1, 2],
-            test_signing_data(),
-        ).unwrap();
+        let session =
+            SalSigningCoordinator::init_session("esc_001", &[1, 2], test_signing_data()).unwrap();
 
         let result = SalSigningCoordinator::get_round1_commitments(&session);
         assert!(result.is_err());
@@ -1144,23 +1170,48 @@ mod tests {
             "esc_001",
             &[2, 3], // vendor + arbiter (dispute resolution)
             test_signing_data(),
-        ).unwrap();
+        )
+        .unwrap();
 
         // Round 1: both submit nonces (parallel)
-        assert!(!SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 3, preprocess_hex: "aa".to_string() }).unwrap());
-        assert!(SalSigningCoordinator::submit_round1(&mut session,
-            SalRound1Submission { signer_index: 2, preprocess_hex: "bb".to_string() }).unwrap());
+        assert!(!SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 3,
+                preprocess_hex: "aa".to_string()
+            }
+        )
+        .unwrap());
+        assert!(SalSigningCoordinator::submit_round1(
+            &mut session,
+            SalRound1Submission {
+                signer_index: 2,
+                preprocess_hex: "bb".to_string()
+            }
+        )
+        .unwrap());
 
         // Both retrieve commitments
         let commitments = SalSigningCoordinator::get_round1_commitments(&session).unwrap();
         assert_eq!(commitments.len(), 2);
 
         // Round 2: both submit partial sigs (parallel)
-        assert!(!SalSigningCoordinator::submit_round2(&mut session,
-            SalRound2Submission { signer_index: 2, share_hex: "1122".to_string() }).unwrap());
-        assert!(SalSigningCoordinator::submit_round2(&mut session,
-            SalRound2Submission { signer_index: 3, share_hex: "3344".to_string() }).unwrap());
+        assert!(!SalSigningCoordinator::submit_round2(
+            &mut session,
+            SalRound2Submission {
+                signer_index: 2,
+                share_hex: "1122".to_string()
+            }
+        )
+        .unwrap());
+        assert!(SalSigningCoordinator::submit_round2(
+            &mut session,
+            SalRound2Submission {
+                signer_index: 3,
+                share_hex: "3344".to_string()
+            }
+        )
+        .unwrap());
 
         // Retrieve shares for aggregation
         let shares = SalSigningCoordinator::get_round2_shares(&session).unwrap();

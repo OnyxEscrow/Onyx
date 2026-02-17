@@ -249,8 +249,8 @@ where
     };
     let mut c2_branches = Vec::with_capacity(layers / 2);
 
-    for _ in 0 .. inputs {
-      for i in 0 .. (layers - 1) {
+    for _ in 0..inputs {
+      for i in 0..(layers - 1) {
         if (i % 2) == 0 {
           c1_branches.push(
             c1_tape.append_branch(if i == 0 { 6 * LAYER_ONE_LEN } else { LAYER_ONE_LEN }, None),
@@ -267,7 +267,7 @@ where
       c2_tape.append_branch(LAYER_TWO_LEN, None);
     }
 
-    for _ in 0 .. inputs {
+    for _ in 0..inputs {
       c1_tape.append_claimed_point::<C::OcParameters>(None, None, None, None);
       c1_tape.append_claimed_point::<C::OcParameters>(None, None, None, None);
       c1_tape.append_divisor::<C::OcParameters>(None, None);
@@ -275,7 +275,7 @@ where
       c1_tape.append_claimed_point::<C::OcParameters>(None, None, None, None);
     }
 
-    for _ in 0 .. (if c1_branches.is_empty() {
+    for _ in 0..(if c1_branches.is_empty() {
       0
     } else {
       (c1_branches.len() - inputs) + (inputs * (layers % 2))
@@ -283,7 +283,7 @@ where
       c1_tape.append_claimed_point::<C::C2Parameters>(None, None, None, None);
     }
 
-    for _ in 0 .. (c2_branches.len() + (inputs * usize::from((layers % 2) == 0))) {
+    for _ in 0..(c2_branches.len() + (inputs * usize::from((layers % 2) == 0))) {
       c2_tape.append_claimed_point::<C::C1Parameters>(None, None, None, None);
     }
 
@@ -570,10 +570,10 @@ where
 
     let (c1_padded_pow_2, c2_padded_pow_2) = Self::ipa_rows(
       branches.per_input.len(),
-      usize::from(u8::from(branches.per_input[0].branches.leaves.is_some())) +
-        branches.per_input[0].branches.curve_1_layers.len() +
-        branches.per_input[0].branches.curve_2_layers.len() +
-        1,
+      usize::from(u8::from(branches.per_input[0].branches.leaves.is_some()))
+        + branches.per_input[0].branches.curve_1_layers.len()
+        + branches.per_input[0].branches.curve_2_layers.len()
+        + 1,
     );
 
     let mut c1_tape = VectorCommitmentTape::<<C::C1 as Ciphersuite>::F> {
@@ -649,13 +649,13 @@ where
     if matches!(tree, TreeRoot::C1(_)) {
       let s =
         *root_blind_r_C1.unwrap() + (transcript.challenge::<C::C1>() * root_blind_C1.unwrap());
-      root_blind_pok[.. 32].copy_from_slice(&root_blind_R);
-      root_blind_pok[32 ..].copy_from_slice(s.to_repr().as_ref());
+      root_blind_pok[..32].copy_from_slice(&root_blind_R);
+      root_blind_pok[32..].copy_from_slice(s.to_repr().as_ref());
     } else {
       let s =
         *root_blind_r_C2.unwrap() + (transcript.challenge::<C::C2>() * root_blind_C2.unwrap());
-      root_blind_pok[.. 32].copy_from_slice(&root_blind_R);
-      root_blind_pok[32 ..].copy_from_slice(s.to_repr().as_ref());
+      root_blind_pok[..32].copy_from_slice(&root_blind_R);
+      root_blind_pok[32..].copy_from_slice(s.to_repr().as_ref());
     }
 
     // Create the circuits
@@ -744,10 +744,10 @@ where
 
     let res = Fcmp { _curves: PhantomData, proof: transcript.complete(), root_blind_pok };
     debug_assert_eq!(res.proof.len() + 64, {
-      let layers = 1 +
-        usize::from(u8::from(branches.per_input[0].branches.leaves.is_some())) +
-        branches.per_input[0].branches.curve_1_layers.len() +
-        branches.per_input[0].branches.curve_2_layers.len();
+      let layers = 1
+        + usize::from(u8::from(branches.per_input[0].branches.leaves.is_some()))
+        + branches.per_input[0].branches.curve_1_layers.len()
+        + branches.per_input[0].branches.curve_2_layers.len();
       Self::proof_size(branches.per_input.len(), layers)
     });
     Ok(res)
@@ -801,7 +801,7 @@ where
 
     // Append the leaves and the non-root branches to the tape
     for _ in inputs {
-      for i in 0 .. (layers - 1) {
+      for i in 0..(layers - 1) {
         if (i % 2) == 0 {
           c1_branches.push(
             c1_tape.append_branch(if i == 0 { 6 * LAYER_ONE_LEN } else { LAYER_ONE_LEN }, None),
@@ -866,14 +866,14 @@ where
 
     // The first circuit's tape opens the blinds from the second curve
     let mut commitment_blind_claims_1 = vec![];
-    for _ in 0 .. (if c1_branches.is_empty() {
+    for _ in 0..(if c1_branches.is_empty() {
       // There's only the leaves handled by C1, which don't have branch unblindings
       0
     } else {
       // We unblind a C2 branch for every branch except the ones representing the leaves
       // We also unblind a C2 branch in the root branch, if the root branch is C1
-      (c1_branches.len() - inputs.len()) +
-        (inputs.len() * usize::from(u8::from(matches!(tree, TreeRoot::C1(_)))))
+      (c1_branches.len() - inputs.len())
+        + (inputs.len() * usize::from(u8::from(matches!(tree, TreeRoot::C1(_)))))
     }) {
       commitment_blind_claims_1
         .push(c1_tape.append_claimed_point::<C::C2Parameters>(None, None, None, None).0);
@@ -882,8 +882,8 @@ where
 
     // The second circuit's tape opens the blinds from the first curve
     let mut commitment_blind_claims_2 = vec![];
-    for _ in 0 .. (c2_branches.len() +
-      (inputs.len() * usize::from(u8::from(matches!(tree, TreeRoot::C2(_))))))
+    for _ in 0..(c2_branches.len()
+      + (inputs.len() * usize::from(u8::from(matches!(tree, TreeRoot::C2(_))))))
     {
       commitment_blind_claims_2
         .push(c2_tape.append_claimed_point::<C::C1Parameters>(None, None, None, None).0);
@@ -891,7 +891,7 @@ where
     let commitment_blind_claims_2 = commitment_blind_claims_2.into_iter();
 
     let mut transcript = VerifierTranscript::new(
-      Self::transcript(tree, inputs, &self.root_blind_pok[.. 32]),
+      Self::transcript(tree, inputs, &self.root_blind_pok[..32]),
       &self.proof,
     );
     let proof_1_vcs = transcript.read_commitments::<C::C1>(c1_tape.commitments.len(), 0)?;
@@ -912,8 +912,8 @@ where
       };
       match (claimed_root, tree) {
         (TreeRoot::C1(claimed), TreeRoot::C1(actual)) => {
-          let R = <C::C1 as Ciphersuite>::read_G(&mut self.root_blind_pok[.. 32].as_ref())?;
-          let s = <C::C1 as Ciphersuite>::read_F(&mut self.root_blind_pok[32 ..].as_ref())?;
+          let R = <C::C1 as Ciphersuite>::read_G(&mut self.root_blind_pok[..32].as_ref())?;
+          let s = <C::C1 as Ciphersuite>::read_F(&mut self.root_blind_pok[32..].as_ref())?;
 
           let c = transcript.challenge::<C::C1>();
 
@@ -925,8 +925,8 @@ where
           verifier_1.h -= s * batch_verifier_weight;
         }
         (TreeRoot::C2(claimed), TreeRoot::C2(actual)) => {
-          let R = <C::C2 as Ciphersuite>::read_G(&mut self.root_blind_pok[.. 32].as_ref())?;
-          let s = <C::C2 as Ciphersuite>::read_F(&mut self.root_blind_pok[32 ..].as_ref())?;
+          let R = <C::C2 as Ciphersuite>::read_G(&mut self.root_blind_pok[..32].as_ref())?;
+          let s = <C::C2 as Ciphersuite>::read_F(&mut self.root_blind_pok[32..].as_ref())?;
 
           let c = transcript.challenge::<C::C2>();
 

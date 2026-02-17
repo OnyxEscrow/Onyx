@@ -245,16 +245,16 @@ impl<
     let R_alpha = nonce_sums[0][1];
     let R_z = (R_alpha * self.rerandomized_output.r_i) + (U * *r_z);
 
-    let P = params.group_key() +
-      (V * self.rerandomized_output.r_i) +
-      (self.x_U.unwrap() * self.rerandomized_output.r_i) +
-      (T * *r_p);
+    let P = params.group_key()
+      + (V * self.rerandomized_output.r_i)
+      + (self.x_U.unwrap() * self.rerandomized_output.r_i)
+      + (T * *r_p);
 
-    let A = alpha_G +
-      (V * *beta) +
-      (nonce_sums[0][1] * self.rerandomized_output.r_i) +
-      (self.x_U.unwrap() * *beta) +
-      (T * *delta);
+    let A = alpha_G
+      + (V * *beta)
+      + (nonce_sums[0][1] * self.rerandomized_output.r_i)
+      + (self.x_U.unwrap() * *beta)
+      + (T * *delta);
     let B = (nonce_sums[0][1] * *beta) + (T * *mu);
 
     let R_O = alpha_G + (T * *r_y);

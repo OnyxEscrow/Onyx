@@ -94,7 +94,7 @@ where
     proofs: &HashMap<Participant, GeneratorProof<C1>>,
   ) -> Result<ThresholdKeys<C2>, DkgError<()>> {
     let params = self.base.params();
-    validate_map(proofs, &(1 ..= params.n).map(Participant).collect::<Vec<_>>(), params.i)?;
+    validate_map(proofs, &(1..=params.n).map(Participant).collect::<Vec<_>>(), params.i)?;
 
     let original_shares = self.base.verification_shares();
 

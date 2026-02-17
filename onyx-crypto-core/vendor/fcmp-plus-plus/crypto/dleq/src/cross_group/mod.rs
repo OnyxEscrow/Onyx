@@ -399,9 +399,9 @@ where
 
     // These shouldn't be possible, as locally created and deserialized proofs should be properly
     // formed in these regards, yet it doesn't hurt to check and would be problematic if true
-    if (self.bits.len() != (capacity / bits_per_group)) ||
-      ((self.remainder.is_none() && has_remainder) ||
-        (self.remainder.is_some() && !has_remainder))
+    if (self.bits.len() != (capacity / bits_per_group))
+      || ((self.remainder.is_none() && has_remainder)
+        || (self.remainder.is_some() && !has_remainder))
     {
       return Err(DLEqError::InvalidProofLength);
     }
@@ -453,7 +453,7 @@ where
     let bits_per_group = usize::from(BitSignature::from(SIGNATURE).bits());
 
     let mut bits = Vec::with_capacity(capacity / bits_per_group);
-    for _ in 0 .. (capacity / bits_per_group) {
+    for _ in 0..(capacity / bits_per_group) {
       bits.push(Bits::read(r)?);
     }
 

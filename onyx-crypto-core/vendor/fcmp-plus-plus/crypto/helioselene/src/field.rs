@@ -111,7 +111,7 @@ fn select_word(a: Limb, b: Limb, choice: Limb) -> Limb {
 fn red1(a: U256) -> U256 {
   let (reduced, borrow) = sub_value(a, MODULUS);
   let mut out = U256::ZERO;
-  for j in 0 .. U256::LIMBS {
+  for j in 0..U256::LIMBS {
     out.as_limbs_mut()[j] = select_word(reduced.as_limbs()[j], a.as_limbs()[j], borrow);
   }
   out
@@ -124,14 +124,14 @@ fn red256(mut a: U256) -> HelioseleneField {
   let high_bit = (a.as_limbs()[U256::LIMBS - 1] >> (Limb::BITS - 1)).wrapping_neg();
   a.as_limbs_mut()[U256::LIMBS - 1] = a.as_limbs()[U256::LIMBS - 1] & (Limb::MAX >> 1);
   let mut carry = Limb::ZERO;
-  for j in 0 .. U128::LIMBS {
+  for j in 0..U128::LIMBS {
     (a.as_limbs_mut()[j], carry) = add_with_bounded_overflow(
       a.as_limbs()[j],
       high_bit & MODULUS_255_DISTANCE.as_limbs()[j],
       carry,
     );
   }
-  for j in U128::LIMBS .. U256::LIMBS {
+  for j in U128::LIMBS..U256::LIMBS {
     let (limb, carry_bool) = a.as_limbs()[j].0.overflowing_add(carry.0);
     (a.as_limbs_mut()[j], carry) = (Limb(limb), Limb(carry_bool as _));
   }
@@ -208,7 +208,7 @@ impl Sub for HelioseleneField {
     let (candidate, underflowed) = sub_value(self.0, b.0);
     let plus_modulus = candidate.wrapping_add(&MODULUS);
     let mut out = U256::ZERO;
-    for j in 0 .. U256::LIMBS {
+    for j in 0..U256::LIMBS {
       out.as_limbs_mut()[j] =
         select_word(candidate.as_limbs()[j], plus_modulus.as_limbs()[j], underflowed);
     }
@@ -245,8 +245,8 @@ fn red512(wide: (U256, U256)) -> HelioseleneField {
   */
 
   let mut limbs = [Limb::ZERO; 2 * U256::LIMBS];
-  limbs[.. U256::LIMBS].copy_from_slice(wide.0.as_limbs());
-  limbs[U256::LIMBS ..].copy_from_slice(wide.1.as_limbs());
+  limbs[..U256::LIMBS].copy_from_slice(wide.0.as_limbs());
+  limbs[U256::LIMBS..].copy_from_slice(wide.1.as_limbs());
 
   /*
     Perform a 128-bit multiplication with the highest bits, producing a 256-bit value which must
@@ -254,17 +254,17 @@ fn red512(wide: (U256, U256)) -> HelioseleneField {
   */
   let mut carries = [Limb::ZERO; U256::LIMBS + U128::LIMBS];
   let mut carry;
-  for i in U128::LIMBS .. U256::LIMBS {
+  for i in U128::LIMBS..U256::LIMBS {
     (limbs[i], carry) =
       limbs[i].mac(limbs[U256::LIMBS + i], TWO_MODULUS_255_DISTANCE.as_limbs()[0], Limb::ZERO);
-    for j in 1 .. U128::LIMBS {
+    for j in 1..U128::LIMBS {
       (limbs[i + j], carry) =
         limbs[i + j].mac(limbs[U256::LIMBS + i], TWO_MODULUS_255_DISTANCE.as_limbs()[j], carry);
     }
     carries[i + U128::LIMBS] = carry;
   }
   carry = Limb::ZERO;
-  for j in U256::LIMBS .. (U256::LIMBS + U128::LIMBS) {
+  for j in U256::LIMBS..(U256::LIMBS + U128::LIMBS) {
     (limbs[j], carry) = add_with_bounded_overflow(limbs[j], carries[j], carry);
   }
 
@@ -282,50 +282,50 @@ fn red512(wide: (U256, U256)) -> HelioseleneField {
   */
   let three_eighty_four_carry = carry.wrapping_neg();
   let mut carry = Limb::ZERO;
-  for j in 0 .. U128::LIMBS {
+  for j in 0..U128::LIMBS {
     (limbs[U128::LIMBS + j], carry) = add_with_bounded_overflow(
       limbs[U128::LIMBS + j],
       (three_eighty_four_carry & TWO_MODULUS_255_DISTANCE.as_limbs()[j]).wrapping_add(carry),
       Limb::ZERO,
     );
   }
-  for j in U128::LIMBS .. U256::LIMBS {
+  for j in U128::LIMBS..U256::LIMBS {
     (limbs[U128::LIMBS + j], carry) =
       add_with_bounded_overflow(limbs[U128::LIMBS + j], Limb::ZERO, carry);
   }
 
   // Perform the 128-bit multiplication with the next highest bits
-  for i in 0 .. U128::LIMBS {
+  for i in 0..U128::LIMBS {
     (limbs[i], carry) =
       limbs[i].mac(limbs[U256::LIMBS + i], TWO_MODULUS_255_DISTANCE.as_limbs()[0], Limb::ZERO);
-    for j in 1 .. U128::LIMBS {
+    for j in 1..U128::LIMBS {
       (limbs[i + j], carry) =
         limbs[i + j].mac(limbs[U256::LIMBS + i], TWO_MODULUS_255_DISTANCE.as_limbs()[j], carry);
     }
     carries[i + U128::LIMBS] = carry;
   }
   carry = Limb::ZERO;
-  for j in U128::LIMBS .. U256::LIMBS {
+  for j in U128::LIMBS..U256::LIMBS {
     (limbs[j], carry) = add_with_bounded_overflow(limbs[j], carries[j], carry);
   }
 
   // As with the 384th bit, we now reduce out the 256th bit if set, which again won't overflow
   let two_fifty_six_carry = carry.wrapping_neg();
   let mut carry = Limb::ZERO;
-  for i in 0 .. U128::LIMBS {
+  for i in 0..U128::LIMBS {
     (limbs[i], carry) = add_with_bounded_overflow(
       limbs[i],
       (two_fifty_six_carry & TWO_MODULUS_255_DISTANCE.as_limbs()[i]).wrapping_add(carry),
       Limb::ZERO,
     );
   }
-  for i in U128::LIMBS .. U256::LIMBS {
+  for i in U128::LIMBS..U256::LIMBS {
     let (limb, carry_bool) = limbs[i].0.overflowing_add(carry.0);
     (limbs[i], carry) = (Limb(limb), Limb(carry_bool as _));
   }
 
   let mut res = U256::ZERO;
-  res.as_limbs_mut().copy_from_slice(&limbs[.. U256::LIMBS]);
+  res.as_limbs_mut().copy_from_slice(&limbs[..U256::LIMBS]);
   // Convert `res` to a valid scalar
   red256(res)
 }
@@ -401,13 +401,13 @@ impl HelioseleneField {
 
       if ((i + 1) % 4) == 0 {
         if i != 3 {
-          for _ in 0 .. 4 {
+          for _ in 0..4 {
             res = res.square();
           }
         }
 
         let mut factor = table[0];
-        for (j, candidate) in table[1 ..].iter().enumerate() {
+        for (j, candidate) in table[1..].iter().enumerate() {
           let j = j + 1;
           factor = Self::conditional_select(&factor, candidate, usize::from(bits).ct_eq(&j));
         }
@@ -420,7 +420,7 @@ impl HelioseleneField {
 
   /// Perform a wide reduction, presumably to obtain a non-biased Helioselene field element.
   pub fn wide_reduce(bytes: [u8; 64]) -> HelioseleneField {
-    red512((U256::from_le_slice(&bytes[.. 32]), U256::from_le_slice(&bytes[32 ..])))
+    red512((U256::from_le_slice(&bytes[..32]), U256::from_le_slice(&bytes[32..])))
   }
 }
 
@@ -431,7 +431,7 @@ impl Field for HelioseleneField {
   #[inline(always)]
   fn is_zero(&self) -> Choice {
     let mut all = Limb::ZERO;
-    for l in 0 .. U256::LIMBS {
+    for l in 0..U256::LIMBS {
       all = all | self.0.as_limbs()[l];
     }
     all.ct_eq(&Limb::ZERO)
@@ -470,7 +470,7 @@ impl Field for HelioseleneField {
       // Calculate `a - b`, which also yields if `a < b` by if it underflows
       let mut borrow = Limb::ZERO;
       let mut a_sub_b = U256::ZERO;
-      for l in 0 .. limbs {
+      for l in 0..limbs {
         (a_sub_b.as_limbs_mut()[l], borrow) =
           sub_with_bounded_overflow(a.as_limbs()[l], b.as_limbs()[l], borrow);
       }
@@ -481,7 +481,7 @@ impl Field for HelioseleneField {
       #[inline(always)]
       fn select(a: &U256, b: &U256, choice: Limb, limbs: usize) -> U256 {
         let mut res = U256::ZERO;
-        for l in 0 .. limbs {
+        for l in 0..limbs {
           res.as_limbs_mut()[l] = select_word(a.as_limbs()[l], b.as_limbs()[l], choice);
         }
         res
@@ -495,7 +495,7 @@ impl Field for HelioseleneField {
         // Negation is applying the logical NOT to every word while adding 1
         let mut carry = Limb::ONE & a_lt_b;
         let mut a_diff_b = U256::ZERO;
-        for l in 0 .. limbs {
+        for l in 0..limbs {
           // (a ^ x) is a logical NOT if `x` is set and a NOP if `x` is 0
           let limb;
           let carry_bool;
@@ -519,7 +519,7 @@ impl Field for HelioseleneField {
       // Calculate `v` or `v - u` depending on if `a & 1`
       let mut borrow = Limb::ZERO;
       let mut u_sub_v = U256::ZERO;
-      for l in 0 .. U256::LIMBS {
+      for l in 0..U256::LIMBS {
         (u_sub_v.as_limbs_mut()[l], borrow) =
           sub_with_bounded_overflow(u.as_limbs()[l], v.as_limbs()[l] & a_is_odd, borrow);
       }
@@ -567,10 +567,10 @@ impl Field for HelioseleneField {
 
       // This is the starting carry for the negation algorithm
       let mut carry = Limb::ONE & should_negate;
-      for l in 0 .. U128::LIMBS {
+      for l in 0..U128::LIMBS {
         // The modulus to add in, to correct for underflow/enable halving
-        let modulus_instances = (MODULUS.as_limbs()[l] & add_one_modulus) ^
-          (MODULUS_XOR_TWO_MODULUS.as_limbs()[l] & add_two_modulus);
+        let modulus_instances = (MODULUS.as_limbs()[l] & add_one_modulus)
+          ^ (MODULUS_XOR_TWO_MODULUS.as_limbs()[l] & add_two_modulus);
 
         /*
           Instead of adding the 255-bit modulus, it would appear more efficient to subtract out the
@@ -585,7 +585,7 @@ impl Field for HelioseleneField {
         (u.as_limbs_mut()[l], carry) = (Limb(limb), Limb(carry_bool as _));
       }
       // Unroll the later iterations due to the structure of the XOR
-      for l in U128::LIMBS .. U256::LIMBS {
+      for l in U128::LIMBS..U256::LIMBS {
         let modulus_instances = MODULUS.as_limbs()[l] & add_one_modulus;
 
         (u.as_limbs_mut()[l], carry) = add_with_bounded_overflow(
@@ -602,24 +602,24 @@ impl Field for HelioseleneField {
       *v = select(v, &u_start, both, U256::LIMBS);
 
       // Divide by 2
-      for l in 0 .. (limbs - 1) {
+      for l in 0..(limbs - 1) {
         a.as_limbs_mut()[l] = (a.as_limbs()[l] >> 1) | (a.as_limbs()[l + 1] << (Limb::BITS - 1));
       }
       a.as_limbs_mut()[limbs - 1] >>= 1;
 
-      for l in 0 .. (U256::LIMBS - 1) {
+      for l in 0..(U256::LIMBS - 1) {
         u.as_limbs_mut()[l] = (u.as_limbs()[l] >> 1) | (u.as_limbs()[l + 1] << (Limb::BITS - 1));
       }
       u.as_limbs_mut()[U256::LIMBS - 1] >>= 1;
     }
 
     // Note the limbs still in use so we don't apply operations over unused limbs
-    for limbs in (2 ..= U256::LIMBS).rev() {
-      for _ in 0 .. (2 * Limb::BITS) {
+    for limbs in (2..=U256::LIMBS).rev() {
+      for _ in 0..(2 * Limb::BITS) {
         step(&mut a, &mut b, &mut u, &mut v, limbs);
       }
     }
-    for _ in 0 .. ((2 * Limb::BITS) - 2) {
+    for _ in 0..((2 * Limb::BITS) - 2) {
       step(&mut a, &mut b, &mut u, &mut v, 1);
     }
 
@@ -653,36 +653,36 @@ impl Field for HelioseleneField {
     res *= &table[15];
     let old_res = res;
 
-    for _ in 0 .. 8 {
+    for _ in 0..8 {
       res = res.square();
     }
     res *= &old_res;
     let old_res = res;
 
-    for _ in 0 .. 16 {
+    for _ in 0..16 {
       res = res.square();
     }
     res *= old_res;
     let old_res = res;
 
-    for _ in 0 .. 32 {
+    for _ in 0..32 {
       res = res.square();
     }
     res *= old_res;
     let old_res = res;
 
-    for _ in 0 .. 64 {
+    for _ in 0..64 {
       res = res.square();
     }
     res *= old_res;
 
     // Then the bits have 0111111 twice
     let six = four_zero_zero * table[3];
-    for _ in 0 .. 7 {
+    for _ in 0..7 {
       res = res.square();
     }
     res *= six;
-    for _ in 0 .. 7 {
+    for _ in 0..7 {
       res = res.square();
     }
     res *= six;
@@ -793,14 +793,14 @@ mod tests_assuming_64_bits {
 
   #[test]
   fn test_reduction_of_each_bit() {
-    for b in 0 .. 512usize {
+    for b in 0..512usize {
       let to_reduce = crypto_bigint::U512::ONE << b;
       let reduced = to_reduce.checked_rem(&lo_hi_concat(&MODULUS, &U256::ZERO)).unwrap();
 
       if b < 256 {
         let reduced_apo = red256(lo_hi_split(to_reduce).0);
         assert_eq!(
-          &reduced.as_limbs()[.. 4],
+          &reduced.as_limbs()[..4],
           reduced_apo.0.as_limbs(),
           "failed to reduce the 256-bit 1 << {b}"
         );
@@ -808,7 +808,7 @@ mod tests_assuming_64_bits {
 
       let reduced_apo = red512(lo_hi_split(to_reduce));
       assert_eq!(
-        &reduced.as_limbs()[.. 4],
+        &reduced.as_limbs()[..4],
         reduced_apo.0.as_limbs(),
         "failed to reduce the 512-bit 1 << {b}"
       );
@@ -818,12 +818,12 @@ mod tests_assuming_64_bits {
   #[test]
   fn test_wide_reduction() {
     use crypto_bigint::Random;
-    for _ in 0 .. 1000 {
+    for _ in 0..1000 {
       let to_reduce = crypto_bigint::U512::random(&mut rand_core::OsRng);
       let reduced = to_reduce.checked_rem(&lo_hi_concat(&MODULUS, &U256::ZERO)).unwrap();
       let reduced_apo = HelioseleneField::wide_reduce(to_reduce.to_le_bytes());
       assert_eq!(
-        &reduced.as_limbs()[.. 4],
+        &reduced.as_limbs()[..4],
         reduced_apo.0.as_limbs(),
         "failed to reduce {:?}",
         to_reduce.to_words(),
@@ -834,7 +834,7 @@ mod tests_assuming_64_bits {
     let reduced = to_reduce.checked_rem(&lo_hi_concat(&MODULUS, &U256::ZERO)).unwrap();
     let reduced_apo = HelioseleneField::wide_reduce(to_reduce.to_le_bytes());
     assert_eq!(
-      &reduced.as_limbs()[.. 4],
+      &reduced.as_limbs()[..4],
       reduced_apo.0.as_limbs(),
       "failed to reduce {:?}",
       to_reduce.to_words(),

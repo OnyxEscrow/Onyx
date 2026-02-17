@@ -26,8 +26,8 @@ fn check_keys<C: Ciphersuite>(keys: &[C::G]) -> Result<u16, DkgError<()>> {
   let keys_len = u16::try_from(keys.len()).map_err(|_| DkgError::InvalidSigningSet)?;
 
   // Duplicated public keys
-  if keys.iter().map(|key| key.to_bytes().as_ref().to_vec()).collect::<HashSet<_>>().len() !=
-    keys.len()
+  if keys.iter().map(|key| key.to_bytes().as_ref().to_vec()).collect::<HashSet<_>>().len()
+    != keys.len()
   {
     Err(DkgError::InvalidSigningSet)?;
   }
@@ -66,7 +66,7 @@ pub fn musig_key<C: Ciphersuite>(context: &[u8], keys: &[C::G]) -> Result<C::G, 
   let keys_len = check_keys::<C>(keys)?;
   let transcript = binding_factor_transcript::<C>(context, keys)?;
   let mut res = C::G::identity();
-  for i in 1 ..= keys_len {
+  for i in 1..=keys_len {
     res += keys[usize::from(i - 1)] * binding_factor::<C>(transcript.clone(), i);
   }
   Ok(res)
@@ -100,7 +100,7 @@ pub fn musig<C: Ciphersuite>(
   // Calculate the binding factor per-key
   let transcript = binding_factor_transcript::<C>(context, keys)?;
   let mut binding = Vec::with_capacity(keys.len());
-  for i in 1 ..= keys_len {
+  for i in 1..=keys_len {
     binding.push(binding_factor::<C>(transcript.clone(), i));
   }
 
@@ -119,7 +119,7 @@ pub fn musig<C: Ciphersuite>(
   // with all verification shares
   // This is less performant than simply defining the group key as the sum of all post-lagrange
   // bound keys, yet the simplicity is preferred
-  let included = (1 ..= keys_len)
+  let included = (1..=keys_len)
     // This error also shouldn't be possible, for the same reasons as documented above
     .map(|l| Participant::new(l).ok_or(DkgError::InvalidSigningSet))
     .collect::<Result<Vec<_>, _>>()?;

@@ -45,14 +45,14 @@ fn weight<D: Send + Clone + SecureDigest, F: PrimeField>(digest: &mut DigestTran
   while i < remaining {
     // Shift over the already loaded bits
     if !first {
-      for _ in 0 .. WORD_LEN_IN_BITS {
+      for _ in 0..WORD_LEN_IN_BITS {
         res += res;
       }
     }
     first = false;
 
     // Add the next 64 bits
-    res += F::from(u64::from_be_bytes(bytes[i .. (i + WORD_LEN_IN_BYTES)].try_into().unwrap()));
+    res += F::from(u64::from_be_bytes(bytes[i..(i + WORD_LEN_IN_BYTES)].try_into().unwrap()));
     i += WORD_LEN_IN_BYTES;
 
     // If we've exhausted this challenge, get another
@@ -81,7 +81,7 @@ impl<C: Ciphersuite> SchnorrAggregate<C> {
 
     #[allow(non_snake_case)]
     let mut Rs = vec![];
-    for _ in 0 .. u32::from_le_bytes(len) {
+    for _ in 0..u32::from_le_bytes(len) {
       Rs.push(C::read_G(reader)?);
     }
 
@@ -179,7 +179,7 @@ impl<C: Ciphersuite> SchnorrAggregator<C> {
     }
 
     let mut aggregate = SchnorrAggregate { Rs: Vec::with_capacity(self.sigs.len()), s: C::F::ZERO };
-    for i in 0 .. self.sigs.len() {
+    for i in 0..self.sigs.len() {
       aggregate.Rs.push(self.sigs[i].R);
       aggregate.s += self.sigs[i].s * weight::<_, C::F>(&mut self.digest);
     }

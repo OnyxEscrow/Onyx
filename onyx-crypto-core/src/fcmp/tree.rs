@@ -14,8 +14,8 @@
 //! ...alternating up to root
 //! ```
 
-use crate::types::errors::{CryptoError, CryptoResult};
 use super::curves::*;
+use crate::types::errors::{CryptoError, CryptoResult};
 
 /// A tree layer's sibling data, typed by which curve it belongs to.
 #[derive(Clone, Debug)]
@@ -50,18 +50,24 @@ impl PathBuilder {
         leaves: Vec<FcmpOutput<EdwardsPoint>>,
     ) -> CryptoResult<Self> {
         if leaves.is_empty() {
-            return Err(CryptoError::CurveTreeError("Leaf set cannot be empty".into()));
+            return Err(CryptoError::CurveTreeError(
+                "Leaf set cannot be empty".into(),
+            ));
         }
         // Verify the proved output is in the leaf set
-        let found = leaves.iter().any(|l| {
-            l.O() == output.O() && l.I() == output.I() && l.C() == output.C()
-        });
+        let found = leaves
+            .iter()
+            .any(|l| l.O() == output.O() && l.I() == output.I() && l.C() == output.C());
         if !found {
             return Err(CryptoError::CurveTreeError(
                 "Proved output must be present in leaf set".into(),
             ));
         }
-        Ok(Self { output, leaves, layers: Vec::new() })
+        Ok(Self {
+            output,
+            leaves,
+            layers: Vec::new(),
+        })
     }
 
     /// Push a Helios (C2) branch layer.
@@ -199,9 +205,7 @@ pub fn pad_helios_branch(branch: &mut Vec<HeliosScalar>) {
 ///
 /// In practice, the tree is always full (padded with random non-identity points),
 /// but for testing we can pad with generator multiples.
-pub fn pad_leaf_set(
-    leaves: &mut Vec<FcmpOutput<EdwardsPoint>>,
-) -> CryptoResult<()> {
+pub fn pad_leaf_set(leaves: &mut Vec<FcmpOutput<EdwardsPoint>>) -> CryptoResult<()> {
     let g = <Ed25519 as Ciphersuite>::generator();
     let mut counter = leaves.len() as u64 + 1;
     while leaves.len() < LAYER_ONE_LEN {
@@ -262,7 +266,9 @@ mod tests {
         let helios_siblings: Vec<HeliosScalar> = (0..LAYER_TWO_LEN)
             .map(|i| HeliosScalar::from(i as u64 + 1))
             .collect();
-        builder.push_helios_layer(helios_siblings).expect("c2 layer");
+        builder
+            .push_helios_layer(helios_siblings)
+            .expect("c2 layer");
 
         let path = builder.build().expect("build");
         assert_eq!(path.curve_2_layers.len(), 1);

@@ -115,10 +115,10 @@ where
     let mut slice = self.0.as_slice();
     while slice.len() > 1 {
       let split = slice.len() / 2;
-      if multiexp_vartime(&flat(&slice[.. split])).is_identity().into() {
-        slice = &slice[split ..];
+      if multiexp_vartime(&flat(&slice[..split])).is_identity().into() {
+        slice = &slice[split..];
       } else {
-        slice = &slice[.. split];
+        slice = &slice[..split];
       }
     }
 

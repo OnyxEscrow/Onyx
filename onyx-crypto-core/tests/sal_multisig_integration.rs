@@ -19,23 +19,23 @@ use ciphersuite::{
     Ciphersuite,
 };
 use dalek_ff_group::{EdwardsPoint, Scalar};
-use flexible_transcript::{Transcript, RecommendedTranscript};
 use fcmp_monero_generators::T;
+use flexible_transcript::{RecommendedTranscript, Transcript};
 use multiexp::BatchVerifier;
 
 use modular_frost::{
-    FrostError, Participant, ThresholdCore, ThresholdKeys, ThresholdParams,
     dkg::frost::KeyGenMachine,
     sign::{AlgorithmMachine, PreprocessMachine, SignMachine, SignatureMachine, Writable},
     tests::{algorithm_machines, clone_without, key_gen, sign},
+    FrostError, Participant, ThresholdCore, ThresholdKeys, ThresholdParams,
 };
 
 use monero_fcmp_plus_plus::{
-    Output,
     sal::{
         multisig::{Ed25519T, SalAlgorithm},
         RerandomizedOutput,
     },
+    Output,
 };
 
 use onyx_crypto_core::gsp::{
@@ -119,7 +119,12 @@ fn frost_sign_2of2(
     // Create machines for the two signers
     let mut machines: Vec<(Participant, _)> = signers
         .iter()
-        .map(|&s| (s, AlgorithmMachine::new(algorithm.clone(), keys[&s].clone())))
+        .map(|&s| {
+            (
+                s,
+                AlgorithmMachine::new(algorithm.clone(), keys[&s].clone()),
+            )
+        })
         .collect();
 
     // === Round 1: Preprocess ===
@@ -154,9 +159,7 @@ fn frost_sign_2of2(
         // Serialize/deserialize share
         let mut buf = vec![];
         share.write(&mut buf).unwrap();
-        let parsed = sig_machine
-            .read_share::<&[u8]>(&mut buf.as_ref())
-            .unwrap();
+        let parsed = sig_machine.read_share::<&[u8]>(&mut buf.as_ref()).unwrap();
         shares.insert(i, parsed);
         sig_machines.push((i, sig_machine));
     }
@@ -324,28 +327,19 @@ fn test_2of3_escrow_all_signer_combinations() {
     let sig_bs = frost_sign_2of2(&algorithm, &keys, [p1, p2]);
     let mut verifier = BatchVerifier::new(1);
     sig_bs.verify(&mut OsRng, &mut verifier, tx_hash, &input, key_image);
-    assert!(
-        verifier.verify_vartime(),
-        "Buyer+Seller signing failed"
-    );
+    assert!(verifier.verify_vartime(), "Buyer+Seller signing failed");
 
     // === Combination 2: Buyer + Arbiter (dispute, buyer wins) ===
     let sig_ba = frost_sign_2of2(&algorithm, &keys, [p1, p3]);
     let mut verifier = BatchVerifier::new(1);
     sig_ba.verify(&mut OsRng, &mut verifier, tx_hash, &input, key_image);
-    assert!(
-        verifier.verify_vartime(),
-        "Buyer+Arbiter signing failed"
-    );
+    assert!(verifier.verify_vartime(), "Buyer+Arbiter signing failed");
 
     // === Combination 3: Seller + Arbiter (dispute, seller wins) ===
     let sig_sa = frost_sign_2of2(&algorithm, &keys, [p2, p3]);
     let mut verifier = BatchVerifier::new(1);
     sig_sa.verify(&mut OsRng, &mut verifier, tx_hash, &input, key_image);
-    assert!(
-        verifier.verify_vartime(),
-        "Seller+Arbiter signing failed"
-    );
+    assert!(verifier.verify_vartime(), "Seller+Arbiter signing failed");
 }
 
 // =====================================================================
@@ -432,7 +426,6 @@ fn test_bytes_to_scalar_roundtrip() {
 
 #[test]
 fn test_bytes_to_point_roundtrip() {
-
     // Generator point
     let gen = EdwardsPoint::generator();
     let bytes: [u8; 32] = gen.to_bytes().into();
@@ -562,10 +555,7 @@ fn test_single_vs_multisig_consistency() {
     // Both proofs verify independently
     let mut verifier = BatchVerifier::new(1);
     sig_multi.verify(&mut OsRng, &mut verifier, [0u8; 32], &ms_input, key_image);
-    assert!(
-        verifier.verify_vartime(),
-        "Multisig proof should verify"
-    );
+    assert!(verifier.verify_vartime(), "Multisig proof should verify");
 }
 
 // =====================================================================
@@ -658,10 +648,8 @@ fn test_wrong_tx_hash_verification_fails() {
     let sign_hash = [0xAA; 32];
     let wrong_hash = [0xBB; 32];
 
-    let rerandomized = RerandomizedOutput::new(
-        &mut OsRng,
-        Output::new(o_key, i_base, c_point).unwrap(),
-    );
+    let rerandomized =
+        RerandomizedOutput::new(&mut OsRng, Output::new(o_key, i_base, c_point).unwrap());
     let input = rerandomized.input();
 
     let algorithm = SalAlgorithm::new(
@@ -718,10 +706,8 @@ fn test_wrong_key_image_verification_fails() {
     let key_image = i_base * x;
     let wrong_ki = EdwardsPoint::random(&mut OsRng);
 
-    let rerandomized = RerandomizedOutput::new(
-        &mut OsRng,
-        Output::new(o_key, i_base, c_point).unwrap(),
-    );
+    let rerandomized =
+        RerandomizedOutput::new(&mut OsRng, Output::new(o_key, i_base, c_point).unwrap());
     let input = rerandomized.input();
 
     let algorithm = SalAlgorithm::new(
@@ -781,10 +767,8 @@ fn test_corrupted_share_blame_identification() {
     let i_base = EdwardsPoint::random(&mut OsRng);
     let c_point = EdwardsPoint::random(&mut OsRng);
 
-    let rerandomized = RerandomizedOutput::new(
-        &mut OsRng,
-        Output::new(o_key, i_base, c_point).unwrap(),
-    );
+    let rerandomized =
+        RerandomizedOutput::new(&mut OsRng, Output::new(o_key, i_base, c_point).unwrap());
 
     let algorithm = SalAlgorithm::new(
         OsRng,
@@ -808,7 +792,12 @@ fn test_corrupted_share_blame_identification() {
     // Create machines for all signers
     let mut machines: HashMap<Participant, _> = signers
         .iter()
-        .map(|&s| (s, AlgorithmMachine::new(algorithm.clone(), keys[&s].clone())))
+        .map(|&s| {
+            (
+                s,
+                AlgorithmMachine::new(algorithm.clone(), keys[&s].clone()),
+            )
+        })
         .collect();
 
     // Round 1: Preprocess
@@ -837,9 +826,7 @@ fn test_corrupted_share_blame_identification() {
         let (sig_machine, share) = machine.sign(others, &[]).unwrap();
         let mut buf = vec![];
         share.write(&mut buf).unwrap();
-        let parsed = sig_machine
-            .read_share::<&[u8]>(&mut buf.as_ref())
-            .unwrap();
+        let parsed = sig_machine.read_share::<&[u8]>(&mut buf.as_ref()).unwrap();
         shares.insert(i, parsed);
         sig_machines.insert(i, sig_machine);
     }
@@ -897,9 +884,7 @@ fn test_full_frost_dkg_2of3_then_sign() {
     let context = "Onyx FCMP++ 2-of-3 DKG".to_string();
 
     // === DKG Round 1: Generate commitments ===
-    let participants: Vec<Participant> = (1..=n)
-        .map(|i| Participant::new(i).unwrap())
-        .collect();
+    let participants: Vec<Participant> = (1..=n).map(|i| Participant::new(i).unwrap()).collect();
 
     let mut secret_machines = HashMap::new();
     let mut commitment_msgs = HashMap::new();
@@ -1028,10 +1013,8 @@ fn test_repeated_signing_always_verifies() {
     let c_point = EdwardsPoint::random(&mut OsRng);
     let key_image = i_base * x;
 
-    let rerandomized = RerandomizedOutput::new(
-        &mut OsRng,
-        Output::new(o_key, i_base, c_point).unwrap(),
-    );
+    let rerandomized =
+        RerandomizedOutput::new(&mut OsRng, Output::new(o_key, i_base, c_point).unwrap());
     let input = rerandomized.input();
 
     for keys in keys.values_mut() {
@@ -1049,13 +1032,7 @@ fn test_repeated_signing_always_verifies() {
         );
 
         let machines = algorithm_machines(&mut OsRng, &algorithm, &keys);
-        let sig = sign(
-            &mut OsRng,
-            &algorithm,
-            keys.clone(),
-            machines,
-            &[],
-        );
+        let sig = sign(&mut OsRng, &algorithm, keys.clone(), machines, &[]);
 
         let mut verifier = BatchVerifier::new(1);
         sig.verify(&mut OsRng, &mut verifier, [0u8; 32], &input, key_image);
@@ -1082,9 +1059,9 @@ fn test_scalar_above_order_rejected() {
     // The ed25519 scalar field order l in little-endian:
     // l = 2^252 + 27742317777372353535851937790883648493
     let order_le: [u8; 32] = [
-        0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9,
-        0xde, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x10,
+        0xed, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58, 0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde,
+        0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x10,
     ];
     assert!(
         bytes_to_scalar(&order_le).is_err(),
@@ -1124,7 +1101,7 @@ fn test_invalid_point_encoding_rejected() {
     garbage[0] = 0xDE;
     garbage[1] = 0xAD;
     garbage[31] = 0x80; // Set sign bit but invalid y
-    // This may or may not be valid — just verify no panic
+                        // This may or may not be valid — just verify no panic
     let _ = bytes_to_point(&garbage);
 }
 
@@ -1165,7 +1142,12 @@ fn test_wrong_offset_causes_internal_abort() {
     // Manually execute FROST to capture the error from complete()
     let mut machines: Vec<(Participant, _)> = [p1, p2]
         .iter()
-        .map(|&s| (s, AlgorithmMachine::new(algorithm.clone(), keys[&s].clone())))
+        .map(|&s| {
+            (
+                s,
+                AlgorithmMachine::new(algorithm.clone(), keys[&s].clone()),
+            )
+        })
         .collect();
 
     // Round 1: Preprocess
@@ -1194,9 +1176,7 @@ fn test_wrong_offset_causes_internal_abort() {
         let (sig_machine, share) = machine.sign(others, &[]).unwrap();
         let mut buf = vec![];
         share.write(&mut buf).unwrap();
-        let parsed = sig_machine
-            .read_share::<&[u8]>(&mut buf.as_ref())
-            .unwrap();
+        let parsed = sig_machine.read_share::<&[u8]>(&mut buf.as_ref()).unwrap();
         shares.insert(i, parsed);
         sig_machines.push((i, sig_machine));
     }
@@ -1236,10 +1216,8 @@ fn test_wrong_x_secret_causes_internal_abort() {
     let i_base = EdwardsPoint::random(&mut OsRng);
     let c_point = EdwardsPoint::random(&mut OsRng);
 
-    let rerandomized = RerandomizedOutput::new(
-        &mut OsRng,
-        Output::new(o_key, i_base, c_point).unwrap(),
-    );
+    let rerandomized =
+        RerandomizedOutput::new(&mut OsRng, Output::new(o_key, i_base, c_point).unwrap());
 
     // Sign with WRONG x
     let algorithm = SalAlgorithm::new(
@@ -1260,7 +1238,12 @@ fn test_wrong_x_secret_causes_internal_abort() {
     // Manual FROST to capture error
     let mut machines: Vec<(Participant, _)> = [p1, p2]
         .iter()
-        .map(|&s| (s, AlgorithmMachine::new(algorithm.clone(), keys[&s].clone())))
+        .map(|&s| {
+            (
+                s,
+                AlgorithmMachine::new(algorithm.clone(), keys[&s].clone()),
+            )
+        })
         .collect();
 
     let mut sign_machines = Vec::new();
@@ -1287,9 +1270,7 @@ fn test_wrong_x_secret_causes_internal_abort() {
         let (sig_machine, share) = machine.sign(others, &[]).unwrap();
         let mut buf = vec![];
         share.write(&mut buf).unwrap();
-        let parsed = sig_machine
-            .read_share::<&[u8]>(&mut buf.as_ref())
-            .unwrap();
+        let parsed = sig_machine.read_share::<&[u8]>(&mut buf.as_ref()).unwrap();
         shares.insert(i, parsed);
         sig_machines.push((i, sig_machine));
     }
