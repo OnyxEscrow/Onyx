@@ -160,6 +160,9 @@ fn main() -> Result<()> {
         "ALTER TABLE frost_signing_state ADD COLUMN pseudo_out_hex TEXT DEFAULT NULL",
         "ALTER TABLE frost_signing_state ADD COLUMN tx_secret_key TEXT DEFAULT NULL",
         "ALTER TABLE frost_signing_state ADD COLUMN ring_indices_json TEXT DEFAULT NULL",
+        // v0.86.0: Nonce lifecycle hardening — round versioning + signer set binding
+        "ALTER TABLE frost_signing_state ADD COLUMN round_id TEXT DEFAULT NULL",
+        "ALTER TABLE frost_signing_state ADD COLUMN signer_set_hash TEXT DEFAULT NULL",
     ];
 
     for stmt in &frost_signing_alters {

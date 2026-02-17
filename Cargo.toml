@@ -19,6 +19,8 @@ license = "MIT"
 repository = "https://github.com/OnyxEscrow/Onyx"
 description = "Non-custodial Monero escrow using FROST threshold signatures (RFC 9591)"
 
+[workspace.lints.clippy]
+
 [workspace.dependencies]
 # Core dependencies
 tokio = { version = "1.35", features = ["full"] }
@@ -69,3 +71,10 @@ inherits = "release"
 lto = false
 codegen-units = 8
 incremental = true
+
+# =====================================================================
+# PATCHES — Required by vendored fcmp-plus-plus (helioselene crypto-bigint)
+# =====================================================================
+
+[patch.crates-io]
+crypto-bigint = { git = "https://github.com/kayabaNerve/crypto-bigint", branch = "c-repr" }

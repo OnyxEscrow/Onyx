@@ -4,16 +4,33 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Onyx Team"]
 license = "MIT"
-description = "Core cryptographic library for Onyx EaaS - FROST DKG, CMD protocol, CLSAG signing"
+description = "Core cryptographic library for Onyx EaaS - FROST DKG, CMD protocol, CLSAG signing, FCMP++ GSP"
 repository = "https://github.com/OnyxEscrow/Onyx"
 keywords = ["monero", "frost", "multisig", "escrow", "cryptography"]
 categories = ["cryptography", "no-std"]
 
 [features]
-default = ["std"]
+default = ["std", "fcmp"]
 std = []
 wasm = ["wasm-bindgen", "getrandom/js"]
 test-helpers = []  # Enables deterministic functions for testing
+
+# FCMP++ membership proofs and GSP signing (uses vendored kayabaNerve crates)
+fcmp = [
+    "dep:monero-fcmp-plus-plus",
+    "dep:modular-frost",
+    "dep:dalek-ff-group",
+    "dep:ciphersuite",
+    "dep:flexible-transcript",
+    "dep:fcmp-monero-generators",
+    "dep:rand_chacha",
+    "dep:multiexp",
+    "dep:ec-divisors",
+    "dep:generalized-bulletproofs",
+]
+
+# Legacy CLSAG (deprecated — will be removed post-fork)
+legacy-clsag = []
 
 [dependencies]
 # Core Crypto
@@ -22,12 +39,13 @@ sha3 = { version = "0.10", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 rand_core = { version = "0.6", default-features = false }
 zeroize = { version = "1.7", default-features = false, features = ["derive"] }
+blake2 = { version = "0.10", default-features = false }
 
-# FROST (RFC 9591)
+# FROST (RFC 9591) — Legacy DKG layer
 frost-core = { version = "2.1.0", default-features = false, features = ["serialization"] }
 frost-ed25519 = { version = "2.1.0", default-features = false, features = ["serialization"] }
 
-# Monero-specific generators (hash_to_point, H constant)
+# Monero-specific generators (hash_to_point, H constant) — legacy crates.io version
 monero-generators = { package = "monero-generators-mirror", version = "0.4", default-features = false }
 
 # Encoding
@@ -54,6 +72,40 @@ thiserror = { version = "1.0", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 getrandom = { version = "0.2", default-features = false, optional = true }
 
+# =====================================================================
+# FCMP++ VENDOR DEPENDENCIES (kayabaNerve/fcmp-plus-plus develop branch)
+# =====================================================================
+
+# Main FCMP++ crate — SA+L proof, re-randomization, membership
+monero-fcmp-plus-plus = { path = "vendor/fcmp-plus-plus/networks/monero/ringct/fcmp++", optional = true, default-features = false, features = ["std", "multisig"] }
+
+# modular-frost — kayabaNerve's FROST for Ed25519T (generator T)
+modular-frost = { path = "vendor/fcmp-plus-plus/crypto/frost", optional = true, default-features = false, features = ["ed25519"] }
+
+# dalek-ff-group — Scalar, EdwardsPoint types (must match vendor's version)
+dalek-ff-group = { path = "vendor/fcmp-plus-plus/crypto/dalek-ff-group", optional = true, default-features = false, features = ["std"] }
+
+# ciphersuite — Ed25519 + Helios/Selene curve cycle
+ciphersuite = { path = "vendor/fcmp-plus-plus/crypto/ciphersuite", optional = true, default-features = false, features = ["std", "ed25519", "helioselene"] }
+
+# flexible-transcript — Transcript trait for deterministic nonce derivation
+flexible-transcript = { path = "vendor/fcmp-plus-plus/crypto/transcript", optional = true, default-features = false, features = ["std", "recommended"] }
+
+# monero-generators — T(), FCMP_U(), FCMP_V() generators (vendored version with FCMP generators)
+fcmp-monero-generators = { package = "monero-generators", path = "vendor/fcmp-plus-plus/networks/monero/generators", optional = true, default-features = false, features = ["std"] }
+
+# multiexp — BatchVerifier for SA+L proof verification
+multiexp = { path = "vendor/fcmp-plus-plus/crypto/multiexp", optional = true, default-features = false, features = ["std", "batch"] }
+
+# ec-divisors — ScalarDecomposition for membership proof blinds
+ec-divisors = { path = "vendor/fcmp-plus-plus/crypto/divisors", optional = true, default-features = false, features = ["std", "ed25519"] }
+
+# generalized-bulletproofs — BatchVerifier for FCMP membership proof verification
+generalized-bulletproofs = { path = "vendor/fcmp-plus-plus/crypto/generalized-bulletproofs", optional = true, default-features = false, features = ["std"] }
+
+# rand_chacha — Required by SalAlgorithm for deterministic nonce derivation
+rand_chacha = { version = "0.3", default-features = false, optional = true }
+
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 getrandom = { version = "0.2" }
 thiserror = "1.0"
@@ -63,7 +115,11 @@ getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
 rand = "0.8"
+rand_core = { version = "0.6", features = ["getrandom"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+
+# Enable vendor test helpers (key_gen, algorithm_machines, sign) for integration tests
+modular-frost = { path = "vendor/fcmp-plus-plus/crypto/frost", features = ["tests", "ed25519"] }
 
 [lib]
 crate-type = ["cdylib", "rlib"]

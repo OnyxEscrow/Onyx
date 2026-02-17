@@ -11,6 +11,9 @@ pub mod errors;
 pub mod escrow;
 pub mod transaction;
 
+/// FCMP++ specific types (GSP proofs, re-randomized outputs, membership proofs).
+pub mod fcmp_types;
+
 // Re-export error types
 pub use errors::{CryptoError, CryptoResult};
 
