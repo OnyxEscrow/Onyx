@@ -57,7 +57,7 @@ const MOD_5_8: FieldElement = FieldElement(ResidueType::sub(&MOD_3_8.0, &Residue
 
 fn reduce(x: U512) -> ResidueType {
   ResidueType::new(&U256::from_le_slice(
-    &x.rem(&NonZero::new(WIDE_MODULUS).unwrap()).to_le_bytes()[.. 32],
+    &x.rem(&NonZero::new(WIDE_MODULUS).unwrap()).to_le_bytes()[..32],
   ))
 }
 
@@ -231,7 +231,7 @@ impl FieldElement {
   pub fn pow(&self, other: FieldElement) -> FieldElement {
     let mut table = [FieldElement::ONE; 16];
     table[1] = *self;
-    for i in 2 .. 16 {
+    for i in 2..16 {
       table[i] = table[i - 1] * self;
     }
 
@@ -245,13 +245,13 @@ impl FieldElement {
 
       if ((i + 1) % 4) == 0 {
         if i != 3 {
-          for _ in 0 .. 4 {
+          for _ in 0..4 {
             res *= res;
           }
         }
 
         let mut factor = table[0];
-        for (j, candidate) in table[1 ..].iter().enumerate() {
+        for (j, candidate) in table[1..].iter().enumerate() {
           let j = j + 1;
           factor = Self::conditional_select(&factor, candidate, usize::from(bits).ct_eq(&j));
         }
@@ -334,7 +334,7 @@ impl<'a> Product<&'a FieldElement> for FieldElement {
 #[test]
 fn test_wide_modulus() {
   let mut wide = [0; 64];
-  wide[.. 32].copy_from_slice(&MODULUS.to_le_bytes());
+  wide[..32].copy_from_slice(&MODULUS.to_le_bytes());
   assert_eq!(wide, WIDE_MODULUS.to_le_bytes());
 }
 

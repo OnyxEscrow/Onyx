@@ -270,7 +270,7 @@ mod lib {
       secret_share: Zeroizing<C::F>,
       verification_shares: HashMap<Participant, C::G>,
     ) -> ThresholdCore<C> {
-      let t = (1 ..= params.t()).map(Participant).collect::<Vec<_>>();
+      let t = (1..=params.t()).map(Participant).collect::<Vec<_>>();
       ThresholdCore {
         params,
         secret_share,
@@ -308,7 +308,7 @@ mod lib {
       let mut share_bytes = self.secret_share.to_repr();
       writer.write_all(share_bytes.as_ref())?;
       share_bytes.as_mut().zeroize();
-      for l in 1 ..= self.params.n {
+      for l in 1..=self.params.n {
         writer
           .write_all(self.verification_shares[&Participant::new(l).unwrap()].to_bytes().as_ref())?;
       }
@@ -358,7 +358,7 @@ mod lib {
       let secret_share = Zeroizing::new(C::read_F(reader)?);
 
       let mut verification_shares = HashMap::new();
-      for l in (1 ..= n).map(Participant) {
+      for l in (1..=n).map(Participant) {
         verification_shares.insert(l, <C as Ciphersuite>::read_G(reader)?);
       }
 
@@ -476,8 +476,8 @@ mod lib {
     /// Obtain a view of these keys, with any offset applied, interpolated for the specified signing
     /// set.
     pub fn view(&self, mut included: Vec<Participant>) -> Result<ThresholdView<C>, DkgError<()>> {
-      if (included.len() < self.params().t.into()) ||
-        (usize::from(self.params().n()) < included.len())
+      if (included.len() < self.params().t.into())
+        || (usize::from(self.params().n()) < included.len())
       {
         Err(DkgError::InvalidSigningSet)?;
       }

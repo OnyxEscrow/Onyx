@@ -14,7 +14,7 @@ fn prep_tables<G: Group>(pairs: &[(G::Scalar, G)], window: u8) -> Vec<Vec<G>> {
     let p = tables.len();
     tables.push(vec![G::identity(); 2_usize.pow(window.into())]);
     let mut accum = G::identity();
-    for i in 1 .. tables[p].len() {
+    for i in 1..tables[p].len() {
       accum += pair.1;
       tables[p][i] = accum;
     }
@@ -32,14 +32,14 @@ where
   let tables = prep_tables(pairs, window);
 
   let mut res = G::identity();
-  for b in (0 .. groupings[0].len()).rev() {
+  for b in (0..groupings[0].len()).rev() {
     if b != (groupings[0].len() - 1) {
-      for _ in 0 .. window {
+      for _ in 0..window {
         res = res.double();
       }
     }
 
-    for s in 0 .. tables.len() {
+    for s in 0..tables.len() {
       res += tables[s][usize::from(groupings[s][b])];
     }
   }
@@ -56,14 +56,14 @@ where
   let tables = prep_tables(pairs, window);
 
   let mut res: Option<G> = None;
-  for b in (0 .. groupings[0].len()).rev() {
+  for b in (0..groupings[0].len()).rev() {
     if b != (groupings[0].len() - 1) {
-      for _ in 0 .. window {
+      for _ in 0..window {
         res = res.map(|res| res.double());
       }
     }
 
-    for s in 0 .. tables.len() {
+    for s in 0..tables.len() {
       if groupings[s][b] != 0 {
         if let Some(res) = res.as_mut() {
           *res += tables[s][usize::from(groupings[s][b])];

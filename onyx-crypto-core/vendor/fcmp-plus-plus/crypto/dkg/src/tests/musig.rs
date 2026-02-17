@@ -15,7 +15,7 @@ use crate::{
 pub fn test_musig<R: RngCore + CryptoRng, C: Ciphersuite>(rng: &mut R) {
   let mut keys = vec![];
   let mut pub_keys = vec![];
-  for _ in 0 .. PARTICIPANTS {
+  for _ in 0..PARTICIPANTS {
     let key = Zeroizing::new(C::F::random(&mut *rng));
     pub_keys.push(C::generator() * *key);
     keys.push(key);

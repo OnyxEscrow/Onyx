@@ -46,7 +46,7 @@ pub(crate) fn challenge<T: Transcript, F: PrimeField>(transcript: &mut T) -> F {
   // The following algorithm should be equivalent to a wide reduction of the challenges,
   // interpreted as concatenated, big-endian byte string
   let mut handled_bytes = 0;
-  'outer: for _ in 0 ..= needed_challenges {
+  'outer: for _ in 0..=needed_challenges {
     // Cursor of which byte of the challenge to use next
     let mut b = 0;
     while b < challenge_bytes_len {
@@ -56,7 +56,7 @@ pub(crate) fn challenge<T: Transcript, F: PrimeField>(transcript: &mut T) -> F {
       let chunk_bytes = (target_bytes - handled_bytes).min(8).min(challenge_bytes_len - b);
 
       let mut chunk = 0;
-      for _ in 0 .. chunk_bytes {
+      for _ in 0..chunk_bytes {
         chunk <<= 8;
         chunk |= u64::from(challenge_bytes.as_ref()[b]);
         b += 1;
@@ -72,7 +72,7 @@ pub(crate) fn challenge<T: Transcript, F: PrimeField>(transcript: &mut T) -> F {
 
       // Shift over by however many bits will be in the next chunk
       let next_chunk_bytes = (target_bytes - handled_bytes).min(8).min(challenge_bytes_len);
-      for _ in 0 .. (next_chunk_bytes * 8) {
+      for _ in 0..(next_chunk_bytes * 8) {
         challenge = challenge.double();
       }
     }
@@ -320,7 +320,7 @@ where
   pub fn read<R: Read>(r: &mut R, discrete_logs: usize) -> io::Result<MultiDLEqProof<G>> {
     let c = read_scalar(r)?;
     let mut s = vec![];
-    for _ in 0 .. discrete_logs {
+    for _ in 0..discrete_logs {
       s.push(read_scalar(r)?);
     }
     Ok(MultiDLEqProof { c, s })

@@ -73,7 +73,7 @@ impl<C: Curve> NonceCommitments<C> {
 
   fn read<R: Read>(reader: &mut R, generators: &[C::G]) -> io::Result<NonceCommitments<C>> {
     Ok(NonceCommitments {
-      generators: (0 .. generators.len())
+      generators: (0..generators.len())
         .map(|_| GeneratorCommitments::read(reader))
         .collect::<Result<_, _>>()?,
     })
@@ -131,7 +131,7 @@ impl<C: Curve> Commitments<C> {
   }
 
   pub(crate) fn read<R: Read>(reader: &mut R, generators: &[Vec<C::G>]) -> io::Result<Self> {
-    let nonces = (0 .. generators.len())
+    let nonces = (0..generators.len())
       .map(|i| NonceCommitments::read(reader, &generators[i]))
       .collect::<Result<Vec<NonceCommitments<C>>, _>>()?;
 
@@ -165,7 +165,7 @@ impl<C: Curve> BindingFactor<C> {
       // It *should* be perfectly fine to reuse a binding factor for multiple nonces
       // This generates a binding factor per nonce just to ensure it never comes up as a question
       binding.binding_factors = Some(
-        (0 .. binding.commitments.nonces.len())
+        (0..binding.commitments.nonces.len())
           .map(|_| C::hash_binding_factor(transcript.challenge(b"rho").as_ref()))
           .collect(),
       );
@@ -193,9 +193,9 @@ impl<C: Curve> BindingFactor<C> {
   // Get the nonces for this signing session
   pub(crate) fn nonces(&self, planned_nonces: &[Vec<C::G>]) -> Vec<Vec<C::G>> {
     let mut nonces = Vec::with_capacity(planned_nonces.len());
-    for n in 0 .. planned_nonces.len() {
+    for n in 0..planned_nonces.len() {
       nonces.push(Vec::with_capacity(planned_nonces[n].len()));
-      for g in 0 .. planned_nonces[n].len() {
+      for g in 0..planned_nonces[n].len() {
         #[allow(non_snake_case)]
         let mut D = C::G::identity();
         let mut statements = Vec::with_capacity(self.0.len());

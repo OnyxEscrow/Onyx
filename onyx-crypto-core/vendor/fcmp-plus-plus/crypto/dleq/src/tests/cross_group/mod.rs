@@ -84,7 +84,7 @@ macro_rules! test_dleq {
       let runs = 200;
       let mut proofs = Vec::with_capacity(usize::try_from(runs).unwrap());
       let time = std::time::Instant::now();
-      for _ in 0 .. runs {
+      for _ in 0..runs {
         proofs.push($type::prove(&mut OsRng, &mut transcript(), generators, key.clone()).0);
       }
       println!("{} had a average prove time of {}ms", $str, time.elapsed().as_millis() / runs);
@@ -107,7 +107,7 @@ macro_rules! test_dleq {
     fn $name() {
       let generators = generators();
 
-      for i in 0 .. 1 {
+      for i in 0..1 {
         let (proof, keys) = if i == 0 {
           let mut seed = [0; 32];
           OsRng.fill_bytes(&mut seed);
@@ -155,7 +155,7 @@ test_dleq!(
 #[test]
 fn test_rejection_sampling() {
   let mut pow_2 = Scalar::ONE;
-  for _ in 0 .. dfg::Scalar::CAPACITY {
+  for _ in 0..dfg::Scalar::CAPACITY {
     pow_2 = pow_2.double();
   }
 

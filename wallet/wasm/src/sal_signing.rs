@@ -34,16 +34,13 @@ use std::io::Cursor;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+use onyx_fcmp::gsp::multisig::{bytes_to_scalar, OnyxSalSigner};
 use onyx_fcmp::vendor::{
-    Ed25519T, SalAlgorithm, ThresholdCore, ThresholdKeys,
-    Participant,
-    AlgorithmMachine, AlgorithmSignMachine, AlgorithmSignatureMachine,
-    PreprocessMachine, SignMachine, SignatureMachine,
-    Writable, CryptoRng, RngCore,
-    VendorRerandomizedOutput, RecommendedTranscript,
-    SpendAuthAndLinkability,
+    AlgorithmMachine, AlgorithmSignMachine, AlgorithmSignatureMachine, CryptoRng, Ed25519T,
+    Participant, PreprocessMachine, RecommendedTranscript, RngCore, SalAlgorithm, SignMachine,
+    SignatureMachine, SpendAuthAndLinkability, ThresholdCore, ThresholdKeys,
+    VendorRerandomizedOutput, Writable,
 };
-use onyx_fcmp::gsp::multisig::{OnyxSalSigner, bytes_to_scalar};
 
 // =============================================================================
 // Types
@@ -71,8 +68,7 @@ impl RngCore for WasmRng {
     }
 
     fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core::Error> {
-        getrandom::getrandom(dest)
-            .map_err(|e| rand_core::Error::new(e))
+        getrandom::getrandom(dest).map_err(|e| rand_core::Error::new(e))
     }
 }
 
@@ -167,7 +163,8 @@ pub fn sal_preprocess(
         .map_err(|e| JsValue::from_str(&format!("Invalid TX hash hex: {}", e)))?;
     if tx_hash_bytes.len() != 32 {
         return Err(JsValue::from_str(&format!(
-            "TX hash must be 32 bytes, got {}", tx_hash_bytes.len()
+            "TX hash must be 32 bytes, got {}",
+            tx_hash_bytes.len()
         )));
     }
     let mut tx_hash = [0u8; 32];
@@ -205,11 +202,14 @@ pub fn sal_preprocess(
     }
 
     // Validate signer indices (Lagrange adjustment happens internally in sign())
-    let participants: Vec<Participant> = indices.iter()
+    let participants: Vec<Participant> = indices
+        .iter()
         .filter_map(|&i| Participant::new(i))
         .collect();
     if participants.len() != indices.len() {
-        return Err(JsValue::from_str("Invalid participant indices (zero is not a valid index)"));
+        return Err(JsValue::from_str(
+            "Invalid participant indices (zero is not a valid index)",
+        ));
     }
 
     // Create SA+L signer algorithm
@@ -225,7 +225,8 @@ pub fn sal_preprocess(
 
     // Serialize preprocess to hex
     let mut preprocess_buf = Vec::new();
-    preprocess.write(&mut preprocess_buf)
+    preprocess
+        .write(&mut preprocess_buf)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize preprocess: {}", e)))?;
     let preprocess_hex = hex::encode(&preprocess_buf);
 
@@ -265,11 +266,14 @@ pub fn sal_sign(
     message_hex: &str,
 ) -> Result<JsValue, JsValue> {
     // Retrieve and consume the sign machine
-    let sign_machine = SIGN_MACHINES.with(|m| {
-        m.borrow_mut().remove(session_id)
-    }).ok_or_else(|| JsValue::from_str(&format!(
-        "No sign machine for session '{}' — already used or expired", session_id
-    )))?;
+    let sign_machine = SIGN_MACHINES
+        .with(|m| m.borrow_mut().remove(session_id))
+        .ok_or_else(|| {
+            JsValue::from_str(&format!(
+                "No sign machine for session '{}' — already used or expired",
+                session_id
+            ))
+        })?;
 
     // Parse preprocesses map: { "1": "hex...", "2": "hex..." }
     let preprocess_map: HashMap<String, String> = serde_json::from_str(all_preprocesses_json)
@@ -279,18 +283,24 @@ pub fn sal_sign(
     // We need to deserialize each preprocess from hex bytes
     let mut preprocesses = HashMap::new();
     for (idx_str, hex_val) in &preprocess_map {
-        let idx: u16 = idx_str.parse()
-            .map_err(|e| JsValue::from_str(&format!("Invalid participant index '{}': {}", idx_str, e)))?;
+        let idx: u16 = idx_str.parse().map_err(|e| {
+            JsValue::from_str(&format!("Invalid participant index '{}': {}", idx_str, e))
+        })?;
         let participant = Participant::new(idx)
             .ok_or_else(|| JsValue::from_str(&format!("Invalid participant index: {}", idx)))?;
 
-        let bytes = hex::decode(hex_val)
-            .map_err(|e| JsValue::from_str(&format!("Invalid preprocess hex for {}: {}", idx, e)))?;
+        let bytes = hex::decode(hex_val).map_err(|e| {
+            JsValue::from_str(&format!("Invalid preprocess hex for {}: {}", idx, e))
+        })?;
         let mut cursor = Cursor::new(&bytes);
 
         // read_preprocess is a &self method on SignMachine — returns the correct type
-        let preprocess = sign_machine.read_preprocess(&mut cursor)
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize preprocess for {}: {}", idx, e)))?;
+        let preprocess = sign_machine.read_preprocess(&mut cursor).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to deserialize preprocess for {}: {}",
+                idx, e
+            ))
+        })?;
 
         preprocesses.insert(participant, preprocess);
     }
@@ -300,12 +310,14 @@ pub fn sal_sign(
         .map_err(|e| JsValue::from_str(&format!("Invalid message hex: {}", e)))?;
 
     // Sign: produce partial signature share
-    let (sig_machine, share) = sign_machine.sign(preprocesses, &msg_bytes)
+    let (sig_machine, share) = sign_machine
+        .sign(preprocesses, &msg_bytes)
         .map_err(|e| JsValue::from_str(&format!("FROST sign failed: {:?}", e)))?;
 
     // Serialize share to hex
     let mut share_buf = Vec::new();
-    share.write(&mut share_buf)
+    share
+        .write(&mut share_buf)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize share: {}", e)))?;
     let share_hex = hex::encode(&share_buf);
 
@@ -354,17 +366,16 @@ pub struct CompleteResult {
 /// - If share deserialization fails
 /// - If FROST aggregation fails (returns `FrostError::InvalidShare(participant)`)
 #[wasm_bindgen]
-pub fn sal_complete(
-    session_id: &str,
-    all_shares_json: &str,
-) -> Result<JsValue, JsValue> {
+pub fn sal_complete(session_id: &str, all_shares_json: &str) -> Result<JsValue, JsValue> {
     // Retrieve and consume the signature machine
-    let sig_machine = SIG_MACHINES.with(|m| {
-        m.borrow_mut().remove(session_id)
-    }).ok_or_else(|| JsValue::from_str(&format!(
+    let sig_machine = SIG_MACHINES
+        .with(|m| m.borrow_mut().remove(session_id))
+        .ok_or_else(|| {
+            JsValue::from_str(&format!(
         "No signature machine for session '{}' — already used, expired, or sal_sign() not called",
         session_id
-    )))?;
+    ))
+        })?;
 
     // Parse shares map: { "1": "hex...", "2": "hex..." }
     let shares_map: HashMap<String, String> = serde_json::from_str(all_shares_json)
@@ -373,8 +384,9 @@ pub fn sal_complete(
     // Deserialize each share using the sig machine's reader
     let mut shares = HashMap::new();
     for (idx_str, hex_val) in &shares_map {
-        let idx: u16 = idx_str.parse()
-            .map_err(|e| JsValue::from_str(&format!("Invalid participant index '{}': {}", idx_str, e)))?;
+        let idx: u16 = idx_str.parse().map_err(|e| {
+            JsValue::from_str(&format!("Invalid participant index '{}': {}", idx_str, e))
+        })?;
         let participant = Participant::new(idx)
             .ok_or_else(|| JsValue::from_str(&format!("Invalid participant index: {}", idx)))?;
 
@@ -382,20 +394,23 @@ pub fn sal_complete(
             .map_err(|e| JsValue::from_str(&format!("Invalid share hex for {}: {}", idx, e)))?;
         let mut cursor = Cursor::new(&bytes);
 
-        let share = sig_machine.read_share(&mut cursor)
-            .map_err(|e| JsValue::from_str(&format!("Failed to deserialize share for {}: {}", idx, e)))?;
+        let share = sig_machine.read_share(&mut cursor).map_err(|e| {
+            JsValue::from_str(&format!("Failed to deserialize share for {}: {}", idx, e))
+        })?;
 
         shares.insert(participant, share);
     }
 
     // FROST complete: aggregate shares → SpendAuthAndLinkability
     // If a share is invalid, this returns FrostError::InvalidShare(participant)
-    let sal_proof: SpendAuthAndLinkability = sig_machine.complete(shares)
+    let sal_proof: SpendAuthAndLinkability = sig_machine
+        .complete(shares)
         .map_err(|e| JsValue::from_str(&format!("FROST aggregation failed: {:?}", e)))?;
 
     // Serialize the proof (6 points + 6 scalars = 384 bytes)
     let mut proof_buf = Vec::with_capacity(384);
-    sal_proof.write(&mut proof_buf)
+    sal_proof
+        .write(&mut proof_buf)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize SA+L proof: {}", e)))?;
 
     let result = CompleteResult {
@@ -413,8 +428,12 @@ pub fn sal_complete(
 /// the sig machine, but call this explicitly if aborting mid-flow.
 #[wasm_bindgen]
 pub fn sal_cleanup(session_id: &str) {
-    SIGN_MACHINES.with(|m| { m.borrow_mut().remove(session_id); });
-    SIG_MACHINES.with(|m| { m.borrow_mut().remove(session_id); });
+    SIGN_MACHINES.with(|m| {
+        m.borrow_mut().remove(session_id);
+    });
+    SIG_MACHINES.with(|m| {
+        m.borrow_mut().remove(session_id);
+    });
 }
 
 /// Get active session count (for debugging/monitoring).

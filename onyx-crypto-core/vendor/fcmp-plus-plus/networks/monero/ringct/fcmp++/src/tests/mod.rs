@@ -47,8 +47,8 @@ fn test() {
     let leaves = vec![output];
 
     let tree = TreeRoot::<Selene, Helios>::C1(
-      SELENE_HASH_INIT() +
-        multiexp_vartime(
+      SELENE_HASH_INIT()
+        + multiexp_vartime(
           &([
             <Ed25519 as Ciphersuite>::G::to_xy(output.O()).unwrap().0,
             <Ed25519 as Ciphersuite>::G::to_xy(output.O()).unwrap().1,

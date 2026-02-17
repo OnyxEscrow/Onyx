@@ -136,8 +136,8 @@ impl OpenedInputTuple {
   ) -> Option<OpenedInputTuple> {
     // Verify the opening is consistent.
     let mut y_tilde = rerandomized_output.r_o + y;
-    if (<Ed25519 as Ciphersuite>::generator() * x) + (EdwardsPoint(T()) * y_tilde) !=
-      rerandomized_output.input.O_tilde
+    if (<Ed25519 as Ciphersuite>::generator() * x) + (EdwardsPoint(T()) * y_tilde)
+      != rerandomized_output.input.O_tilde
     {
       y_tilde.zeroize();
       None?;

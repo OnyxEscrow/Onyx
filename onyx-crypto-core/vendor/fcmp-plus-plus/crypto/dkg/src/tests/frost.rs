@@ -29,7 +29,7 @@ fn commit_enc_keys_and_shares<R: RngCore + CryptoRng, C: Ciphersuite>(
   let mut machines = HashMap::new();
   let mut commitments = HashMap::new();
   let mut enc_keys = HashMap::new();
-  for i in (1 ..= PARTICIPANTS).map(Participant) {
+  for i in (1..=PARTICIPANTS).map(Participant) {
     let params = ThresholdParams::new(THRESHOLD, PARTICIPANTS, i).unwrap();
     let machine = KeyGenMachine::<C>::new(params, CONTEXT.to_string());
     let (machine, these_commitments) = machine.generate_coefficients(rng);

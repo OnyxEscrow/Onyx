@@ -65,7 +65,7 @@ fn test_inner_product() {
     assert_eq!(generators.len(), i);
     let mut g_bold = vec![];
     let mut h_bold = vec![];
-    for i in 0 .. i {
+    for i in 0..i {
       g_bold.push(generators.g_bold(i));
       h_bold.push(generators.h_bold(i));
     }
@@ -75,7 +75,7 @@ fn test_inner_product() {
     let mut a = ScalarVector::<<Ristretto as Ciphersuite>::F>::new(i);
     let mut b = ScalarVector::<<Ristretto as Ciphersuite>::F>::new(i);
 
-    for i in 0 .. i {
+    for i in 0..i {
       a[i] = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
       b[i] = <Ristretto as Ciphersuite>::F::random(&mut OsRng);
     }

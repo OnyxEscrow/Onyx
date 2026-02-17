@@ -96,7 +96,7 @@ macro_rules! field {
     use $crate::backend::u8_from_bool;
 
     fn reduce(x: U896) -> U448 {
-      U448::from_le_slice(&x.rem(&NonZero::new($WIDE_MODULUS).unwrap()).to_le_bytes()[.. 56])
+      U448::from_le_slice(&x.rem(&NonZero::new($WIDE_MODULUS).unwrap()).to_le_bytes()[..56])
     }
 
     impl ConstantTimeEq for $FieldName {
@@ -143,7 +143,7 @@ macro_rules! field {
       pub fn pow(&self, other: $FieldName) -> $FieldName {
         let mut table = [Self(Residue::ONE); 16];
         table[1] = *self;
-        for i in 2 .. 16 {
+        for i in 2..16 {
           table[i] = table[i - 1] * self;
         }
 
@@ -157,13 +157,13 @@ macro_rules! field {
 
           if ((i + 1) % 4) == 0 {
             if i != 3 {
-              for _ in 0 .. 4 {
+              for _ in 0..4 {
                 res *= res;
               }
             }
 
             let mut factor = table[0];
-            for (j, candidate) in table[1 ..].iter().enumerate() {
+            for (j, candidate) in table[1..].iter().enumerate() {
               let j = j + 1;
               factor = Self::conditional_select(&factor, &candidate, usize::from(bits).ct_eq(&j));
             }
@@ -235,12 +235,12 @@ macro_rules! field {
       const DELTA: Self = $FieldName(Residue::new(&U448::from_le_hex($DELTA)));
 
       fn from_repr(bytes: Self::Repr) -> CtOption<Self> {
-        let res = U448::from_le_slice(&bytes[.. 56]);
+        let res = U448::from_le_slice(&bytes[..56]);
         CtOption::new($FieldName(Residue::new(&res)), res.ct_lt(&$MODULUS) & bytes[56].ct_eq(&0))
       }
       fn to_repr(&self) -> Self::Repr {
         let mut repr = GenericArray::<u8, U57>::default();
-        repr[.. 56].copy_from_slice(&self.0.retrieve().to_le_bytes());
+        repr[..56].copy_from_slice(&self.0.retrieve().to_le_bytes());
         repr
       }
 
@@ -254,13 +254,13 @@ macro_rules! field {
 
       fn to_le_bits(&self) -> FieldBits<Self::ReprBits> {
         let mut repr = [0; 56];
-        repr.copy_from_slice(&self.to_repr()[.. 56]);
+        repr.copy_from_slice(&self.to_repr()[..56]);
         repr.into()
       }
 
       fn char_le_bits() -> FieldBits<Self::ReprBits> {
         let mut repr = [0; 56];
-        repr.copy_from_slice(&MODULUS.to_le_bytes()[.. 56]);
+        repr.copy_from_slice(&MODULUS.to_le_bytes()[..56]);
         repr.into()
       }
     }

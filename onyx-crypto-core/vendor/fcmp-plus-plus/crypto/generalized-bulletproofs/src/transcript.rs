@@ -138,7 +138,7 @@ impl<'a> VerifierTranscript<'a> {
     if self.transcript.len() < scalar_len {
       Err(io::Error::new(io::ErrorKind::Other, "not enough bytes to read_scalar"))?;
     }
-    self.digest.update(&self.transcript[.. scalar_len]);
+    self.digest.update(&self.transcript[..scalar_len]);
 
     // Read the actual scalar, where `read_F` ensures its canonically serialized
     let scalar = C::read_F(&mut self.transcript)?;
@@ -152,7 +152,7 @@ impl<'a> VerifierTranscript<'a> {
     if self.transcript.len() < point_len {
       Err(io::Error::new(io::ErrorKind::Other, "not enough bytes to read_point"))?;
     }
-    self.digest.update(&self.transcript[.. point_len]);
+    self.digest.update(&self.transcript[..point_len]);
 
     // Read the actual point, where `read_G` ensures its canonically serialized
     let point = C::read_G(&mut self.transcript)?;
@@ -170,12 +170,12 @@ impl<'a> VerifierTranscript<'a> {
   ) -> io::Result<Commitments<C>> {
     self.digest.update(u32::try_from(C).unwrap().to_le_bytes());
     let mut C_vec = Vec::with_capacity(C);
-    for _ in 0 .. C {
+    for _ in 0..C {
       C_vec.push(self.read_point::<C>()?);
     }
     self.digest.update(u32::try_from(V).unwrap().to_le_bytes());
     let mut V_vec = Vec::with_capacity(V);
-    for _ in 0 .. V {
+    for _ in 0..V {
       V_vec.push(self.read_point::<C>()?);
     }
     Ok(Commitments { C: PointVector(C_vec), V: PointVector(V_vec) })

@@ -186,10 +186,10 @@ pub fn test_capacity<F: PrimeField + PrimeFieldBits>() {
 
   let mut val = F::ONE;
   assert!(val.to_le_bits()[0], "1 didn't have its least significant bit set");
-  for b in 1 .. F::CAPACITY {
+  for b in 1..F::CAPACITY {
     val = val.double();
     val += F::ONE;
-    for i in 0 ..= b {
+    for i in 0..=b {
       assert!(
         val.to_le_bits()[usize::try_from(i).unwrap()],
         "couldn't set a bit within the capacity",
@@ -269,7 +269,7 @@ pub fn test_pow<F: PrimeFieldBits>() {
   // Ensure pow/pow_vartime can handle multiple u64s properly
   // Create a scalar which exceeds u64
   let mut bit_64 = bit_0;
-  for _ in 0 .. 64 {
+  for _ in 0..64 {
     bit_64 = bit_64.double();
   }
   // Run the tests
@@ -314,7 +314,7 @@ pub fn test_root_of_unity<F: PrimeFieldBits>() {
 
   // Get the bytes to shift
   let mut bits = (F::ZERO - F::ONE).to_le_bits().iter().map(|bit| *bit).collect::<Vec<_>>();
-  for _ in 0 .. F::S {
+  for _ in 0..F::S {
     bits.remove(0);
   }
 

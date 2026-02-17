@@ -201,7 +201,7 @@ pub fn read_raw_vec<R: Read, T, F: Fn(&mut R) -> io::Result<T>>(
   r: &mut R,
 ) -> io::Result<Vec<T>> {
   let mut res = vec![];
-  for _ in 0 .. len {
+  for _ in 0..len {
     res.push(f(r)?);
   }
   Ok(res)

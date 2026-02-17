@@ -224,7 +224,7 @@ impl Mul<Scalar> for Point {
     // Precompute the optimal amount that's a multiple of 2
     let mut table = [Point::identity(); 16];
     table[1] = self;
-    for i in 2 .. 16 {
+    for i in 2..16 {
       table[i] = table[i - 1] + self;
     }
 
@@ -238,13 +238,13 @@ impl Mul<Scalar> for Point {
 
       if ((i + 1) % 4) == 0 {
         if i != 3 {
-          for _ in 0 .. 4 {
+          for _ in 0..4 {
             res = res.double();
           }
         }
 
         let mut term = table[0];
-        for (j, candidate) in table[1 ..].iter().enumerate() {
+        for (j, candidate) in table[1..].iter().enumerate() {
           let j = j + 1;
           term = Self::conditional_select(&term, candidate, usize::from(bits).ct_eq(&j));
         }
@@ -371,8 +371,8 @@ ed8693eacdfbeada6ba0cdd1beb2bcbb98302a3a8365650db8c4d88a\
   );
 
   assert_eq!(
-    Point::generator() *
-      Scalar::from_repr(*GenericArray::from_slice(
+    Point::generator()
+      * Scalar::from_repr(*GenericArray::from_slice(
         &hex::decode(
           "\
 6298e1eef3c379392caaed061ed8a31033c9e9e3420726f23b404158\

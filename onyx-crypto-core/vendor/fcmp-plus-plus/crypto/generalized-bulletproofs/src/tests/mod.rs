@@ -18,7 +18,7 @@ pub fn generators<C: Ciphersuite>(n: usize) -> Generators<C> {
 
   let gens = || {
     let mut res = Vec::with_capacity(n);
-    for _ in 0 .. n {
+    for _ in 0..n {
       res.push(C::G::random(&mut OsRng));
     }
     res

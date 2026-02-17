@@ -70,8 +70,8 @@ pub(crate) fn slope_intercept<C: DivisorCurve>(a: C, b: C) -> (C::FieldElement, 
   debug_assert_eq!(C::divisor_modulus().eval(ax, ay), C::FieldElement::ZERO);
   let (bx, by) = C::to_xy(b).unwrap();
   debug_assert_eq!(C::divisor_modulus().eval(bx, by), C::FieldElement::ZERO);
-  let slope = (by - ay) *
-    Option::<C::FieldElement>::from((bx - ax).invert())
+  let slope = (by - ay)
+    * Option::<C::FieldElement>::from((bx - ax).invert())
       .expect("trying to get slope/intercept of points sharing an x coordinate");
   let intercept = by - (slope * bx);
   debug_assert!(bool::from((ay - (slope * ax) - intercept).is_zero()));
@@ -216,7 +216,7 @@ pub fn new_divisor<C: DivisorCurve>(points: &[C]) -> Option<Poly<C::FieldElement
     if divisor.yx_coefficients.len() == 1 {
       let truncate_to = ((points_len + 1) / 2).saturating_sub(2);
       #[cfg(debug_assertions)]
-      for p in truncate_to .. divisor.yx_coefficients[0].len() {
+      for p in truncate_to..divisor.yx_coefficients[0].len() {
         debug_assert_eq!(divisor.yx_coefficients[0][p], <C::FieldElement as Field>::ZERO);
       }
       divisor.yx_coefficients[0].truncate(truncate_to);
@@ -224,7 +224,7 @@ pub fn new_divisor<C: DivisorCurve>(points: &[C]) -> Option<Poly<C::FieldElement
     {
       let truncate_to = points_len / 2;
       #[cfg(debug_assertions)]
-      for p in truncate_to .. divisor.x_coefficients.len() {
+      for p in truncate_to..divisor.x_coefficients.len() {
         debug_assert_eq!(divisor.x_coefficients[p], <C::FieldElement as Field>::ZERO);
       }
       divisor.x_coefficients.truncate(truncate_to);
@@ -308,7 +308,7 @@ impl<F: Zeroize + PrimeFieldBits> ScalarDecomposition<F> {
     // If it isn't, we increase it by the modulus such that it does exceed num_bits
     {
       let mut less_than_num_bits = Choice::from(0);
-      for i in 0 .. num_bits {
+      for i in 0..num_bits {
         less_than_num_bits |= scalar.ct_eq(&F::from(i));
       }
       let mut decomposition_of_modulus = vec![0; num_bits_usize];
@@ -321,7 +321,7 @@ impl<F: Zeroize + PrimeFieldBits> ScalarDecomposition<F> {
       decomposition_of_modulus[0] += 1;
 
       // Add the decomposition onto the decomposition of the modulus
-      for i in 0 .. num_bits_usize {
+      for i in 0..num_bits_usize {
         let new_decomposition = <_>::conditional_select(
           &decomposition[i],
           &(decomposition[i] + decomposition_of_modulus[i]),
@@ -363,11 +363,11 @@ impl<F: Zeroize + PrimeFieldBits> ScalarDecomposition<F> {
         log2_num_bits += 1;
       }
 
-      for _ in 0 .. log2_num_bits {
+      for _ in 0..log2_num_bits {
         // If the sum of coefficients is the amount of bits, we're done
         let mut done = sum_of_coefficients.ct_eq(&num_bits);
 
-        for i in 0 .. (num_bits_usize - 1) {
+        for i in 0..(num_bits_usize - 1) {
           let should_act = (!done) & decomposition[i].ct_gt(&1);
           // Subtract 2 from this coefficient
           let amount_to_sub = <_>::conditional_select(&0, &2, should_act);
@@ -385,12 +385,12 @@ impl<F: Zeroize + PrimeFieldBits> ScalarDecomposition<F> {
       }
     }
 
-    for _ in 0 .. num_bits {
+    for _ in 0..num_bits {
       // If the sum of coefficients is the amount of bits, we're done
       let mut done = sum_of_coefficients.ct_eq(&num_bits);
 
       // Find the highest coefficient currently non-zero
-      for i in (1 .. decomposition.len()).rev() {
+      for i in (1..decomposition.len()).rev() {
         // If this is non-zero, we should decrement this coefficient if we haven't already
         // decremented a coefficient this round
         let is_non_zero = !(0.ct_eq(&decomposition[i]));
@@ -451,7 +451,7 @@ impl<F: Zeroize + PrimeFieldBits> ScalarDecomposition<F> {
     let mut write_above: u64 = 0;
     for coefficient in &self.decomposition {
       // Write the generator to every slot except the slots we have already written to.
-      for i in 1 ..= (<C::Scalar as PrimeField>::NUM_BITS as u64) {
+      for i in 1..=(<C::Scalar as PrimeField>::NUM_BITS as u64) {
         divisor_points[i as usize].conditional_assign(&generator, i.ct_gt(&write_above));
       }
 
@@ -553,10 +553,10 @@ mod ed25519 {
 
       // Recover the x coordinate
       let edwards_y_sq = edwards_y * edwards_y;
-      let D = -Self::FieldElement::from(121665u64) *
-        Self::FieldElement::from(121666u64).invert().unwrap();
-      let mut edwards_x = ((edwards_y_sq - Self::FieldElement::ONE) *
-        ((D * edwards_y_sq) + Self::FieldElement::ONE).invert().unwrap())
+      let D = -Self::FieldElement::from(121665u64)
+        * Self::FieldElement::from(121666u64).invert().unwrap();
+      let mut edwards_x = ((edwards_y_sq - Self::FieldElement::ONE)
+        * ((D * edwards_y_sq) + Self::FieldElement::ONE).invert().unwrap())
       .sqrt()
       .unwrap();
 
@@ -570,8 +570,8 @@ mod ed25519 {
       // Calculate the x and y coordinates for Wei25519
       let edwards_y_plus_one = Self::FieldElement::ONE + edwards_y;
       let one_minus_edwards_y = Self::FieldElement::ONE - edwards_y;
-      let wei_x = (edwards_y_plus_one * one_minus_edwards_y.invert().unwrap()) +
-        (Self::FieldElement::from(486662u64) * Self::FieldElement::from(3u64).invert().unwrap());
+      let wei_x = (edwards_y_plus_one * one_minus_edwards_y.invert().unwrap())
+        + (Self::FieldElement::from(486662u64) * Self::FieldElement::from(3u64).invert().unwrap());
       let c =
         (-(Self::FieldElement::from(486662u64) + Self::FieldElement::from(2u64))).sqrt().unwrap();
       let wei_y = c * edwards_y_plus_one * (one_minus_edwards_y * edwards_x).invert().unwrap();

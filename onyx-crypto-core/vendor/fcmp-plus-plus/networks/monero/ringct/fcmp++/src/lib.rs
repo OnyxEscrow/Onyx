@@ -111,7 +111,7 @@ pub fn HELIOS_GENERATORS() -> &'static Generators<Helios> {
     let h = hash_to_point_on_curve::<Helios>(b"Monero Helios H");
     let mut g_bold = Vec::with_capacity(2048);
     let mut h_bold = Vec::with_capacity(2048);
-    for i in 0u32 .. 2048 {
+    for i in 0u32..2048 {
       let mut g_buf = b"Monero Helios G ".to_vec();
       write_varint(&i, &mut g_buf).unwrap();
       g_bold.push(hash_to_point_on_curve::<Helios>(&g_buf));
@@ -132,7 +132,7 @@ pub fn SELENE_GENERATORS() -> &'static Generators<Selene> {
     let h = hash_to_point_on_curve::<Selene>(b"Monero Selene H");
     let mut g_bold = Vec::with_capacity(4096);
     let mut h_bold = Vec::with_capacity(4096);
-    for i in 0u32 .. 4096 {
+    for i in 0u32..4096 {
       let mut g_buf = b"Monero Selene G ".to_vec();
       write_varint(&i, &mut g_buf).unwrap();
       g_bold.push(hash_to_point_on_curve::<Selene>(&g_buf));

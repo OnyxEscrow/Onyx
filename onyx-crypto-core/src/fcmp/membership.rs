@@ -17,10 +17,10 @@
 //! Proof generation is O(n·log(N)) where n = inputs, N = UTXO set size.
 //! Expected: ~30-60s in WASM for a single input in a tree with ~150M leaves.
 
-use rand_core::{RngCore, CryptoRng};
+use rand_core::{CryptoRng, RngCore};
 
-use crate::types::errors::{CryptoError, CryptoResult};
 use super::curves::*;
+use crate::types::errors::{CryptoError, CryptoResult};
 
 /// Generate random output blinds for a single input.
 ///
@@ -117,10 +117,9 @@ pub fn generate_membership_proof(
     let layers = paths[0].curve_1_layers.len() + paths[0].curve_2_layers.len();
 
     // Step 1: Create Branches from paths
-    let branches = Branches::new(paths)
-        .ok_or_else(|| CryptoError::CurveTreeError(
-            "Failed to create Branches — paths may be inconsistent".into(),
-        ))?;
+    let branches = Branches::new(paths).ok_or_else(|| {
+        CryptoError::CurveTreeError("Failed to create Branches — paths may be inconsistent".into())
+    })?;
 
     // Step 2: Generate output blinds for each input
     let mut output_blinds = Vec::with_capacity(num_inputs);
@@ -135,7 +134,8 @@ pub fn generate_membership_proof(
     let c2_blinds = generate_c2_branch_blinds(rng, c2_count)?;
 
     // Step 4: Blind the branches
-    let blinded = branches.blind(output_blinds, c1_blinds, c2_blinds)
+    let blinded = branches
+        .blind(output_blinds, c1_blinds, c2_blinds)
         .map_err(|e| CryptoError::CurveTreeError(format!("Blinding failed: {e:?}")))?;
 
     // Step 5: Prove
@@ -145,7 +145,8 @@ pub fn generate_membership_proof(
 
     // Step 6: Serialize
     let mut proof_bytes = Vec::new();
-    proof.write(&mut proof_bytes)
+    proof
+        .write(&mut proof_bytes)
         .map_err(|e| CryptoError::CurveTreeError(format!("Proof serialization failed: {e}")))?;
 
     Ok(MembershipProofBundle {
@@ -181,7 +182,15 @@ pub fn verify_membership_proof(
 
     // Queue verification
     proof
-        .verify(rng, &mut verifier_1, &mut verifier_2, params, tree_root, layers, inputs)
+        .verify(
+            rng,
+            &mut verifier_1,
+            &mut verifier_2,
+            params,
+            tree_root,
+            layers,
+            inputs,
+        )
         .map_err(|e| CryptoError::CurveTreeError(format!("Proof verification failed: {e:?}")))?;
 
     // Execute batch verification
@@ -211,16 +220,16 @@ pub struct MembershipProofBundle {
 // === Internal Helpers ===
 
 /// Generate a random non-zero Ed25519 scalar.
-fn random_nonzero_scalar(
-    rng: &mut (impl RngCore + CryptoRng),
-) -> CryptoResult<Scalar> {
+fn random_nonzero_scalar(rng: &mut (impl RngCore + CryptoRng)) -> CryptoResult<Scalar> {
     for _ in 0..1000 {
         let s = Scalar::random(&mut *rng);
         if s != Scalar::from(0u64) {
             return Ok(s);
         }
     }
-    Err(CryptoError::CurveTreeError("Failed to generate non-zero scalar".into()))
+    Err(CryptoError::CurveTreeError(
+        "Failed to generate non-zero scalar".into(),
+    ))
 }
 
 /// Generate a random non-zero Selene scalar.
@@ -233,7 +242,9 @@ fn random_nonzero_selene_scalar(
             return Ok(s);
         }
     }
-    Err(CryptoError::CurveTreeError("Failed to generate non-zero Selene scalar".into()))
+    Err(CryptoError::CurveTreeError(
+        "Failed to generate non-zero Selene scalar".into(),
+    ))
 }
 
 /// Generate a random non-zero Helios scalar.
@@ -246,14 +257,16 @@ fn random_nonzero_helios_scalar(
             return Ok(s);
         }
     }
-    Err(CryptoError::CurveTreeError("Failed to generate non-zero Helios scalar".into()))
+    Err(CryptoError::CurveTreeError(
+        "Failed to generate non-zero Helios scalar".into(),
+    ))
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::tree::{pad_leaf_set, PathBuilder};
     use super::*;
     use rand_core::{OsRng, RngCore};
-    use super::super::tree::{pad_leaf_set, PathBuilder};
 
     fn random_output() -> FcmpOutput<EdwardsPoint> {
         let g = <Ed25519 as Ciphersuite>::generator();
@@ -294,8 +307,8 @@ mod tests {
         let path = builder.build().expect("path");
 
         // Generate proof
-        let bundle = generate_membership_proof(&mut OsRng, vec![path.clone()])
-            .expect("proof generation");
+        let bundle =
+            generate_membership_proof(&mut OsRng, vec![path.clone()]).expect("proof generation");
 
         assert!(!bundle.proof_bytes.is_empty());
         assert_eq!(bundle.layers, 0); // leaves-only = 0 branch layers

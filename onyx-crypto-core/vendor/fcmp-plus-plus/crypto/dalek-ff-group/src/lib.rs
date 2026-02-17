@@ -190,7 +190,7 @@ impl Scalar {
   pub fn pow(&self, other: Scalar) -> Scalar {
     let mut table = [Scalar::ONE; 16];
     table[1] = *self;
-    for i in 2 .. 16 {
+    for i in 2..16 {
       table[i] = table[i - 1] * self;
     }
 
@@ -204,13 +204,13 @@ impl Scalar {
 
       if ((i + 1) % 4) == 0 {
         if i != 3 {
-          for _ in 0 .. 4 {
+          for _ in 0..4 {
             res *= res;
           }
         }
 
         let mut factor = table[0];
-        for (j, candidate) in table[1 ..].iter().enumerate() {
+        for (j, candidate) in table[1..].iter().enumerate() {
           let j = j + 1;
           factor = Self::conditional_select(&factor, candidate, usize::from(bits).ct_eq(&j));
         }

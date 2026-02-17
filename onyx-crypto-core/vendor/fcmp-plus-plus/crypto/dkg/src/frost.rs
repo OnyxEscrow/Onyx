@@ -69,7 +69,7 @@ impl<C: Ciphersuite> ReadWrite for Commitments<C> {
       Ok(point)
     };
 
-    for _ in 0 .. params.t() {
+    for _ in 0..params.t() {
       commitments.push(read_G()?);
     }
 
@@ -111,7 +111,7 @@ impl<C: Ciphersuite> KeyGenMachine<C> {
     let mut commitments = Vec::with_capacity(t);
     let mut cached_msg = vec![];
 
-    for i in 0 .. t {
+    for i in 0..t {
       // Step 1: Generate t random values to form a polynomial with
       coefficients.push(Zeroizing::new(C::random_nonzero_F(&mut *rng)));
       // Step 3: Generate public commitments
@@ -253,13 +253,13 @@ impl<C: Ciphersuite> SecretShareMachine<C> {
   ) -> Result<HashMap<Participant, Vec<C::G>>, FrostError<C>> {
     validate_map(
       &commitment_msgs,
-      &(1 ..= self.params.n()).map(Participant).collect::<Vec<_>>(),
+      &(1..=self.params.n()).map(Participant).collect::<Vec<_>>(),
       self.params.i(),
     )?;
 
     let mut batch = BatchVerifier::<Participant, C::G>::new(commitment_msgs.len());
     let mut commitments = HashMap::new();
-    for l in (1 ..= self.params.n()).map(Participant) {
+    for l in (1..=self.params.n()).map(Participant) {
       let Some(msg) = commitment_msgs.remove(&l) else { continue };
       let mut msg = self.encryption.register(l, msg);
 
@@ -305,7 +305,7 @@ impl<C: Ciphersuite> SecretShareMachine<C> {
 
     // Step 1: Generate secret shares for all other parties
     let mut res = HashMap::new();
-    for l in (1 ..= self.params.n()).map(Participant) {
+    for l in (1..=self.params.n()).map(Participant) {
       // Don't insert our own shares to the byte buffer which is meant to be sent around
       // An app developer could accidentally send it. Best to keep this black boxed
       if l == self.params.i() {
@@ -369,7 +369,7 @@ impl<C: Ciphersuite> Zeroize for KeyMachine<C> {
 fn exponential<C: Ciphersuite>(i: Participant, values: &[C::G]) -> Vec<(C::F, C::G)> {
   let i = C::F::from(u16::from(i).into());
   let mut res = Vec::with_capacity(values.len());
-  (0 .. values.len()).fold(C::F::ONE, |exp, l| {
+  (0..values.len()).fold(C::F::ONE, |exp, l| {
     res.push((exp, values[l]));
     exp * i
   });
@@ -416,7 +416,7 @@ impl<C: Ciphersuite> KeyMachine<C> {
   ) -> Result<BlameMachine<C>, FrostError<C>> {
     validate_map(
       &shares,
-      &(1 ..= self.params.n()).map(Participant).collect::<Vec<_>>(),
+      &(1..=self.params.n()).map(Participant).collect::<Vec<_>>(),
       self.params.i(),
     )?;
 
@@ -452,13 +452,13 @@ impl<C: Ciphersuite> KeyMachine<C> {
     // If these weren't just sums, yet the tables used in multiexp, this would be further optimized
     // As of right now, each multiexp will regenerate them
     let mut stripes = Vec::with_capacity(usize::from(self.params.t()));
-    for t in 0 .. usize::from(self.params.t()) {
+    for t in 0..usize::from(self.params.t()) {
       stripes.push(self.commitments.values().map(|commitments| commitments[t]).sum());
     }
 
     // Calculate each user's verification share
     let mut verification_shares = HashMap::new();
-    for i in (1 ..= self.params.n()).map(Participant) {
+    for i in (1..=self.params.n()).map(Participant) {
       verification_shares.insert(
         i,
         if i == self.params.i() {
@@ -606,7 +606,7 @@ impl<C: Ciphersuite> AdditionalBlameMachine<C> {
   ) -> Result<Self, FrostError<C>> {
     let mut commitments = HashMap::new();
     let mut encryption = Encryption::new(context, None, rng);
-    for i in 1 ..= n {
+    for i in 1..=n {
       let i = Participant::new(i).unwrap();
       let Some(msg) = commitment_msgs.remove(&i) else { Err(DkgError::MissingParticipant(i))? };
       commitments.insert(i, encryption.register(i, msg).commitments);

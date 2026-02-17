@@ -81,7 +81,7 @@ impl<F: PrimeField, Parameters: DiscreteLogParameters> GeneratorTable<F, Paramet
 
     let mut res = Self(GenericArray::default());
     res.0[0] = (generator_x, generator_y);
-    for i in 1 .. Parameters::ScalarBits::USIZE {
+    for i in 1..Parameters::ScalarBits::USIZE {
       let last = res.0[i - 1];
       res.0[i] = dbl(curve.a, last.0, last.1);
     }
@@ -154,7 +154,7 @@ impl<F: PrimeField, Parameters: DiscreteLogParameters> ChallengePoint<F, Paramet
     let divisor_x_len = Parameters::XCoefficients::USIZE;
     let mut x_pows = GenericArray::default();
     x_pows[0] = x;
-    for i in 1 .. divisor_x_len {
+    for i in 1..divisor_x_len {
       let last = x_pows[i - 1];
       x_pows[i] = last * x;
     }
@@ -164,7 +164,7 @@ impl<F: PrimeField, Parameters: DiscreteLogParameters> ChallengePoint<F, Paramet
     let mut yx = GenericArray::default();
     // Skips x**0
     yx[0] = y * x;
-    for i in 1 .. divisor_yx_len {
+    for i in 1..divisor_yx_len {
       let last = yx[i - 1];
       yx[i] = last * x;
     }
@@ -451,9 +451,9 @@ impl<C: Ciphersuite> EcDlogGadgets<C> for Circuit<C> {
 
     // Fill in the inverted values
     let mut challenged_generators = Vec::with_capacity(generators.len());
-    for _ in 0 .. generators.len() {
+    for _ in 0..generators.len() {
       let mut challenged_generator = GenericArray::default();
-      for i in 0 .. Parameters::ScalarBits::USIZE {
+      for i in 0..Parameters::ScalarBits::USIZE {
         challenged_generator[i] = inversions.next().unwrap();
       }
       challenged_generators.push(ChallengedGenerator(challenged_generator));
@@ -490,9 +490,9 @@ impl<C: Ciphersuite> EcDlogGadgets<C> for Circuit<C> {
     // The challenge has already been sampled so those lines aren't necessary
 
     // lhs from the paper, evaluating the divisor
-    let lhs_eval = LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c0)) +
-      &LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c1)) +
-      &LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c2));
+    let lhs_eval = LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c0))
+      + &LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c1))
+      + &LinComb::from(divisor_challenge_eval(self, &divisor, &challenge.c2));
 
     // Interpolate the doublings of the generator
     let mut rhs_eval = LinComb::empty();

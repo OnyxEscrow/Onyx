@@ -47,9 +47,9 @@ where
 
   // Test blame can properly identify faulty participants
   // Run with 17 statements, rotating which one is faulty
-  for i in 0 .. 17 {
+  for i in 0..17 {
     let mut batch = BatchVerifier::new(17);
-    for j in 0 .. 17 {
+    for j in 0..17 {
       batch.queue(
         &mut OsRng,
         j,
@@ -60,13 +60,13 @@ where
   }
 
   // Test blame always identifies the left-most invalid statement
-  for i in 1 .. 32 {
-    for j in 1 .. i {
+  for i in 1..32 {
+    for j in 1..i {
       let mut batch = BatchVerifier::new(j);
       let mut leftmost = None;
 
       // Create j statements
-      for k in 0 .. j {
+      for k in 0..j {
         batch.queue(
           &mut OsRng,
           k,
@@ -74,8 +74,8 @@ where
           // the space between them
           // For high i values, yet low j values, this will make it likely that random elements
           // are at/near the end
-          if ((OsRng.next_u64() % u64::try_from(1 + (i / 4)).unwrap()) == 0) ||
-            (leftmost.is_none() && (k == (j - 1)))
+          if ((OsRng.next_u64() % u64::try_from(1 + (i / 4)).unwrap()) == 0)
+            || (leftmost.is_none() && (k == (j - 1)))
           {
             if leftmost.is_none() {
               leftmost = Some(k);

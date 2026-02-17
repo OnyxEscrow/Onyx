@@ -58,8 +58,8 @@ mod shims {
   impl Read for &[u8] {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
       let read = buf.len().min(self.len());
-      buf[.. read].copy_from_slice(&self[.. read]);
-      *self = &self[read ..];
+      buf[..read].copy_from_slice(&self[..read]);
+      *self = &self[read..];
       Ok(read)
     }
   }
@@ -74,7 +74,7 @@ mod shims {
       Ok(*self)
     }
     fn consume(&mut self, amt: usize) {
-      *self = &self[amt ..];
+      *self = &self[amt..];
     }
   }
 
