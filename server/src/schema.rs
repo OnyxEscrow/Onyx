@@ -216,6 +216,8 @@ diesel::table! {
         pseudo_out_hex -> Nullable<Text>,
         tx_secret_key -> Nullable<Text>,
         ring_indices_json -> Nullable<Text>,
+        round_id -> Nullable<Text>,
+        signer_set_hash -> Nullable<Text>,
     }
 }
 

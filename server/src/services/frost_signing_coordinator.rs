@@ -56,6 +56,9 @@ pub struct TxSigningData {
     pub funding_tx_pubkey: Option<String>,
     /// Output index in funding transaction — WASM needs for derivation
     pub funding_output_index: Option<i32>,
+    /// Round ID (UUID) — clients must echo this on nonce/partial submissions
+    /// to prevent stale submissions after session reset.
+    pub round_id: Option<String>,
 }
 
 /// Nonce commitment (MuSig2-style)
@@ -76,6 +79,8 @@ pub struct SigningStatus {
     pub vendor_partial_submitted: bool,
     pub arbiter_partial_submitted: bool,
     pub tx_hash: Option<String>,
+    /// Round ID — changes on every session reset
+    pub round_id: Option<String>,
 }
 
 // ============================================================================
@@ -962,9 +967,99 @@ struct StoredTxParams {
     pseudo_out: String,
 }
 
+/// Compute a deterministic hash of the signer set from escrow state.
+/// Used to detect signer set changes (e.g., dispute resolution changing
+/// buyer+vendor to arbiter+buyer) which MUST trigger nonce invalidation.
+fn compute_signer_set_hash(escrow: &crate::models::escrow::Escrow) -> String {
+    let mut participants = vec!["buyer", "vendor"];
+    if let Some(ref pair) = escrow.dispute_signing_pair {
+        participants = match pair.as_str() {
+            "arbiter_buyer" => vec!["arbiter", "buyer"],
+            "arbiter_vendor" => vec!["arbiter", "vendor"],
+            _ => vec!["buyer", "vendor"],
+        };
+    }
+    participants.sort();
+    let mut hasher = Keccak256::new();
+    hasher.update(participants.join(",").as_bytes());
+    hex::encode(hasher.finalize())
+}
+
 pub struct FrostSigningCoordinator;
 
 impl FrostSigningCoordinator {
+    /// Reset signing session — burns all nonces, partial signatures, and generates new round_id.
+    ///
+    /// CRITICAL SECURITY: FROST nonces MUST be used exactly once.
+    /// If a signing round fails or aborts (identifiable abort, timeout,
+    /// broadcast rejection), ALL nonce state must be destroyed before
+    /// retrying. Reusing nonces across different signing rounds with
+    /// different challenges leaks the private key:
+    ///   s₁ = r + c₁·x, s₂ = r + c₂·x  →  x = (s₁ - s₂)/(c₁ - c₂)
+    pub fn reset_signing_session(
+        conn: &mut SqliteConnection,
+        escrow_id: &str,
+    ) -> Result<String> {
+        use diesel::Connection;
+
+        conn.transaction(|conn| {
+            let new_round_id = uuid::Uuid::new_v4().to_string();
+            let now = chrono::Utc::now().naive_utc();
+
+            // 1. Burn all nonce + signature state in frost_signing_state
+            let updated = diesel::update(
+                frost_signing_state::table
+                    .filter(frost_signing_state::escrow_id.eq(escrow_id))
+                    .filter(frost_signing_state::status.ne("broadcasted")),
+            )
+            .set((
+                frost_signing_state::buyer_r_public.eq(None::<String>),
+                frost_signing_state::buyer_r_prime_public.eq(None::<String>),
+                frost_signing_state::vendor_r_public.eq(None::<String>),
+                frost_signing_state::vendor_r_prime_public.eq(None::<String>),
+                frost_signing_state::aggregated_r.eq(None::<String>),
+                frost_signing_state::aggregated_r_prime.eq(None::<String>),
+                frost_signing_state::buyer_partial_submitted.eq(None::<bool>),
+                frost_signing_state::vendor_partial_submitted.eq(None::<bool>),
+                frost_signing_state::arbiter_partial_submitted.eq(None::<bool>),
+                frost_signing_state::aggregated_key_image.eq(None::<String>),
+                frost_signing_state::final_clsag_json.eq(None::<String>),
+                frost_signing_state::round_id.eq(&new_round_id),
+                frost_signing_state::status.eq("initialized"),
+                frost_signing_state::updated_at.eq(now),
+            ))
+            .execute(conn)
+            .map_err(|e| anyhow::anyhow!("Failed to reset signing session: {}", e))?;
+
+            if updated == 0 {
+                return Err(anyhow::anyhow!(
+                    "No signing session found for escrow {} (or already broadcasted)",
+                    escrow_id
+                ));
+            }
+
+            // 2. Clear partial signatures stored in escrows table (atomic with nonce burn)
+            diesel::update(escrows::table.find(escrow_id))
+                .set((
+                    escrows::buyer_signature.eq(None::<String>),
+                    escrows::vendor_signature.eq(None::<String>),
+                    escrows::buyer_partial_key_image.eq(None::<String>),
+                    escrows::vendor_partial_key_image.eq(None::<String>),
+                    escrows::arbiter_partial_key_image.eq(None::<String>),
+                ))
+                .execute(conn)
+                .map_err(|e| anyhow::anyhow!("Failed to clear escrow signatures: {}", e))?;
+
+            warn!(
+                escrow_id = %escrow_id,
+                new_round_id = %new_round_id,
+                "FROST signing session reset — all nonces burned, new round_id issued"
+            );
+
+            Ok(new_round_id)
+        })
+    }
+
     /// Initialize signing session (async - fetches ring from daemon)
     ///
     /// Builds real TX data: ring selection, outputs, BP+, CLSAG message.
@@ -1004,46 +1099,110 @@ impl FrostSigningCoordinator {
                 .find(escrow_id)
                 .first(conn)
                 .context("Escrow not found")?;
-            let multisig_pubkey = escrow.frost_group_pubkey.clone().unwrap_or_default();
 
-            // Compute pseudo_out_mask from stored TX params
-            let pseudo_out_mask = frost_signing_state::table
+            // ── Signer set auto-invalidation ──
+            // If the signer set changed (e.g., dispute resolution), all nonce state
+            // MUST be burned. Different signers → different TX data (different recipient).
+            let stored_hash: Option<String> = frost_signing_state::table
                 .filter(frost_signing_state::escrow_id.eq(escrow_id))
-                .select(frost_signing_state::ring_indices_json)
-                .first::<Option<String>>(conn)
-                .ok()
-                .flatten()
-                .and_then(|json| {
-                    let params: StoredTxParams = serde_json::from_str(&json).ok()?;
-                    let mask_0_bytes = hex::decode(&params.mask_0).ok()?;
-                    let mask_1_bytes = hex::decode(&params.mask_1).ok()?;
-                    if mask_0_bytes.len() != 32 || mask_1_bytes.len() != 32 {
-                        return None;
-                    }
-                    let mut m0 = [0u8; 32];
-                    m0.copy_from_slice(&mask_0_bytes);
-                    let mut m1 = [0u8; 32];
-                    m1.copy_from_slice(&mask_1_bytes);
-                    let pseudo_mask = curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m0)
-                        + curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m1);
-                    Some(hex::encode(pseudo_mask.to_bytes()))
-                });
+                .select(frost_signing_state::signer_set_hash)
+                .first(conn)
+                .optional()
+                .context("Failed to query signer_set_hash")?
+                .flatten();
 
-            info!(escrow_id = %escrow_id, "Returning existing FROST signing session (idempotent)");
-            return Ok(TxSigningData {
-                tx_prefix_hash,
-                clsag_message_hash,
-                ring_data_json,
-                pseudo_out,
-                recipient_address,
-                amount_atomic,
-                multisig_pubkey,
-                pseudo_out_mask,
-                funding_commitment_mask: escrow.funding_commitment_mask.clone(),
-                multisig_view_key: escrow.multisig_view_key.clone(),
-                funding_tx_pubkey: escrow.funding_tx_pubkey.clone(),
-                funding_output_index: escrow.funding_output_index,
-            });
+            let current_hash = compute_signer_set_hash(&escrow);
+
+            if stored_hash.as_deref() != Some(&current_hash) {
+                warn!(
+                    escrow_id = %escrow_id,
+                    old_hash = ?stored_hash,
+                    new_hash = %current_hash,
+                    "Signer set changed — auto-burning nonce state and re-initializing"
+                );
+
+                // Atomic: clear partial sigs + delete signing state in one transaction.
+                // DELETE (not reset) because signer set change may require different TX data
+                // (different recipient address for refund vs release).
+                {
+                    use diesel::Connection;
+                    conn.transaction(|conn| {
+                        diesel::update(escrows::table.find(escrow_id))
+                            .set((
+                                escrows::buyer_signature.eq(None::<String>),
+                                escrows::vendor_signature.eq(None::<String>),
+                                escrows::buyer_partial_key_image.eq(None::<String>),
+                                escrows::vendor_partial_key_image.eq(None::<String>),
+                                escrows::arbiter_partial_key_image.eq(None::<String>),
+                            ))
+                            .execute(conn)?;
+
+                        diesel::delete(
+                            frost_signing_state::table
+                                .filter(frost_signing_state::escrow_id.eq(escrow_id)),
+                        )
+                        .execute(conn)?;
+
+                        Ok::<_, diesel::result::Error>(())
+                    })
+                    .context("Failed to atomically clear signer set change state")?;
+                }
+
+                // Fall through to fresh init path below (row deleted, will re-create)
+            } else {
+                // Signer set unchanged — return cached data (original idempotent behavior)
+                let multisig_pubkey = escrow.frost_group_pubkey.clone().unwrap_or_default();
+
+                // Fetch round_id for response
+                let stored_round_id: Option<String> = frost_signing_state::table
+                    .filter(frost_signing_state::escrow_id.eq(escrow_id))
+                    .select(frost_signing_state::round_id)
+                    .first(conn)
+                    .optional()
+                    .context("Failed to query round_id")?
+                    .flatten();
+
+                // Compute pseudo_out_mask from stored TX params
+                let pseudo_out_mask = frost_signing_state::table
+                    .filter(frost_signing_state::escrow_id.eq(escrow_id))
+                    .select(frost_signing_state::ring_indices_json)
+                    .first::<Option<String>>(conn)
+                    .ok()
+                    .flatten()
+                    .and_then(|json| {
+                        let params: StoredTxParams = serde_json::from_str(&json).ok()?;
+                        let mask_0_bytes = hex::decode(&params.mask_0).ok()?;
+                        let mask_1_bytes = hex::decode(&params.mask_1).ok()?;
+                        if mask_0_bytes.len() != 32 || mask_1_bytes.len() != 32 {
+                            return None;
+                        }
+                        let mut m0 = [0u8; 32];
+                        m0.copy_from_slice(&mask_0_bytes);
+                        let mut m1 = [0u8; 32];
+                        m1.copy_from_slice(&mask_1_bytes);
+                        let pseudo_mask =
+                            curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m0)
+                                + curve25519_dalek::scalar::Scalar::from_bytes_mod_order(m1);
+                        Some(hex::encode(pseudo_mask.to_bytes()))
+                    });
+
+                info!(escrow_id = %escrow_id, "Returning existing FROST signing session (idempotent)");
+                return Ok(TxSigningData {
+                    tx_prefix_hash,
+                    clsag_message_hash,
+                    ring_data_json,
+                    pseudo_out,
+                    recipient_address,
+                    amount_atomic,
+                    multisig_pubkey,
+                    pseudo_out_mask,
+                    funding_commitment_mask: escrow.funding_commitment_mask.clone(),
+                    multisig_view_key: escrow.multisig_view_key.clone(),
+                    funding_tx_pubkey: escrow.funding_tx_pubkey.clone(),
+                    funding_output_index: escrow.funding_output_index,
+                    round_id: stored_round_id,
+                });
+            }
         }
 
         // ====================================================================
@@ -1347,8 +1506,11 @@ impl FrostSigningCoordinator {
             serde_json::to_string(&stored_params).context("Failed to serialize TX params")?;
 
         // ====================================================================
-        // 9. Store signing state in DB
+        // 9. Store signing state in DB (with round_id + signer_set_hash)
         // ====================================================================
+        let round_id = uuid::Uuid::new_v4().to_string();
+        let signer_set_hash = compute_signer_set_hash(&escrow);
+
         diesel::insert_into(frost_signing_state::table)
             .values((
                 frost_signing_state::escrow_id.eq(escrow_id),
@@ -1363,6 +1525,8 @@ impl FrostSigningCoordinator {
                 frost_signing_state::pseudo_out_hex.eq(&pseudo_out_hex),
                 frost_signing_state::tx_secret_key.eq(hex::encode(tx_secret_key)),
                 frost_signing_state::ring_indices_json.eq(&ring_indices_json),
+                frost_signing_state::round_id.eq(&round_id),
+                frost_signing_state::signer_set_hash.eq(&signer_set_hash),
             ))
             .execute(conn)
             .context("Failed to create signing state")?;
@@ -1392,6 +1556,7 @@ impl FrostSigningCoordinator {
             multisig_view_key: Some(view_key_hex.clone()),
             funding_tx_pubkey: Some(funding_tx_pubkey_hex.clone()),
             funding_output_index: Some(funding_output_index),
+            round_id: Some(round_id),
         })
     }
 
@@ -1406,7 +1571,50 @@ impl FrostSigningCoordinator {
         role: &str,
         r_public: &str,
         r_prime_public: &str,
+        client_round_id: Option<&str>,
     ) -> Result<bool> {
+        // ── STATUS GUARD: nonces only accepted in "initialized" state ──
+        let (current_status, stored_round_id): (String, Option<String>) =
+            frost_signing_state::table
+                .filter(frost_signing_state::escrow_id.eq(escrow_id))
+                .select((frost_signing_state::status, frost_signing_state::round_id))
+                .first(conn)
+                .context("Signing session not found")?;
+
+        // TERMINAL GUARD: broadcasted is absorbing — no mutations allowed
+        if current_status == "broadcasted" {
+            anyhow::bail!("Cannot submit nonces — session already broadcasted (terminal state)");
+        }
+
+        if current_status != "initialized" {
+            anyhow::bail!(
+                "Cannot submit nonces in status '{}' — only allowed in 'initialized'. \
+                 Call POST /sign/reset to start a new round.",
+                current_status
+            );
+        }
+
+        // ── ROUND ID VALIDATION: reject stale submissions ──
+        if let Some(stored_rid) = &stored_round_id {
+            match client_round_id {
+                Some(client_rid) if client_rid == stored_rid => { /* OK — round matches */ }
+                Some(client_rid) => {
+                    anyhow::bail!(
+                        "Round ID mismatch: session has '{}', client sent '{}'. \
+                         Session was reset — call init to get new round_id.",
+                        stored_rid, client_rid
+                    );
+                }
+                None => {
+                    // SECURITY: Legacy path — remove in v0.90.0
+                    warn!(
+                        escrow_id = %escrow_id,
+                        "LEGACY: Client submitted nonce without round_id — accepting for backward compat"
+                    );
+                }
+            }
+        }
+
         let now = chrono::Utc::now().naive_utc();
 
         // Update appropriate column based on role
@@ -1506,7 +1714,52 @@ impl FrostSigningCoordinator {
         escrow_id: &str,
         role: &str,
         partial_sig_json: &str,
+        client_round_id: Option<&str>,
     ) -> Result<bool> {
+        // ── STATUS GUARD: partials only accepted in "nonces_aggregated" state ──
+        let (current_status, stored_round_id): (String, Option<String>) =
+            frost_signing_state::table
+                .filter(frost_signing_state::escrow_id.eq(escrow_id))
+                .select((frost_signing_state::status, frost_signing_state::round_id))
+                .first(conn)
+                .context("Signing session not found")?;
+
+        // TERMINAL GUARD: broadcasted is absorbing — no mutations allowed
+        if current_status == "broadcasted" {
+            anyhow::bail!(
+                "Cannot submit partial signature — session already broadcasted (terminal state)"
+            );
+        }
+
+        if current_status != "nonces_aggregated" {
+            anyhow::bail!(
+                "Cannot submit partial signature in status '{}' — only allowed in 'nonces_aggregated'. \
+                 Submit nonces first, or call POST /sign/reset to start over.",
+                current_status
+            );
+        }
+
+        // ── ROUND ID VALIDATION: reject stale submissions ──
+        if let Some(stored_rid) = &stored_round_id {
+            match client_round_id {
+                Some(client_rid) if client_rid == stored_rid => { /* OK — round matches */ }
+                Some(client_rid) => {
+                    anyhow::bail!(
+                        "Round ID mismatch: session has '{}', client sent '{}'. \
+                         Session was reset — call init to get new round_id.",
+                        stored_rid, client_rid
+                    );
+                }
+                None => {
+                    // SECURITY: Legacy path — remove in v0.90.0
+                    warn!(
+                        escrow_id = %escrow_id,
+                        "LEGACY: Client submitted partial without round_id — accepting for backward compat"
+                    );
+                }
+            }
+        }
+
         let now = chrono::Utc::now().naive_utc();
 
         // Store signature in escrows table (existing columns)
@@ -2035,6 +2288,7 @@ impl FrostSigningCoordinator {
             arbiter_partial_submitted: Option<bool>,
             status: String,
             broadcasted_tx_hash: Option<String>,
+            round_id: Option<String>,
         }
 
         let state: State = frost_signing_state::table
@@ -2047,6 +2301,7 @@ impl FrostSigningCoordinator {
                 frost_signing_state::arbiter_partial_submitted,
                 frost_signing_state::status,
                 frost_signing_state::broadcasted_tx_hash,
+                frost_signing_state::round_id,
             ))
             .first(conn)
             .context("Signing state not found")?;
@@ -2059,6 +2314,7 @@ impl FrostSigningCoordinator {
             vendor_partial_submitted: state.vendor_partial_submitted.unwrap_or(false),
             arbiter_partial_submitted: state.arbiter_partial_submitted.unwrap_or(false),
             tx_hash: state.broadcasted_tx_hash,
+            round_id: state.round_id,
         })
     }
 }

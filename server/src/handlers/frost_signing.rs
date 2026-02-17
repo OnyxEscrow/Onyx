@@ -14,7 +14,7 @@ use actix_web::{web, HttpRequest, HttpResponse};
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::SqliteConnection;
 use serde::Deserialize;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 use crate::handlers::auth_helpers::get_authenticated_identity;
 use crate::handlers::frost_escrow::ApiResponse;
@@ -29,6 +29,8 @@ pub struct SubmitNonceRequest {
     pub r_public: String,
     pub r_prime_public: String,
     pub commitment_hash: String,
+    /// Round ID from init_signing — prevents stale nonce submission after reset
+    pub round_id: Option<String>,
 }
 
 /// Request to submit partial signature
@@ -37,6 +39,8 @@ pub struct SubmitPartialRequest {
     pub role: String,
     pub partial_signature: String, // JSON-encoded CLSAG signature
     pub partial_key_image: String,
+    /// Round ID from init_signing — prevents stale partial submission after reset
+    pub round_id: Option<String>,
 }
 
 /// Initialize signing session
@@ -108,6 +112,7 @@ pub async fn submit_nonce_commitment(
         &body.role,
         &body.r_public,
         &body.r_prime_public,
+        body.round_id.as_deref(),
     ) {
         Ok(both_submitted) => {
             info!(
@@ -267,6 +272,7 @@ pub async fn submit_partial_signature(
         &escrow_id,
         &body.role,
         &body.partial_signature,
+        body.round_id.as_deref(),
     ) {
         Ok(all_submitted) => {
             info!(
@@ -474,6 +480,14 @@ pub async fn get_tx_data(
                     Some(hex::encode(s.to_bytes()))
                 });
 
+            // Fetch round_id for response
+            let stored_round_id: Option<String> = frost_signing_state::table
+                .filter(frost_signing_state::escrow_id.eq(&escrow_id))
+                .select(frost_signing_state::round_id)
+                .first::<Option<String>>(&mut conn)
+                .ok()
+                .flatten();
+
             HttpResponse::Ok().json(ApiResponse::success(TxSigningData {
                 tx_prefix_hash: data.0,
                 clsag_message_hash: data.1,
@@ -493,6 +507,7 @@ pub async fn get_tx_data(
                     .as_ref()
                     .and_then(|e| e.funding_tx_pubkey.clone()),
                 funding_output_index: escrow_opt.as_ref().and_then(|e| e.funding_output_index),
+                round_id: stored_round_id,
             }))
         }
         Err(e) => {
@@ -540,6 +555,52 @@ pub async fn get_first_signer_data(
     }
 }
 
+/// Reset FROST signing session — burns all nonces and issues new round_id
+///
+/// POST /api/escrow/frost/{id}/sign/reset
+///
+/// CRITICAL: Call this after any abort, timeout, or broadcast rejection
+/// before retrying. Reusing nonces across rounds leaks the private key.
+async fn reset_frost_signing(
+    req: HttpRequest,
+    path: web::Path<String>,
+    pool: web::Data<DbPool>,
+    session: Session,
+) -> HttpResponse {
+    let escrow_id = path.into_inner();
+
+    if get_authenticated_identity(&req, &session).is_err() {
+        return HttpResponse::Unauthorized()
+            .json(ApiResponse::<()>::error("Authentication required"));
+    }
+
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            error!("DB connection error: {}", e);
+            return HttpResponse::InternalServerError()
+                .json(ApiResponse::<()>::error("Database unavailable"));
+        }
+    };
+
+    match FrostSigningCoordinator::reset_signing_session(&mut conn, &escrow_id) {
+        Ok(new_round_id) => {
+            warn!(escrow_id = %escrow_id, "FROST signing session reset via API");
+            HttpResponse::Ok().json(ApiResponse::success(serde_json::json!({
+                "escrow_id": escrow_id,
+                "status": "initialized",
+                "round_id": new_round_id,
+                "message": "Signing session reset — all nonces burned. Fresh round_id issued."
+            })))
+        }
+        Err(e) => {
+            error!(escrow_id = %escrow_id, error = %e, "Failed to reset signing session");
+            HttpResponse::BadRequest()
+                .json(ApiResponse::<()>::error(&format!("Reset failed: {}", e)))
+        }
+    }
+}
+
 /// Configure FROST signing routes
 pub fn configure_signing_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
@@ -560,6 +621,7 @@ pub fn configure_signing_routes(cfg: &mut web::ServiceConfig) {
             .route(
                 "/{id}/sign/first-signer-data",
                 web::get().to(get_first_signer_data),
-            ),
+            )
+            .route("/{id}/sign/reset", web::post().to(reset_frost_signing)),
     );
 }
