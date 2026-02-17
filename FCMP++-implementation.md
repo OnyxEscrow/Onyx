@@ -2,9 +2,9 @@
 
 Onyx-Escrow's Pre-Hard-Fork Integration with Full-Chain Membership Proofs
 
-**Version:** 0.1.0-draft
+**Version:** 0.1.1-draft
 **Status:** Speculative — blocked on Monero hard fork
-**Last Updated:** 2026-02-16
+**Last Updated:** 2026-02-17
 
 ---
 
@@ -154,7 +154,15 @@ The aggregation MUST happen client-side because `SignatureMachine::complete()` n
 
 ### 4.3 Identifiable Abort
 
-If a signer submits an invalid share, `complete()` returns `FrostError::InvalidShare(participant)`. The server can identify and blame the misbehaving signer. No protocol restart is needed — the honest parties can re-run with the third (arbiter) signer instead.
+If a signer submits an invalid share, `complete()` returns `FrostError::InvalidShare(participant)`. The server can identify and blame the misbehaving signer.
+
+**A full protocol restart IS required after any abort.** All nonces from the aborted round must be destroyed before retrying — even if the retry uses the same honest signers. Reusing a nonce `r` across two rounds with different challenges `c₁, c₂` leaks the private key via algebraic extraction:
+
+    s₁ = r + c₁·x
+    s₂ = r + c₂·x
+    x  = (s₁ - s₂) / (c₁ - c₂)
+
+This applies to both the CLSAG and SA+L signing paths. Our implementation enforces this structurally: `reset_signing_session()` atomically burns all nonce state and issues a fresh `round_id` UUID. Stale submissions against an old `round_id` are rejected. Signer set changes (e.g., swapping in the arbiter) trigger automatic nonce invalidation via `signer_set_hash` comparison in `init_signing()`.
 
 ---
 
@@ -408,7 +416,7 @@ For readers familiar with our CLSAG implementation (see `PROTOCOL.md`):
 | Global proof | None | FCMP (variable, ~2-10KB) |
 | Aggregation location | Server (reconstructs `x_total`) | Client WASM (`SignatureMachine::complete()`) |
 | Ciphersuite | Ed25519 (generator G) | Ed25519T (generator T) |
-| Nonce reuse risk | Mitigated by round-robin ordering | Mitigated by FROST protocol (nonces bound to participant set) |
+| Nonce reuse risk | State-machine enforced: `reset_signing_session()` + `round_id` binding + `signer_set_hash` auto-invalidation | Same enforcement via SA+L coordinator `rollback()` — nonces burned on any abort/retry |
 
 The biggest architectural change is that **aggregation moved client-side**. In our CLSAG flow, the server reconstructs `x_total` from FROST shares and Lagrange interpolation, then builds the full CLSAG. In SA+L, the server can't do this because `complete()` needs the partial proof state from `sign()`. This is actually better for the non-custodial property — the server never touches anything resembling a private key, even transiently.
 
